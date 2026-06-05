@@ -29,6 +29,79 @@ let mainWindow    = null
 let pythonProcess = null
 let ollamaProcess = null
 
+// ─── yt-dlp auto-update ────────────────────────────────────────────────────
+
+async function updateYtDlp () {
+  const ytdlpPath = path.join(BIN_DIR, 'yt-dlp.exe')
+  if (!fs.existsSync(ytdlpPath)) return  // não bundled, usa PATH
+
+  try {
+    // Versão instalada
+    const { execFileSync } = require('child_process')
+    let current = ''
+    try {
+      current = execFileSync(ytdlpPath, ['--version'], { timeout: 5000 })
+        .toString().trim()
+    } catch { return }
+
+    // Versão mais recente no GitHub
+    const https   = require('https')
+    const latest  = await new Promise((resolve, reject) => {
+      https.get(
+        'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest',
+        { headers: { 'User-Agent': 'BrainIAc' } },
+        res => {
+          let data = ''
+          res.on('data', c => data += c)
+          res.on('end', () => {
+            try { resolve(JSON.parse(data).tag_name || '') }
+            catch { resolve('') }
+          })
+        }
+      ).on('error', reject)
+    })
+
+    if (!latest || latest === current) {
+      console.log(`[yt-dlp] versão atual: ${current} (sem atualização)`)
+      return
+    }
+
+    console.log(`[yt-dlp] atualizando ${current} → ${latest}`)
+    sendToLoading(`window.setStatus('Atualizando yt-dlp ${latest}...', true)`)
+
+    const url = `https://github.com/yt-dlp/yt-dlp/releases/download/${latest}/yt-dlp.exe`
+    const tmp = ytdlpPath + '.new'
+
+    await new Promise((resolve, reject) => {
+      const fileStream = fs.createWriteStream(tmp)
+      const download   = (u, redirects = 0) => {
+        if (redirects > 5) return reject(new Error('Too many redirects'))
+        https.get(u, { headers: { 'User-Agent': 'BrainIAc' } }, res => {
+          if (res.statusCode === 301 || res.statusCode === 302)
+            return download(res.headers.location, redirects + 1)
+          if (res.statusCode !== 200)
+            return reject(new Error(`HTTP ${res.statusCode}`))
+          res.pipe(fileStream)
+          fileStream.on('finish', () => { fileStream.close(); resolve() })
+          fileStream.on('error', reject)
+        }).on('error', reject)
+      }
+      download(url)
+    })
+
+    // Substitui o binário
+    fs.renameSync(ytdlpPath, ytdlpPath + '.bak')
+    fs.renameSync(tmp, ytdlpPath)
+    try { fs.unlinkSync(ytdlpPath + '.bak') } catch {}
+
+    console.log(`[yt-dlp] atualizado para ${latest}`)
+    sendToLoading(`window.setStatus('yt-dlp atualizado!', false)`)
+
+  } catch (e) {
+    console.error('[yt-dlp] falha ao atualizar:', e.message)
+  }
+}
+
 // ─── Ollama ────────────────────────────────────────────────────────────────
 function findOllamaExe () {
   const os       = require('os')
@@ -306,6 +379,7 @@ function setupAutoUpdater () {
 
 // ─── Ciclo de vida do app ──────────────────────────────────────────────────
 app.whenReady().then(() => {
+  updateYtDlp().catch(e => console.error('[yt-dlp] erro:', e))
   ensureOllama().catch(e => console.error('[ollama] erro:', e))
   spawnBackend()
   createWindow()
