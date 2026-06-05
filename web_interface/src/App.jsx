@@ -20,6 +20,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Constants, services, hooks ───────────────────────────────────────────────
 import { API_BASE, BTN_FOCUS } from './constants';
+import { initAnalytics, getConsent, Analytics } from './services/analytics';
+import { useOnboarding } from './hooks/useOnboarding';
+import ConsentModal from './components/shared/ConsentModal';
+import ProgressToast from './components/shared/ProgressToast';
 import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig, loadAgentConfig,
@@ -114,6 +118,9 @@ function App() {
   // ─── Chat state ────────────────────────────────────────────────────────────
   const [chatOpen,         setChatOpen]         = useState(false);
   const [buscaAmpla,       setBuscaAmpla]       = useState(false);
+  const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
+  const [progressToast,    setProgressToast]    = useState(null);
+  const { seen, markSeen, KEYS } = useOnboarding();
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState('');
   const [chatLoading,      setChatLoading]      = useState(false);
@@ -149,6 +156,8 @@ function App() {
 
   /** Syncs dark class on html element */
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); }, [darkMode]);
+
+  useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
   /** Requests browser notification permission on first load */
   useEffect(() => {
@@ -272,6 +281,15 @@ function App() {
   useEffect(() => {
     if (!agentStatus.indexing && agentStatus.index_logs.length > 0) {
       setLastIndexLogs(agentStatus.index_logs);
+      if (!seen(KEYS.indexDone)) {
+        markSeen(KEYS.indexDone);
+        Analytics.baseIndexada(agentStatus.index_count);
+        setProgressToast({
+          message: `Base indexada — ${agentStatus.index_count} chunks prontos!`,
+          nextStep: 'Abrir chat',
+          onNext: () => setChatOpen(true),
+        });
+      }
     }
   }, [agentStatus.indexing, agentStatus.index_logs]);
 
@@ -311,6 +329,7 @@ function App() {
       if (res.data.error) { setCanalError(res.data.message); }
       else { setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
     } catch { setCanalError(t('channel.error_server')); }
+    Analytics.canalConfigurado(canalInput);
     setConfigurando(false);
   };
 
@@ -466,6 +485,27 @@ function App() {
       </a>
 
       {/* ── Modals ── */}
+      {/* Analytics consent — shown once on first launch */}
+      <AnimatePresence>
+        {showConsent && (
+          <ConsentModal key="consent" darkMode={darkMode} onDone={() => setShowConsent(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Progress toast — contextual next-step guidance */}
+      <AnimatePresence>
+        {progressToast && (
+          <ProgressToast
+            key="progress-toast"
+            darkMode={darkMode}
+            message={progressToast.message}
+            nextStep={progressToast.nextStep}
+            onNext={progressToast.onNext}
+            onClose={() => setProgressToast(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showOnboarding && <Onboarding key="onboarding" onDone={() => setShowOnboarding(false)} />}
       </AnimatePresence>
@@ -876,6 +916,16 @@ function App() {
             {activeTab === 'repositorio' && (
               <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio"
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 custom-scrollbar">
+                {!seen(KEYS.repositorio) && (
+                  <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2.5 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
+                    <span className="text-base shrink-0">💡</span>
+                    <div className="flex-1">
+                      <p className={`text-xs font-bold mb-0.5 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
+                      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Aqui ficam os arquivos do YouTube. Use <strong>+ Adicionar</strong> para incluir PDFs, Word, Markdown ou colar texto.</p>
+                    </div>
+                    <button onClick={() => markSeen(KEYS.repositorio)} className={`p-1 rounded text-xs shrink-0 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
+                  </div>
+                )}
                 <RepositorioTab
                   darkMode={darkMode} repositorio={repositorio} setRepositorio={setRepositorio}
                   history={history} btnFocus={BTN_FOCUS}
