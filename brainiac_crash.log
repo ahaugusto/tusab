@@ -1,0 +1,43 @@
+Traceback (most recent call last):
+  File "C:\Users\augus\Desktop\Brainiac\api_brainiac.py", line 735, in <module>
+    @app.post("/cerebro/upload")
+     ~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\augus\Desktop\Brainiac\.venv\Lib\site-packages\fastapi\routing.py", line 1450, in decorator
+    self.add_api_route(
+    ~~~~~~~~~~~~~~~~~~^
+        path,
+        ^^^^^
+    ...<23 lines>...
+        generate_unique_id_function=generate_unique_id_function,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\augus\Desktop\Brainiac\.venv\Lib\site-packages\fastapi\routing.py", line 1386, in add_api_route
+    route = route_class(
+        self.prefix + path,
+    ...<27 lines>...
+        ),
+    )
+  File "C:\Users\augus\Desktop\Brainiac\.venv\Lib\site-packages\fastapi\routing.py", line 949, in __init__
+    self.dependant = get_dependant(
+                     ~~~~~~~~~~~~~^
+        path=self.path_format, call=self.endpoint, scope="function"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\augus\Desktop\Brainiac\.venv\Lib\site-packages\fastapi\dependencies\utils.py", line 311, in get_dependant
+    param_details = analyze_param(
+        param_name=param_name,
+    ...<2 lines>...
+        is_path_param=is_path_param,
+    )
+  File "C:\Users\augus\Desktop\Brainiac\.venv\Lib\site-packages\fastapi\dependencies\utils.py", line 535, in analyze_param
+    ensure_multipart_is_installed()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\augus\Desktop\Brainiac\.venv\Lib\site-packages\fastapi\dependencies\utils.py", line 120, in ensure_multipart_is_installed
+    raise RuntimeError(multipart_not_installed_error) from None
+RuntimeError: Form data requires "python-multipart" to be installed. 
+You can install "python-multipart" with: 
+
+pip install python-multipart
+

@@ -24,7 +24,10 @@ DADOS_DIR   = obter_caminho_dados()
 DATA_DIR    = os.path.join(DADOS_DIR, 'data')
 CONFIG_PATH = os.path.join(DATA_DIR, 'config', 'agent_config.json')
 INDEX_DIR   = os.path.join(DATA_DIR, 'agent_index')
-TXT_DIR     = os.path.join(DATA_DIR, 'cerebro_txt')
+CEREBRO_DIR  = os.path.join(DATA_DIR, 'cerebro')
+TXT_DIR      = os.path.join(CEREBRO_DIR, 'youtube')
+DOC_DIR      = os.path.join(CEREBRO_DIR, 'documentos')
+TEXT_DIR     = os.path.join(CEREBRO_DIR, 'textos')
 
 
 # ==========================================
@@ -194,6 +197,43 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list[dict]:
     return chunks
 
 
+def _parsear_todos_chunks(canal_prefixo: str) -> list[dict]:
+    """Lê chunks de todas as fontes: YouTube + documentos + textos do usuário."""
+    chunks = _parsear_chunks(TXT_DIR, canal_prefixo)
+
+    # Documentos do usuário (não filtrados por canal)
+    for source_dir in [DOC_DIR, TEXT_DIR]:
+        if not os.path.exists(source_dir):
+            continue
+        for fname in sorted(os.listdir(source_dir)):
+            if not fname.endswith('.txt') or fname.startswith('_'):
+                continue
+            caminho = os.path.join(source_dir, fname)
+            try:
+                with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
+                    conteudo = f.read().strip()
+                if len(conteudo) < 80:
+                    continue
+                # Split into 2000-char chunks
+                partes = [conteudo[i:i+2000] for i in range(0, len(conteudo), 2000)]
+                for j, parte in enumerate(partes):
+                    if len(parte) < 80:
+                        continue
+                    chunks.append({
+                        'texto':   parte,
+                        'titulo':  fname.replace('.txt', ''),
+                        'aba':     'documento' if source_dir == DOC_DIR else 'texto',
+                        'data':    '',
+                        'link':    '',
+                        'tags':    [],
+                        'arquivo': fname,
+                        'descricao': '',
+                    })
+            except Exception:
+                pass
+    return chunks
+
+
 # ==========================================
 # --- ENRIQUECIMENTO BM25 ---
 # ==========================================
@@ -226,12 +266,13 @@ def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keyword
 
 def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None) -> int:
     # Indexação BM25 é 100% local — não requer chave de API.
+    config = carregar_config()
 
     if callback: callback("🔍 Lendo arquivos do corpus...")
 
-    chunks = _parsear_chunks(TXT_DIR, canal_prefixo)
+    chunks = _parsear_todos_chunks(canal_prefixo)
     if not chunks:
-        raise ValueError(f"Nenhum arquivo .txt encontrado para '{canal_prefixo}'. Faça a extração primeiro.")
+        raise ValueError(f"Nenhum conteúdo encontrado para '{canal_prefixo}'. Faça a extração ou adicione documentos.")
 
     if stop_event and stop_event.is_set():
         if callback: callback("🛑 Indexação cancelada.")
@@ -392,12 +433,62 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     # Re-ordena todos por score e retorna top-n
     resultados.sort(key=lambda x: x['score'], reverse=True)
-    return resultados[:n]
+    top = resultados[:n]
+
+    # Threshold mínimo: se o melhor score for muito baixo, não há conteúdo relevante
+    # Evita que o LLM receba contexto irrelevante e invente respostas externas
+    SCORE_MINIMO = 0.5
+    top = [r for r in top if r['score'] >= SCORE_MINIMO]
+
+    return top
 
 
 # ==========================================
 # --- CHAT ---
 # ==========================================
+
+def _verificar_alucinacao(resposta: str, contexto: list[dict], canal_nome: str) -> str:
+    """
+    Camada de segurança pós-geração.
+    Verifica se a resposta contém conteúdo que não pode ser rastreado aos chunks recuperados.
+    Usa sobreposição de palavras-chave como heurística.
+    Se a taxa de cobertura for muito baixa, substitui por mensagem de segurança.
+    """
+    FRASES_NAO_ENCONTRADO = [
+        'não encontrei', 'nao encontrei', 'not found',
+        'não há informação', 'nao ha informacao',
+        'não consta', 'nao consta',
+    ]
+    resposta_lower = resposta.lower()
+
+    # Se o modelo já indicou que não encontrou, aceita diretamente
+    if any(f in resposta_lower for f in FRASES_NAO_ENCONTRADO):
+        return resposta
+
+    # Extrai palavras significativas da resposta (5+ chars, sem stopwords)
+    palavras_resposta = set(re.findall(r'\b[a-záéíóúàâêôãõç]{5,}\b', resposta_lower))
+    palavras_resposta -= _STOPWORDS
+
+    if not palavras_resposta:
+        return resposta
+
+    # Cria corpus dos chunks recuperados
+    corpus_chunks = ' '.join(c['texto'].lower() for c in contexto)
+
+    # Conta quantas palavras da resposta aparecem no corpus
+    encontradas = sum(1 for p in palavras_resposta if p in corpus_chunks)
+    cobertura = encontradas / len(palavras_resposta)
+
+    # Se menos de 20% das palavras-chave aparecem nos chunks → provável alucinação
+    if cobertura < 0.20:
+        handle = f'@{canal_nome}' if canal_nome else 'este canal'
+        return (
+            f'Não encontrei informações suficientes sobre esse tema no conteúdo de {handle}. '
+            f'Tente reformular a pergunta ou verifique se o canal aborda esse assunto.'
+        )
+
+    return resposta
+
 
 def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None, historico: list = None) -> str:
     canal_info = ""
@@ -430,13 +521,17 @@ def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None,
         if trocas:
             hist_str = "HISTÓRICO DA CONVERSA:\n" + "\n".join(trocas) + "\n\n"
 
+    handle = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
+
     return (
-        f"Você é o BrainIAc, assistente especializado no conteúdo do canal {canal_info}.\n"
-        "Responda APENAS com base nas fontes abaixo. Se a resposta não estiver nas fontes, "
-        "diga claramente que não encontrou informação sobre o tema no canal.\n"
-        "Ao responder, cite SEMPRE o título e a data do vídeo fonte. Seja direto e objetivo.\n\n"
+        f"Você é o BrainIAc, um assistente que responde EXCLUSIVAMENTE com base nos trechos abaixo.\n\n"
+        f"TAREFA: leia os trechos e extraia as informações que respondam à pergunta do usuário.\n"
+        f"NÃO use nenhum conhecimento próprio, externo ou de treinamento.\n"
+        f"CADA afirmação da sua resposta deve poder ser rastreada a um dos trechos abaixo.\n"
+        f"Se os trechos não contiverem a informação, responda APENAS:\n"
+        f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
         + hist_str
-        + f"FONTES:\n{contexto_str}\n\n"
+        + f"TRECHOS DO CANAL {handle.upper()}:\n{contexto_str}\n\n"
         + f"PERGUNTA: {pergunta}\n\nRESPOSTA:"
     )
 
@@ -496,6 +591,16 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         resp     = _genai.GenerativeModel(modelo).generate_content(prompt)
         resposta = resp.text
 
+    elif provider == 'groq':
+        from openai import OpenAI
+        modelo   = config.get('groq_model', 'llama-3.1-8b-instant')
+        resp     = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+            model=modelo,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500,
+        )
+        resposta = resp.choices[0].message.content
+
     elif provider == 'ollama':
         import requests as _req
         modelo = config.get('ollama_model', 'llama3.2:1b')
@@ -509,6 +614,8 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
     else:
         raise ValueError(f"Provedor desconhecido: {provider}")
+
+    resposta = _verificar_alucinacao(resposta, contexto, canal_nome)
 
     return {
         'resposta': resposta,
@@ -575,6 +682,20 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
                 for chunk in _genai.GenerativeModel(modelo).generate_content(prompt, stream=True):
                     if chunk.text:
                         yield chunk.text
+
+        elif provider == 'groq':
+            from openai import OpenAI
+            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
+            stream = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+                model=modelo,
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=1500,
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
 
         elif provider == 'openai':
             from openai import OpenAI

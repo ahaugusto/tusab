@@ -11,3 +11,8 @@ rank_bm25
 openai
 anthropic
 google-genai
+
+# --- Processamento de documentos ---
+pdfplumber
+python-docx
+python-multipart

@@ -13,6 +13,39 @@ Versionamento via [Semantic Versioning](https://semver.org).
 - Whisper como fallback para vídeos sem legenda
 - Telemetria opt-in via Posthog
 - Sistema de licença via Lemon Squeezy
+- Imagens na base de conhecimento (OCR / LLaVA)
+
+---
+
+## [0.4.0] — 2026-06-05
+### Added
+- **Home screen** com 4 cards interativos (Extrair / Repositório / Relatório / Configurar Agente) — mostrada a cada entrada, com badges de contagem real
+- **Aba Repositório** — browser de arquivos da base: YouTube extraídos, documentos e textos do usuário; botão "Adicionar" para upload (PDF/DOCX/TXT/MD) ou colar texto; botão deletar por item
+- **Aba Relatório** — select de canal, cards de stats (total, extraídos, cobertura %), tabela de vídeos filtrável por status
+- **Base de conhecimento expandida** — nova estrutura `data/cerebro/youtube/`, `data/cerebro/documentos/`, `data/cerebro/textos/`; BM25 lê de todas as fontes na indexação
+- **Endpoints novos**: `GET /repositorio`, `GET /relatorio/{canal}`, `POST /cerebro/upload`, `POST /cerebro/texto`, `DELETE /cerebro/arquivo/{tipo}/{id}`
+- **Groq como provedor** — modelos llama-3.1-8b e llama-3.1-70b gratuitos; seletor simplificado (Rápido / Máxima qualidade)
+- **Chat flutuante** — drawer lateral (420px desktop, full-screen mobile) acessível de qualquer aba
+- Guia "Como usar" atualizado com 6 passos refletindo o novo fluxo
+- Canal do relatório com feedback visual ao selecionar
+
+### Changed
+- 4 abas: Extração · Repositório · Relatório · Configurar Agente (era Extração · Agente IA)
+- `cerebro_txt/` migrado automaticamente para `cerebro/youtube/` na inicialização
+- Chat removido da aba Configurar Agente — acessível via botão flutuante
+- Chat vinculado ao canal configurado no sidebar (não mais ao último indexado)
+
+### Fixed
+- `NaN` do pandas causando 500 no endpoint `/relatorio/{canal}`
+- `python-multipart` ausente bloqueando upload de arquivos
+- Duplicate `function App()` causando build quebrado
+- Fontes do chat aparecem após a resposta (não antes)
+- Select com ícone muito próximo da borda (adicionado `pr-8`)
+
+### Packages
+- `pdfplumber` — extração de texto de PDFs
+- `python-docx` — extração de texto de DOCX
+- `python-multipart` — upload de arquivos via FastAPI
 
 ---
 

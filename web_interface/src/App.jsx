@@ -8,7 +8,7 @@ import {
   AlertTriangle, XCircle, Loader2, BarChart3, Menu, X,
   ShieldCheck, ShieldOff, ShieldAlert, CloudOff, KeyRound,
   Trophy, Globe, MicOff, Scissors, Bot, Sparkles, Send,
-  BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen
+  BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -127,6 +127,396 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, apiBas
     </div>
   );
 }
+
+// ── Home Screen ──────────────────────────────────────────────────────────────
+
+function HomeScreen({ darkMode, history, repositorio, agentStatus, onNavigate, btnFocus }) {
+  const totalArquivos = (repositorio.youtube?.length || 0) + (repositorio.documentos?.length || 0) + (repositorio.textos?.length || 0);
+  const totalCanais   = history.length;
+  const configured    = agentStatus.configured;
+  const indexed       = agentStatus.canais_indexados?.length > 0;
+
+  const cards = [
+    {
+      id:       'extracao',
+      icon:     '🎬',
+      title:    'Extrair Canal YouTube',
+      desc:     totalCanais > 0 ? `${totalCanais} canal${totalCanais !== 1 ? 'is' : ''} extraído${totalCanais !== 1 ? 's' : ''}` : 'Comece aqui — cole a URL de um canal',
+      color:    'primary',
+      badge:    totalCanais > 0 ? String(totalCanais) : null,
+      primary:  true,
+    },
+    {
+      id:       'repositorio',
+      icon:     '📚',
+      title:    'Repositório',
+      desc:     totalArquivos > 0 ? `${totalArquivos} arquivo${totalArquivos !== 1 ? 's' : ''} indexado${totalArquivos !== 1 ? 's' : ''}` : 'Gerencie seu banco de conhecimento',
+      color:    'accent',
+      badge:    totalArquivos > 0 ? String(totalArquivos) : null,
+      primary:  false,
+    },
+    {
+      id:       'relatorio',
+      icon:     '📊',
+      title:    'Relatório',
+      desc:     totalCanais > 0 ? `${totalCanais} canal${totalCanais !== 1 ? 'is' : ''} disponível${totalCanais !== 1 ? 's' : ''}` : 'Veja o status das suas extrações',
+      color:    'secondary',
+      badge:    totalCanais > 0 ? String(totalCanais) : null,
+      primary:  false,
+    },
+    {
+      id:       'agente',
+      icon:     '⚙️',
+      title:    'Configurar Agente IA',
+      desc:     configured ? (indexed ? 'Agente pronto para uso' : 'Indexe uma base para usar o chat') : 'Configure o provedor de IA',
+      color:    configured && indexed ? 'secondary' : 'primary',
+      badge:    configured ? '✓' : null,
+      primary:  false,
+    },
+  ];
+
+  return (
+    <div className={`flex-1 flex flex-col items-center justify-center px-6 py-8 ${darkMode ? 'bg-[#080C18]' : 'bg-slate-50'}`}>
+      {/* Header */}
+      <div className="text-center mb-10">
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center">
+            <span className="text-2xl">🧠</span>
+          </div>
+          <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>BrainIAc</h1>
+        </div>
+        <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          Transforme qualquer canal do YouTube em conhecimento consultável
+        </p>
+      </div>
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-3xl">
+        {cards.map(card => (
+          <button
+            key={card.id}
+            onClick={() => onNavigate(card.id)}
+            className={`relative p-5 rounded-2xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${btnFocus}
+              ${card.primary
+                ? darkMode ? 'bg-primary/15 border-primary/30 hover:bg-primary/20' : 'bg-violet-50 border-violet-200 hover:bg-violet-100'
+                : darkMode ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+            {card.badge && (
+              <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full
+                ${card.color === 'secondary' ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
+                  : darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'}`}>
+                {card.badge}
+              </span>
+            )}
+            <span className="text-3xl mb-3 block">{card.icon}</span>
+            <p className={`text-sm font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
+            <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Skip */}
+      <button
+        onClick={() => onNavigate('extracao')}
+        className={`mt-8 text-xs ${darkMode ? 'text-slate-600 hover:text-slate-400' : 'text-slate-400 hover:text-slate-600'} transition-colors`}>
+        Entrar diretamente na ferramenta →
+      </button>
+    </div>
+  );
+}
+
+
+// ── Repositório Tab ───────────────────────────────────────────────────────────
+
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, apiBase, onSetCanal }) {
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [mode, setMode]       = React.useState('texto'); // 'texto' | 'arquivo'
+  const [title, setTitle]     = React.useState('');
+  const [text, setText]       = React.useState('');
+  const [saving, setSaving]   = React.useState(false);
+  const [file, setFile]       = React.useState(null);
+  const fileRef = React.useRef(null);
+
+  const reload = () => axios.get(`${apiBase}/repositorio`).then(r => setRepositorio(r.data)).catch(() => {});
+
+  const handleSaveText = async () => {
+    if (!title.trim() || !text.trim()) return;
+    setSaving(true);
+    await axios.post(`${apiBase}/cerebro/texto`, { titulo: title.trim(), conteudo: text.trim() }).catch(() => {});
+    reload(); setShowAdd(false); setTitle(''); setText(''); setSaving(false);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setSaving(true);
+    const form = new FormData();
+    form.append('arquivo', file);
+    await axios.post(`${apiBase}/cerebro/upload`, form).catch(() => {});
+    reload(); setShowAdd(false); setFile(null); setSaving(false);
+  };
+
+  const handleDelete = async (tipo, id) => {
+    await axios.delete(`${apiBase}/cerebro/arquivo/${tipo}/${id}`).catch(() => {});
+    reload();
+  };
+
+  const totalYT  = repositorio.youtube?.length || 0;
+  const totalDoc = (repositorio.documentos?.length || 0) + (repositorio.textos?.length || 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Repositório de Conhecimento</h2>
+          <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalYT + totalDoc} arquivo{totalYT + totalDoc !== 1 ? 's' : ''} na base</p>
+        </div>
+        <button onClick={() => setShowAdd(v => !v)}
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
+          + Adicionar
+        </button>
+      </div>
+
+      {/* Add panel */}
+      {showAdd && (
+        <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className="flex gap-2">
+            {['texto', 'arquivo'].map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${mode === m ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
+                {m === 'texto' ? 'Colar texto' : 'Upload de arquivo'}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'texto' ? (
+            <>
+              <input placeholder="Título do conteúdo" value={title} onChange={e => setTitle(e.target.value)}
+                className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
+              <textarea placeholder="Cole o texto aqui..." value={text} onChange={e => setText(e.target.value)} rows={6}
+                className={`w-full rounded-xl border px-3 py-2 text-xs outline-none resize-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
+              <button onClick={handleSaveText} disabled={saving || !title.trim() || !text.trim()}
+                className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
+                {saving ? 'Salvando...' : 'Salvar texto'}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors
+                ${darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}
+                onClick={() => fileRef.current?.click()}>
+                <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {file ? file.name : 'Clique para selecionar PDF, DOCX, TXT ou MD'}
+                </p>
+                <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Suporte: .pdf .docx .txt .md
+                </p>
+              </div>
+              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden"
+                onChange={e => setFile(e.target.files[0] || null)} />
+              <button onClick={handleUpload} disabled={saving || !file}
+                className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30 ${btnFocus}`}>
+                {saving ? 'Processando...' : 'Fazer upload'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* YouTube files */}
+      {totalYT > 0 && (
+        <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+            <span className="text-sm">🎬</span>
+            <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>YouTube</p>
+            <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalYT} arquivo{totalYT !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y divide-white/5">
+            {repositorio.youtube.map((f, i) => (
+              <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
+                  <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* User documents */}
+      {(repositorio.documentos?.length > 0 || repositorio.textos?.length > 0) && (
+        <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+            <span className="text-sm">📎</span>
+            <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Documentos adicionados</p>
+            <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalDoc} item{totalDoc !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y divide-white/5">
+            {[...(repositorio.documentos || []).map(d => ({...d, tipo_grupo: 'documentos'})),
+              ...(repositorio.textos || []).map(d => ({...d, tipo_grupo: 'textos'}))
+            ].map((item, i) => (
+              <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                <span className="text-sm shrink-0">{item.tipo_grupo === 'textos' ? '📝' : '📄'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                    {item.titulo || item.nome_original}
+                  </p>
+                  <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                    {item.data} · {item.tipo?.toUpperCase()} · {item.chars?.toLocaleString()} chars
+                  </p>
+                </div>
+                <button onClick={() => handleDelete(item.tipo_grupo, item.id)}
+                  className={`p-1.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
+                  aria-label="Remover">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {totalYT === 0 && totalDoc === 0 && (
+        <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+          <p className="text-2xl mb-3">📭</p>
+          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Repositório vazio</p>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Extraia um canal ou adicione documentos para começar</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Relatório Tab ─────────────────────────────────────────────────────────────
+
+function RelatorioTab({ darkMode, history, btnFocus, apiBase }) {
+  const [canal,   setCanal]   = React.useState('');
+  const [data,    setData]    = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [filtro,  setFiltro]  = React.useState('todos');
+
+  React.useEffect(() => {
+    if (history.length > 0 && !canal) setCanal(history[0].canal);
+  }, [history]);
+
+  React.useEffect(() => {
+    if (!canal) return;
+    setLoading(true);
+    axios.get(`${apiBase}/relatorio/${encodeURIComponent(canal)}`)
+      .then(r => { setData(r.data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [canal]);
+
+  const videos = data?.videos || [];
+  const filtrados = filtro === 'todos' ? videos : videos.filter(v => v.Status === filtro);
+  const stats = data?.stats;
+
+  return (
+    <div className="space-y-4">
+      {/* Canal selector */}
+      {history.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Canal:</label>
+          <select value={canal} onChange={e => setCanal(e.target.value)}
+            className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+            {history.map(h => (
+              <option key={h.canal} value={h.canal}>@{h.canal}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {history.length === 1 && canal && (
+        <div className={`flex items-center gap-2 p-3 rounded-xl border ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'}`}>
+            {canal[0]?.toUpperCase()}
+          </div>
+          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex justify-center py-8">
+          <Loader2 size={24} className="animate-spin text-primary" />
+        </div>
+      )}
+
+      {stats && !loading && (
+        <>
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total',         value: stats.total,        color: 'primary'   },
+              { label: 'Extraídos',     value: stats.sucesso,      color: 'secondary' },
+              { label: 'Sem legenda',   value: stats.sem_legenda,  color: 'slate'     },
+              { label: 'Cobertura',     value: `${stats.cobertura}%`, color: stats.cobertura >= 80 ? 'secondary' : 'warning' },
+            ].map(s => (
+              <div key={s.label} className={`rounded-2xl p-4 border text-center ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <p className={`text-xl font-bold ${s.color === 'secondary' ? 'text-secondary' : s.color === 'warning' ? 'text-warning' : s.color === 'primary' ? 'text-primary' : darkMode ? 'text-white' : 'text-slate-800'}`}>{s.value}</p>
+                <p className={`text-[10px] uppercase font-bold mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Filter */}
+          <div className="flex gap-1.5">
+            {[['todos','Todos'], ['Sucesso','Extraídos'], ['Sem Legenda','Sem legenda'], ['Legenda Curta','Leg. curta']].map(([v, l]) => (
+              <button key={v} onClick={() => setFiltro(v)}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtro === v ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Table */}
+          <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <div className={`max-h-96 overflow-y-auto custom-scrollbar`}>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Título</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Data</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtrados.slice(0, 200).map((v, i) => (
+                    <tr key={i} className={`border-b last:border-0 ${darkMode ? 'border-white/5 hover:bg-white/4' : 'border-slate-50 hover:bg-slate-50'}`}>
+                      <td className="px-4 py-2">
+                        <a href={v.Link} target="_blank" rel="noreferrer"
+                          className={`hover:underline truncate block max-w-[200px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                          {v.Titulo}
+                        </a>
+                      </td>
+                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Pub}</td>
+                      <td className="px-4 py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold
+                          ${v.Status === 'Sucesso' ? (darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700')
+                          : v.Status === 'Sem Legenda' ? (darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500')
+                          : darkMode ? 'bg-warning/15 text-warning' : 'bg-amber-100 text-amber-700'}`}>
+                          {v.Status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {!loading && !data && history.length === 0 && (
+        <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+          <p className="text-2xl mb-3">📊</p>
+          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Nenhuma extração ainda</p>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Extraia um canal para ver o relatório aqui</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ── Onboarding ─────────────────────────────────────────────────────────────
 
@@ -305,6 +695,14 @@ function ExtractionModal({ onClose, onConfirm, darkMode }) {
 
 function GuideModal({ onClose, darkMode }) {
   const { t } = useTranslation();
+  const steps = [
+    { step: 1, color: 'primary',   text: t('guide.step1') },
+    { step: 2, color: 'primary',   text: t('guide.step2') },
+    { step: 3, color: 'accent',    text: t('guide.step3') },
+    { step: 4, color: 'secondary', text: t('guide.step4') },
+    { step: 5, color: 'secondary', text: t('guide.step5') },
+    { step: 6, color: 'primary',   text: t('guide.step6') },
+  ];
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -316,7 +714,7 @@ function GuideModal({ onClose, darkMode }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         onClick={e => e.stopPropagation()}
-        className={`rounded-2xl p-6 max-w-lg w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+        className={`rounded-2xl p-6 max-w-2xl w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
       >
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-2">
@@ -329,18 +727,13 @@ function GuideModal({ onClose, darkMode }) {
             </div>
           </div>
           <button onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}
+            className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
             aria-label="Fechar guia">
             <X size={16} />
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[
-            { step: 1, color: 'primary',   text: t('guide.step1') },
-            { step: 2, color: 'primary',   text: t('guide.step2') },
-            { step: 3, color: 'secondary', text: t('guide.step3') },
-            { step: 4, color: 'secondary', text: t('guide.step4') },
-          ].map(({ step, color, text }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {steps.map(({ step, color, text }) => (
             <div key={step} className={`flex gap-3 p-3 rounded-xl ${darkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
               <div className={`w-5 h-5 rounded-full bg-${color}/20 text-${color} flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5`} aria-hidden="true">{step}</div>
               <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{text}</p>
@@ -352,7 +745,6 @@ function GuideModal({ onClose, darkMode }) {
   );
 }
 
-// ── Modal Pós-Extração ─────────────────────────────────────────────────────
 
 function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgent, onDriveAuth, darkMode }) {
   const { t } = useTranslation();
@@ -615,6 +1007,14 @@ function App() {
   const [canaisExtras,     setCanaisExtras]     = useState([]);
   const [history,          setHistory]          = useState([]);
   const [useExternalProvider, setUseExternalProvider] = useState(false);
+  const [showHome,         setShowHome]         = useState(true);
+  const [chatOpen,         setChatOpen]         = useState(false);
+  const [repositorio,      setRepositorio]      = useState({ youtube: [], documentos: [], textos: [] });
+  const [relatorioCanal,   setRelatorioCanal]   = useState('');
+  const [relatorioData,    setRelatorioData]    = useState(null);
+  const [showAddDoc,       setShowAddDoc]       = useState(false);
+  const [pasteTitle,       setPasteTitle]       = useState('');
+  const [pasteText,        setPasteText]        = useState('');
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState("");
   const [chatLoading,      setChatLoading]      = useState(false);
@@ -634,6 +1034,7 @@ function App() {
 
   useEffect(() => {
     axios.get(`${API_BASE}/history`).then(r => setHistory(r.data)).catch(() => {});
+    axios.get(`${API_BASE}/repositorio`).then(r => setRepositorio(r.data)).catch(() => {});
   }, []);
 
   // Sincroniza com mudanças do tema do sistema quando o usuário não definiu preferência
@@ -1188,6 +1589,21 @@ function App() {
 
         {/* Main */}
         <main id="main-content" aria-label="Área principal" className="flex-1 flex flex-col overflow-hidden relative min-w-0">
+
+          {/* ── Home Screen ── */}
+          {showHome && (
+            <HomeScreen
+              darkMode={darkMode}
+              history={history}
+              repositorio={repositorio}
+              agentStatus={agentStatus}
+              btnFocus={btnFocus}
+              onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
+            />
+          )}
+
+          {/* ── App com Abas ── */}
+          <div className={showHome ? 'hidden' : 'flex flex-col flex-1 overflow-hidden'}>
           <div className={`absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-primary/8' : 'bg-primary/4'}`} aria-hidden="true" />
           <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-accent/5' : 'bg-accent/3'}`} aria-hidden="true" />
 
@@ -1195,8 +1611,10 @@ function App() {
           <div className={`px-4 lg:px-8 pt-4 flex items-center gap-1 shrink-0 border-b ${darkMode ? 'border-white/10' : 'border-slate-200'}`}
             role="tablist" aria-label="Navegação principal">
             {[
-              { id: 'extracao', label: t('tabs.extraction'), icon: Zap,  panel: 'panel-extracao' },
-              { id: 'agente',   label: t('tabs.agent'),      icon: Bot,  panel: 'panel-agente'   },
+              { id: 'extracao',    label: t('tabs.extraction'), icon: Zap,       panel: 'panel-extracao'    },
+              { id: 'repositorio', label: 'Repositório',           icon: BookOpen,  panel: 'panel-repositorio' },
+              { id: 'relatorio',   label: 'Relatório',             icon: BarChart3, panel: 'panel-relatorio'   },
+              { id: 'agente',      label: t('tabs.agent'),         icon: Settings,  panel: 'panel-agente'      },
             ].map(({ id, label, icon: Icon, panel }) => (
               <button key={id}
                 role="tab"
@@ -1471,6 +1889,35 @@ function App() {
             </section>
 
           </div>
+
+          {/* ── ABA REPOSITORIO ── */}
+          {activeTab === 'repositorio' && (
+            <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio"
+              className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 custom-scrollbar">
+              <RepositorioTab
+                darkMode={darkMode}
+                repositorio={repositorio}
+                setRepositorio={setRepositorio}
+                history={history}
+                btnFocus={btnFocus}
+                apiBase={API_BASE}
+                onSetCanal={(url) => { setCanalInput(url); }}
+              />
+            </div>
+          )}
+
+          {/* ── ABA RELATORIO ── */}
+          {activeTab === 'relatorio' && (
+            <div id="panel-relatorio" role="tabpanel" aria-labelledby="tab-relatorio"
+              className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 custom-scrollbar">
+              <RelatorioTab
+                darkMode={darkMode}
+                history={history}
+                btnFocus={btnFocus}
+                apiBase={API_BASE}
+              />
+            </div>
+          )}
 
           {/* ── ABA AGENTE ── */}
           {activeTab === 'agente' && (
@@ -1807,96 +2254,131 @@ function App() {
                 </AnimatePresence>
               </section>
 
-              {/* Chat */}
-              <section aria-labelledby="agent-chat-heading"
-                className={`rounded-2xl border overflow-hidden flex flex-col ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                <div className={`px-5 py-3.5 border-b flex items-center gap-2 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-                  <Sparkles size={14} className="text-primary" aria-hidden="true" />
-                  <h3 id="agent-chat-heading" className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                    {t('agent.chat_title')}
-                  </h3>
-                  {agentStatus.indexed && (
-                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-                      @{agentStatus.canal_indexado}
-                    </span>
-                  )}
-                </div>
 
-                {/* Mensagens */}
-                <div className={`h-80 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
-                  role="log" aria-label={t('agent.chat_title')} aria-live="polite">
-                  {chatMessages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-3">
-                      <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
-                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {!agentStatus.indexed
-                          ? t('agent.chat_empty_no_index')
-                          : t('agent.chat_empty_ready', { canal: agentStatus.canal_indexado })}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {chatMessages.map((msg, i) => (
-                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2
-                            ${msg.role === 'user'
-                              ? 'bg-primary/20 text-primary rounded-br-sm'
-                              : msg.role === 'error'
-                              ? darkMode ? 'bg-danger/15 text-danger' : 'bg-red-50 text-red-700 border border-red-200'
-                              : darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'} rounded-bl-sm`}>
-                            <p className="whitespace-pre-wrap">
-                              {msg.content}
-                              {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
-                            </p>
-                            {msg.fontes && msg.fontes.length > 0 && (
-                              <div className={`pt-2 border-t space-y-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                                <p className={`text-[10px] font-bold uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('agent.sources')}</p>
-                                {msg.fontes.map((f, j) => (
-                                  <a key={j} href={f.link} target="_blank" rel="noreferrer"
-                                    className={`flex items-start gap-1.5 text-[10px] hover:underline ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
-                                    <ExternalLink size={9} className="mt-0.5 shrink-0" />
-                                    <span>
-                                      {f.titulo}{f.data ? ` · ${f.data}` : ''}
-                                      {canalMeta?.canal_handle ? ` · ${canalMeta.canal_handle}` : ''}
-                                    </span>
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      {chatLoading && (
-                        <div className="flex justify-start">
-                          <div className={`px-4 py-3 rounded-2xl rounded-bl-sm ${darkMode ? 'bg-white/8' : 'bg-white border border-slate-200'}`}>
-                            <Loader2 size={14} className="animate-spin text-primary" />
-                          </div>
-                        </div>
-                      )}
-                      <div ref={chatEndRef} />
-                    </>
-                  )}
-                </div>
-
-                {/* Input */}
-                <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                  <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-                    <input type="text"
-                      placeholder={agentStatus.indexed ? t('agent.chat_placeholder_ready') : t('agent.chat_placeholder_disabled')}
-                      value={chatInput} onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
-                      disabled={!agentStatus.indexed || chatLoading}
-                      className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-                    <button onClick={handleChatSend} disabled={!agentStatus.indexed || !chatInput.trim() || chatLoading}
-                      className={`p-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${btnFocus}`}
-                      aria-label={t('agent.send')}>
-                      <Send size={13} />
-                    </button>
-                  </div>
-                </div>
-              </section>
 
             </div>
+          )}
+
+
+          {/* ── Chat Drawer flutuante ── */}
+          <AnimatePresence>
+            {chatOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                  onClick={() => setChatOpen(false)} />
+                <motion.div
+                  initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                  transition={{ type: 'tween', duration: 0.25 }}
+                  className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
+                  <div className={`px-4 py-3.5 border-b flex items-center gap-3 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                    <Sparkles size={15} className="text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
+                      {agentStatus.indexed && (
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{agentStatus.canal_indexado}</p>
+                      )}
+                    </div>
+                    {chatMessages.length > 0 && (
+                      <button onClick={() => setChatMessages([])}
+                        className={`text-[10px] px-2 py-1 rounded-lg border transition-colors ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+                        Limpar
+                      </button>
+                    )}
+                    <button onClick={() => setChatOpen(false)}
+                      className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+                      aria-label="Fechar chat">
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
+                    role="log" aria-label={t('agent.chat_title')} aria-live="polite">
+                    {chatMessages.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center gap-3">
+                        <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
+                        <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {!canalConfigurado
+                            ? 'Configure um canal na aba Extração para usar o chat.'
+                            : agentStatus.canal_indexado !== canalConfigurado
+                              ? `Indexe @${canalConfigurado} na aba Agente IA para usar o chat.`
+                              : t('agent.chat_empty_ready', { canal: canalConfigurado })}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {chatMessages.map((msg, i) => (
+                          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2 ${msg.role === 'user' ? 'bg-primary/20 text-primary rounded-br-sm' : msg.role === 'error' ? (darkMode ? 'bg-danger/15 text-danger' : 'bg-red-50 text-red-700 border border-red-200') : (darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')} rounded-bl-sm`}>
+                              <p className="whitespace-pre-wrap">
+                                {msg.content}
+                                {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
+                              </p>
+                              {msg.fontes && msg.fontes.length > 0 && !msg.streaming && (
+                                <div className={`pt-2 border-t space-y-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                                  <p className={`text-[10px] font-bold uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('agent.sources')}</p>
+                                  {msg.fontes.map((f, j) => (
+                                    <a key={j} href={f.link} target="_blank" rel="noreferrer"
+                                      className={`flex items-start gap-1.5 text-[10px] hover:underline ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
+                                      <ExternalLink size={9} className="mt-0.5 shrink-0" />
+                                      <span>{f.titulo}{f.data ? ` · ${f.data}` : ''}{canalMeta?.canal_handle ? ` · ${canalMeta.canal_handle}` : ''}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {chatLoading && (
+                          <div className="flex justify-start">
+                            <div className={`px-4 py-3 rounded-2xl rounded-bl-sm ${darkMode ? 'bg-white/8' : 'bg-white border border-slate-200'}`}>
+                              <Loader2 size={14} className="animate-spin text-primary" />
+                            </div>
+                          </div>
+                        )}
+                        <div ref={chatEndRef} />
+                      </>
+                    )}
+                  </div>
+                  <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                    <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                      <input type="text"
+                        placeholder={!canalConfigurado ? 'Configure um canal primeiro...' : agentStatus.canal_indexado !== canalConfigurado ? `Indexe @${canalConfigurado} primeiro...` : t('agent.chat_placeholder_ready')}
+                        value={chatInput} onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
+                        disabled={!agentStatus.indexed || !canalConfigurado || agentStatus.canal_indexado !== canalConfigurado || chatLoading}
+                        autoFocus
+                        className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                      <button onClick={handleChatSend} disabled={!agentStatus.indexed || !canalConfigurado || agentStatus.canal_indexado !== canalConfigurado || !chatInput.trim() || chatLoading}
+                        className={`p-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors`}
+                        aria-label={t('agent.send')}>
+                        <Send size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* ── Botao flutuante Chat ── */}
+          {!chatOpen && (
+            <motion.button
+              initial={{ scale: 0 }} animate={{ scale: 1 }}
+              transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+              onClick={() => setChatOpen(true)}
+              className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 transition-transform"
+              aria-label="Abrir chat com o agente">
+              <Bot size={24} className="text-white" />
+              {agentStatus.indexed && (
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-secondary border-2 border-white" />
+              )}
+              {chatMessages.filter(m => m.role === 'assistant').length > 0 && (
+                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-primary border-2 border-white flex items-center justify-center text-[9px] font-bold text-white">
+                  {chatMessages.filter(m => m.role === 'assistant').length}
+                </span>
+              )}
+            </motion.button>
           )}
 
           {/* Botão voltar ao topo */}
@@ -1919,6 +2401,7 @@ function App() {
             )}
           </AnimatePresence>
 
+          </div>{/* end app com abas */}
         </main>
       </div>
     </>

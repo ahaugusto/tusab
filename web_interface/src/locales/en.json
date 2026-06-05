@@ -1,7 +1,7 @@
 {
   "splash.by": "Developed by CriAugu",
   "tabs.extraction": "Extraction",
-  "tabs.agent": "AI Agent",
+  "tabs.agent": "Configure Agent",
   "header.engine": "BrainIAc",
   "header.universal": "Universal Engine",
   "header.status": "Status",
@@ -58,10 +58,10 @@
   "stats.no_channel": "no channel configured",
   "guide.title": "How to use BrainIAc?",
   "guide.subtitle": "Step-by-step guide",
-  "guide.step1": "Authenticate Google Drive (step 1) to sync files to the cloud. Optional — without it, data stays local only.",
-  "guide.step2": "Paste any YouTube channel URL in step 2 and click Confirm Channel.",
-  "guide.step3": "Click Start Extraction. The engine maps and extracts captions from videos, shorts, live streams, podcasts and playlists.",
-  "guide.step4": "When finished, files are sent to Drive and ready to import into NotebookLM.",
+  "guide.step1": "In the Extraction tab, paste any YouTube channel URL and click Confirm Channel.",
+  "guide.step2": "Click Start Extraction and select content types. The engine downloads captions automatically.",
+  "guide.step3": "In the Repository tab, view extracted files. Also add PDFs, documents and text to the knowledge base.",
+  "guide.step4": "In the Configure Agent tab, click Index Now. Local Ollama processes everything — no API key needed.",
   "log.title": "Real-Time Log",
   "log.live": "Live",
   "log.ready": "Engine ready. Click Start Extraction.",
@@ -152,5 +152,7 @@
   "modal.close": "Close",
   "agent.index_what": "Indexing reads the extracted .txt files, splits the content into chunks, and generates vector embeddings stored locally. This enables the agent to perform semantic search over channel content.",
   "agent.index_prereq_key": "Configure an API key above to enable indexing.",
-  "agent.index_prereq_channel": "Configure a channel in the sidebar to enable indexing."
+  "agent.index_prereq_channel": "Configure a channel in the sidebar to enable indexing.",
+  "guide.step5": "Use the chat button (bottom right corner) to ask questions about the channel content.",
+  "guide.step6": "In the Report tab, track coverage: extracted videos, failures and statistics per channel."
 }

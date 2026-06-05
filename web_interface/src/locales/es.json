@@ -1,7 +1,7 @@
 {
   "splash.by": "Desarrollado por CriAugu",
   "tabs.extraction": "Extracción",
-  "tabs.agent": "Agente IA",
+  "tabs.agent": "Configurar Agente",
   "header.engine": "BrainIAc",
   "header.universal": "Motor Universal",
   "header.status": "Estado",
@@ -58,10 +58,10 @@
   "stats.no_channel": "sin canal configurado",
   "guide.title": "¿Cómo usar BrainIAc?",
   "guide.subtitle": "Guía paso a paso",
-  "guide.step1": "Autentica Google Drive (paso 1) para sincronizar archivos en la nube. Opcional — sin él, los datos quedan solo locales.",
-  "guide.step2": "Pega la URL de cualquier canal de YouTube en el paso 2 y haz clic en Confirmar Canal.",
-  "guide.step3": "Haz clic en Iniciar Extracción. El motor mapea y extrae subtítulos de videos, shorts, transmisiones, podcasts y listas.",
-  "guide.step4": "Al finalizar, los archivos se envían al Drive y quedan listos para importar en NotebookLM.",
+  "guide.step1": "En la pestaña Extracción, pega la URL de cualquier canal de YouTube y haz clic en Confirmar Canal.",
+  "guide.step2": "Haz clic en Iniciar Extracción y selecciona los tipos de contenido. El motor descarga las leyendas automáticamente.",
+  "guide.step3": "En la pestaña Repositorio, ve los archivos extraídos. También puedes agregar PDFs, documentos y textos.",
+  "guide.step4": "En Configurar Agente, haz clic en Indexar Ahora. Ollama local lo procesa todo — sin clave de API.",
   "log.title": "Log en Tiempo Real",
   "log.live": "En vivo",
   "log.ready": "Motor listo. Haz clic en Iniciar Extracción.",
@@ -152,5 +152,7 @@
   "modal.close": "Cerrar",
   "agent.index_what": "La indexación lee los archivos .txt extraídos, divide el contenido en bloques y genera embeddings vectoriales almacenados localmente. Esto permite al agente realizar búsquedas semánticas sobre el contenido del canal.",
   "agent.index_prereq_key": "Configura una clave de API arriba para habilitar la indexación.",
-  "agent.index_prereq_channel": "Configura un canal en el menú lateral para habilitar la indexación."
+  "agent.index_prereq_channel": "Configura un canal en el menú lateral para habilitar la indexación.",
+  "guide.step5": "Usa el botón de chat (esquina inferior derecha) para hacer preguntas sobre el contenido del canal.",
+  "guide.step6": "En la pestaña Informe, revisa la cobertura: videos extraídos, fallos y estadísticas por canal."
 }

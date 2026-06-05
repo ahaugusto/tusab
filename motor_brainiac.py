@@ -51,7 +51,10 @@ DADOS_DIR  = obter_caminho_dados()
 ASSETS_DIR = obter_caminho_assets()
 DATA_DIR   = os.path.join(DADOS_DIR, 'data')
 
-LOCAL_TXT_DIR    = os.path.join(DATA_DIR, 'cerebro_txt')
+CEREBRO_DIR      = os.path.join(DATA_DIR, 'cerebro')
+LOCAL_TXT_DIR    = os.path.join(CEREBRO_DIR, 'youtube')
+DOCUMENTOS_DIR   = os.path.join(CEREBRO_DIR, 'documentos')
+TEXTOS_DIR       = os.path.join(CEREBRO_DIR, 'textos')
 GESTAO_DIR       = os.path.join(DATA_DIR, 'gestao')
 TEMP_DIR         = os.path.join(DATA_DIR, 'temp')
 TOKEN_PATH       = os.path.join(DATA_DIR, 'config', 'token.json')
@@ -409,7 +412,7 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
              '--print', '%(channel)s|||%(uploader_id)s|||%(channel_follower_count)s',
              '--js-runtimes', 'node', canal_url],
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            text=True, creationflags=creationflags, timeout=30
+            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=30
         )
         for linha in result.stdout.strip().splitlines():
             partes = linha.split('|||')
@@ -444,6 +447,17 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
     return meta
 
 
+def migrar_cerebro_txt():
+    """Migra data/cerebro_txt/ para data/cerebro/youtube/ na primeira execução."""
+    import shutil
+    old_dir = os.path.join(DATA_DIR, 'cerebro_txt')
+    if os.path.exists(old_dir) and not os.path.exists(LOCAL_TXT_DIR):
+        os.makedirs(LOCAL_TXT_DIR, exist_ok=True)
+        for fname in os.listdir(old_dir):
+            shutil.move(os.path.join(old_dir, fname), os.path.join(LOCAL_TXT_DIR, fname))
+        print(f"✅ Migração: cerebro_txt/ → cerebro/youtube/ ({len(os.listdir(LOCAL_TXT_DIR))} arquivos)")
+
+
 def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None):
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
@@ -457,9 +471,11 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
     print(f"   Prefixo: {prefixo}")
     print("=" * 70 + "\n")
 
-    for d in [LOCAL_TXT_DIR, GESTAO_DIR, TEMP_DIR,
+    for d in [LOCAL_TXT_DIR, DOCUMENTOS_DIR, TEXTOS_DIR, GESTAO_DIR, TEMP_DIR,
               os.path.join(DATA_DIR, 'config')]:
         os.makedirs(d, exist_ok=True)
+
+    migrar_cerebro_txt()
 
     # --- 0. METADADOS DO CANAL ---
     print("📋 Coletando metadados do canal...")
@@ -665,7 +681,7 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
                  '--sub-langs', sub_langs, '--output', temp_out,
                  '--js-runtimes', 'node', v_link],
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                text=True, creationflags=creationflags
+                encoding='utf-8', errors='replace', creationflags=creationflags
             )
             if res_sub.returncode != 0 and res_sub.stderr:
                 erros = [l for l in res_sub.stderr.splitlines()
@@ -681,7 +697,7 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
                  '--print', '%(upload_date)s|||%(tags)j|||%(description)s',
                  '--js-runtimes', 'node', v_link],
                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                text=True, creationflags=creationflags
+                encoding='utf-8', errors='replace', creationflags=creationflags
             )
             descricao_str = ''
             for linha in result_meta.stdout.strip().splitlines():

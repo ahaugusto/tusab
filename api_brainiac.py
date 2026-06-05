@@ -9,9 +9,11 @@ import time
 import os
 import re
 import json
+import glob
 import motor_brainiac
 import agent_brainiac
-from fastapi import FastAPI, BackgroundTasks
+from datetime import datetime
+from fastapi import FastAPI, BackgroundTasks, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
@@ -84,6 +86,12 @@ class AppState:
 
 state = AppState()
 
+# Migra cerebro_txt → cerebro/youtube na primeira execução
+try:
+    motor_brainiac.migrar_cerebro_txt()
+except Exception:
+    pass
+
 
 # ==========================================
 # --- REDIRECIONADOR DE LOG ---
@@ -130,6 +138,14 @@ class LogRedirector:
     def flush(self): pass
     def isatty(self): return False
 
+_real_stderr = sys.__stderr__
+_orig_excepthook = sys.excepthook
+def _debug_excepthook(t, v, tb):
+    import traceback
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brainiac_crash.log'), 'w') as _f:
+        traceback.print_exception(t, v, tb, file=_f)
+    _orig_excepthook(t, v, tb)
+sys.excepthook = _debug_excepthook
 sys.stdout = LogRedirector()
 sys.stderr = sys.stdout
 
@@ -367,9 +383,10 @@ def open_folder(name: str):
 # ==========================================
 
 class AgentConfigRequest(BaseModel):
-    provider: str
-    api_key:  str
+    provider:    str
+    api_key:     str
     embed_api_key: str = ""
+    groq_model:  str = ""
 
 class AgentChatRequest(BaseModel):
     mensagem:      str
@@ -493,6 +510,8 @@ def agent_config(req: AgentConfigRequest):
         config["api_key"] = ""
     if req.embed_api_key:
         config["embed_api_key"] = req.embed_api_key
+    if req.groq_model:
+        config["groq_model"] = req.groq_model
     agent_brainiac.salvar_config(config)
     return {"message": "Configuração salva com sucesso."}
 
@@ -536,6 +555,15 @@ def agent_test_key():
             if not models:
                 return {"error": True, "message": "Ollama rodando mas nenhum modelo instalado. Instale um modelo primeiro."}
             return {"ok": True, "message": f"Ollama ativo! Modelos: {', '.join(models[:3])}"}
+        if provider == "groq":
+            from openai import OpenAI
+            modelo = config.get("groq_model", "llama-3.1-8b-instant")
+            OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1").chat.completions.create(
+                model=modelo,
+                messages=[{"role": "user", "content": "ok"}],
+                max_tokens=1,
+            )
+            return {"ok": True, "message": f"Groq ativo! Modelo: {modelo}"}
         if provider == "openai":
             from openai import OpenAI
             OpenAI(api_key=api_key).chat.completions.create(
@@ -637,6 +665,219 @@ def agent_canal_delete(canal_nome: str):
 
 
 # ==========================================
+# --- REPOSITÓRIO / CEREBRO ---
+# ==========================================
+
+@app.get("/repositorio")
+def get_repositorio():
+    """Lista todos os arquivos do cerebro por tipo."""
+    cerebro_dir = motor_brainiac.CEREBRO_DIR
+
+    result = {"youtube": [], "documentos": [], "textos": []}
+
+    # YouTube files
+    yt_dir = motor_brainiac.LOCAL_TXT_DIR
+    if os.path.exists(yt_dir):
+        for fname in sorted(os.listdir(yt_dir)):
+            if fname.endswith('.txt') and not fname.startswith('_'):
+                fpath = os.path.join(yt_dir, fname)
+                stat = os.stat(fpath)
+                result["youtube"].append({
+                    "nome": fname,
+                    "tamanho": stat.st_size,
+                    "data": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y"),
+                    "caminho": fpath,
+                })
+
+    # Documentos
+    doc_dir = os.path.join(cerebro_dir, "documentos")
+    manifest_doc = os.path.join(doc_dir, "_manifest.json")
+    if os.path.exists(manifest_doc):
+        with open(manifest_doc, 'r', encoding='utf-8') as f:
+            result["documentos"] = json.load(f)
+
+    # Textos
+    txt_dir2 = os.path.join(cerebro_dir, "textos")
+    manifest_txt = os.path.join(txt_dir2, "_manifest.json")
+    if os.path.exists(manifest_txt):
+        with open(manifest_txt, 'r', encoding='utf-8') as f:
+            result["textos"] = json.load(f)
+
+    return result
+
+
+@app.get("/relatorio/{canal}")
+def get_relatorio(canal: str):
+    """Retorna dados do CSV de gestão para o canal especificado."""
+    import re as _re
+    canal_safe = _re.sub(r'[<>:"/\\|?*\s]', '_', canal).strip('_')
+    csv_path = os.path.join(motor_brainiac.GESTAO_DIR, f"{canal_safe}_base.csv")
+    if not os.path.exists(csv_path):
+        return {"error": True, "message": "Relatório não encontrado"}
+    try:
+        import pandas as _pd
+        df = _pd.read_csv(csv_path, encoding='utf-8-sig')
+        stats = {
+            "total": len(df),
+            "sucesso": int((df["Status"] == "Sucesso").sum()) if "Status" in df.columns else 0,
+            "sem_legenda": int((df["Status"] == "Sem Legenda").sum()) if "Status" in df.columns else 0,
+            "legenda_curta": int((df["Status"] == "Legenda Curta").sum()) if "Status" in df.columns else 0,
+            "cobertura": 0,
+        }
+        if stats["total"] > 0:
+            stats["cobertura"] = round(stats["sucesso"] / stats["total"] * 100, 1)
+        videos = df.fillna('').to_dict('records')
+        return {"stats": stats, "videos": videos[:500]}
+    except Exception as e:
+        return {"error": True, "message": str(e)}
+
+
+@app.post("/cerebro/upload")
+async def cerebro_upload(
+    arquivo: UploadFile = File(...),
+    canal: str = Form(default="")
+):
+    """Recebe arquivo (PDF, DOCX, MD, TXT) e converte para .txt no cerebro/documentos/."""
+    import uuid as _uuid
+
+    cerebro_dir = motor_brainiac.CEREBRO_DIR
+    doc_dir = os.path.join(cerebro_dir, "documentos")
+    os.makedirs(doc_dir, exist_ok=True)
+
+    ext = os.path.splitext(arquivo.filename)[1].lower()
+    fid = str(_uuid.uuid4())[:8]
+    nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', os.path.splitext(arquivo.filename)[0])[:40]
+
+    conteudo_bytes = await arquivo.read()
+    texto = ""
+
+    try:
+        if ext == ".pdf":
+            import pdfplumber, io
+            with pdfplumber.open(io.BytesIO(conteudo_bytes)) as pdf:
+                texto = "\n".join(p.extract_text() or "" for p in pdf.pages)
+        elif ext in (".docx",):
+            import docx, io
+            doc = docx.Document(io.BytesIO(conteudo_bytes))
+            texto = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        elif ext in (".txt", ".md"):
+            texto = conteudo_bytes.decode("utf-8", errors="replace")
+        else:
+            return {"error": True, "message": f"Formato não suportado: {ext}"}
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao processar arquivo: {e}"}
+
+    if not texto.strip():
+        return {"error": True, "message": "Arquivo sem conteúdo extraível"}
+
+    txt_path = os.path.join(doc_dir, f"{fid}_{nome_limpo}.txt")
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write(f"TITULO: {arquivo.filename}\nFONTE: documento\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
+        f.write("-" * 70 + "\n")
+        f.write(texto)
+
+    # Update manifest
+    manifest_path = os.path.join(doc_dir, "_manifest.json")
+    manifest = []
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+
+    entry = {
+        "id": fid,
+        "nome_original": arquivo.filename,
+        "nome_txt": os.path.basename(txt_path),
+        "tipo": ext.lstrip("."),
+        "tamanho": len(conteudo_bytes),
+        "data": datetime.now().strftime("%d/%m/%Y"),
+        "chars": len(texto),
+    }
+    manifest.append(entry)
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    return {"ok": True, "id": fid, "nome": arquivo.filename, "chars": len(texto)}
+
+
+class TextoRequest(BaseModel):
+    titulo: str
+    conteudo: str
+
+@app.post("/cerebro/texto")
+def cerebro_texto(req: TextoRequest):
+    """Salva texto colado pelo usuário no cerebro/textos/."""
+    import uuid as _uuid
+
+    cerebro_dir = motor_brainiac.CEREBRO_DIR
+    txt_dir2 = os.path.join(cerebro_dir, "textos")
+    os.makedirs(txt_dir2, exist_ok=True)
+
+    if not req.conteudo.strip():
+        return {"error": True, "message": "Conteúdo vazio"}
+
+    fid = str(_uuid.uuid4())[:8]
+    nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', req.titulo)[:40] if req.titulo else "texto"
+    txt_path = os.path.join(txt_dir2, f"{fid}_{nome_limpo}.txt")
+
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write(f"TITULO: {req.titulo}\nFONTE: texto\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
+        f.write("-" * 70 + "\n")
+        f.write(req.conteudo)
+
+    manifest_path = os.path.join(txt_dir2, "_manifest.json")
+    manifest = []
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+
+    entry = {
+        "id": fid,
+        "titulo": req.titulo,
+        "nome_txt": os.path.basename(txt_path),
+        "tipo": "texto",
+        "chars": len(req.conteudo),
+        "data": datetime.now().strftime("%d/%m/%Y"),
+    }
+    manifest.append(entry)
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    return {"ok": True, "id": fid, "titulo": req.titulo}
+
+
+@app.delete("/cerebro/arquivo/{tipo}/{fid}")
+def cerebro_delete(tipo: str, fid: str):
+    """Remove arquivo do cerebro (documentos ou textos)."""
+    cerebro_dir = motor_brainiac.CEREBRO_DIR
+
+    if tipo not in ("documentos", "textos"):
+        return {"error": True, "message": "Tipo inválido"}
+
+    subdir = os.path.join(cerebro_dir, tipo)
+    manifest_path = os.path.join(subdir, "_manifest.json")
+
+    if not os.path.exists(manifest_path):
+        return {"error": True, "message": "Manifesto não encontrado"}
+
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+        manifest = json.load(f)
+
+    entry = next((e for e in manifest if e["id"] == fid), None)
+    if not entry:
+        return {"error": True, "message": "Arquivo não encontrado"}
+
+    txt_path = os.path.join(subdir, entry["nome_txt"])
+    if os.path.exists(txt_path):
+        os.remove(txt_path)
+
+    manifest = [e for e in manifest if e["id"] != fid]
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    return {"ok": True}
+
+
+# ==========================================
 # --- SERVIR FRONTEND ESTÁTICO ---
 # ==========================================
 
@@ -654,6 +895,10 @@ if __name__ == "__main__":
     import uvicorn
     import subprocess
     from threading import Timer
+    try:
+        _real_stderr
+    except NameError:
+        _real_stderr = sys.__stderr__
 
     # Quando rodando dentro do Electron a janela é gerenciada pelo main.js
     if not os.environ.get("ELECTRON_RUN"):
@@ -677,4 +922,11 @@ if __name__ == "__main__":
 
         Timer(2.0, open_app_window).start()
 
-    uvicorn.run(app, host="127.0.0.1", port=8001, log_level="warning")
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=8001, log_level="warning")
+    except Exception as _e:
+        import traceback
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brainiac_crash.log'), 'w') as _f:
+            traceback.print_exc(file=_f)
+            _f.write(f"\nError: {_e}\n")
+        raise
