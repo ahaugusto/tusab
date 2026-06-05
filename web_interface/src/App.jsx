@@ -1083,6 +1083,13 @@ function App() {
                         {agentStatus.index_count} chunks
                       </span>
                     )}
+                    {agentStatus.base_desatualizada && !agentStatus.indexing && (
+                      <span
+                        title={`${agentStatus.novos_desde_indexacao} arquivo(s) novo(s) — reindexe para atualizar`}
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full mr-2 animate-pulse cursor-help ${darkMode ? 'bg-warning/20 text-warning' : 'bg-amber-100 text-amber-700'}`}>
+                        {agentStatus.novos_desde_indexacao} novo{agentStatus.novos_desde_indexacao !== 1 ? 's' : ''}
+                      </span>
+                    )}
                     <div className="relative" onClick={e => e.stopPropagation()}>
                       <button onClick={() => setShowIndexInfo(v => !v)}
                         aria-expanded={showIndexInfo} aria-label="O que é indexação?"

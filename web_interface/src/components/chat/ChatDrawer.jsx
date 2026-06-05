@@ -77,8 +77,8 @@ function ChatDrawer({
                   <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{canalConfigurado || agentStatus.canal_indexado}</p>
                 )}
               </div>
-              {/* Busca Ampla toggle */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              {/* Busca Ampla toggle com tooltip descritivo */}
+              <div className="relative flex items-center gap-1.5 shrink-0 group">
                 <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
                   {buscaAmpla ? 'Ampla' : 'Restrita'}
                 </span>
@@ -86,10 +86,18 @@ function ChatDrawer({
                   role="switch"
                   aria-checked={buscaAmpla}
                   onClick={() => setBuscaAmpla(v => !v)}
-                  title={buscaAmpla ? 'Modo Amplo: usa base + conhecimento do modelo' : 'Modo Restrito: usa apenas sua base'}
                   className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
                   <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
+                {/* Tooltip */}
+                <div className={`absolute bottom-8 right-0 w-56 p-2.5 rounded-xl border text-[10px] leading-relaxed shadow-xl
+                  opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10
+                  ${darkMode ? 'bg-[#0C1122] border-white/20 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/60'}`}>
+                  {buscaAmpla
+                    ? <><strong className={darkMode ? 'text-accent' : 'text-cyan-600'}>Busca Ampla ativada</strong><br/>Usa sua base como referência principal e complementa com o conhecimento geral do modelo quando necessário.</>
+                    : <><strong className={darkMode ? 'text-white' : 'text-slate-800'}>Busca Restrita</strong><br/>Responde exclusivamente com o conteúdo da sua base. Se não encontrar, diz que não encontrou.</>
+                  }
+                </div>
               </div>
               {chatMessages.length > 0 && (
                 <button onClick={() => setChatMessages([])}

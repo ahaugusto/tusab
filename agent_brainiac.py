@@ -104,13 +104,37 @@ def get_agent_status() -> dict:
     if not provider:
         provider = 'ollama'
 
+    # Detecta se a base está desatualizada:
+    # compara mtime do índice com a data de extração mais recente no CSV
+    base_desatualizada = False
+    novos_desde_indexacao = 0
+    if canal_nome and os.path.exists(INDEX_DIR):
+        try:
+            canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+            idx_path = _index_path(canal_prefixo)
+            if os.path.exists(idx_path):
+                idx_mtime = os.path.getmtime(idx_path)
+                # Verifica se há arquivos .txt no youtube/ mais novos que o índice
+                youtube_dir = os.path.join(os.path.dirname(INDEX_DIR), 'cerebro', 'youtube')
+                if os.path.exists(youtube_dir):
+                    for fname in os.listdir(youtube_dir):
+                        if fname.startswith(canal_prefixo) and fname.endswith('.txt'):
+                            fmtime = os.path.getmtime(os.path.join(youtube_dir, fname))
+                            if fmtime > idx_mtime:
+                                novos_desde_indexacao += 1
+                base_desatualizada = novos_desde_indexacao > 0
+        except Exception:
+            pass
+
     return {
-        'configured':       bool(provider and (config.get('api_key') or provider == 'ollama')),
-        'provider':         provider,
-        'canal_indexado':   canal_nome,
-        'index_count':      index_count,
-        'indexed':          len(canais_indexados) > 0,
-        'canais_indexados': canais_indexados,
+        'configured':             bool(provider and (config.get('api_key') or provider == 'ollama')),
+        'provider':               provider,
+        'canal_indexado':         canal_nome,
+        'index_count':            index_count,
+        'indexed':                len(canais_indexados) > 0,
+        'canais_indexados':       canais_indexados,
+        'base_desatualizada':     base_desatualizada,
+        'novos_desde_indexacao':  novos_desde_indexacao,
     }
 
 
