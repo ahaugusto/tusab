@@ -1397,12 +1397,16 @@ function App() {
 
       {/* Logo */}
       <div className="flex justify-center -mt-6 -mb-6">
-        <img
-          src={darkMode ? "/logo_dark.png" : "/logo_light.png"}
-          alt="BrainIAc — Intelligence Engine"
-          style={{ width: '220px', height: '220px', objectFit: 'contain' }}
-          onError={e => { e.target.style.display = 'none'; }}
-        />
+        <button onClick={() => setShowHome(true)}
+          aria-label="Voltar à tela inicial"
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
+          <img
+            src={darkMode ? "/logo_dark.png" : "/logo_light.png"}
+            alt="BrainIAc — Intelligence Engine"
+            style={{ width: '220px', height: '220px', objectFit: 'contain' }}
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+        </button>
       </div>
 
       <div className={`border-t mb-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} role="separator" />
@@ -2277,7 +2281,7 @@ function App() {
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
                       {agentStatus.indexed && (
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{agentStatus.canal_indexado}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{canalConfigurado || agentStatus.canal_indexado}</p>
                       )}
                     </div>
                     {chatMessages.length > 0 && (
@@ -2409,6 +2413,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 
