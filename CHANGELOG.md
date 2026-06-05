@@ -9,10 +9,37 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 ### Planned
-- Auto-update do yt-dlp (verifica nova versão no startup)
 - Fila de extração com retry e backoff exponencial
 - Whisper como fallback para vídeos sem legenda
 - Telemetria opt-in via Posthog
+- Sistema de licença via Lemon Squeezy
+
+---
+
+## [0.3.2] — 2026-06-05
+### Fixed
+- **Causa raiz do bloqueio de indexação**: verificação de chave de API estava no endpoint `/agent/index` em `api_brainiac.py`, não só em `agent_brainiac.py`. Indexação BM25 é 100% local e nunca requer chave.
+- Ollama status polling movido para o componente pai — antes dependia do accordion estar aberto; se fechado, `ollamaStatus` ficava `{running: false}` e warnings apareciam incorretamente
+- Bug de build: useEffect de polling inserido com URL quebrada (`` `/agent/ollama/status` `` sem `${API_BASE}`), causando falha silenciosa de build e dist desatualizado
+- "canalis" → "canais" (pluralização incorreta em português)
+- Botão "Usar" no histórico agora confirma o canal automaticamente via API, sem precisar clicar no sidebar
+
+### Added
+- Auto-update do yt-dlp via GitHub API no startup do Electron (feature branch mergeada)
+- Versionamento semântico formal com tags git retroativas (v0.1.0 → v0.3.1)
+- Branch `develop` para integração contínua
+- `CHANGELOG.md` com histórico completo
+
+### Changed
+- Contraste WCAG melhorado: textos secundários de `slate-400/500` para `slate-500/600` (light) e `slate-300` (dark), atingindo requisito AA 4.5:1
+
+### Docs
+- Pasta renomeada de "Objetivos e Estrutura" para "Documentação do Produto"
+- Novo arquivo: `Proposta de valor.txt` com pitch de um parágrafo
+- Novo arquivo: `Modelo de negócio.txt` — ISV Freemium + Perpetual Seat License
+- `O meu porquê.txt` reescrito com origin story real (AUVP/Raul Sena)
+- `Os meus alvos.txt` reorganizado em 3 camadas (B2C / B2B Creator / Enterprise)
+- `Próximos passos.txt` atualizado com análise estratégica e decisões tomadas
 - Sistema de licença via Lemon Squeezy
 
 ---

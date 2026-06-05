@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n';
@@ -246,7 +246,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode }) {
             <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
               {t('ops.types_modal_title')}
             </h2>
-            <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
               {t('ops.types_modal_subtitle')}
             </p>
           </div>
@@ -379,7 +379,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
                 {t('modal.title_finished')}
               </h2>
             </div>
-            <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
               {t('modal.subtitle')}
             </p>
           </div>
@@ -401,7 +401,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
                 {t('modal.drive_title')}
               </h3>
             </div>
-            <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}
+            <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}
               dangerouslySetInnerHTML={{ __html: driveConnected ? t('modal.drive_desc_connected') : t('modal.drive_desc_local') }} />
             <div className="space-y-1.5">
               {driveConnected
@@ -434,7 +434,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
                 {t('modal.agent_title')}
               </h3>
             </div>
-            <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
               {t('modal.agent_desc')}
             </p>
             <div className="space-y-1.5">
@@ -483,7 +483,7 @@ function DriveToggle({ driveStatus, driveAuthError, onAuth, onCancel, isRunning,
     ? 'text-secondary'
     : driveStatus === 'em_progresso'
     ? 'text-primary'
-    : darkMode ? 'text-slate-400' : 'text-slate-500';
+    : darkMode ? 'text-slate-500' : 'text-slate-600';
 
   const statusIcon = driveStatus === 'autenticado'
     ? <ShieldCheck size={14} aria-hidden="true" />
@@ -706,6 +706,14 @@ function App() {
           .catch(() => {});
       }
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      axios.get(`${API_BASE}/agent/ollama/status`).then(r => setOllamaStatus(r.data)).catch(() => {});
+    }, 5000);
+    axios.get(`${API_BASE}/agent/ollama/status`).then(r => setOllamaStatus(r.data)).catch(() => {});
+    return () => clearInterval(iv);
   }, []);
 
   useEffect(() => {
@@ -935,9 +943,9 @@ function App() {
       className={`p-4 lg:p-5 rounded-2xl flex items-center gap-4 border transition-all ${darkMode ? 'bg-white/5 border-white/10 hover:border-primary/40' : 'bg-white border-slate-200 shadow-md hover:border-primary/40'}`}>
       <div className={`p-3 rounded-xl shrink-0 bg-${color}/15 text-${color}`} aria-hidden="true"><Icon size={22} /></div>
       <div className="min-w-0 flex-1">
-        <p className={`text-[11px] font-bold uppercase tracking-widest truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-        <p className={`text-xl lg:text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{value}</p>
-        {sub && <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{sub}</p>}
+        <p className={`text-[11px] font-bold uppercase tracking-widest truncate ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{label}</p>
+        <p className={`font-bold truncate ${typeof value === 'string' && value.length > 8 ? 'text-base lg:text-lg' : 'text-xl lg:text-2xl'} ${darkMode ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+        {sub && <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{sub}</p>}
       </div>
       {onOpen && (
         <button onClick={onOpen} title={t('stats.open_folder')}
@@ -952,7 +960,7 @@ function App() {
     const { color, label } = logMeta(log.message, darkMode);
     return (
       <div className="flex gap-3 group hover:bg-white/5 px-1 py-0.5 rounded" role="listitem">
-        <span className={`font-mono font-bold shrink-0 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>[{log.timestamp}]</span>
+        <span className={`font-mono font-bold shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>[{log.timestamp}]</span>
         <span className={`font-mono text-xs break-all ${color}`}>
           <span className="sr-only">[{label}] </span>{log.message}
         </span>
@@ -966,7 +974,7 @@ function App() {
       {/* Idioma + dark mode — acima do logo, centralizados */}
       <div className="relative z-10 flex items-center justify-center gap-2 mb-0">
         <div className={`relative flex items-center rounded-lg border px-2 py-1 ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
-          <Globe size={11} className={`shrink-0 mr-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} aria-hidden="true" />
+          <Globe size={11} className={`shrink-0 mr-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`} aria-hidden="true" />
           <select
             value={i18n.language.startsWith('pt') ? 'pt' : i18n.language.startsWith('en') ? 'en' : 'es'}
             onChange={e => changeLang(e.target.value)}
@@ -1004,7 +1012,7 @@ function App() {
           <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
             ${canalConfigurado ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary'}`}
             aria-hidden="true">1</span>
-          <p id="canal-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p id="canal-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
             {t('channel.title')}
           </p>
         </div>
@@ -1014,13 +1022,13 @@ function App() {
             className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
             <CheckCircle2 size={14} className="text-primary shrink-0" aria-hidden="true" />
             <div className="min-w-0">
-              <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('channel.configured')}</p>
+              <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.configured')}</p>
               <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{cleanCanalName(canalConfigurado)}</p>
             </div>
             {!isRunning && (
               <button onClick={() => { setCanalConfigurado(""); setCanalInput(""); }}
                 aria-label={t('channel.remove')}
-                className={`ml-auto rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-400' : 'text-slate-500'} ${btnFocus}`}>
+                className={`ml-auto rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-600'} ${btnFocus}`}>
                 <XCircle size={14} />
               </button>
             )}
@@ -1060,7 +1068,7 @@ function App() {
           <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
             ${driveStatus === 'autenticado' ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary'}`}
             aria-hidden="true">2</span>
-          <p id="drive-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p id="drive-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
             {t('drive.title')}
           </p>
         </div>
@@ -1082,7 +1090,7 @@ function App() {
           <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
             ${isRunning && !isPaused ? 'bg-primary/20 text-primary animate-pulse' : 'bg-primary/20 text-primary'}`}
             aria-hidden="true">3</span>
-          <p id="ops-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p id="ops-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
             {t('ops.title')}
           </p>
         </div>
@@ -1225,13 +1233,13 @@ function App() {
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <StatusDot isRunning={isRunning} isPaused={isPaused} />
-                  <span className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('header.status')}</span>
+                  <span className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.status')}</span>
                 </div>
                 <h2 aria-live="polite" aria-atomic="true" className={`text-xl lg:text-3xl font-bold leading-tight ${statusTextColor()}`}>
                   {status.stats.status}
                 </h2>
                 {canalConfigurado && (
-                  <p className={`text-xs lg:text-sm mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <p className={`text-xs lg:text-sm mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                     {t('header.channel')}: <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>@{cleanCanalName(canalConfigurado)}</span>
                   </p>
                 )}
@@ -1239,8 +1247,8 @@ function App() {
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block" aria-hidden="true">
-                <p className={`text-[11px] font-bold uppercase tracking-widest mb-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('header.engine')}</p>
-                <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('header.universal')}</p>
+                <p className={`text-[11px] font-bold uppercase tracking-widest mb-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.engine')}</p>
+                <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.universal')}</p>
               </div>
               <button onClick={() => setShowGuide(true)}
                 aria-label={t('guide.title')}
@@ -1284,7 +1292,7 @@ function App() {
                     </div>
                     <div className="flex items-center gap-3">
                       {totalVideos > 0 && (
-                        <span className={`text-xs font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{processedVideos} / {totalVideos}</span>
+                        <span className={`text-xs font-mono ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{processedVideos} / {totalVideos}</span>
                       )}
                       <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{progress}%</span>
                     </div>
@@ -1296,7 +1304,7 @@ function App() {
                       initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
                   </div>
                   {isRunning && !isPaused && (
-                    <p aria-live="polite" className={`text-[11px] mt-2 flex items-center gap-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p aria-live="polite" className={`text-[11px] mt-2 flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                       <Loader2 size={10} className="animate-spin" aria-hidden="true" /> {t('progress.processing')}
                     </p>
                   )}
@@ -1339,18 +1347,18 @@ function App() {
                       <div key={label} className={`rounded-xl p-3 flex flex-col items-center gap-1 ${bg}`} role="status" aria-label={`${label}: ${value}`}>
                         <Icon size={16} className={color} aria-hidden="true" />
                         <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{value}</span>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{label}</span>
                       </div>
                     ))}
                   </div>
                   {status.stats.videos_total > 0 && (
                     <div className="px-5 pb-4">
                       <div className={`rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-bold ${darkMode ? 'bg-black/20' : 'bg-white border border-slate-200'}`}>
-                        <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>{t('summary.coverage')}</span>
+                        <span className={darkMode ? 'text-slate-500' : 'text-slate-600'}>{t('summary.coverage')}</span>
                         <span className={status.stats.videos_processed / status.stats.videos_total >= 0.8
                           ? 'text-secondary' : 'text-warning'}>
                           {Math.round(status.stats.videos_processed / status.stats.videos_total * 100)}%
-                          <span className={`ml-1 font-normal text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          <span className={`ml-1 font-normal text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                             {t('summary.coverage_detail', { processed: status.stats.videos_processed, total: status.stats.videos_total })}
                           </span>
                         </span>
@@ -1380,7 +1388,7 @@ function App() {
                   <div className={`px-4 lg:px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
                     <Globe size={14} className="text-primary" aria-hidden="true" />
                     <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Canais Extraídos</h3>
-                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''}</span>
+                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} {history.length !== 1 ? 'canais' : 'canal'}</span>
                   </div>
                   <div className="divide-y divide-white/5">
                     {history.map((h, i) => (
@@ -1396,7 +1404,12 @@ function App() {
                           <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.extraidos} vídeos · {h.ultima_extracao}</p>
                         </div>
                         <button
-                          onClick={() => { setCanalInput(h.canal_url); }}
+                          onClick={async () => {
+                            setCanalInput(h.canal_url);
+                            setCanalError('');
+                            const res = await axios.post(`\/set-channel`, { canal_url: h.canal_url }).catch(() => null);
+                            if (res && !res.data.error) setCanalConfigurado(res.data.canal_nome || h.canal);
+                          }}
                           className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
                           Usar
                         </button>
@@ -1475,7 +1488,7 @@ function App() {
                     <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                       {canalMeta.canal_nome}
                     </p>
-                    <div className={`flex items-center gap-2 text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <div className={`flex items-center gap-2 text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                       <span>{canalMeta.canal_handle}</span>
                       {canalMeta.inscritos && <><span>·</span><span>{canalMeta.inscritos} inscritos</span></>}
                     </div>
@@ -1590,7 +1603,7 @@ function App() {
                           ))}
                         </div>
 
-                        <div className={`text-[11px] flex items-center gap-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <div className={`text-[11px] flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                           <Info size={11} />
                           {agentProvider === 'gemini'    && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_gemini')} <ExternalLink size={9} /></a>}
                           {agentProvider === 'openai'    && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_openai')} <ExternalLink size={9} /></a>}
@@ -1765,20 +1778,10 @@ function App() {
 
                   {!agentStatus.indexing && (
                     <div className="space-y-2">
-                      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                         {agentStatus.indexed ? t('agent.index_note_update') : t('agent.index_note_new')}
                       </p>
-                      {!agentStatus.configured && !(ollamaStatus.running && ollamaStatus.models?.length > 0) && (
-                        <p className={`text-[11px] flex items-center gap-1 ${darkMode ? 'text-warning/80' : 'text-amber-600'}`}>
-                          <AlertTriangle size={11} aria-hidden='true' />
-                          {ollamaStatus.running ? 'Baixe o modelo Ollama acima para habilitar a indexacao.' : t('agent.index_prereq_key')}
-                        </p>
-                      )}
-                      {false && !useExternalProvider && (ollamaStatus.models?.length === 0) && (
-                        <p className={`text-[11px] flex items-center gap-1 ${darkMode ? 'text-warning/80' : 'text-amber-600'}`}>
-                          <AlertTriangle size={11} aria-hidden='true' /> Baixe o modelo Ollama acima para habilitar a indexacao.
-                        </p>
-                      )}
+                      
                       {!canalConfigurado && (
                         <p className={`text-[11px] flex items-center gap-1 ${darkMode ? 'text-warning/80' : 'text-amber-600'}`}>
                           <AlertTriangle size={11} aria-hidden="true" /> {t('agent.index_prereq_channel')}
@@ -1813,7 +1816,7 @@ function App() {
                     {t('agent.chat_title')}
                   </h3>
                   {agentStatus.indexed && (
-                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                       @{agentStatus.canal_indexado}
                     </span>
                   )}
@@ -1923,3 +1926,7 @@ function App() {
 }
 
 export default App;
+
+
+
+

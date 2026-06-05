@@ -514,9 +514,7 @@ def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None
     if not canal_nome:
         return {"error": True, "message": "Nenhum canal configurado."}
 
-    config = agent_brainiac.carregar_config()
-    if not config.get("provider") or not config.get("api_key"):
-        return {"error": True, "message": "Configure a chave de API antes de indexar."}
+    # Indexação BM25 é 100% local — não requer chave de API.
 
     background_tasks.add_task(_run_indexacao, canal_nome, canal_prefixo)
     return {"message": f"Indexação iniciada para @{canal_nome}."}
