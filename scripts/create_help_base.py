@@ -1,0 +1,330 @@
+# -*- coding: utf-8 -*-
+"""
+Script para criar o arquivo de ajuda do BrainIAc em cerebro/textos/.
+Executado uma vez para gerar o conteúdo inicial da base de conhecimento embutida.
+"""
+
+HELP_CONTENT = """TITULO: BrainIAc Engine — Documentação Completa e Base de Conhecimento Embutida
+FONTE: sistema
+DATA: 2026-06-06
+----------------------------------------------------------------------
+
+# O QUE É O BRAINIAC?
+
+O BrainIAc Engine é um sistema de gestão de conhecimento pessoal com inteligência artificial local. Ele transforma qualquer conjunto de conteúdo — canais do YouTube, PDFs, documentos Word, anotações em texto — em uma base de conhecimento consultável via chat.
+
+Ao contrário de ferramentas como ChatGPT ou Gemini, o BrainIAc não usa conhecimento genérico de treinamento. Ele responde EXCLUSIVAMENTE com base no conteúdo que você adicionou, sempre citando a fonte exata: título, data e link de origem.
+
+O BrainIAc roda 100% na sua máquina. Seus dados nunca saem do seu computador. Não há servidor externo, não há assinatura obrigatória, não há custo de uso com o provedor padrão (Ollama).
+
+---
+
+# PARA QUE SERVE O BRAINIAC?
+
+O BrainIAc serve para transformar conhecimento disperso em conhecimento acessível. Exemplos de uso:
+
+- Você segue um criador que publica vídeos diariamente e não consegue assistir tudo. Extrai o canal e faz perguntas sobre os temas que importam.
+- Você tem uma coleção de PDFs de artigos científicos. Adiciona ao BrainIAc e pergunta sobre metodologias, resultados, comparações entre artigos.
+- Você tem apostilas de um curso em DOCX. Combina com o canal do professor no YouTube. Faz perguntas com a linguagem e didática daquele professor.
+- Uma instituição tem 5 anos de lives gravadas no YouTube. Transforma em base consultável para novos colaboradores.
+- Um criador de conteúdo usa o BrainIAc para saber o que já falou sobre determinado tema antes de gravar um novo vídeo.
+
+---
+
+# COMO USAR O BRAINIAC — GUIA PASSO A PASSO
+
+## Passo 1: Extrair um canal do YouTube
+
+1. Na tela inicial, clique no card "Extrair Canal YouTube" ou acesse a aba "Extração"
+2. No campo "Canal YouTube" (sidebar esquerdo), cole a URL do canal no formato:
+   - youtube.com/@NomeDoCanal
+   - youtube.com/c/NomeDoCanal
+   - youtube.com/channel/UCxxxxxxxx
+3. Clique em "Confirmar Canal"
+4. Clique em "Iniciar Extração"
+5. Selecione os tipos de conteúdo (Vídeos, Shorts, Lives, Podcasts, Cursos, Playlists)
+6. Clique em "Confirmar e Iniciar"
+7. Aguarde o processo — o log em tempo real mostra o progresso
+8. Ao finalizar, os arquivos ficam salvos em cerebro/youtube/
+
+A extração pode levar de minutos a horas dependendo do tamanho do canal.
+
+## Passo 2: Adicionar documentos à base
+
+1. Acesse a aba "Repositório"
+2. Clique em "+ Adicionar"
+3. Escolha entre:
+   - "Colar texto": cole diretamente qualquer conteúdo textual
+   - "Upload de arquivo": selecione um arquivo PDF, DOCX, TXT ou MD
+4. Dê um título descritivo ao conteúdo
+5. Clique em Salvar ou Fazer upload
+6. O arquivo é convertido para texto e adicionado à pasta cerebro/documentos/
+
+Formatos suportados para upload: .pdf, .docx, .txt, .md
+
+## Passo 3: Indexar a base de conhecimento
+
+1. Acesse a aba "Configurar Agente"
+2. Verifique que o Ollama está ativo (ponto verde no painel superior)
+3. Clique em "Indexar Agora"
+4. O processo leva segundos — não há chamadas de API, tudo é local
+5. Quando concluído, o contador de chunks aparece no header do acordeão
+
+A indexação precisa ser refeita quando você adicionar novo conteúdo.
+
+## Passo 4: Usar o chat
+
+1. Clique no botão flutuante de chat (canto inferior direito) — ícone de robô
+2. Um painel desliza pela direita
+3. Digite sua pergunta no campo de texto
+4. O agente responde com base no conteúdo indexado, citando as fontes
+5. Cada resposta inclui uma seção "Fontes" com título, data e link do conteúdo original
+
+---
+
+# CAPACIDADES DO BRAINIAC
+
+## O que o BrainIAc FAZ muito bem:
+- Responder perguntas diretas sobre temas específicos do seu conteúdo
+- Encontrar informações em canais com centenas de vídeos
+- Combinar informações de múltiplas fontes numa única resposta
+- Citar a origem exata de cada informação fornecida
+- Funcionar completamente offline (com Ollama)
+- Processar conteúdo em português e inglês
+- Indexar múltiplos canais e buscá-los simultaneamente
+- Extrair texto de PDFs, documentos Word, arquivos Markdown e texto puro
+
+## O que o BrainIAc NÃO faz:
+- Não usa conhecimento externo além do que você adicionou
+- Não acessa a internet durante o chat (respostas são só do seu conteúdo)
+- Não entende imagens (ainda — versão futura terá OCR)
+- Não transcreve áudio diretamente — depende das legendas do YouTube
+- Não garante precisão em conteúdos com muita sobreposição temática
+- Não substitui leitura aprofundada — é uma ferramenta de busca e síntese
+- Não salva histórico de conversas entre sessões (cada abertura começa do zero)
+
+## Limitações técnicas:
+- Canais sem legendas automáticas ou manuais não podem ser extraídos
+- Legendas muito curtas (menos de 150 caracteres por vídeo) são descartadas
+- PDFs com texto escaneado como imagem não são processados (sem OCR)
+- A qualidade das respostas depende da qualidade do conteúdo indexado
+- Modelos locais menores (llama3.2:1b) são menos precisos que GPT-4 ou Claude
+
+---
+
+# COMO FUNCIONA TECNICAMENTE (CONTEXTO TEÓRICO)
+
+## O que é RAG (Retrieval-Augmented Generation)?
+
+RAG é uma arquitetura de IA que combina dois componentes:
+1. Recuperação (Retrieval): busca os trechos mais relevantes da sua base
+2. Geração (Generation): um modelo de linguagem usa esses trechos para formular uma resposta
+
+O BrainIAc implementa RAG local: a busca usa BM25 (sem servidor), a geração usa Ollama (sem API key). Resultado: sistema que responde apenas sobre o que você forneceu.
+
+## O que é BM25?
+
+BM25 (Best Match 25) é um algoritmo de busca por relevância baseado em frequência de termos. É o mesmo algoritmo usado pelo Elasticsearch e pelo Lucene (base do Apache Solr).
+
+No BrainIAc, o BM25:
+- Analisa todos os chunks (pedaços) do seu conteúdo
+- Quando você faz uma pergunta, pontua cada chunk por relevância
+- Retorna os 6 chunks mais relevantes para o modelo de linguagem
+
+Vantagem sobre embeddings: não precisa de API, sem custo, instantâneo.
+
+## O que é Query Expansion?
+
+Quando você faz uma pergunta, o BrainIAc não busca só com as suas palavras exatas. Ele pede ao modelo de linguagem para gerar 2 variações da pergunta, e combina os resultados das 3 buscas (original + 2 variações) por média de score.
+
+Exemplo: "o que é renda fixa?" → também busca "investimentos em renda fixa" e "como funciona renda fixa". Isso aumenta significativamente o recall.
+
+## O que é Ollama?
+
+Ollama é um servidor local que executa modelos de linguagem (LLMs) diretamente na sua máquina, sem necessidade de conexão com internet ou API key.
+
+O BrainIAc usa o modelo llama3.2:1b por padrão — um modelo de 1.3 GB que equilibra qualidade e velocidade em hardware convencional. Para mais qualidade, você pode usar Groq (gratuito, baseado em nuvem) com modelos maiores.
+
+## O que é Groq?
+
+Groq é um provedor de IA que executa modelos de linguagem em hardware especializado (LPU — Language Processing Unit). É gratuito até 14.400 requisições por dia e muito mais rápido que CPUs comuns.
+
+O BrainIAc suporta dois modelos Groq:
+- llama-3.1-8b-instant: rápido, respostas em 1-2 segundos
+- llama-3.1-70b-versatile: máxima qualidade, ainda assim gratuito
+
+Para usar: crie uma conta em console.groq.com, gere uma API key gratuita, e configure na aba "Configurar Agente".
+
+## Como funciona a extração do YouTube?
+
+O BrainIAc usa o yt-dlp — uma ferramenta open-source que acessa as legendas públicas dos vídeos do YouTube. O processo é:
+1. Mapeia todos os vídeos do canal (pode ser centenas ou milhares)
+2. Para cada vídeo, baixa as legendas em português (prioridade) ou inglês
+3. Limpa o arquivo VTT removendo timestamps e tags HTML
+4. Salva o texto limpo com metadados (título, data, link, tags, descrição)
+5. Arquivos são divididos automaticamente quando atingem 40.000 palavras
+
+A extração roda na sua máquina com o seu IP — isso é intencional. Servidores centralizados são bloqueados pelo YouTube rapidamente.
+
+## O que são Chunks?
+
+Chunks são pedaços do seu conteúdo que o BrainIAc usa para busca. Cada vídeo, seção de PDF ou bloco de texto vira um chunk indexado pelo BM25.
+
+Quando você pergunta algo, o BrainIAc não lê todo o seu conteúdo — ele busca os 6 chunks mais relevantes e envia apenas eles para o modelo de linguagem. Isso é mais eficiente e evita que o modelo "se perca" em muito contexto.
+
+---
+
+# CONFIGURAÇÃO DE PROVEDORES DE IA
+
+## Usando Ollama (padrão, gratuito, offline)
+
+O Ollama é instalado automaticamente na primeira execução do BrainIAc. O modelo llama3.2:1b (~1.3 GB) é baixado quando você acessa a aba "Configurar Agente" pela primeira vez.
+
+Não requer nenhuma configuração adicional.
+
+## Usando Groq (gratuito, online, melhor qualidade)
+
+1. Acesse console.groq.com e crie uma conta gratuita
+2. Gere uma API key
+3. Na aba "Configurar Agente", ative o toggle "Usar minha chave de API"
+4. Selecione "Groq"
+5. Escolha "Rápido" (llama-3.1-8b) ou "Máxima qualidade" (llama-3.1-70b)
+6. Cole sua API key e clique em "Salvar Configuração"
+
+Limite gratuito: 14.400 requisições por dia — mais que suficiente para uso pessoal.
+
+## Usando OpenAI (pago)
+
+Requer conta em platform.openai.com e saldo. Usa o modelo gpt-4o-mini.
+
+## Usando Anthropic Claude (pago)
+
+Requer conta em console.anthropic.com e saldo. Usa o modelo claude-sonnet.
+
+---
+
+# ESTRUTURA DE ARQUIVOS
+
+O BrainIAc organiza seus dados em pastas:
+
+cerebro/youtube/     — arquivos .txt extraídos dos canais do YouTube
+cerebro/documentos/  — PDFs, DOCX, TXT, MD enviados via upload
+cerebro/textos/      — textos colados diretamente na interface
+gestao/              — relatórios CSV com histórico de extração por canal
+agent_index/         — índices BM25 (não apague manualmente)
+
+Todos os dados ficam em: %AppData%\\BrainIAc\\data\\  (Windows)
+
+---
+
+# DÚVIDAS FREQUENTES
+
+P: Por que o chat não responde sobre um tema que o canal abordou?
+R: Pode ser que a legenda desse vídeo específico não tenha sido extraída (sem legenda disponível), ou que o BM25 não encontrou correspondência suficiente. Tente reformular a pergunta com palavras diferentes.
+
+P: Por que o agente cita fontes externas como Wikipedia?
+R: O modelo de linguagem (especialmente os menores como llama3.2:1b) às vezes ignora as instruções e usa conhecimento próprio de treinamento. Se isso acontecer, reindexe a base e reformule a pergunta de forma mais específica. Modelos maiores (Groq llama-3.1-70b) seguem as instruções com muito mais fidelidade.
+
+P: Quanto tempo leva a extração de um canal?
+R: Depende do número de vídeos. Um canal com 100 vídeos leva cerca de 20-30 minutos. Um canal com 1.000 vídeos pode levar 3-5 horas. A extração pode ser pausada e retomada.
+
+P: Posso extrair canais privados ou com restrição de idade?
+R: Não diretamente. Canais privados não são acessíveis sem autenticação. Conteúdo com restrição de idade requer login no YouTube.
+
+P: O que acontece se o YouTube bloquear o yt-dlp?
+R: O yt-dlp é atualizado automaticamente pelo BrainIAc sempre que há uma nova versão. A comunidade do yt-dlp atualiza a ferramenta rapidamente quando o YouTube muda algo. Além disso, como cada usuário roda em seu próprio IP residencial, o risco de bloqueio é muito baixo.
+
+P: Posso usar o BrainIAc sem internet?
+R: Sim, com Ollama. Após o download inicial do modelo (~1.3 GB), o chat funciona completamente offline. A extração do YouTube requer internet.
+
+P: Como faço para atualizar a base com novos vídeos de um canal já extraído?
+R: Acesse a aba Extração, configure o mesmo canal e clique em Iniciar Extração. O delta inteligente detecta quais vídeos já foram processados e extrai apenas os novos.
+
+P: Os arquivos extraídos são seguros? Alguém pode acessá-los?
+R: Todos os arquivos ficam exclusivamente na sua máquina, na pasta %AppData%\\BrainIAc. Nenhum dado é enviado para servidores externos (exceto a pergunta ao provedor de IA, se você usar Groq/OpenAI/Anthropic).
+
+P: Posso compartilhar minha base com outra pessoa?
+R: Sim. Copie a pasta %AppData%\\BrainIAc\\data\\cerebro\\ para a máquina da outra pessoa e reindexe.
+
+P: O BrainIAc funciona em Mac e Linux?
+R: Sim. A versão Electron está disponível para Windows, macOS e Linux.
+
+P: Como a IA sabe que só pode usar o conteúdo que eu forneci?
+R: O BrainIAc implementa três camadas de proteção:
+   1. Threshold de relevância: se o BM25 não encontrar chunks com score suficiente, a IA nem é chamada
+   2. Prompt restritivo: instruções explícitas para não usar conhecimento externo
+   3. Verificação pós-geração: se as palavras-chave da resposta não aparecem nos chunks, a resposta é descartada e substituída por mensagem de não encontrado
+
+---
+
+# GLOSSÁRIO
+
+RAG (Retrieval-Augmented Generation): técnica de IA que combina busca em documentos com geração de linguagem natural.
+
+BM25: algoritmo de pontuação de relevância usado para busca textual. Não requer servidor ou API.
+
+Chunk: pedaço de texto indexado para busca. Cada vídeo, seção de PDF ou bloco de texto é dividido em chunks.
+
+LLM (Large Language Model): modelo de linguagem de grande escala como GPT-4, Claude, Llama ou Mistral.
+
+Ollama: servidor local para execução de LLMs sem internet ou API key.
+
+Groq: provedor de IA com hardware especializado (LPU) que executa LLMs muito rapidamente.
+
+yt-dlp: ferramenta open-source para download de legendas e metadados do YouTube.
+
+Indexação: processo de criar o índice BM25 a partir dos arquivos de texto. Necessário antes de usar o chat.
+
+PKM (Personal Knowledge Management): gestão de conhecimento pessoal — área de estudo e ferramentas para organizar, relacionar e recuperar informações pessoais.
+
+Delta extraction: extração inteligente que identifica e processa apenas conteúdo novo, pulando o que já foi extraído.
+
+"""
+
+import os, json
+from datetime import datetime
+
+# Detect data directory
+data_dir_candidates = [
+    os.path.join(os.environ.get('APPDATA', ''), 'brainiac', 'data'),
+    r'C:\Users\augus\Desktop\Brainiac\data',
+]
+
+for data_dir in data_dir_candidates:
+    textos_dir = os.path.join(data_dir, 'cerebro', 'textos')
+    if os.path.exists(os.path.dirname(textos_dir)):
+        os.makedirs(textos_dir, exist_ok=True)
+
+        txt_path = os.path.join(textos_dir, '_brainiac_ajuda.txt')
+        with open(txt_path, 'w', encoding='utf-8') as f:
+            f.write(HELP_CONTENT)
+
+        # Update manifest
+        manifest_path = os.path.join(textos_dir, '_manifest.json')
+        manifest = []
+        if os.path.exists(manifest_path):
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                try:
+                    manifest = json.load(f)
+                except:
+                    manifest = []
+
+        # Remove old entry if exists
+        manifest = [e for e in manifest if e.get('id') != 'brainiac_help']
+
+        manifest.insert(0, {
+            'id': 'brainiac_help',
+            'titulo': 'BrainIAc — Documentação e Ajuda',
+            'nome_txt': '_brainiac_ajuda.txt',
+            'tipo': 'sistema',
+            'chars': len(HELP_CONTENT),
+            'data': datetime.now().strftime('%d/%m/%Y'),
+            'sistema': True,
+        })
+
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+        print(f"Criado: {txt_path}")
+        print(f"Chars: {len(HELP_CONTENT)}")
+        break

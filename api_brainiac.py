@@ -92,6 +92,16 @@ try:
 except Exception:
     pass
 
+# Cria base de conhecimento embutida do BrainIAc na primeira execução
+try:
+    _ajuda_path = os.path.join(motor_brainiac.CEREBRO_DIR, 'textos', '_brainiac_ajuda.txt')
+    if not os.path.exists(_ajuda_path):
+        import subprocess as _sp
+        _sp.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts', 'create_help_base.py')],
+                check=False, timeout=10)
+except Exception:
+    pass
+
 
 # ==========================================
 # --- REDIRECIONADOR DE LOG ---

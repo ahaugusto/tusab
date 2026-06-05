@@ -1,0 +1,11 @@
+[
+  {
+    "id": "brainiac_help",
+    "titulo": "BrainIAc — Documentação e Ajuda",
+    "nome_txt": "_brainiac_ajuda.txt",
+    "tipo": "sistema",
+    "chars": 13671,
+    "data": "05/06/2026",
+    "sistema": true
+  }
+]
