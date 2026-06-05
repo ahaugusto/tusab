@@ -11,9 +11,44 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ### Planned
 - Fila de extração com retry e backoff exponencial
 - Whisper como fallback para vídeos sem legenda
-- Telemetria opt-in via Posthog
 - Sistema de licença via Lemon Squeezy
 - Imagens na base de conhecimento (OCR / LLaVA)
+- Busca web via Brave Search API
+
+---
+
+## [0.4.2] — 2026-06-06
+### Added
+- **Posthog analytics opt-in** — ConsentModal na primeira abertura
+  Aceitar/Recusar persiste em localStorage. Zero coleta sem consentimento.
+  services/analytics.js com 10 eventos nomeados (appOpened, canalConfigurado,
+  baseIndexada, chatPergunta, repositorioAcessado, etc.)
+- **Onboarding contextual** — dicas no momento certo, não em modal de entrada
+  hooks/useOnboarding.js gerencia flags por feature em localStorage
+  ProgressToast após indexação: "N chunks prontos! → Abrir chat"
+  Hint na primeira visita à aba Repositório
+- **Toggle busca ampla/restrita** no chat com tooltip descritivo ao hover
+  Restrita: só base indexada | Ampla: base + conhecimento do modelo
+- **Badge "N novos"** no header da Base de Conhecimento quando desatualizada
+  Detecta .txt mais novos que o índice via mtime, pisca em âmbar
+- **Base de conhecimento embutida** (scripts/create_help_base.py)
+  13.671 chars cobrindo: o que é, como usar, capacidades, limitações,
+  teoria (RAG, BM25, Ollama, Groq, yt-dlp), FAQ, glossário técnico
+  Criada automaticamente na primeira execução se não existir
+
+### Fixed
+- Query expansion desabilitada para Ollama local — latência 15-25s → 3-8s
+- Chunks reduzidos de 6→4 para Ollama (contexto menor = resposta mais rápida)
+- brainiac_crash.log adicionado ao .gitignore (segurança)
+- IndentationError no chat_stream após refactor do n_chunks
+
+### Docs
+- Avaliação Estratégica.txt criada com análise sob 6 perspectivas
+  (Arquiteto, PM, UX, Segurança, Negócio, SRE) + matriz de prioridades
+- Posthog, busca web e onboarding contextual documentados em Próximos passos
+- Clareza de posicionamento: BrainIAc não compete com IA generativa,
+  são produtos complementares com jobs to be done distintos
+- Arquitetura narrativa em 3 camadas documentada na Proposta de valor
 
 ---
 
