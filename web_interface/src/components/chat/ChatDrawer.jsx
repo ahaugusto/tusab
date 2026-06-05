@@ -29,6 +29,8 @@ import { Sparkles, X, Bot, Loader2, ExternalLink, Send } from 'lucide-react';
  * @param {string}   props.canalConfigurado    - currently configured canal name
  * @param {Object}   props.canalMeta           - canal metadata (handle etc.)
  * @param {React.RefObject} props.chatEndRef   - ref to scroll anchor at end of messages
+ * @param {boolean}  props.buscaAmpla          - enables broader LLM knowledge beyond indexed base
+ * @param {Function} props.setBuscaAmpla       - toggles broad search mode
  * @returns {JSX.Element}
  */
 function ChatDrawer({
@@ -45,6 +47,8 @@ function ChatDrawer({
   canalConfigurado,
   canalMeta,
   chatEndRef,
+  buscaAmpla,
+  setBuscaAmpla,
 }) {
   const { t } = useTranslation();
 
@@ -72,6 +76,20 @@ function ChatDrawer({
                 {agentStatus.indexed && (
                   <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{canalConfigurado || agentStatus.canal_indexado}</p>
                 )}
+              </div>
+              {/* Busca Ampla toggle */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
+                  {buscaAmpla ? 'Ampla' : 'Restrita'}
+                </span>
+                <button
+                  role="switch"
+                  aria-checked={buscaAmpla}
+                  onClick={() => setBuscaAmpla(v => !v)}
+                  title={buscaAmpla ? 'Modo Amplo: usa base + conhecimento do modelo' : 'Modo Restrito: usa apenas sua base'}
+                  className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                  <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
               </div>
               {chatMessages.length > 0 && (
                 <button onClick={() => setChatMessages([])}

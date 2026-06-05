@@ -403,6 +403,7 @@ class AgentChatRequest(BaseModel):
     canal_nome:    str
     historico:     list = []
     canais_extras: list = []
+    busca_ampla:   bool = False
 
 def _run_indexacao(canal_nome: str, canal_prefixo: str):
     try:
@@ -628,7 +629,7 @@ def agent_chat(req: AgentChatRequest):
         return {"error": True, "message": "Indexação em andamento. Aguarde."}
     try:
         with state.agent_chat_lock:
-            resultado = agent_brainiac.chat(req.mensagem, req.canal_nome, req.historico, req.canais_extras)
+            resultado = agent_brainiac.chat(req.mensagem, req.canal_nome, req.historico, req.canais_extras, req.busca_ampla)
         return resultado
     except Exception as e:
         return {"error": True, "message": str(e)}
@@ -639,6 +640,7 @@ class AgentChatStreamRequest(BaseModel):
     canal_nome:    str
     historico:     list = []
     canais_extras: list = []
+    busca_ampla:   bool = False
 
 @app.post("/agent/chat/stream")
 def agent_chat_stream(req: AgentChatStreamRequest):
@@ -649,7 +651,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 
     def _gen():
         try:
-            for chunk in agent_brainiac.chat_stream(req.mensagem, req.canal_nome, req.historico, req.canais_extras):
+            for chunk in agent_brainiac.chat_stream(req.mensagem, req.canal_nome, req.historico, req.canais_extras, req.busca_ampla):
                 yield chunk + '\n'
         except Exception as e:
             yield json.dumps({'error': str(e)}) + '\n'

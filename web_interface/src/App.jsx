@@ -113,6 +113,7 @@ function App() {
 
   // ─── Chat state ────────────────────────────────────────────────────────────
   const [chatOpen,         setChatOpen]         = useState(false);
+  const [buscaAmpla,       setBuscaAmpla]       = useState(false);
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState('');
   const [chatLoading,      setChatLoading]      = useState(false);
@@ -1229,6 +1230,8 @@ function App() {
               canalConfigurado={canalConfigurado}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
+              buscaAmpla={buscaAmpla}
+              setBuscaAmpla={setBuscaAmpla}
             />
 
             {/* Floating chat button */}

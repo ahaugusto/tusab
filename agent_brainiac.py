@@ -490,7 +490,7 @@ def _verificar_alucinacao(resposta: str, contexto: list[dict], canal_nome: str) 
     return resposta
 
 
-def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None, historico: list = None) -> str:
+def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None, historico: list = None, busca_ampla: bool = False) -> str:
     canal_info = ""
     if meta_canal:
         handle    = meta_canal.get('canal_handle', '')
@@ -523,20 +523,35 @@ def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None,
 
     handle = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
+    if busca_ampla:
+        instrucoes = (
+            f"Você é o BrainIAc em modo de Busca Ampla.\n\n"
+            f"TAREFA: responda à pergunta usando os trechos abaixo como referência principal.\n"
+            f"Quando os trechos contiverem a informação, cite-os como fonte.\n"
+            f"Quando os trechos forem insuficientes, você pode complementar com seu conhecimento geral "
+            f"— mas deixe claro que essa parte não vem da base: use expressões como "
+            f"'além do que está na base...' ou 'de forma geral...'.\n"
+            f"Seja sempre honesto sobre a origem de cada informação.\n\n"
+        )
+    else:
+        instrucoes = (
+            f"Você é o BrainIAc, um assistente que responde EXCLUSIVAMENTE com base nos trechos abaixo.\n\n"
+            f"TAREFA: leia os trechos e extraia as informações que respondam à pergunta do usuário.\n"
+            f"NÃO use nenhum conhecimento próprio, externo ou de treinamento.\n"
+            f"CADA afirmação da sua resposta deve poder ser rastreada a um dos trechos abaixo.\n"
+            f"Se os trechos não contiverem a informação, responda APENAS:\n"
+            f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
+        )
+
     return (
-        f"Você é o BrainIAc, um assistente que responde EXCLUSIVAMENTE com base nos trechos abaixo.\n\n"
-        f"TAREFA: leia os trechos e extraia as informações que respondam à pergunta do usuário.\n"
-        f"NÃO use nenhum conhecimento próprio, externo ou de treinamento.\n"
-        f"CADA afirmação da sua resposta deve poder ser rastreada a um dos trechos abaixo.\n"
-        f"Se os trechos não contiverem a informação, responda APENAS:\n"
-        f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
+        instrucoes
         + hist_str
         + f"TRECHOS DO CANAL {handle.upper()}:\n{contexto_str}\n\n"
         + f"PERGUNTA: {pergunta}\n\nRESPOSTA:"
     )
 
 
-def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None) -> dict:
+def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False) -> dict:
     config = carregar_config()
     provider = config.get('provider', '')
     if not provider or (not config.get('api_key') and provider != 'ollama'):
@@ -551,7 +566,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico)
+    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla)
     provider = config['provider']
     api_key  = config['api_key']
 
@@ -625,7 +640,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     }
 
 
-def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None):
+def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False):
     """
     Versão streaming de chat(). Yields chunks de texto conforme o LLM gera.
     Primeiro yield é um JSON com as fontes, depois yields são texto puro.
@@ -649,7 +664,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico)
+    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla)
     provider      = config['provider']
     api_key       = config.get('api_key', '')
 
