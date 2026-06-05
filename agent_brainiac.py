@@ -385,9 +385,11 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     cached  = _bm25_cache[canal_prefixo]
 
-    # Query expansion: busca com variações e combina scores
+    # Query expansion: só ativa em provedores rápidos (Groq, OpenAI, Anthropic)
+    # Para Ollama local o custo de latência supera o ganho de qualidade
+    PROVEDORES_RAPIDOS = {'groq', 'openai', 'anthropic'}
     queries = [pergunta]
-    if config:
+    if config and config.get('provider') in PROVEDORES_RAPIDOS:
         queries = _expandir_query(pergunta, config)
 
     # Combina scores de todas as queries (média)
@@ -557,7 +559,9 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     if not provider or (not config.get('api_key') and provider != 'ollama'):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
-    contexto = _recuperar_contexto(pergunta, canal_nome, config=config, canais_extras=canais_extras)
+    # Ollama local usa menos chunks para reduzir latência
+    n_chunks = 4 if config.get('provider') == 'ollama' else 6
+    contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras)
     if not contexto:
         return {
             'resposta': 'Não encontrei conteúdo relevante para essa pergunta no índice do canal.',
@@ -651,7 +655,9 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
         return
 
     try:
-        contexto = _recuperar_contexto(pergunta, canal_nome, config=config, canais_extras=canais_extras)
+        # Ollama local usa menos chunks para reduzir latência
+        n_chunks = 4 if config.get('provider') == 'ollama' else 6
+        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras)
     except Exception as e:
         yield json.dumps({'error': str(e)})
         return

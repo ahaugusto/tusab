@@ -65,6 +65,10 @@ ENV/
 *.suo
 *.user
 
+# --- Logs de crash (podem conter informações sensíveis) ---
+brainiac_crash.log
+*.log
+
 # --- OS ---
 .DS_Store
 Thumbs.db
