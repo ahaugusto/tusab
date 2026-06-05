@@ -17,6 +17,34 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [0.4.1] — 2026-06-06
+### Changed
+- **Modularização completa do frontend** — App.jsx de 2.495 → 1.279 linhas
+  - `constants/index.js` — API_BASE, LANGS, BTN_FOCUS centralizados
+  - `services/api.js` — 24 funções de API nomeadas (axios/fetch)
+  - `hooks/useStatus.js` — polling /status isolado em custom hook
+  - `hooks/useAgentStatus.js` — polling /agent/status isolado
+  - `components/shared/` — GuideModal, Onboarding, StatCard, LogLine
+  - `components/extraction/` — ExtractionModal, PostExtractionModal
+  - `components/agent/` — OllamaSetup, RepositorioTab, RelatorioTab
+  - `components/home/` — HomeScreen
+  - `components/chat/` — ChatDrawer
+  - `components/sidebar/` — SidebarContent
+
+### Added
+- Padrão de comentários DevOps em todos os arquivos:
+  - `@file`, `@description`, `@module`, `@author`, `@copyright`
+  - `@param`, `@returns` em componentes e hooks
+  - Seções marcadas com `// ─── Nome ───`
+  - Handlers documentados com JSDoc inline
+- Home screen com layout de duas colunas (logo esquerda, cards direita)
+- Sidebar recolhível com toggle `‹ / ›`
+- Sidebar oculta na home screen
+- Seletor de idioma e tema na home screen
+- Logo clicável retorna à home em qualquer aba
+
+---
+
 ## [0.4.0] — 2026-06-05
 ### Added
 - **Home screen** com 4 cards interativos (Extrair / Repositório / Relatório / Configurar Agente) — mostrada a cada entrada, com badges de contagem real
