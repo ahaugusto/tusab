@@ -111,6 +111,7 @@ function App() {
   const [savingConfig,     setSavingConfig]     = useState(false);
   const [canalMeta,        setCanalMeta]        = useState(null);
   const [ollamaStatus,     setOllamaStatus]     = useState({ running: false, models: [] });
+  const [ollamaModel,      setOllamaModel]      = useState('llama3.2:1b');
   const [canaisExtras,     setCanaisExtras]     = useState([]);
   const [useExternalProvider, setUseExternalProvider] = useState(false);
   const [agentIndexError,  setAgentIndexError]  = useState('');
@@ -226,6 +227,7 @@ function App() {
   /** Loads saved agent config on mount and sets Ollama as default if no external key */
   useEffect(() => {
     loadAgentConfig().then(r => {
+      if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
       const hasExternalKey = r.data.provider && r.data.provider !== 'ollama' && r.data.api_key;
       if (hasExternalKey) {
         setAgentProvider(r.data.provider);
@@ -241,6 +243,12 @@ function App() {
       }
     }).catch(() => {});
   }, []);
+
+  /** Saves selected Ollama model to config */
+  const handleOllamaModelChange = async (model) => {
+    setOllamaModel(model);
+    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model }).catch(() => {});
+  };
 
   /** Polls Ollama status every 5 seconds */
   useEffect(() => {
@@ -1019,7 +1027,7 @@ function App() {
                         exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
                         style={{ overflow: 'hidden' }}>
                         <div className="p-5 space-y-4">
-                          <OllamaSetup darkMode={darkMode} ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus} btnFocus={BTN_FOCUS} />
+                          <OllamaSetup darkMode={darkMode} ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus} btnFocus={BTN_FOCUS} ollamaModel={ollamaModel} onModelChange={handleOllamaModelChange} />
 
                           {/* External provider toggle */}
                           <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>

@@ -1,32 +1,36 @@
 /**
  * @file OllamaSetup.jsx
- * @description Ollama local model status card with download and refresh controls
+ * @description Ollama local model status card with download, refresh and advanced model selector
  * @module components/agent/OllamaSetup
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
-import { CheckCircle2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ChevronDown, Settings2 } from 'lucide-react';
 import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
- * OllamaSetup — shows Ollama daemon status and lets the user download the default model
+ * OllamaSetup — shows Ollama daemon status, model download controls,
+ * and an advanced settings panel for switching between installed models.
  *
  * @param {Object}   props
- * @param {boolean}  props.darkMode       - dark/light theme flag
- * @param {Object}   props.ollamaStatus   - current Ollama status { running, models }
+ * @param {boolean}  props.darkMode        - dark/light theme flag
+ * @param {Object}   props.ollamaStatus    - current Ollama status { running, models }
  * @param {Function} props.setOllamaStatus - state setter for ollamaStatus
- * @param {string}   props.btnFocus       - Tailwind focus-visible ring classes
+ * @param {string}   props.btnFocus        - Tailwind focus-visible ring classes
+ * @param {string}   props.ollamaModel     - currently selected model name from config
+ * @param {Function} props.onModelChange   - callback when user selects a different model
  * @returns {JSX.Element}
  */
-function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus }) {
-  const [pullProgress, setPullProgress] = React.useState(null);
-  const [pulling, setPulling]           = React.useState(false);
+function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollamaModel, onModelChange }) {
+  const [pullProgress,  setPullProgress]  = React.useState(null);
+  const [pulling,       setPulling]       = React.useState(false);
+  const [showAdvanced,  setShowAdvanced]  = React.useState(false);
 
   const hasModel  = ollamaStatus.models && ollamaStatus.models.length > 0;
-  const modelName = hasModel ? ollamaStatus.models[0] : 'llama3.2:1b';
+  const modelName = ollamaModel || (hasModel ? ollamaStatus.models[0] : 'llama3.2:1b');
 
   /** Refreshes Ollama status from backend */
   const refresh = () =>
@@ -60,6 +64,7 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus }) {
 
   return (
     <div className={`rounded-xl p-4 space-y-3 border ${darkMode ? 'bg-secondary/5 border-secondary/20' : 'bg-emerald-50 border-emerald-200'}`}>
+
       {/* Status indicator */}
       <div className="flex items-center gap-2">
         <div className={`w-2 h-2 rounded-full shrink-0 ${ollamaStatus.running ? 'bg-secondary animate-pulse' : 'bg-slate-400'}`} />
@@ -94,16 +99,64 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus }) {
         </div>
       )}
 
+      {/* Pull progress bar */}
+      {pulling && pullProgress && (
+        <div className="space-y-1">
+          <div className={`w-full rounded-full h-1.5 ${darkMode ? 'bg-white/10' : 'bg-emerald-200'}`}>
+            <div className="h-1.5 rounded-full bg-secondary transition-all duration-300" style={{ width: `${pullProgress.pct}%` }} />
+          </div>
+          <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>{pullProgress.message}</p>
+        </div>
+      )}
+
       {/* Ready state */}
       {ollamaStatus.running && hasModel && (
-        <div className="flex items-center justify-between">
-          <div className={`flex items-center gap-2 text-[11px] font-medium text-secondary`}>
-            <CheckCircle2 size={13} /> Pronto: <span className="font-mono">{modelName}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center gap-2 text-[11px] font-medium text-secondary`}>
+              <CheckCircle2 size={13} />
+              Pronto: <span className="font-mono">{modelName}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowAdvanced(v => !v)}
+                title="Configurações avançadas"
+                className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-[10px] transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                <Settings2 size={10} />
+                <ChevronDown size={10} className={`transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} />
+              </button>
+              <button onClick={refresh} title="Atualizar"
+                className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                <RefreshCw size={11} />
+              </button>
+            </div>
           </div>
-          <button onClick={refresh} title="Atualizar"
-            className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
-            <RefreshCw size={11} />
-          </button>
+
+          {/* Advanced settings panel */}
+          {showAdvanced && (
+            <div className={`rounded-lg p-3 space-y-2 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                Configurações Avançadas
+              </p>
+              <div className="space-y-1.5">
+                <label className={`block text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Modelo ativo
+                </label>
+                <select
+                  value={modelName}
+                  onChange={e => onModelChange && onModelChange(e.target.value)}
+                  className={`w-full text-[11px] rounded-lg px-2 py-1.5 border font-mono outline-none ${darkMode ? 'bg-white/8 border-white/15 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  {ollamaStatus.models.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Para adicionar modelos, execute no terminal:{' '}
+                  <span className="font-mono">ollama pull nome-do-modelo</span>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

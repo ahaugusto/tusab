@@ -393,10 +393,11 @@ def open_folder(name: str):
 # ==========================================
 
 class AgentConfigRequest(BaseModel):
-    provider:    str
-    api_key:     str
+    provider:      str
+    api_key:       str
     embed_api_key: str = ""
-    groq_model:  str = ""
+    groq_model:    str = ""
+    ollama_model:  str = ""
 
 class AgentChatRequest(BaseModel):
     mensagem:      str
@@ -504,8 +505,9 @@ def agent_canal_meta():
 def get_agent_config():
     config = agent_brainiac.carregar_config()
     return {
-        "provider": config.get("provider", "gemini"),
-        "api_key":  config.get("api_key", ""),
+        "provider":     config.get("provider", "gemini"),
+        "api_key":      config.get("api_key", ""),
+        "ollama_model": config.get("ollama_model", "llama3.2:1b"),
     }
 
 
@@ -523,6 +525,8 @@ def agent_config(req: AgentConfigRequest):
         config["embed_api_key"] = req.embed_api_key
     if req.groq_model:
         config["groq_model"] = req.groq_model
+    if req.ollama_model:
+        config["ollama_model"] = req.ollama_model
     agent_brainiac.salvar_config(config)
     return {"message": "Configuração salva com sucesso."}
 
