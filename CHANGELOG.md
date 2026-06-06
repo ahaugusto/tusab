@@ -10,10 +10,29 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ## [Unreleased]
 ### Planned
 - Fila de extração com retry e backoff exponencial
-- Whisper como fallback para vídeos sem legenda
+- Whisper como fallback para vídeos sem legenda (Gemma 4 12B pode substituir)
 - Sistema de licença via Lemon Squeezy
-- Imagens na base de conhecimento (OCR / LLaVA)
+- Imagens na base de conhecimento (Gemma 4 multimodal / OCR fallback)
 - Busca web via Brave Search API
+- Entrada por voz (AI Edge Eloquent como referência)
+- LiteRT-LM CLI como provider adicional (aguardar API pública)
+
+---
+
+## [0.4.3] — 2026-06-05
+### Added
+- **Seletor de modelos Ollama** em "Configurações Avançadas" na aba Configurar Agente
+  Painel colapsável (ícone engrenagem) lista todos os modelos instalados via Ollama.
+  Seleção persiste em agent_config.json e é aplicada imediatamente no chat.
+  Compatível com qualquer modelo Ollama — incluindo Gemma 4 12B (gemma3:12b).
+  Padrão mantido: llama3.2:1b (funciona com 4GB RAM).
+
+### Docs
+- Posicionamento: PKM como categoria de mercado, Mentor Digital como conceito
+- Análise competitiva frente ao NotebookLM documentada na Proposta de valor
+- Análise de convergência com Gemma 4 12B (Google) na Avaliação Estratégica
+- Botão "Exportar base" descartado — Drive já cobre backup e compartilhamento
+- Roadmap: AI Edge Eloquent (Fase 3) e LiteRT-LM CLI (Fase 4) mapeados
 
 ---
 
