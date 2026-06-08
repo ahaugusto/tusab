@@ -500,10 +500,13 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
             p_lines = [l.strip() for l in stdout_p.split('\n') if l.strip()]
             for i in range(0, len(p_lines), 2):
                 if i + 1 < len(p_lines):
+                    playlist_id = p_lines[i + 1]
+                    if not re.match(r'^[A-Za-z0-9_\-]{10,50}$', playlist_id):
+                        continue
                     cmd_v = [
                         'yt-dlp', '--flat-playlist', '--ignore-errors',
                         '--print', '%(id)s|||%(upload_date)s|||%(view_count)s|||%(title)s',
-                        f"https://www.youtube.com/playlist?list={p_lines[i + 1]}"
+                        f"https://www.youtube.com/playlist?list={playlist_id}"
                     ]
                     stdout_v = executar_comando(cmd_v)
                     for line in stdout_v.split('\n'):

@@ -26,10 +26,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://localhost:8001", "http://127.0.0.1:8001"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type"],
 )
 
 def get_base_path():
@@ -764,7 +764,10 @@ async def cerebro_upload(
     fid = str(_uuid.uuid4())[:8]
     nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', os.path.splitext(arquivo.filename)[0])[:40]
 
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
     conteudo_bytes = await arquivo.read()
+    if len(conteudo_bytes) > MAX_FILE_SIZE:
+        return {"error": True, "message": "Arquivo excede o limite de 50 MB"}
     texto = ""
 
     try:
@@ -883,6 +886,10 @@ def cerebro_delete(tipo: str, fid: str):
         return {"error": True, "message": "Arquivo não encontrado"}
 
     txt_path = os.path.join(subdir, entry["nome_txt"])
+    real_path = os.path.realpath(txt_path)
+    real_subdir = os.path.realpath(subdir)
+    if not real_path.startswith(real_subdir + os.sep):
+        return {"error": True, "message": "Caminho inválido"}
     if os.path.exists(txt_path):
         os.remove(txt_path)
 
