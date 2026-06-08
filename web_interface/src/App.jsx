@@ -442,6 +442,7 @@ function App() {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
     setChatInput('');
+    Analytics.chatPergunta(buscaAmpla ? 'ampla' : 'restrita', useExternalProvider ? agentProvider : 'ollama');
     const historico = chatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .slice(-6)
