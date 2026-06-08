@@ -723,7 +723,7 @@ function App() {
                     <CloudOff size={16} className="shrink-0" aria-hidden="true" />
                     <span>
                       <strong>{t('banner.local_mode')}</strong>{' '}
-                      <span dangerouslySetInnerHTML={{ __html: t('banner.local_desc') }} />
+                      <span>{t('banner.local_desc_pre')}<code className="font-mono text-[11px]">cerebro/youtube/</code>{t('banner.local_desc_post')}</span>
                     </span>
                   </motion.div>
                 )}
