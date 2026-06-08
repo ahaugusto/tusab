@@ -79,7 +79,7 @@ export function track(event, props = {}) {
 
 export const Analytics = {
   appOpened:           ()           => track('app_opened'),
-  canalConfigurado:    (canal)      => track('canal_configurado', { canal }),
+  canalConfigurado:    ()           => track('canal_configurado'),
   extracaoIniciada:    (tipos)      => track('extracao_iniciada', { tipos }),
   extracaoConcluida:   (stats)      => track('extracao_concluida', stats),
   documentoAdicionado: (tipo)       => track('documento_adicionado', { tipo }),

@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Constants, services, hooks ───────────────────────────────────────────────
 import { API_BASE, BTN_FOCUS } from './constants';
-import { initAnalytics, getConsent, Analytics } from './services/analytics';
+import { initAnalytics, getConsent, acceptAnalytics, declineAnalytics, Analytics } from './services/analytics';
 import { useOnboarding } from './hooks/useOnboarding';
 import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
@@ -121,6 +121,7 @@ function App() {
   const [chatOpen,         setChatOpen]         = useState(false);
   const [buscaAmpla,       setBuscaAmpla]       = useState(false);
   const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getConsent() === 'yes');
   const [progressToast,    setProgressToast]    = useState(null);
   const { seen, markSeen, KEYS } = useOnboarding();
   const { hasSeenWarning, markWarningShown } = useDriveWarning();
@@ -340,7 +341,7 @@ function App() {
       if (res.data.error) { setCanalError(res.data.message); }
       else { setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
     } catch { setCanalError(t('channel.error_server')); }
-    Analytics.canalConfigurado(canalInput);
+    Analytics.canalConfigurado();
     setConfigurando(false);
   };
 
@@ -455,6 +456,7 @@ function App() {
         canal_nome:    agentStatus.canal_indexado || canalConfigurado,
         historico,
         canais_extras: canaisExtras,
+        busca_ampla:   buscaAmpla,
       });
 
       const reader  = response.body.getReader();
@@ -1052,11 +1054,28 @@ function App() {
                         <div className="p-5 space-y-4">
                           <OllamaSetup darkMode={darkMode} ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus} btnFocus={BTN_FOCUS} ollamaModel={ollamaModel} onModelChange={handleOllamaModelChange} />
 
+                          {/* Analytics consent toggle */}
+                          <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                            <div>
+                              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
+                              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Dados de uso enviados ao Posthog (opt-in)</p>
+                            </div>
+                            <button
+                              role="switch" aria-checked={analyticsEnabled}
+                              onClick={() => {
+                                if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
+                                else { acceptAnalytics(); setAnalyticsEnabled(true); }
+                              }}
+                              className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                              <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                          </div>
+
                           {/* External provider toggle */}
                           <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                             <div>
                               <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Usar minha chave de API</p>
-                              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Gemini, OpenAI ou Anthropic Claude</p>
+                              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Gemini, OpenAI, Claude ou Groq</p>
                             </div>
                             <button
                               role="switch" aria-checked={useExternalProvider}
@@ -1081,11 +1100,12 @@ function App() {
                                 exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeInOut' }}
                                 style={{ overflow: 'hidden' }}
                                 className="space-y-3">
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                   {[
                                     { id: 'gemini',    label: 'Google Gemini'    },
                                     { id: 'openai',    label: 'OpenAI'           },
                                     { id: 'anthropic', label: 'Anthropic Claude' },
+                                    { id: 'groq',      label: 'Groq (gratuito)'  },
                                   ].map(({ id, label }) => (
                                     <button key={id} onClick={() => setAgentProvider(id)}
                                       className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${BTN_FOCUS}
@@ -1101,6 +1121,11 @@ function App() {
                                   {agentProvider === 'gemini'    && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_gemini')} <ExternalLink size={9} /></a>}
                                   {agentProvider === 'openai'    && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_openai')} <ExternalLink size={9} /></a>}
                                   {agentProvider === 'anthropic' && <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_anthropic')} <ExternalLink size={9} /></a>}
+                                  {agentProvider === 'groq'      && <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_groq')} <ExternalLink size={9} /></a>}
+                                </div>
+                                <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border border-amber-500/20 text-amber-300/70' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+                                  <Info size={11} className="shrink-0 mt-0.5" />
+                                  <span>Ao usar este provedor, mensagens e trechos da sua base são enviados para servidores externos fora do Brasil (LGPD Art. 33).</span>
                                 </div>
                                 <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                                   <input type={showApiKey ? 'text' : 'password'}
