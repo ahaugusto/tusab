@@ -22,6 +22,55 @@ from fastapi.responses import FileResponse, StreamingResponse
 import logging
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
+
+def _criar_aviso_seguranca():
+    """Cria LEIA-ME-SEGURANCA.txt na pasta de dados na primeira execução."""
+    aviso_path = os.path.join(motor_brainiac.DATA_DIR, 'LEIA-ME-SEGURANCA.txt')
+    if os.path.exists(aviso_path):
+        return
+    os.makedirs(motor_brainiac.DATA_DIR, exist_ok=True)
+    conteudo = """\
+AVISO DE SEGURANÇA — BrainIAc Engine
+© 2026 CriAugu — CNPJ 65.131.075/0001-57
+═══════════════════════════════════════════════════════════
+
+Esta pasta contém dados sensíveis do BrainIAc.
+
+O QUE TEM AQUI
+───────────────
+  cerebro/       → sua base de conhecimento (YouTube, PDFs, documentos)
+  config/        → configurações do app, incluindo chaves de API
+  gestao/        → metadados de extração
+  temp/          → arquivos temporários
+
+⚠️  ATENÇÃO — NÃO COMPARTILHE ESTA PASTA INTEIRA
+
+O arquivo config/agent_config.json pode conter chaves de API
+(Groq, OpenAI, Gemini, Anthropic) em texto simples.
+
+Se você compartilhar ou fazer backup desta pasta sem cuidado,
+suas chaves de API podem ser expostas.
+
+O QUE É SEGURO COMPARTILHAR
+─────────────────────────────
+  ✓ A pasta cerebro/ pode ser compartilhada — só tem texto extraído
+  ✗ A pasta config/ NÃO deve ser compartilhada
+
+RECOMENDAÇÕES
+─────────────
+  • Se usar backup em nuvem (OneDrive, Google Drive, iCloud),
+    exclua a pasta config/ das sincronizações automáticas.
+  • Se for migrar para outro computador, copie apenas a pasta cerebro/.
+  • Suas chaves de API podem ser reconfiguradas no app a qualquer momento.
+
+Mais informações: consulte a documentação em Documentação do Produto/Segurança.txt
+"""
+    with open(aviso_path, 'w', encoding='utf-8') as f:
+        f.write(conteudo)
+
+
+_criar_aviso_seguranca()
+
 app = FastAPI()
 
 app.add_middleware(

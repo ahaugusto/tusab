@@ -24,6 +24,7 @@ import { initAnalytics, getConsent, Analytics } from './services/analytics';
 import { useOnboarding } from './hooks/useOnboarding';
 import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
+import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
 import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig, loadAgentConfig,
@@ -122,6 +123,8 @@ function App() {
   const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
   const [progressToast,    setProgressToast]    = useState(null);
   const { seen, markSeen, KEYS } = useOnboarding();
+  const { hasSeenWarning, markWarningShown } = useDriveWarning();
+  const [showDriveWarning, setShowDriveWarning] = useState(false);
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState('');
   const [chatLoading,      setChatLoading]      = useState(false);
@@ -414,8 +417,21 @@ function App() {
   /** Cancels the running extraction */
   const handleCancel = () => cancelExtraction();
 
-  /** Initiates Drive OAuth flow */
-  const handleDriveAuth = () => startDriveAuth();
+  /** Initiates Drive OAuth flow — shows one-time security warning first */
+  const handleDriveAuth = () => {
+    if (!hasSeenWarning()) {
+      setShowDriveWarning(true);
+    } else {
+      startDriveAuth();
+    }
+  };
+
+  /** Confirms Drive warning and proceeds with auth */
+  const handleDriveWarningConfirm = () => {
+    markWarningShown();
+    setShowDriveWarning(false);
+    startDriveAuth();
+  };
 
   /** Cancels in-progress Drive authentication */
   const handleDriveCancel = () => cancelDriveAuth();
@@ -499,6 +515,13 @@ function App() {
           <ConsentModal key="consent" darkMode={darkMode} onDone={() => setShowConsent(false)} />
         )}
       </AnimatePresence>
+
+      {/* Drive security warning — shown once before first Drive auth */}
+      <DriveWarningModal
+        open={showDriveWarning}
+        darkMode={darkMode}
+        onConfirm={handleDriveWarningConfirm}
+        onCancel={() => setShowDriveWarning(false)} />
 
       {/* Progress toast — contextual next-step guidance */}
       <AnimatePresence>
