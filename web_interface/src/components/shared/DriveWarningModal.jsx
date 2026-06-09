@@ -80,7 +80,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
 
             {/* Body */}
             <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              A pasta de dados do BrainIAc contém arquivos sensíveis.
+              A pasta de dados do Brain'IAC contém arquivos sensíveis.
               Se você sincronizar a pasta errada com o Drive, suas
               chaves de API podem ser expostas.
             </p>
@@ -107,7 +107,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
             </div>
 
             <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              O BrainIAc usa o Drive apenas para salvar a pasta{' '}
+              O Brain'IAC usa o Drive apenas para salvar a pasta{' '}
               <span className="font-mono">cerebro/</span>.
               Este aviso é exibido uma única vez.
             </p>

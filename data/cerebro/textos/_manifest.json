@@ -1,8 +1,8 @@
-[
+﻿[
   {
-    "id": "brainiac_help",
-    "titulo": "BrainIAc — Documentação e Ajuda",
-    "nome_txt": "_brainiac_ajuda.txt",
+    "id": "Brain'IAC_help",
+    "titulo": "Brain'IAC — Documentação e Ajuda",
+    "nome_txt": "_Brain'IAC_ajuda.txt",
     "tipo": "sistema",
     "chars": 13671,
     "data": "05/06/2026",

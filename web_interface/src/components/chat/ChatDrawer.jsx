@@ -5,10 +5,10 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight } from 'lucide-react';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -45,12 +45,19 @@ function ChatDrawer({
   onSend,
   agentStatus,
   canalConfigurado,
+  onSelectCanal,
   canalMeta,
   chatEndRef,
   buscaAmpla,
   setBuscaAmpla,
 }) {
   const { t } = useTranslation();
+  const [showRepoModal, setShowRepoModal] = useState(false);
+
+  const canaisIndexados = agentStatus.canais_indexados || [];
+  const temBase = agentStatus.indexed || canaisIndexados.length > 0;
+  const canalAtivo = canalConfigurado || agentStatus.canal_indexado;
+  const chatHabilitado = temBase && !!canalAtivo;
 
   return (
     <AnimatePresence>
@@ -116,15 +123,51 @@ function ChatDrawer({
             <div className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
               role="log" aria-label={t('agent.chat_title')} aria-live="polite">
               {chatMessages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center gap-3">
-                  <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
-                  <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {!canalConfigurado
-                      ? 'Configure um canal na aba Extração para usar o chat.'
-                      : agentStatus.canal_indexado !== canalConfigurado
-                        ? `Indexe @${canalConfigurado} na aba Agente IA para usar o chat.`
-                        : t('agent.chat_empty_ready', { canal: canalConfigurado })}
-                  </p>
+                <div className="h-full flex flex-col items-center justify-center gap-3 px-4">
+                  {!temBase ? (
+                    <>
+                      <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {t('agent.chat_empty_no_index')}
+                      </p>
+                    </>
+                  ) : !canalAtivo || showRepoModal ? (
+                    <>
+                      <Database size={28} className="text-primary" aria-hidden="true" />
+                      <p className={`text-xs font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Selecione uma base</p>
+                      <p className={`text-[11px] text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Escolha qual base de conhecimento usar nesta conversa
+                      </p>
+                      <div className="w-full mt-1 space-y-2">
+                        {canaisIndexados.map(canal => (
+                          <button key={canal.nome}
+                            onClick={() => { onSelectCanal?.(canal.nome); setShowRepoModal(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99]
+                              ${darkMode ? 'bg-white/5 border-white/15 hover:bg-primary/15 hover:border-primary/30' : 'bg-slate-50 border-slate-200 hover:bg-violet-50 hover:border-violet-200'}`}>
+                            <Database size={14} className="text-primary shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
+                              <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{canal.chunks} chunks indexados</p>
+                            </div>
+                            <ChevronRight size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {t('agent.chat_empty_ready', { canal: canalAtivo })}
+                      </p>
+                      {canaisIndexados.length > 1 && (
+                        <button onClick={() => setShowRepoModal(true)}
+                          className={`text-[10px] underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                          Trocar base
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               ) : (
                 <>
@@ -171,21 +214,16 @@ function ChatDrawer({
             <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
               <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                 <input type="text"
-                  placeholder={
-                    !canalConfigurado
-                      ? 'Configure um canal primeiro...'
-                      : agentStatus.canal_indexado !== canalConfigurado
-                        ? `Indexe @${canalConfigurado} primeiro...`
-                        : t('agent.chat_placeholder_ready')}
+                  placeholder={!chatHabilitado ? 'Selecione uma base primeiro...' : t('agent.chat_placeholder_ready')}
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()}
-                  disabled={!agentStatus.indexed || !canalConfigurado || agentStatus.canal_indexado !== canalConfigurado || chatLoading}
+                  disabled={!chatHabilitado || chatLoading}
                   autoFocus
                   className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
                 <button
                   onClick={onSend}
-                  disabled={!agentStatus.indexed || !canalConfigurado || agentStatus.canal_indexado !== canalConfigurado || !chatInput.trim() || chatLoading}
+                  disabled={!chatHabilitado || !chatInput.trim() || chatLoading}
                   className="p-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   aria-label={t('agent.send')}>
                   <Send size={13} />

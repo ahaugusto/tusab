@@ -1,8 +1,8 @@
-{
+﻿{
   "splash.by": "Desarrollado por CriAugu",
   "tabs.extraction": "Extracción",
   "tabs.agent": "Configurar Agente",
-  "header.engine": "BrainIAc",
+  "header.engine": "Brain'IAC",
   "header.universal": "Motor Universal",
   "header.status": "Estado",
   "header.channel": "Canal",
@@ -57,7 +57,7 @@
   "stats.active": "Activa",
   "stats.waiting_db": "Esperando",
   "stats.no_channel": "sin canal configurado",
-  "guide.title": "¿Cómo usar BrainIAc?",
+  "guide.title": "¿Cómo usar Brain'IAC?",
   "guide.subtitle": "Guía paso a paso",
   "guide.step1": "En la pestaña Extracción, pega la URL de cualquier canal de YouTube y haz clic en Confirmar Canal.",
   "guide.step2": "Haz clic en Iniciar Extracción y selecciona los tipos de contenido. El motor descarga las leyendas automáticamente.",
@@ -130,7 +130,7 @@
   "onboarding.next": "Siguiente",
   "onboarding.finish": "Comenzar",
   "onboarding.step_of": "de",
-  "onboarding.s1_title": "Bienvenido a BrainIAc",
+  "onboarding.s1_title": "Bienvenido a Brain'IAC",
   "onboarding.s1_body": "Un pipeline que transforma cualquier canal de YouTube en una base de conocimiento consultable por IA. Así funciona en 4 pasos.",
   "onboarding.s2_title": "1. Elige el Canal",
   "onboarding.s2_body": "Pega la URL de cualquier canal de YouTube (ej: youtube.com/@NombreDelCanal). Ese será el alcance de la extracción y del agente.",
@@ -146,7 +146,7 @@
   "modal.drive_desc_connected": "Archivos sincronizados con Drive. Abre NotebookLM e importa la carpeta para usarlos como contexto.",
   "modal.drive_desc_local": "Los archivos se guardaron localmente en <code>cerebro/youtube/</code>. Autentica Google Drive para sincronizarlos.",
   "modal.drive_notebooklm": "Abrir NotebookLM",
-  "modal.agent_title": "Usar el Agente BrainIAc",
+  "modal.agent_title": "Usar el Agente Brain'IAC",
   "modal.agent_desc": "Configura tu clave de API, indexa la base y haz preguntas directamente sobre el contenido del canal.",
   "modal.agent_btn": "Ir al Agente",
   "modal.agent_configured": "Agente configurado y listo para usar",
@@ -155,6 +155,7 @@
   "agent.index_what": "La indexación lee los archivos .txt extraídos, divide el contenido en bloques y genera embeddings vectoriales almacenados localmente. Esto permite al agente realizar búsquedas semánticas sobre el contenido del canal.",
   "agent.index_prereq_key": "Configura una clave de API arriba para habilitar la indexación.",
   "agent.index_prereq_channel": "Configura un canal en el menú lateral para habilitar la indexación.",
+  "agent.index_prereq_content": "Añade archivos al Repositorio o configura un canal en la pestaña Extracción para habilitar la indexación.",
   "guide.step5": "Usa el botón de chat (esquina inferior derecha) para hacer preguntas sobre el contenido del canal.",
   "guide.step6": "En la pestaña Informe, revisa la cobertura: videos extraídos, fallos y estadísticas por canal.",
   "home.tagline": "El conocimiento que acumulaste, ahora habla contigo.",
@@ -174,5 +175,11 @@
   "home.card_agent_title": "Configurar Agente IA",
   "home.card_agent_desc": "Configura el proveedor de IA",
   "home.card_agent_ready": "Agente listo para usar",
-  "home.card_agent_index": "Indexa una base para usar el chat"
+  "home.card_agent_index": "Indexa una base para usar el chat",
+  "home.section_source": "¿Cómo quieres empezar?",
+  "home.section_manage": "Gestionar",
+  "home.source_youtube_title": "Canal de YouTube",
+  "home.source_youtube_desc": "Extrae el contenido de cualquier canal",
+  "home.source_files_title": "Archivos",
+  "home.source_files_desc": "Añade PDFs, documentos y textos"
 }

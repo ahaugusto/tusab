@@ -1,9 +1,9 @@
-BRAINIAC ENGINE — TERMOS DE USO E INFORMAÇÕES DE INSTALAÇÃO
+﻿Brain'IAC — TERMOS DE USO E INFORMAÇÕES DE INSTALAÇÃO
 ============================================================
 
 DOWNLOADS ADICIONAIS NECESSÁRIOS
 ----------------------------------
-O BrainIAc Engine requer componentes adicionais que serão baixados
+O Brain'IAC requer componentes adicionais que serão baixados
 automaticamente na primeira execução:
 
   • Ollama (~50 MB)
@@ -15,21 +15,21 @@ automaticamente na primeira execução:
     O download é exibido com barra de progresso dentro do aplicativo.
 
 Uma conexão com a internet é necessária apenas para esses downloads
-iniciais. Após a configuração, o BrainIAc funciona completamente offline.
+iniciais. Após a configuração, o Brain'IAC funciona completamente offline.
 
 ------------------------------------------------------------
 
 TERMOS DE USO
 --------------
-Ao instalar o BrainIAc Engine, você concorda com os seguintes termos:
+Ao instalar o Brain'IAC, você concorda com os seguintes termos:
 
 1. USO PERMITIDO
-   O BrainIAc Engine destina-se a uso pessoal, educacional e de pesquisa.
+   O Brain'IAC destina-se a uso pessoal, educacional e de pesquisa.
    O usuário é responsável por garantir que seu uso esteja em conformidade
    com os Termos de Serviço do YouTube e as leis de direitos autorais aplicáveis.
 
 2. USO PROIBIDO
-   É proibido utilizar o BrainIAc Engine para redistribuição comercial
+   É proibido utilizar o Brain'IAC para redistribuição comercial
    de conteúdo extraído sem o consentimento do criador original.
 
 3. INTEGRAÇÃO COM GOOGLE DRIVE
@@ -38,15 +38,15 @@ Ao instalar o BrainIAc Engine, você concorda com os seguintes termos:
 
 4. CHAVES DE API
    Chaves de API inseridas pelo usuário são armazenadas localmente e
-   nunca transmitidas para servidores do BrainIAc.
+   nunca transmitidas para servidores do Brain'IAC.
 
 5. SEM GARANTIA
-   O BrainIAc Engine é fornecido "como está", sem garantias de qualquer
+   O Brain'IAC é fornecido "como está", sem garantias de qualquer
    tipo. O YouTube pode alterar sua plataforma a qualquer momento.
 
 6. LIMITAÇÃO DE RESPONSABILIDADE
    CriAugu não se responsabiliza por danos indiretos decorrentes do
-   uso ou impossibilidade de uso do BrainIAc Engine.
+   uso ou impossibilidade de uso do Brain'IAC.
 
 ------------------------------------------------------------
 © 2026 CriAugu — CNPJ 65.131.075/0001-57  |  augusto.brasil@saude.gov.br

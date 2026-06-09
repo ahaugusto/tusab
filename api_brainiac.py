@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 # Autor: Augusto Brasil — https://linkedin.com/in/augustoalvesbrasil
 # Todos os direitos reservados. Proibida a reprodução sem autorização expressa.
 # Protegido pela Lei nº 9.609/1998 (Lei do Software) e Lei nº 9.610/1998.
@@ -30,11 +30,11 @@ def _criar_aviso_seguranca():
         return
     os.makedirs(motor_brainiac.DATA_DIR, exist_ok=True)
     conteudo = """\
-AVISO DE SEGURANÇA — BrainIAc Engine
+AVISO DE SEGURANÇA — Brain'IAC
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 ═══════════════════════════════════════════════════════════
 
-Esta pasta contém dados sensíveis do BrainIAc.
+Esta pasta contém dados sensíveis do Brain'IAC.
 
 O QUE TEM AQUI
 ───────────────

@@ -113,7 +113,7 @@ async function installOllama () {
         const fileStream = fs.createWriteStream(tmpInstaller)
         const download   = (url, redirects = 0) => {
           if (redirects > 5) return reject(new Error('Too many redirects'))
-          https.get(url, { headers: { 'User-Agent': 'BrainIAc' } }, res => {
+          https.get(url, { headers: { 'User-Agent': 'brainiac' } }, res => {
             if (res.statusCode === 301 || res.statusCode === 302)
               return download(res.headers.location, redirects + 1)
             if (res.statusCode !== 200)
@@ -240,7 +240,7 @@ async function createWindow () {
     minWidth:        960,
     minHeight:       600,
     icon:            path.join(RESOURCES, 'assets', 'logo.ico'),
-    title:           'BrainIAc',
+    title:           "Brain'IAC",
     show:            false,
     backgroundColor: '#0f172a',   // mesma cor do splash React
     webPreferences: {
@@ -267,7 +267,7 @@ async function createWindow () {
     mainWindow.loadURL(`http://127.0.0.1:${PORT}`)
   } catch (err) {
     dialog.showErrorBox(
-      'BrainIAc — Erro de inicialização',
+      "Brain'IAC — Erro de inicialização",
       `O backend não respondeu a tempo.\n\n${err.message}\n\nVerifique se o Python e as dependências estão instaladas corretamente.`
     )
     app.quit()
@@ -290,7 +290,7 @@ function setupAutoUpdater () {
       dialog.showMessageBox({
         type:    'info',
         title:   'Atualização disponível',
-        message: `BrainIAc ${info.version} foi baixado.\nA atualização será instalada ao fechar o app.`,
+        message: `Brain'IAC ${info.version} foi baixado.\nA atualização será instalada ao fechar o app.`,
         buttons: ['Instalar agora', 'Depois'],
       }).then(({ response }) => {
         if (response === 0) autoUpdater.quitAndInstall()

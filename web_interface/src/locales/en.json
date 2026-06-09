@@ -1,8 +1,8 @@
-{
+﻿{
   "splash.by": "Developed by CriAugu",
   "tabs.extraction": "Extraction",
   "tabs.agent": "Configure Agent",
-  "header.engine": "BrainIAc",
+  "header.engine": "Brain'IAC",
   "header.universal": "Universal Engine",
   "header.status": "Status",
   "header.channel": "Channel",
@@ -57,7 +57,7 @@
   "stats.active": "Active",
   "stats.waiting_db": "Waiting",
   "stats.no_channel": "no channel configured",
-  "guide.title": "How to use BrainIAc?",
+  "guide.title": "How to use Brain'IAC?",
   "guide.subtitle": "Step-by-step guide",
   "guide.step1": "In the Extraction tab, paste any YouTube channel URL and click Confirm Channel.",
   "guide.step2": "Click Start Extraction and select content types. The engine downloads captions automatically.",
@@ -130,7 +130,7 @@
   "onboarding.next": "Next",
   "onboarding.finish": "Get started",
   "onboarding.step_of": "of",
-  "onboarding.s1_title": "Welcome to BrainIAc",
+  "onboarding.s1_title": "Welcome to Brain'IAC",
   "onboarding.s1_body": "A pipeline that turns any YouTube channel into an AI-queryable knowledge base. Here's how it works in 4 steps.",
   "onboarding.s2_title": "1. Choose the Channel",
   "onboarding.s2_body": "Paste any YouTube channel URL (e.g. youtube.com/@ChannelName). This defines the scope of extraction and the AI agent.",
@@ -146,7 +146,7 @@
   "modal.drive_desc_connected": "Files synced to Drive. Open NotebookLM and import the folder to use them as context.",
   "modal.drive_desc_local": "Files were saved locally in <code>cerebro/youtube/</code>. Authenticate Google Drive to sync them.",
   "modal.drive_notebooklm": "Open NotebookLM",
-  "modal.agent_title": "Use BrainIAc Agent",
+  "modal.agent_title": "Use Brain'IAC Agent",
   "modal.agent_desc": "Set your API key, index the knowledge base, and ask questions directly about channel content.",
   "modal.agent_btn": "Go to Agent",
   "modal.agent_configured": "Agent configured and ready to use",
@@ -155,6 +155,7 @@
   "agent.index_what": "Indexing reads the extracted .txt files, splits the content into chunks, and generates vector embeddings stored locally. This enables the agent to perform semantic search over channel content.",
   "agent.index_prereq_key": "Configure an API key above to enable indexing.",
   "agent.index_prereq_channel": "Configure a channel in the sidebar to enable indexing.",
+  "agent.index_prereq_content": "Add files to the Repository or configure a channel in the Extraction tab to enable indexing.",
   "guide.step5": "Use the chat button (bottom right corner) to ask questions about the channel content.",
   "guide.step6": "In the Report tab, track coverage: extracted videos, failures and statistics per channel.",
   "home.tagline": "The knowledge you've built, now speaks with you.",
@@ -174,5 +175,11 @@
   "home.card_agent_title": "Configure AI Agent",
   "home.card_agent_desc": "Set up your AI provider",
   "home.card_agent_ready": "Agent ready to use",
-  "home.card_agent_index": "Index a knowledge base to use chat"
+  "home.card_agent_index": "Index a knowledge base to use chat",
+  "home.section_source": "How do you want to start?",
+  "home.section_manage": "Manage",
+  "home.source_youtube_title": "YouTube Channel",
+  "home.source_youtube_desc": "Extract content from any channel",
+  "home.source_files_title": "Files",
+  "home.source_files_desc": "Add PDFs, documents and text"
 }

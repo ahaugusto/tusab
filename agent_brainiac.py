@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 # Autor: Augusto Brasil — https://linkedin.com/in/augustoalvesbrasil
 # Todos os direitos reservados. Proibida a reprodução sem autorização expressa.
 # Protegido pela Lei nº 9.609/1998 (Lei do Software) e Lei nº 9.610/1998.
@@ -551,7 +551,7 @@ def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None,
 
     if busca_ampla:
         instrucoes = (
-            f"Você é o BrainIAc em modo de Busca Ampla.\n\n"
+            f"Você é o Brain'IAC em modo de Busca Ampla.\n\n"
             f"TAREFA: responda à pergunta usando os trechos abaixo como referência principal.\n"
             f"Quando os trechos contiverem a informação, cite-os como fonte.\n"
             f"Quando os trechos forem insuficientes, você pode complementar com seu conhecimento geral "
@@ -561,7 +561,7 @@ def _montar_prompt(pergunta: str, contexto: list[dict], meta_canal: dict = None,
         )
     else:
         instrucoes = (
-            f"Você é o BrainIAc, um assistente que responde EXCLUSIVAMENTE com base nos trechos abaixo.\n\n"
+            f"Você é o Brain'IAC, um assistente que responde EXCLUSIVAMENTE com base nos trechos abaixo.\n\n"
             f"TAREFA: leia os trechos e extraia as informações que respondam à pergunta do usuário.\n"
             f"NÃO use nenhum conhecimento próprio, externo ou de treinamento.\n"
             f"CADA afirmação da sua resposta deve poder ser rastreada a um dos trechos abaixo.\n"

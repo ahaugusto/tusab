@@ -5,11 +5,12 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Globe, Sun, Moon, Link2, CheckCircle2, XCircle, AlertTriangle, Loader2, Zap,
-  ShieldCheck, ShieldOff, ShieldAlert, ExternalLink,
+  ShieldCheck, ShieldOff, ShieldAlert, ExternalLink, PlayCircle, FileText, Info,
+  FolderPlus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import i18n from '../../i18n';
@@ -29,7 +30,7 @@ import i18n from '../../i18n';
  * @param {string}   props.btnFocus         - Tailwind focus-visible ring classes
  * @returns {JSX.Element}
  */
-function DriveToggle({ driveStatus, driveAuthError, onAuth, onCancel, isRunning, darkMode, btnFocus }) {
+export function DriveToggle({ driveStatus, driveAuthError, onAuth, onCancel, isRunning, darkMode, btnFocus }) {
   const { t } = useTranslation();
 
   const isOn           = driveStatus === 'autenticado' || driveStatus === 'em_progresso';
@@ -169,10 +170,12 @@ function SidebarContent({
   onDriveAuth,
   onDriveCancel,
   setShowHome,
+  onAddFiles,
   btnFocus,
 }) {
   const { t } = useTranslation();
   const errorId = 'canal-error';
+  const [activeSource, setActiveSource] = useState('youtube');
 
   /** Removes the configured canal from state */
   const handleRemoveCanal = () => { setCanalConfigurado(''); setCanalInput(''); };
@@ -220,7 +223,7 @@ function SidebarContent({
           aria-label="Voltar à tela inicial"
           className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
           <img
-            src={darkMode ? '/logo_dark.svg' : '/logo.svg'}
+            src={darkMode ? '/logo_dark.png' : '/logo.svg'}
             alt="BrainIAc — Intelligence Engine"
             style={{ width: '220px', height: '220px', objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
@@ -230,97 +233,101 @@ function SidebarContent({
 
       <div className={`border-t mb-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} role="separator" />
 
-      {/* ── STEP 1: Canal YouTube ── */}
-      <section aria-labelledby="canal-heading" className="space-y-2 mb-3">
-        <div className="flex items-center gap-2 px-1">
-          <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
-            ${canalConfigurado ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary'}`}
-            aria-hidden="true">1</span>
-          <p id="canal-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-            {t('channel.title')}
-          </p>
-        </div>
+      {/* ── Source tabs: YouTube | Arquivos ── */}
+      <div className={`flex rounded-xl p-0.5 mb-3 ${darkMode ? 'bg-white/5' : 'bg-slate-100'}`}>
+        {[
+          { id: 'youtube',  label: 'YouTube',  icon: PlayCircle },
+          { id: 'arquivos', label: 'Arquivos',  icon: FileText },
+        ].map(({ id, label, icon: Icon }) => (
+          <button key={id} onClick={() => setActiveSource(id)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-all
+              ${activeSource === id
+                ? darkMode ? 'bg-primary/25 text-primary shadow' : 'bg-white text-primary shadow-sm'
+                : darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+            <Icon size={11} aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
 
-        {canalConfigurado ? (
-          <div role="status" aria-label={`Canal configurado: @${canalConfigurado}`}
-            className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
-            <CheckCircle2 size={14} className="text-primary shrink-0" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.configured')}</p>
-              <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{cleanCanalName(canalConfigurado)}</p>
-            </div>
-            {!isRunning && (
-              <button
-                onClick={handleRemoveCanal}
-                aria-label={t('channel.remove')}
-                className={`ml-auto rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-600'} ${btnFocus}`}>
-                <XCircle size={14} />
-              </button>
+      {/* ── YouTube tab ── */}
+      {activeSource === 'youtube' && (
+        <>
+          <section aria-labelledby="canal-heading" className="space-y-2 mb-3">
+            <p id="canal-heading" className={`text-[11px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+              {t('channel.title')}
+            </p>
+
+            {canalConfigurado ? (
+              <div role="status" aria-label={`Canal configurado: @${canalConfigurado}`}
+                className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
+                <CheckCircle2 size={14} className="text-primary shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.configured')}</p>
+                  <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{cleanCanalName(canalConfigurado)}</p>
+                </div>
+                {!isRunning && (
+                  <button onClick={handleRemoveCanal} aria-label={t('channel.remove')}
+                    className={`ml-auto rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-600'} ${btnFocus}`}>
+                    <XCircle size={14} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label htmlFor="canal-url" className="sr-only">URL do canal YouTube</label>
+                <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                  <Link2 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
+                  <input id="canal-url" type="url" placeholder={t('channel.placeholder')} value={canalInput}
+                    onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && onConfigurarCanal()}
+                    aria-describedby={canalError ? errorId : undefined} aria-invalid={!!canalError}
+                    className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                </div>
+                {canalError && (
+                  <p id={errorId} role="alert" className="text-[11px] text-danger flex items-center gap-1 font-medium">
+                    <AlertTriangle size={11} aria-hidden="true" /> {canalError}
+                  </p>
+                )}
+                <button onClick={onConfigurarCanal} disabled={configurando || !canalInput.trim()}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 ${btnFocus}`}>
+                  {configurando ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <CheckCircle2 size={12} aria-hidden="true" />}
+                  {configurando ? t('channel.configuring') : t('channel.confirm')}
+                </button>
+              </div>
             )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <label htmlFor="canal-url" className="sr-only">URL do canal YouTube</label>
-            <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-              <Link2 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
-              <input id="canal-url" type="url" placeholder={t('channel.placeholder')} value={canalInput}
-                onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
-                onKeyDown={e => e.key === 'Enter' && onConfigurarCanal()}
-                aria-describedby={canalError ? errorId : undefined} aria-invalid={!!canalError}
-                className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-            </div>
-            {canalError && (
-              <p id={errorId} role="alert" className="text-[11px] text-danger flex items-center gap-1 font-medium">
-                <AlertTriangle size={11} aria-hidden="true" /> {canalError}
+          </section>
+
+          <div className={`border-t mb-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} role="separator" />
+
+          {/* Google Drive — com hint NotebookLM */}
+          <section aria-labelledby="drive-heading" className="space-y-2 mb-3">
+            <p id="drive-heading" className={`text-[11px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+              {t('drive.title')}
+            </p>
+            <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] ${darkMode ? 'bg-white/4 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
+              <Info size={11} className="text-primary shrink-0 mt-0.5" aria-hidden="true" />
+              <p className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
+                Sincronize os arquivos extraídos com o Drive para usar no{' '}
+                <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
+                O BrainIAc monta o repositório; o NotebookLM atua como interface de leitura.
               </p>
-            )}
-            <button onClick={onConfigurarCanal} disabled={configurando || !canalInput.trim()}
-              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
-                disabled:opacity-40 disabled:cursor-not-allowed
-                bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 ${btnFocus}`}>
-              {configurando ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <CheckCircle2 size={12} aria-hidden="true" />}
-              {configurando ? t('channel.configuring') : t('channel.confirm')}
-            </button>
-          </div>
-        )}
-      </section>
+            </div>
+            <DriveToggle
+              driveStatus={driveStatus}
+              driveAuthError={driveAuthError}
+              onAuth={onDriveAuth}
+              onCancel={onDriveCancel}
+              isRunning={isRunning}
+              darkMode={darkMode}
+              btnFocus={btnFocus}
+            />
+          </section>
 
-      <div className={`border-t mb-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} role="separator" />
+          <div className={`border-t mb-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} role="separator" />
 
-      {/* ── STEP 2: Google Drive ── */}
-      <section aria-labelledby="drive-heading" className="space-y-2 mb-3">
-        <div className="flex items-center gap-2 px-1">
-          <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
-            ${driveStatus === 'autenticado' ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary'}`}
-            aria-hidden="true">2</span>
-          <p id="drive-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-            {t('drive.title')}
-          </p>
-        </div>
-        <DriveToggle
-          driveStatus={driveStatus}
-          driveAuthError={driveAuthError}
-          onAuth={onDriveAuth}
-          onCancel={onDriveCancel}
-          isRunning={isRunning}
-          darkMode={darkMode}
-          btnFocus={btnFocus}
-        />
-      </section>
-
-      <div className={`border-t mb-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} role="separator" />
-
-      {/* ── STEP 3: Operations ── */}
-      <section aria-labelledby="ops-heading" className="space-y-2 mb-3">
-        <div className="flex items-center gap-2 px-1">
-          <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
-            ${isRunning && !isPaused ? 'bg-primary/20 text-primary animate-pulse' : 'bg-primary/20 text-primary'}`}
-            aria-hidden="true">3</span>
-          <p id="ops-heading" className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-            {t('ops.title')}
-          </p>
-        </div>
-        <div role="group" aria-label={t('ops.controls')}>
           <button onClick={onStart} disabled={isRunning || !canalConfigurado}
             className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98]
               disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
@@ -328,8 +335,38 @@ function SidebarContent({
             <Zap size={15} aria-hidden="true" />
             {t('ops.start')}
           </button>
-        </div>
-      </section>
+        </>
+      )}
+
+      {/* ── Arquivos tab ── */}
+      {activeSource === 'arquivos' && (
+        <section className="space-y-4">
+          <p className={`text-[11px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+            Seus Arquivos
+          </p>
+          <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            Adicione documentos ao repositório para conversar com eles via IA — sem canal YouTube, sem extração.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {['PDF', 'DOCX', 'TXT', 'MD'].map(ext => (
+              <span key={ext} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
+                ${darkMode ? 'bg-white/5 border-white/15 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                .{ext.toLowerCase()}
+              </span>
+            ))}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border italic
+              ${darkMode ? 'bg-white/3 border-white/8 text-slate-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+              áudio/vídeo em breve
+            </span>
+          </div>
+          <button onClick={onAddFiles}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98]
+              bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${btnFocus}`}>
+            <FolderPlus size={15} aria-hidden="true" />
+            Adicionar Arquivos
+          </button>
+        </section>
+      )}
 
       {/* Footer */}
       <div className={`mt-auto pt-2 border-t flex flex-col items-center gap-0.5 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>

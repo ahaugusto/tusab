@@ -1,4 +1,4 @@
-# Changelog — BrainIAc Engine
+﻿# Changelog — Brain'IAC
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 
 Todas as mudanças relevantes do projeto são documentadas aqui.
@@ -58,14 +58,14 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ### Fixed
 - Query expansion desabilitada para Ollama local — latência 15-25s → 3-8s
 - Chunks reduzidos de 6→4 para Ollama (contexto menor = resposta mais rápida)
-- brainiac_crash.log adicionado ao .gitignore (segurança)
+- Brain'IAC_crash.log adicionado ao .gitignore (segurança)
 - IndentationError no chat_stream após refactor do n_chunks
 
 ### Docs
 - Avaliação Estratégica.txt criada com análise sob 6 perspectivas
   (Arquiteto, PM, UX, Segurança, Negócio, SRE) + matriz de prioridades
 - Posthog, busca web e onboarding contextual documentados em Próximos passos
-- Clareza de posicionamento: BrainIAc não compete com IA generativa,
+- Clareza de posicionamento: Brain'IAC não compete com IA generativa,
   são produtos complementares com jobs to be done distintos
 - Arquitetura narrativa em 3 camadas documentada na Proposta de valor
 
@@ -133,7 +133,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [0.3.2] — 2026-06-05
 ### Fixed
-- **Causa raiz do bloqueio de indexação**: verificação de chave de API estava no endpoint `/agent/index` em `api_brainiac.py`, não só em `agent_brainiac.py`. Indexação BM25 é 100% local e nunca requer chave.
+- **Causa raiz do bloqueio de indexação**: verificação de chave de API estava no endpoint `/agent/index` em `api_Brain'IAC.py`, não só em `agent_Brain'IAC.py`. Indexação BM25 é 100% local e nunca requer chave.
 - Ollama status polling movido para o componente pai — antes dependia do accordion estar aberto; se fechado, `ollamaStatus` ficava `{running: false}` e warnings apareciam incorretamente
 - Bug de build: useEffect de polling inserido com URL quebrada (`` `/agent/ollama/status` `` sem `${API_BASE}`), causando falha silenciosa de build e dist desatualizado
 - "canalis" → "canais" (pluralização incorreta em português)
@@ -210,7 +210,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 - ChromaDB e embeddings substituídos por BM25 local
 - Sub-langs fixo 'pt' (elimina 429 por detecção dinâmica)
 - yt-dlp: dois subprocessos separados (fix bug simulação 2026)
-- Dados em `%AppData%\BrainIAc\data\` (separado do diretório do app)
+- Dados em `%AppData%\Brain'IAC\data\` (separado do diretório do app)
 
 ### Fixed
 - 429 rate limit por --list-subs retornando 60+ idiomas

@@ -1,7 +1,7 @@
 {
   "name": "brainiac",
   "version": "2.0.0",
-  "description": "BrainIAc — Motor Universal de Conhecimento",
+  "description": "Brain'IAC — Index.Augment.Converse",
   "main": "main.js",
   "author": {
     "name":  "CriAugu",
@@ -25,7 +25,7 @@
   },
   "build": {
     "appId":       "com.criaugu.brainiac",
-    "productName": "BrainIAc",
+    "productName": "brainiac",
     "copyright":   "© 2026 CriAugu — CNPJ 65.131.075/0001-57",
 
     "directories": {
@@ -74,7 +74,7 @@
       "uninstallerIcon":               "../assets/logo.ico",
       "createDesktopShortcut":         true,
       "createStartMenuShortcut":       true,
-      "shortcutName":                  "BrainIAc",
+      "shortcutName":                  "brainiac",
       "license":                       "build_resources/license.txt",
       "installerSidebar":              "build_resources/installer_sidebar.bmp"
     },

@@ -1,4 +1,4 @@
-# 🧠 BrainIAc — Intelligence Engine v2.0 (Web)
+﻿# 🧠 Brain'IAC — Intelligence Engine v2.0 (Web)
 
 > **Motor de extração de conhecimento para YouTube** — transforme qualquer canal público em uma base de dados estruturada, pronta para ser ingerida por ferramentas de IA como NotebookLM e Gemini.
 
@@ -24,13 +24,13 @@ Você informa a URL. O motor varre tudo (Vídeos, Shorts, Podcasts, Lives, Curso
 
 Pensado para flexibilidade, este repositório possui dois motores independentes:
 
-1. **`motor_brainiac.py` + `app_brainiac.py` (Oficial & Atual)**
+1. **`motor_Brain'IAC.py` + `app_Brain'IAC.py` (Oficial & Atual)**
    - Versão completa com painel de Telemetria Dinâmico (Logs codificados por cores, timestamps).
    - Integração completa via API OAuth2 com o Google Drive para auto-salvamento em nuvem.
    - Possui Pausa Dinâmica e Graceful Shutdown.
    
-2. **`engine_brainiac.py` (Motor Standalone offline)**
-   - Versão simplificada que faz a inteligência de baixar, ripar o VTT e salvar em `brainiac_txt/` somente localmente.
+2. **`engine_Brain'IAC.py` (Motor Standalone offline)**
+   - Versão simplificada que faz a inteligência de baixar, ripar o VTT e salvar em `Brain'IAC_txt/` somente localmente.
    - Ideal para automações futuras, testes rápidos ou setups sem conexão com API do Google Drive.
 
 ---
@@ -50,8 +50,8 @@ Pensado para flexibilidade, este repositório possui dois motores independentes:
 
 Clone o repositório e instale as dependências:
 ```bash
-git clone https://github.com/AHAugusto/brainiac.git
-cd brainiac
+git clone https://github.com/AHAugusto/Brain'IAC.git
+cd Brain'IAC
 pip install -r requirements.txt
 ```
 
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 
 ### 2. Configurando a API do Google Drive (Uma Única Vez)
 
-O BrainIAc cria Google Docs programaticamente. Você precisa prover uma chave `credentials.json` para gerar seu Token pessoal local (que jamais sobe para o Git).
+O Brain'IAC cria Google Docs programaticamente. Você precisa prover uma chave `credentials.json` para gerar seu Token pessoal local (que jamais sobe para o Git).
 1. Acesse o [Google Cloud Console](https://console.cloud.google.com/).
 2. Crie um projeto e habilite a **Google Drive API**.
 3. Crie credenciais do tipo **OAuth 2.0 (Aplicativo Desktop)** e baixe o arquivo json.
@@ -70,14 +70,14 @@ O BrainIAc cria Google Docs programaticamente. Você precisa prover uma chave `c
 
 **Interface Web (v2.0 — recomendada):**
 ```bash
-python api_brainiac.py
+python api_Brain'IAC.py
 ```
 O servidor abre em `http://127.0.0.1:8000` e lança automaticamente no Edge no modo app.
 Cole a URL do canal, clique em **Confirmar Canal** e depois em **Iniciar Extração**.
 
 **Interface Desktop (v1.0 — legado):**
 ```bash
-python app_brainiac.py
+python app_Brain'IAC.py
 ```
 Cole a URL (`https://www.youtube.com/@CanalX`) e aperte **Ligar Motor**.
 
@@ -92,20 +92,20 @@ cd web_interface && npm install && npm run build
 
 Use a especificação preparada do PyInstaller para build local do app fechado:
 ```bash
-pyinstaller brainiac.spec --noconfirm
+pyinstaller Brain'IAC.spec --noconfirm
 ```
-O `.exe` portátil aparecerá em `/dist/BrainIAc_Engine.exe`. *(Mantenha o exe próximo do token.json/credentials.json para funcionar o sync nuvem).*
+O `.exe` portátil aparecerá em `/dist/Brain'IAC_Engine.exe`. *(Mantenha o exe próximo do token.json/credentials.json para funcionar o sync nuvem).*
 
 ---
 
 ## 📁 Estrutura de Arquivos
 
 ```
-BrainIAc/
-├── app_brainiac.py        # Interface principal CustomTkinter
-├── motor_brainiac.py      # Core RAG e GDrive API
-├── engine_brainiac.py     # Engine Standalone (Extração Offline)
-├── brainiac.spec          # Config de compilação
+Brain'IAC/
+├── app_Brain'IAC.py        # Interface principal CustomTkinter
+├── motor_Brain'IAC.py      # Core RAG e GDrive API
+├── engine_Brain'IAC.py     # Engine Standalone (Extração Offline)
+├── Brain'IAC.spec          # Config de compilação
 ├── logo.png / .ico        # Identidade visual corporativa
 ├── requirements.txt       # Libs a rodar
 └── _backup_local/         # (Ignorado no Git) Backups antigos e assets UI

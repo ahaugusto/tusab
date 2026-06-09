@@ -1,31 +1,31 @@
-TITULO: BrainIAc Engine — Documentação Completa e Base de Conhecimento Embutida
+﻿TITULO: Brain'IAC — Documentação Completa e Base de Conhecimento Embutida
 FONTE: sistema
 DATA: 2026-06-06
 ----------------------------------------------------------------------
 
-# O QUE É O BRAINIAC?
+# O QUE É O Brain'IAC?
 
-O BrainIAc Engine é um sistema de gestão de conhecimento pessoal com inteligência artificial local. Ele transforma qualquer conjunto de conteúdo — canais do YouTube, PDFs, documentos Word, anotações em texto — em uma base de conhecimento consultável via chat.
+O Brain'IAC é um sistema de gestão de conhecimento pessoal com inteligência artificial local. Ele transforma qualquer conjunto de conteúdo — canais do YouTube, PDFs, documentos Word, anotações em texto — em uma base de conhecimento consultável via chat.
 
-Ao contrário de ferramentas como ChatGPT ou Gemini, o BrainIAc não usa conhecimento genérico de treinamento. Ele responde EXCLUSIVAMENTE com base no conteúdo que você adicionou, sempre citando a fonte exata: título, data e link de origem.
+Ao contrário de ferramentas como ChatGPT ou Gemini, o Brain'IAC não usa conhecimento genérico de treinamento. Ele responde EXCLUSIVAMENTE com base no conteúdo que você adicionou, sempre citando a fonte exata: título, data e link de origem.
 
-O BrainIAc roda 100% na sua máquina. Seus dados nunca saem do seu computador. Não há servidor externo, não há assinatura obrigatória, não há custo de uso com o provedor padrão (Ollama).
+O Brain'IAC roda 100% na sua máquina. Seus dados nunca saem do seu computador. Não há servidor externo, não há assinatura obrigatória, não há custo de uso com o provedor padrão (Ollama).
 
 ---
 
-# PARA QUE SERVE O BRAINIAC?
+# PARA QUE SERVE O Brain'IAC?
 
-O BrainIAc serve para transformar conhecimento disperso em conhecimento acessível. Exemplos de uso:
+O Brain'IAC serve para transformar conhecimento disperso em conhecimento acessível. Exemplos de uso:
 
 - Você segue um criador que publica vídeos diariamente e não consegue assistir tudo. Extrai o canal e faz perguntas sobre os temas que importam.
-- Você tem uma coleção de PDFs de artigos científicos. Adiciona ao BrainIAc e pergunta sobre metodologias, resultados, comparações entre artigos.
+- Você tem uma coleção de PDFs de artigos científicos. Adiciona ao Brain'IAC e pergunta sobre metodologias, resultados, comparações entre artigos.
 - Você tem apostilas de um curso em DOCX. Combina com o canal do professor no YouTube. Faz perguntas com a linguagem e didática daquele professor.
 - Uma instituição tem 5 anos de lives gravadas no YouTube. Transforma em base consultável para novos colaboradores.
-- Um criador de conteúdo usa o BrainIAc para saber o que já falou sobre determinado tema antes de gravar um novo vídeo.
+- Um criador de conteúdo usa o Brain'IAC para saber o que já falou sobre determinado tema antes de gravar um novo vídeo.
 
 ---
 
-# COMO USAR O BRAINIAC — GUIA PASSO A PASSO
+# COMO USAR O Brain'IAC — GUIA PASSO A PASSO
 
 ## Passo 1: Extrair um canal do YouTube
 
@@ -76,9 +76,9 @@ A indexação precisa ser refeita quando você adicionar novo conteúdo.
 
 ---
 
-# CAPACIDADES DO BRAINIAC
+# CAPACIDADES DO Brain'IAC
 
-## O que o BrainIAc FAZ muito bem:
+## O que o Brain'IAC FAZ muito bem:
 - Responder perguntas diretas sobre temas específicos do seu conteúdo
 - Encontrar informações em canais com centenas de vídeos
 - Combinar informações de múltiplas fontes numa única resposta
@@ -88,7 +88,7 @@ A indexação precisa ser refeita quando você adicionar novo conteúdo.
 - Indexar múltiplos canais e buscá-los simultaneamente
 - Extrair texto de PDFs, documentos Word, arquivos Markdown e texto puro
 
-## O que o BrainIAc NÃO faz:
+## O que o Brain'IAC NÃO faz:
 - Não usa conhecimento externo além do que você adicionou
 - Não acessa a internet durante o chat (respostas são só do seu conteúdo)
 - Não entende imagens (ainda — versão futura terá OCR)
@@ -114,13 +114,13 @@ RAG é uma arquitetura de IA que combina dois componentes:
 1. Recuperação (Retrieval): busca os trechos mais relevantes da sua base
 2. Geração (Generation): um modelo de linguagem usa esses trechos para formular uma resposta
 
-O BrainIAc implementa RAG local: a busca usa BM25 (sem servidor), a geração usa Ollama (sem API key). Resultado: sistema que responde apenas sobre o que você forneceu.
+O Brain'IAC implementa RAG local: a busca usa BM25 (sem servidor), a geração usa Ollama (sem API key). Resultado: sistema que responde apenas sobre o que você forneceu.
 
 ## O que é BM25?
 
 BM25 (Best Match 25) é um algoritmo de busca por relevância baseado em frequência de termos. É o mesmo algoritmo usado pelo Elasticsearch e pelo Lucene (base do Apache Solr).
 
-No BrainIAc, o BM25:
+No Brain'IAC, o BM25:
 - Analisa todos os chunks (pedaços) do seu conteúdo
 - Quando você faz uma pergunta, pontua cada chunk por relevância
 - Retorna os 6 chunks mais relevantes para o modelo de linguagem
@@ -129,7 +129,7 @@ Vantagem sobre embeddings: não precisa de API, sem custo, instantâneo.
 
 ## O que é Query Expansion?
 
-Quando você faz uma pergunta, o BrainIAc não busca só com as suas palavras exatas. Ele pede ao modelo de linguagem para gerar 2 variações da pergunta, e combina os resultados das 3 buscas (original + 2 variações) por média de score.
+Quando você faz uma pergunta, o Brain'IAC não busca só com as suas palavras exatas. Ele pede ao modelo de linguagem para gerar 2 variações da pergunta, e combina os resultados das 3 buscas (original + 2 variações) por média de score.
 
 Exemplo: "o que é renda fixa?" → também busca "investimentos em renda fixa" e "como funciona renda fixa". Isso aumenta significativamente o recall.
 
@@ -137,13 +137,13 @@ Exemplo: "o que é renda fixa?" → também busca "investimentos em renda fixa" 
 
 Ollama é um servidor local que executa modelos de linguagem (LLMs) diretamente na sua máquina, sem necessidade de conexão com internet ou API key.
 
-O BrainIAc usa o modelo llama3.2:1b por padrão — um modelo de 1.3 GB que equilibra qualidade e velocidade em hardware convencional. Para mais qualidade, você pode usar Groq (gratuito, baseado em nuvem) com modelos maiores.
+O Brain'IAC usa o modelo llama3.2:1b por padrão — um modelo de 1.3 GB que equilibra qualidade e velocidade em hardware convencional. Para mais qualidade, você pode usar Groq (gratuito, baseado em nuvem) com modelos maiores.
 
 ## O que é Groq?
 
 Groq é um provedor de IA que executa modelos de linguagem em hardware especializado (LPU — Language Processing Unit). É gratuito até 14.400 requisições por dia e muito mais rápido que CPUs comuns.
 
-O BrainIAc suporta dois modelos Groq:
+O Brain'IAC suporta dois modelos Groq:
 - llama-3.1-8b-instant: rápido, respostas em 1-2 segundos
 - llama-3.1-70b-versatile: máxima qualidade, ainda assim gratuito
 
@@ -151,7 +151,7 @@ Para usar: crie uma conta em console.groq.com, gere uma API key gratuita, e conf
 
 ## Como funciona a extração do YouTube?
 
-O BrainIAc usa o yt-dlp — uma ferramenta open-source que acessa as legendas públicas dos vídeos do YouTube. O processo é:
+O Brain'IAC usa o yt-dlp — uma ferramenta open-source que acessa as legendas públicas dos vídeos do YouTube. O processo é:
 1. Mapeia todos os vídeos do canal (pode ser centenas ou milhares)
 2. Para cada vídeo, baixa as legendas em português (prioridade) ou inglês
 3. Limpa o arquivo VTT removendo timestamps e tags HTML
@@ -162,9 +162,9 @@ A extração roda na sua máquina com o seu IP — isso é intencional. Servidor
 
 ## O que são Chunks?
 
-Chunks são pedaços do seu conteúdo que o BrainIAc usa para busca. Cada vídeo, seção de PDF ou bloco de texto vira um chunk indexado pelo BM25.
+Chunks são pedaços do seu conteúdo que o Brain'IAC usa para busca. Cada vídeo, seção de PDF ou bloco de texto vira um chunk indexado pelo BM25.
 
-Quando você pergunta algo, o BrainIAc não lê todo o seu conteúdo — ele busca os 6 chunks mais relevantes e envia apenas eles para o modelo de linguagem. Isso é mais eficiente e evita que o modelo "se perca" em muito contexto.
+Quando você pergunta algo, o Brain'IAC não lê todo o seu conteúdo — ele busca os 6 chunks mais relevantes e envia apenas eles para o modelo de linguagem. Isso é mais eficiente e evita que o modelo "se perca" em muito contexto.
 
 ---
 
@@ -172,7 +172,7 @@ Quando você pergunta algo, o BrainIAc não lê todo o seu conteúdo — ele bus
 
 ## Usando Ollama (padrão, gratuito, offline)
 
-O Ollama é instalado automaticamente na primeira execução do BrainIAc. O modelo llama3.2:1b (~1.3 GB) é baixado quando você acessa a aba "Configurar Agente" pela primeira vez.
+O Ollama é instalado automaticamente na primeira execução do Brain'IAC. O modelo llama3.2:1b (~1.3 GB) é baixado quando você acessa a aba "Configurar Agente" pela primeira vez.
 
 Não requer nenhuma configuração adicional.
 
@@ -199,7 +199,7 @@ Requer conta em console.anthropic.com e saldo. Usa o modelo claude-sonnet.
 
 # ESTRUTURA DE ARQUIVOS
 
-O BrainIAc organiza seus dados em pastas:
+O Brain'IAC organiza seus dados em pastas:
 
 cerebro/youtube/     — arquivos .txt extraídos dos canais do YouTube
 cerebro/documentos/  — PDFs, DOCX, TXT, MD enviados via upload
@@ -207,7 +207,7 @@ cerebro/textos/      — textos colados diretamente na interface
 gestao/              — relatórios CSV com histórico de extração por canal
 agent_index/         — índices BM25 (não apague manualmente)
 
-Todos os dados ficam em: %AppData%\BrainIAc\data\  (Windows)
+Todos os dados ficam em: %AppData%\Brain'IAC\data\  (Windows)
 
 ---
 
@@ -226,25 +226,25 @@ P: Posso extrair canais privados ou com restrição de idade?
 R: Não diretamente. Canais privados não são acessíveis sem autenticação. Conteúdo com restrição de idade requer login no YouTube.
 
 P: O que acontece se o YouTube bloquear o yt-dlp?
-R: O yt-dlp é atualizado automaticamente pelo BrainIAc sempre que há uma nova versão. A comunidade do yt-dlp atualiza a ferramenta rapidamente quando o YouTube muda algo. Além disso, como cada usuário roda em seu próprio IP residencial, o risco de bloqueio é muito baixo.
+R: O yt-dlp é atualizado automaticamente pelo Brain'IAC sempre que há uma nova versão. A comunidade do yt-dlp atualiza a ferramenta rapidamente quando o YouTube muda algo. Além disso, como cada usuário roda em seu próprio IP residencial, o risco de bloqueio é muito baixo.
 
-P: Posso usar o BrainIAc sem internet?
+P: Posso usar o Brain'IAC sem internet?
 R: Sim, com Ollama. Após o download inicial do modelo (~1.3 GB), o chat funciona completamente offline. A extração do YouTube requer internet.
 
 P: Como faço para atualizar a base com novos vídeos de um canal já extraído?
 R: Acesse a aba Extração, configure o mesmo canal e clique em Iniciar Extração. O delta inteligente detecta quais vídeos já foram processados e extrai apenas os novos.
 
 P: Os arquivos extraídos são seguros? Alguém pode acessá-los?
-R: Todos os arquivos ficam exclusivamente na sua máquina, na pasta %AppData%\BrainIAc. Nenhum dado é enviado para servidores externos (exceto a pergunta ao provedor de IA, se você usar Groq/OpenAI/Anthropic).
+R: Todos os arquivos ficam exclusivamente na sua máquina, na pasta %AppData%\Brain'IAC. Nenhum dado é enviado para servidores externos (exceto a pergunta ao provedor de IA, se você usar Groq/OpenAI/Anthropic).
 
 P: Posso compartilhar minha base com outra pessoa?
-R: Sim. Copie a pasta %AppData%\BrainIAc\data\cerebro\ para a máquina da outra pessoa e reindexe.
+R: Sim. Copie a pasta %AppData%\Brain'IAC\data\cerebro\ para a máquina da outra pessoa e reindexe.
 
-P: O BrainIAc funciona em Mac e Linux?
+P: O Brain'IAC funciona em Mac e Linux?
 R: Sim. A versão Electron está disponível para Windows, macOS e Linux.
 
 P: Como a IA sabe que só pode usar o conteúdo que eu forneci?
-R: O BrainIAc implementa três camadas de proteção:
+R: O Brain'IAC implementa três camadas de proteção:
    1. Threshold de relevância: se o BM25 não encontrar chunks com score suficiente, a IA nem é chamada
    2. Prompt restritivo: instruções explícitas para não usar conhecimento externo
    3. Verificação pós-geração: se as palavras-chave da resposta não aparecem nos chunks, a resposta é descartada e substituída por mensagem de não encontrado

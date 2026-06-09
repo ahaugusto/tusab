@@ -15,6 +15,7 @@ import {
   CheckCircle2, AlertTriangle, Loader2, BarChart3, Menu, X,
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
+  Sun, Moon, Link2, XCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -44,7 +45,7 @@ import RepositorioTab           from './components/agent/RepositorioTab';
 import RelatorioTab             from './components/agent/RelatorioTab';
 import HomeScreen               from './components/home/HomeScreen';
 import ChatDrawer               from './components/chat/ChatDrawer';
-import SidebarContent           from './components/sidebar/SidebarContent';
+import { DriveToggle }          from './components/sidebar/SidebarContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -64,9 +65,9 @@ function App() {
   const [showOnboarding,   setShowOnboarding]   = useState(() => !localStorage.getItem('brainiac_onboarded'));
   const [showGuide,        setShowGuide]        = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showHome,         setShowHome]         = useState(true);
   const [activeTab,        setActiveTab]        = useState('extracao');
+  const [repoAddOpen,      setRepoAddOpen]      = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
@@ -143,6 +144,12 @@ function App() {
   const totalVideos     = status.stats.videos_total;
   const processedVideos = status.stats.videos_processed;
   const driveStatus     = status.drive_status || 'nao_autenticado';
+
+  /** True when there is any content available to index (canal or files) */
+  const temConteudo = !!(canalConfigurado
+    || repositorio.youtube?.length > 0
+    || repositorio.documentos?.length > 0
+    || repositorio.textos?.length > 0);
 
   /** Returns the Tailwind colour class for the current extraction status text */
   const statusTextColor = () => {
@@ -310,7 +317,7 @@ function App() {
     const s = status.stats.status;
     if (s === 'Finalizado ✓' && prevExtractionStatus.current !== 'Finalizado ✓') {
       setShowPostModal(true);
-      const notify = () => new Notification('BrainIAc — Extração concluída!', {
+      const notify = () => new Notification("Brain'IAC — Extração concluída!", {
         body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
         icon: '/logo.svg',
       });
@@ -570,83 +577,118 @@ function App() {
           )}
         </AnimatePresence>
 
-        {/* Desktop sidebar — hidden on home screen */}
+        {/* ── Nav Rail (desktop) ── */}
         {!showHome && (
-          <aside aria-label="Painel de controle"
-            className={`hidden lg:flex shrink-0 border-r flex-col overflow-y-auto custom-scrollbar transition-all duration-200
-              ${sidebarCollapsed ? 'w-16 px-2 pt-2 pb-3' : 'w-72 px-4 pt-2 pb-3'}
+          <nav aria-label="Navegação principal"
+            className={`hidden lg:flex shrink-0 flex-col items-center w-14 py-3 border-r
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            {/* Collapse toggle */}
-            <div className={`flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} mb-1 shrink-0`}>
-              <button onClick={() => setSidebarCollapsed(v => !v)}
-                className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                aria-label={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}>
-                {sidebarCollapsed
-                  ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
-                }
-              </button>
-            </div>
-            {sidebarCollapsed ? (
-              <div className="flex flex-col items-center gap-3 pt-2">
-                <button onClick={() => { setSidebarCollapsed(false); setShowHome(true); }}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity">
-                  <img src={darkMode ? '/logo_dark.png' : '/logo_light.png'} alt="Home"
-                    style={{ width: 36, height: 36, objectFit: 'contain' }}
-                    onError={e => { e.target.style.display = 'none'; }} />
+            <button onClick={() => setShowHome(true)} aria-label="Voltar à tela inicial" title="Voltar ao início"
+              className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
+              <img src="/icon.png" alt="Brain'IAC"
+                style={{ width: 34, height: 34, objectFit: 'contain' }}
+                onError={e => { e.target.style.display = 'none'; }} />
+            </button>
+            <div className="flex flex-col items-center gap-1 flex-1">
+              {[
+                { id: 'extracao',    icon: Zap,      label: t('tabs.extraction') },
+                { id: 'repositorio', icon: BookOpen,  label: 'Repositório'        },
+                { id: 'relatorio',   icon: BarChart3, label: 'Relatório'          },
+                { id: 'agente',      icon: Settings,  label: t('tabs.agent')      },
+              ].map(({ id, icon: Icon, label }) => (
+                <button key={id}
+                  onClick={() => {
+                    setActiveTab(id);
+                    if (id === 'agente' && !localStorage.getItem('brainiac_agent_visited')) {
+                      setShowAgentHint(true);
+                      localStorage.setItem('brainiac_agent_visited', '1');
+                    }
+                  }}
+                  aria-label={label} title={label}
+                  className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${BTN_FOCUS}
+                    ${activeTab === id
+                      ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
+                      : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                  <Icon size={16} aria-hidden="true" />
+                  {id === 'agente' && agentStatus.indexed && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true" />
+                  )}
                 </button>
-                {['1','2','3'].map(n => (
-                  <div key={n} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border
-                    ${darkMode ? 'border-white/15 text-slate-400' : 'border-slate-200 text-slate-500'}`}>{n}</div>
-                ))}
-              </div>
-            ) : (
-              <SidebarContent
-                darkMode={darkMode} setDarkMode={setDarkMode}
-                canalConfigurado={canalConfigurado} setCanalConfigurado={setCanalConfigurado}
-                canalInput={canalInput} setCanalInput={setCanalInput}
-                canalError={canalError} setCanalError={setCanalError}
-                configurando={configurando}
-                driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
-                isRunning={isRunning} isPaused={isPaused}
-                onConfigurarCanal={handleConfigurarCanal}
-                onStart={handleStart}
-                onDriveAuth={handleDriveAuth} onDriveCancel={handleDriveCancel}
-                setShowHome={setShowHome}
-                btnFocus={BTN_FOCUS}
-              />
-            )}
-          </aside>
+              ))}
+            </div>
+            <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')} title={t('guide.title')}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${BTN_FOCUS}
+                ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+              <HelpCircle size={15} aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
+              aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              title={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors mb-1 ${BTN_FOCUS}
+                ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+              {darkMode ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
+            </button>
+            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v0.4</p>
+          </nav>
         )}
 
-        {/* Mobile sidebar drawer */}
+        {/* Mobile nav drawer */}
         <AnimatePresence>
           {sidebarOpen && (
-            <motion.aside aria-label="Painel de controle"
+            <motion.nav aria-label="Navegação principal"
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
-              className={`fixed top-0 left-0 h-full w-72 z-30 flex flex-col px-5 pt-3 pb-5 overflow-y-auto custom-scrollbar lg:hidden ${darkMode ? 'bg-[#0C1122] border-r border-white/10' : 'bg-white border-r border-slate-200 shadow-xl'}`}>
-              <div className="flex justify-end mb-1">
+              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 lg:hidden
+                ${darkMode ? 'bg-[#0C1122] border-r border-white/10' : 'bg-white border-r border-slate-200 shadow-xl'}`}>
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={() => { setShowHome(true); setSidebarOpen(false); }}
+                  className="rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-none">
+                  <img src="/icon.png" alt="Brain'IAC" style={{ width: 32, height: 32, objectFit: 'contain' }}
+                    onError={e => { e.target.style.display = 'none'; }} />
+                </button>
                 <button onClick={() => setSidebarOpen(false)} aria-label="Fechar menu"
                   className={`p-2 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'} ${BTN_FOCUS}`}>
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
-              <SidebarContent
-                darkMode={darkMode} setDarkMode={setDarkMode}
-                canalConfigurado={canalConfigurado} setCanalConfigurado={setCanalConfigurado}
-                canalInput={canalInput} setCanalInput={setCanalInput}
-                canalError={canalError} setCanalError={setCanalError}
-                configurando={configurando}
-                driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
-                isRunning={isRunning} isPaused={isPaused}
-                onConfigurarCanal={handleConfigurarCanal}
-                onStart={handleStart}
-                onDriveAuth={handleDriveAuth} onDriveCancel={handleDriveCancel}
-                setShowHome={setShowHome}
-                btnFocus={BTN_FOCUS}
-              />
-            </motion.aside>
+              <div className="flex flex-col gap-1 flex-1">
+                {[
+                  { id: 'extracao',    icon: Zap,      label: t('tabs.extraction') },
+                  { id: 'repositorio', icon: BookOpen,  label: 'Repositório'        },
+                  { id: 'relatorio',   icon: BarChart3, label: 'Relatório'          },
+                  { id: 'agente',      icon: Settings,  label: t('tabs.agent')      },
+                ].map(({ id, icon: Icon, label }) => (
+                  <button key={id}
+                    onClick={() => {
+                      setActiveTab(id); setSidebarOpen(false);
+                      if (id === 'agente' && !localStorage.getItem('brainiac_agent_visited')) {
+                        setShowAgentHint(true);
+                        localStorage.setItem('brainiac_agent_visited', '1');
+                      }
+                    }}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors text-left ${BTN_FOCUS}
+                      ${activeTab === id
+                        ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
+                        : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
+                    <Icon size={16} aria-hidden="true" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => { setShowGuide(true); setSidebarOpen(false); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                <HelpCircle size={14} aria-hidden="true" />
+                {t('guide.title')}
+              </button>
+              <button
+                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                {darkMode ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
+                {darkMode ? 'Modo claro' : 'Modo escuro'}
+              </button>
+            </motion.nav>
           )}
         </AnimatePresence>
 
@@ -659,6 +701,7 @@ function App() {
               darkMode={darkMode} history={history} repositorio={repositorio}
               agentStatus={agentStatus} btnFocus={BTN_FOCUS}
               onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
+              onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
               onChangeLang={changeLang}
             />
@@ -669,68 +712,58 @@ function App() {
             <div className={`absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-primary/8' : 'bg-primary/4'}`} aria-hidden="true" />
             <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-accent/5' : 'bg-accent/3'}`} aria-hidden="true" />
 
-            {/* Tab bar */}
-            <div className={`px-4 lg:px-8 pt-4 flex items-center gap-1 shrink-0 border-b ${darkMode ? 'border-white/10' : 'border-slate-200'}`}
-              role="tablist" aria-label="Navegação principal">
-              {[
-                { id: 'extracao',    label: t('tabs.extraction'), icon: Zap,       panel: 'panel-extracao'    },
-                { id: 'repositorio', label: 'Repositório',        icon: BookOpen,  panel: 'panel-repositorio' },
-                { id: 'relatorio',   label: 'Relatório',          icon: BarChart3, panel: 'panel-relatorio'   },
-                { id: 'agente',      label: t('tabs.agent'),      icon: Settings,  panel: 'panel-agente'      },
-              ].map(({ id, label, icon: Icon, panel }) => (
-                <button key={id}
-                  role="tab" aria-selected={activeTab === id} aria-controls={panel} id={`tab-${id}`}
-                  onClick={() => {
-                    setActiveTab(id);
-                    if (id === 'agente' && !localStorage.getItem('brainiac_agent_visited')) {
-                      setShowAgentHint(true);
-                      localStorage.setItem('brainiac_agent_visited', '1');
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px ${BTN_FOCUS}
-                    ${activeTab === id
-                      ? darkMode ? 'border-primary text-primary bg-primary/8' : 'border-primary text-primary bg-primary/5'
-                      : darkMode ? 'border-transparent text-slate-400 hover:text-slate-200' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                  <Icon size={13} aria-hidden="true" />
-                  {label}
-                  {id === 'agente' && agentStatus.indexed && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-secondary" aria-label={t('agent.configured_badge')} />
-                  )}
-                </button>
-              ))}
-            </div>
-
             {/* Page header */}
-            <header className="px-4 lg:px-8 py-4 lg:py-6 flex justify-between items-center lg:items-end shrink-0 gap-4">
+            <header className={`px-4 lg:px-8 py-3 lg:py-4 flex justify-between items-center shrink-0 gap-4 border-b ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu de controle"
                   className={`lg:hidden p-2 rounded-xl transition-colors ${darkMode ? 'bg-white/8 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${BTN_FOCUS}`}>
                   <Menu size={20} />
                 </button>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <StatusDot isRunning={isRunning} isPaused={isPaused} />
-                    <span className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.status')}</span>
+                {(isRunning || isPaused) ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <StatusDot isRunning={isRunning} isPaused={isPaused} />
+                      <span className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.status')}</span>
+                    </div>
+                    <h2 aria-live="polite" aria-atomic="true" className={`text-lg lg:text-2xl font-bold leading-tight ${statusTextColor()}`}>
+                      {status.stats.status}
+                    </h2>
+                    {canalConfigurado && (
+                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                        @{cleanCanalName(canalConfigurado)}
+                      </p>
+                    )}
                   </div>
-                  <h2 aria-live="polite" aria-atomic="true" className={`text-xl lg:text-3xl font-bold leading-tight ${statusTextColor()}`}>
-                    {status.stats.status}
-                  </h2>
-                  {canalConfigurado && (
-                    <p className={`text-xs lg:text-sm mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-                      {t('header.channel')}: <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>@{cleanCanalName(canalConfigurado)}</span>
+                ) : (
+                  <div>
+                    <p className={`text-[11px] font-bold uppercase tracking-widest mb-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                      {{ extracao: t('tabs.extraction'), repositorio: 'Repositório', relatorio: 'Relatório', agente: t('tabs.agent') }[activeTab]}
                     </p>
-                  )}
-                </div>
+                    {canalConfigurado && (
+                      <p className={`text-sm font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>@{cleanCanalName(canalConfigurado)}</p>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block" aria-hidden="true">
-                  <p className={`text-[11px] font-bold uppercase tracking-widest mb-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.engine')}</p>
-                  <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.universal')}</p>
-                </div>
-                <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
-                  className={`p-2 rounded-xl transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'} ${BTN_FOCUS}`}>
-                  <HelpCircle size={18} />
-                </button>
+              <div className="flex items-center gap-2">
+                {/* Drive status badge — always visible */}
+                {(driveStatus === 'nao_autenticado' || driveStatus === 'sem_credenciais') && (
+                  <button
+                    onClick={() => { setActiveTab('extracao'); handleDriveAuth(); }}
+                    title="Google Drive não conectado"
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                      ${darkMode ? 'border-warning/30 text-warning bg-warning/8 hover:bg-warning/15' : 'border-amber-300 text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
+                    <CloudOff size={12} aria-hidden="true" />
+                    <span className="hidden sm:inline">Drive</span>
+                  </button>
+                )}
+                {driveStatus === 'autenticado' && (
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border
+                    ${darkMode ? 'border-secondary/25 text-secondary bg-secondary/8' : 'border-emerald-200 text-emerald-600 bg-emerald-50'}`}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                    <span className="hidden sm:inline">Drive</span>
+                  </span>
+                )}
               </div>
             </header>
 
@@ -739,6 +772,85 @@ function App() {
               ref={mainScrollRef}
               className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 space-y-4 custom-scrollbar"
               style={{ display: activeTab === 'extracao' ? undefined : 'none' }}>
+
+              {/* ── Canal + Drive + Iniciar ── */}
+              <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <div className={`px-5 py-3 border-b flex items-center justify-between gap-3 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <Zap size={14} className="text-primary" aria-hidden="true" />
+                    <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
+                  </div>
+                  <button onClick={handleStart} disabled={isRunning || !canalConfigurado}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20 ${BTN_FOCUS}`}>
+                    <Zap size={12} aria-hidden="true" />
+                    {t('ops.start')}
+                  </button>
+                </div>
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Canal section */}
+                  <div className="space-y-2">
+                    <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.title')}</p>
+                    {canalConfigurado ? (
+                      <div role="status" aria-label={`Canal: @${canalConfigurado}`}
+                        className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
+                        <CheckCircle2 size={14} className="text-primary shrink-0" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.configured')}</p>
+                          <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canalConfigurado.split('?')[0]}</p>
+                        </div>
+                        {!isRunning && (
+                          <button onClick={() => { setCanalConfigurado(''); setCanalInput(''); }} aria-label={t('channel.remove')}
+                            className={`rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-400'} ${BTN_FOCUS}`}>
+                            <XCircle size={14} aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all
+                          ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                          <Link2 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
+                          <input type="url" placeholder={t('channel.placeholder')} value={canalInput}
+                            onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
+                            onKeyDown={e => e.key === 'Enter' && handleConfigurarCanal()}
+                            aria-invalid={!!canalError}
+                            className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                        </div>
+                        {canalError && (
+                          <p role="alert" className="text-[11px] text-danger flex items-center gap-1 font-medium">
+                            <AlertTriangle size={11} aria-hidden="true" /> {canalError}
+                          </p>
+                        )}
+                        <button onClick={handleConfigurarCanal} disabled={configurando || !canalInput.trim()}
+                          className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                            disabled:opacity-40 disabled:cursor-not-allowed
+                            bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 ${BTN_FOCUS}`}>
+                          {configurando ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <CheckCircle2 size={12} aria-hidden="true" />}
+                          {configurando ? t('channel.configuring') : t('channel.confirm')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {/* Drive section */}
+                  <div className="space-y-2">
+                    <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('drive.title')}</p>
+                    <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] ${darkMode ? 'bg-white/4 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
+                      <Info size={11} className="text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <p className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
+                        Sincronize os extraídos com o Drive para usar no{' '}
+                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
+                      </p>
+                    </div>
+                    <DriveToggle
+                      driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
+                      onAuth={handleDriveAuth} onCancel={handleDriveCancel}
+                      isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Drive local banner */}
               <AnimatePresence>
@@ -964,7 +1076,42 @@ function App() {
                   darkMode={darkMode} repositorio={repositorio} setRepositorio={setRepositorio}
                   history={history} btnFocus={BTN_FOCUS}
                   onSetCanal={(url) => { setCanalInput(url); }}
+                  showAdd={repoAddOpen} setShowAdd={setRepoAddOpen}
                 />
+
+                {/* Drive accordion */}
+                <div className={`rounded-2xl border overflow-hidden mt-4 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <button
+                    aria-expanded={driveStatus === 'autenticado'}
+                    onClick={() => driveStatus !== 'autenticado' ? handleDriveAuth() : undefined}
+                    className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary shrink-0" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09A16 16 0 0014.09 14"/><path d="M22 16.92v3"/></svg>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('drive.title')}</p>
+                      <p className={`text-[10px] ${driveStatus === 'autenticado' ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {driveStatus === 'autenticado' ? t('drive.connected') : t('drive.not_authenticated')}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${driveStatus === 'autenticado'
+                      ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
+                      : darkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                      {driveStatus === 'autenticado' ? '✓' : 'Conectar'}
+                    </span>
+                  </button>
+                  {driveStatus !== 'autenticado' && (
+                    <div className={`px-5 pb-4 pt-0 border-t space-y-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Sincronize os arquivos extraídos com o Drive para usar no{' '}
+                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
+                      </p>
+                      <DriveToggle
+                        driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
+                        onAuth={handleDriveAuth} onCancel={handleDriveCancel}
+                        isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1056,20 +1203,26 @@ function App() {
                           <OllamaSetup darkMode={darkMode} ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus} btnFocus={BTN_FOCUS} ollamaModel={ollamaModel} onModelChange={handleOllamaModelChange} />
 
                           {/* Analytics consent toggle */}
-                          <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                            <div>
-                              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
-                              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Dados de uso enviados ao Posthog (opt-in)</p>
+                          <div className={`py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
+                                <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                                  Registra eventos de uso — quais abas foram abertas, extrações iniciadas, indexações e perguntas no chat.
+                                  <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> Nenhum conteúdo pessoal é coletado</strong>: sem texto de mensagens, nomes de arquivos, URLs de canais ou chaves de API.
+                                  Os dados são enviados ao <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> (servidores na UE/EUA) e usados exclusivamente para melhorar o produto.
+                                </p>
+                              </div>
+                              <button
+                                role="switch" aria-checked={analyticsEnabled}
+                                onClick={() => {
+                                  if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
+                                  else { acceptAnalytics(); setAnalyticsEnabled(true); }
+                                }}
+                                className={`relative shrink-0 mt-0.5 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                                <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                              </button>
                             </div>
-                            <button
-                              role="switch" aria-checked={analyticsEnabled}
-                              onClick={() => {
-                                if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
-                                else { acceptAnalytics(); setAnalyticsEnabled(true); }
-                              }}
-                              className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
-                              <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                            </button>
                           </div>
 
                           {/* External provider toggle */}
@@ -1306,9 +1459,9 @@ function App() {
                               <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                                 {agentStatus.indexed ? t('agent.index_note_update') : t('agent.index_note_new')}
                               </p>
-                              {!canalConfigurado && (
+                              {!temConteudo && (
                                 <p className={`text-[11px] flex items-center gap-1 ${darkMode ? 'text-warning/80' : 'text-amber-600'}`}>
-                                  <AlertTriangle size={11} aria-hidden="true" /> {t('agent.index_prereq_channel')}
+                                  <AlertTriangle size={11} aria-hidden="true" /> {t('agent.index_prereq_content')}
                                 </p>
                               )}
                               {agentIndexError && (
@@ -1316,7 +1469,7 @@ function App() {
                                   <AlertTriangle size={11} aria-hidden="true" /> {agentIndexError}
                                 </p>
                               )}
-                              <button onClick={handleAgentIndex} disabled={!canalConfigurado}
+                              <button onClick={handleAgentIndex} disabled={!temConteudo}
                                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                                   ${agentStatus.indexed ? `${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}` : 'bg-accent/20 text-accent hover:bg-accent/30'} ${BTN_FOCUS}`}>
                                 <RefreshCw size={13} />
@@ -1342,6 +1495,7 @@ function App() {
               onSend={handleChatSend}
               agentStatus={agentStatus}
               canalConfigurado={canalConfigurado}
+              onSelectCanal={setCanalConfigurado}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
               buscaAmpla={buscaAmpla}

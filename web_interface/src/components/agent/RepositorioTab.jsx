@@ -22,8 +22,10 @@ import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem } fro
  * @param {Function} props.onSetCanal     - callback(url) to propagate a canal URL to the main form
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal }) {
-  const [showAdd, setShowAdd] = React.useState(false);
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp }) {
+  const [showAddLocal, setShowAddLocal] = React.useState(false);
+  const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
+  const setShowAdd = (v) => { setShowAddLocal(v); setShowAddProp?.(v); };
   const [mode, setMode]       = React.useState('texto'); // 'texto' | 'arquivo'
   const [title, setTitle]     = React.useState('');
   const [text, setText]       = React.useState('');
@@ -70,14 +72,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Repositório de Conhecimento</h2>
           <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalYT + totalDoc} arquivo{totalYT + totalDoc !== 1 ? 's' : ''} na base</p>
         </div>
-        <button onClick={() => setShowAdd(v => !v)}
+        <button onClick={() => setShowAdd(!showAdd_)}
           className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
           + Adicionar
         </button>
       </div>
 
       {/* Add panel */}
-      {showAdd && (
+      {showAdd_ && (
         <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex gap-2">
             {['texto', 'arquivo'].map(m => (
