@@ -87,7 +87,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
           />
         </button>
         <p className={`mt-4 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          Indexe o que você aprende. Converse com o que você sabe.
+          O conhecimento que você acumulou, agora fala com você.
         </p>
       </div>
 
