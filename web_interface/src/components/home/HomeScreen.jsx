@@ -87,7 +87,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
           />
         </button>
         <p className={`mt-4 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          Seu cérebro digital — YouTube, PDFs, documentos e anotações em uma base consultável
+          Indexe o que você aprende. Converse com o que você sabe.
         </p>
       </div>
 
