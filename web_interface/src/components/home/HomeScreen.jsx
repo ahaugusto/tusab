@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next';
  * @returns {JSX.Element}
  */
 function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onNavigate, onToggleTheme, onChangeLang }) {
-  const { i18n: homeI18n } = useTranslation();
+  const { t, i18n: homeI18n } = useTranslation();
   const currentLang = homeI18n.language.startsWith('pt') ? 'pt' : homeI18n.language.startsWith('en') ? 'en' : 'es';
 
   const totalArquivos = (repositorio.youtube?.length || 0) + (repositorio.documentos?.length || 0) + (repositorio.textos?.length || 0);
@@ -37,8 +37,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
     {
       id:      'extracao',
       icon:    '🎬',
-      title:   'Extrair Canal YouTube',
-      desc:    totalCanais > 0 ? `${totalCanais} canal${totalCanais !== 1 ? 'is' : ''} extraído${totalCanais !== 1 ? 's' : ''}` : 'Comece aqui — cole a URL de um canal',
+      title:   t('home.card_extract_title'),
+      desc:    totalCanais > 0 ? t('home.card_extract_done', { count: totalCanais }) : t('home.card_extract_desc'),
       color:   'primary',
       badge:   totalCanais > 0 ? String(totalCanais) : null,
       primary: true,
@@ -46,8 +46,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
     {
       id:      'repositorio',
       icon:    '📚',
-      title:   'Repositório',
-      desc:    totalArquivos > 0 ? `${totalArquivos} arquivo${totalArquivos !== 1 ? 's' : ''} indexado${totalArquivos !== 1 ? 's' : ''}` : 'Gerencie seu banco de conhecimento',
+      title:   t('home.card_repo_title'),
+      desc:    totalArquivos > 0 ? t('home.card_repo_done', { count: totalArquivos }) : t('home.card_repo_desc'),
       color:   'accent',
       badge:   totalArquivos > 0 ? String(totalArquivos) : null,
       primary: false,
@@ -55,8 +55,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
     {
       id:      'relatorio',
       icon:    '📊',
-      title:   'Relatório',
-      desc:    totalCanais > 0 ? `${totalCanais} canal${totalCanais !== 1 ? 'is' : ''} disponível${totalCanais !== 1 ? 's' : ''}` : 'Veja o status das suas extrações',
+      title:   t('home.card_report_title'),
+      desc:    totalCanais > 0 ? t('home.card_report_done', { count: totalCanais }) : t('home.card_report_desc'),
       color:   'secondary',
       badge:   totalCanais > 0 ? String(totalCanais) : null,
       primary: false,
@@ -64,8 +64,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
     {
       id:      'agente',
       icon:    '⚙️',
-      title:   'Configurar Agente IA',
-      desc:    configured ? (indexed ? 'Agente pronto para uso' : 'Indexe uma base para usar o chat') : 'Configure o provedor de IA',
+      title:   t('home.card_agent_title'),
+      desc:    configured ? (indexed ? t('home.card_agent_ready') : t('home.card_agent_index')) : t('home.card_agent_desc'),
       color:   configured && indexed ? 'secondary' : 'primary',
       badge:   configured ? '✓' : null,
       primary: false,
@@ -80,14 +80,14 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         <button onClick={() => {}}
           className="focus-visible:outline-none rounded-2xl transition-opacity hover:opacity-90">
           <img
-            src="/logo.svg"
+            src={darkMode ? '/logo_dark.svg' : '/logo.svg'}
             alt="BrainIAc — Intelligence Engine"
             style={{ width: 340, height: 340, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
         </button>
         <p className={`mt-4 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          O conhecimento que você acumulou, agora fala com você.
+          {t('home.tagline')}
         </p>
       </div>
 
@@ -97,7 +97,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-8">
           <img
-            src="/logo.svg"
+            src={darkMode ? '/logo_dark.svg' : '/logo.svg'}
             alt="BrainIAc"
             style={{ width: 140, height: 140, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
@@ -155,7 +155,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
             </button>
           </div>
           <p className={`text-[11px] ${darkMode ? 'text-slate-700' : 'text-slate-400'}`}>
-            Produzido por CriAugu
+            {t('home.by')}
           </p>
         </div>
 

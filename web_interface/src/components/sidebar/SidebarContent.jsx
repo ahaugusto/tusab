@@ -220,7 +220,7 @@ function SidebarContent({
           aria-label="Voltar à tela inicial"
           className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
           <img
-            src="/logo.svg"
+            src={darkMode ? '/logo_dark.svg' : '/logo.svg'}
             alt="BrainIAc — Intelligence Engine"
             style={{ width: '220px', height: '220px', objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
