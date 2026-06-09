@@ -80,7 +80,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         <button onClick={() => {}}
           className="focus-visible:outline-none rounded-2xl transition-opacity hover:opacity-90">
           <img
-            src={darkMode ? '/logo_dark.png' : '/logo_light.png'}
+            src="/logo.svg"
             alt="BrainIAc — Intelligence Engine"
             style={{ width: 340, height: 340, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
@@ -97,7 +97,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-8">
           <img
-            src={darkMode ? '/logo_dark.png' : '/logo_light.png'}
+            src="/logo.svg"
             alt="BrainIAc"
             style={{ width: 140, height: 140, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}

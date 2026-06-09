@@ -312,7 +312,7 @@ function App() {
       setShowPostModal(true);
       const notify = () => new Notification('BrainIAc — Extração concluída!', {
         body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
-        icon: '/logo.png',
+        icon: '/logo.svg',
       });
       if (Notification.permission === 'granted') {
         notify();
