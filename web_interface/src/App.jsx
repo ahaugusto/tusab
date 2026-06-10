@@ -751,8 +751,8 @@ function App() {
                 {/* Drive status badge — always visible */}
                 {(driveStatus === 'nao_autenticado' || driveStatus === 'sem_credenciais') && (
                   <button
-                    onClick={() => { setActiveTab('extracao'); handleDriveAuth(); }}
-                    title="Google Drive não conectado"
+                    onClick={() => setActiveTab('repositorio')}
+                    title="Conectar Google Drive — ir para Repositório"
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                       ${darkMode ? 'border-warning/30 text-warning bg-warning/8 hover:bg-warning/15' : 'border-amber-300 text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
                     <CloudOff size={12} aria-hidden="true" />
@@ -1454,6 +1454,12 @@ function App() {
                                 <Loader2 size={14} className="animate-spin" /> {t('agent.indexing')}
                               </div>
                               <div className={`rounded-xl p-3 max-h-32 overflow-y-auto custom-scrollbar text-[11px] font-mono space-y-1 ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-200'}`}>
+                                <div className="flex justify-end mb-1">
+                                  <a href="http://localhost:8001/log" target="_blank" rel="noreferrer"
+                                    className={`text-[10px] flex items-center gap-0.5 hover:underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                                    <ExternalLink size={9} /> abrir log
+                                  </a>
+                                </div>
                                 {agentStatus.index_logs.map((l, i) => (
                                   <div key={i} className={darkMode ? 'text-slate-300' : 'text-slate-600'}>[{l.timestamp}] {l.message}</div>
                                 ))}

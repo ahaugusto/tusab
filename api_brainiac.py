@@ -17,7 +17,7 @@ from fastapi import FastAPI, BackgroundTasks, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 
 import logging
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
@@ -482,6 +482,69 @@ def agent_status():
     status["indexing"]    = state.agent_indexing
     status["index_logs"]  = state.agent_index_logs[-30:]
     return status
+
+
+@app.get("/log", response_class=HTMLResponse)
+def log_viewer():
+    """Página HTML standalone com log de indexação em tempo real (SSE)."""
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Brain'IAC — Log de Indexação</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;padding:1.5rem;min-height:100vh}
+    h1{font-size:1rem;font-weight:700;color:#a78bfa;margin-bottom:.25rem}
+    .sub{font-size:.75rem;color:#475569;margin-bottom:1.5rem}
+    #log{background:#020817;border:1px solid #1e293b;border-radius:.75rem;padding:1rem;min-height:200px;max-height:80vh;overflow-y:auto;font-size:.78rem;line-height:1.7}
+    .entry{color:#94a3b8}
+    .entry.ok{color:#34d399}
+    .entry.err{color:#f87171}
+    .entry.info{color:#a78bfa}
+    #status{margin-top:.75rem;font-size:.72rem;color:#334155}
+  </style>
+</head>
+<body>
+  <h1>Brain'IAC — Log de Indexação</h1>
+  <div class="sub">Atualização automática a cada 1 s &nbsp;·&nbsp; <a href="javascript:void(0)" onclick="clearLog()" style="color:#475569">limpar</a></div>
+  <div id="log"><span style="color:#334155">Aguardando logs...</span></div>
+  <div id="status"></div>
+  <script>
+    const el = document.getElementById('log');
+    const st = document.getElementById('status');
+    let seen = 0;
+    function clearLog(){ el.innerHTML=''; seen=0; }
+    function colorClass(msg){
+      if(msg.includes('✅')||msg.includes('concluí')) return 'ok';
+      if(msg.includes('❌')||msg.includes('Erro')) return 'err';
+      if(msg.includes('🔍')||msg.includes('📦')||msg.includes('📄')) return 'info';
+      return '';
+    }
+    async function poll(){
+      try{
+        const r = await fetch('/agent/status');
+        const d = await r.json();
+        const logs = d.index_logs || [];
+        if(logs.length > seen){
+          if(seen === 0) el.innerHTML = '';
+          logs.slice(seen).forEach(l=>{
+            const div = document.createElement('div');
+            div.className = 'entry ' + colorClass(l.message);
+            div.textContent = '[' + l.timestamp + '] ' + l.message;
+            el.appendChild(div);
+          });
+          seen = logs.length;
+          el.scrollTop = el.scrollHeight;
+        }
+        st.textContent = d.indexing ? '⏳ Indexação em andamento…' : (seen > 0 ? '✅ Indexação concluída.' : 'Sem atividade de indexação.');
+      }catch(e){ st.textContent = '⚠ Sem conexão com o backend.'; }
+    }
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>""")
 
 
 @app.get("/agent/ollama/status")
