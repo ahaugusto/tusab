@@ -97,7 +97,7 @@ function ChatDrawer({
                   <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
                 {/* Tooltip */}
-                <div className={`absolute bottom-8 right-0 w-56 p-2.5 rounded-xl border text-[10px] leading-relaxed shadow-xl
+                <div className={`absolute top-full mt-2 right-0 w-56 p-2.5 rounded-xl border text-[10px] leading-relaxed shadow-xl
                   opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10
                   ${darkMode ? 'bg-[#0C1122] border-white/20 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/60'}`}>
                   {buscaAmpla
