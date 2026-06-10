@@ -1013,7 +1013,9 @@ function App() {
                               <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{h.canal}</p>
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${h.cobertura >= 80 ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700' : darkMode ? 'bg-warning/20 text-warning' : 'bg-amber-100 text-amber-700'}`}>{h.cobertura}%</span>
                             </div>
-                            <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.extraidos} vídeos · {h.ultima_extracao}</p>
+                            <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                              {h.extraidos}{h.total_mapeado && h.total_mapeado > h.total ? ` de ${h.total_mapeado}` : ''} vídeos · {h.ultima_extracao}
+                            </p>
                           </div>
                           <button
                             onClick={async () => {

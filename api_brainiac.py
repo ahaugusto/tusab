@@ -406,13 +406,24 @@ def get_history():
                 if m:
                     canal_url = f"https://www.youtube.com/@{m.group(1)}"
 
+            # Usa total_mapeado (todos os vídeos do canal) como denominador real
+            summary_path = csv_path.replace("_base.csv", "_summary.json")
+            total_mapeado = total
+            if os.path.exists(summary_path):
+                try:
+                    with open(summary_path, 'r', encoding='utf-8') as _sf:
+                        total_mapeado = json.load(_sf).get("total_mapeado", total)
+                except Exception:
+                    pass
+
             history.append({
-                "canal":          prefixo,
-                "canal_url":      canal_url,
-                "total":          total,
-                "extraidos":      sucesso,
-                "sem_legenda":    sem_leg,
-                "cobertura":      round(sucesso / total * 100) if total > 0 else 0,
+                "canal":           prefixo,
+                "canal_url":       canal_url,
+                "total":           total,
+                "total_mapeado":   total_mapeado,
+                "extraidos":       sucesso,
+                "sem_legenda":     sem_leg,
+                "cobertura":       round(sucesso / total_mapeado * 100) if total_mapeado > 0 else 0,
                 "ultima_extracao": str(ultima),
             })
         except Exception:

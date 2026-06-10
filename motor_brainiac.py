@@ -562,6 +562,20 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
     total_liquido = len(df_full)
     print(f"✅ {total_liquido} vídeos mapeados no canal.\n")
 
+    # Persiste total mapeado para cálculo correto de cobertura no relatório
+    summary_path = os.path.join(GESTAO_DIR, f'{prefixo}_summary.json')
+    os.makedirs(GESTAO_DIR, exist_ok=True)
+    existing_summary = {}
+    if os.path.exists(summary_path):
+        try:
+            with open(summary_path, 'r', encoding='utf-8') as _f:
+                existing_summary = json.load(_f)
+        except Exception:
+            pass
+    existing_summary['total_mapeado'] = total_liquido
+    with open(summary_path, 'w', encoding='utf-8') as _f:
+        json.dump(existing_summary, _f, ensure_ascii=False)
+
     # --- 1b. IDIOMAS ---
     sub_langs = detectar_idiomas_canal(all_videos)
     print(f"      📋 Idiomas configurados: {sub_langs}\n")
