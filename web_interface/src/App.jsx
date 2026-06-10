@@ -183,6 +183,16 @@ function App() {
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
   }, []);
 
+  /** Refreshes relatório + repositório when extraction stops or pauses */
+  const prevIsRunningRef = useRef(false);
+  useEffect(() => {
+    if (prevIsRunningRef.current && !status.is_running) {
+      fetchHistory().then(r => setHistory(r.data)).catch(() => {});
+      fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+    }
+    prevIsRunningRef.current = status.is_running;
+  }, [status.is_running]);
+
   /** Syncs theme with system preference when user has not set a manual override */
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1137,6 +1147,7 @@ function App() {
                   history={history} btnFocus={BTN_FOCUS}
                   onSetCanal={(url) => { setCanalInput(url); }}
                   showAdd={repoAddOpen} setShowAdd={setRepoAddOpen}
+                  canalAtivo={canalConfigurado}
                 />
               </div>
             )}

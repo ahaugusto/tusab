@@ -25,9 +25,22 @@ DATA_DIR    = os.path.join(DADOS_DIR, 'data')
 CONFIG_PATH = os.path.join(DATA_DIR, 'config', 'agent_config.json')
 INDEX_DIR   = os.path.join(DATA_DIR, 'agent_index')
 CEREBRO_DIR  = os.path.join(DATA_DIR, 'cerebro')
-TXT_DIR      = os.path.join(CEREBRO_DIR, 'youtube')
-DOC_DIR      = os.path.join(CEREBRO_DIR, 'documentos')
-TEXT_DIR     = os.path.join(CEREBRO_DIR, 'textos')
+TXT_DIR      = os.path.join(CEREBRO_DIR, 'youtube')      # legado
+DOC_DIR      = os.path.join(CEREBRO_DIR, 'documentos')   # legado
+TEXT_DIR     = os.path.join(CEREBRO_DIR, 'textos')       # legado
+
+
+def _get_canal_youtube_dir(prefixo: str) -> str:
+    return os.path.join(CEREBRO_DIR, prefixo, 'youtube')
+
+def _get_canal_doc_dirs(prefixo: str) -> list:
+    """Retorna dirs de documentos/textos do canal + _avulso + legado."""
+    dirs = []
+    for canal in [prefixo, '_avulso']:
+        for sub in ['documentos', 'textos']:
+            dirs.append(os.path.join(CEREBRO_DIR, canal, sub))
+    dirs += [DOC_DIR, TEXT_DIR]   # legado
+    return dirs
 
 
 # ==========================================
@@ -63,13 +76,14 @@ def _invalidar_cache(canal_prefixo: str):
 
 def _carregar_meta_canal(canal_prefixo: str) -> dict:
     """Carrega metadados do canal se disponível."""
-    meta_path = os.path.join(TXT_DIR, f'{canal_prefixo}_meta.json')
-    if os.path.exists(meta_path):
-        try:
-            with open(meta_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for base in [_get_canal_youtube_dir(canal_prefixo), TXT_DIR]:
+        meta_path = os.path.join(base, f'{canal_prefixo}_meta.json')
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception:
+                pass
     return {}
 
 
@@ -114,9 +128,11 @@ def get_agent_status() -> dict:
             idx_path = _index_path(canal_prefixo)
             if os.path.exists(idx_path):
                 idx_mtime = os.path.getmtime(idx_path)
-                # Verifica se há arquivos .txt no youtube/ mais novos que o índice
-                youtube_dir = os.path.join(os.path.dirname(INDEX_DIR), 'cerebro', 'youtube')
-                if os.path.exists(youtube_dir):
+                # Verifica arquivos .txt do canal mais novos que o índice (novo dir e legado)
+                for youtube_dir in [_get_canal_youtube_dir(canal_prefixo),
+                                    os.path.join(CEREBRO_DIR, 'youtube')]:
+                    if not os.path.exists(youtube_dir):
+                        continue
                     for fname in os.listdir(youtube_dir):
                         if fname.startswith(canal_prefixo) and fname.endswith('.txt'):
                             fmtime = os.path.getmtime(os.path.join(youtube_dir, fname))
@@ -222,35 +238,43 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list[dict]:
 
 
 def _parsear_todos_chunks(canal_prefixo: str) -> list[dict]:
-    """Lê chunks de todas as fontes: YouTube + documentos + textos do usuário."""
-    chunks = _parsear_chunks(TXT_DIR, canal_prefixo)
+    """Lê chunks de todas as fontes: YouTube do canal + arquivos do canal + avulso + legado."""
+    # YouTube: dir novo por canal (prioritário) + legado flat
+    chunks = []
+    for yt_dir in [_get_canal_youtube_dir(canal_prefixo), TXT_DIR]:
+        if os.path.exists(yt_dir):
+            chunks += _parsear_chunks(yt_dir, canal_prefixo)
 
-    # Documentos do usuário (não filtrados por canal)
-    for source_dir in [DOC_DIR, TEXT_DIR]:
+    # Docs/textos: canal próprio + avulso + legado (deduplicados por caminho real)
+    seen_files = set()
+    for source_dir in _get_canal_doc_dirs(canal_prefixo):
         if not os.path.exists(source_dir):
             continue
+        aba_label = 'texto' if os.path.basename(source_dir) == 'textos' else 'documento'
         for fname in sorted(os.listdir(source_dir)):
             if not fname.endswith('.txt') or fname.startswith('_'):
                 continue
-            caminho = os.path.join(source_dir, fname)
+            caminho = os.path.realpath(os.path.join(source_dir, fname))
+            if caminho in seen_files:
+                continue
+            seen_files.add(caminho)
             try:
                 with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
                     conteudo = f.read().strip()
                 if len(conteudo) < 80:
                     continue
-                # Split into 2000-char chunks
                 partes = [conteudo[i:i+2000] for i in range(0, len(conteudo), 2000)]
-                for j, parte in enumerate(partes):
+                for parte in partes:
                     if len(parte) < 80:
                         continue
                     chunks.append({
-                        'texto':   parte,
-                        'titulo':  fname.replace('.txt', ''),
-                        'aba':     'documento' if source_dir == DOC_DIR else 'texto',
-                        'data':    '',
-                        'link':    '',
-                        'tags':    [],
-                        'arquivo': fname,
+                        'texto':     parte,
+                        'titulo':    fname.replace('.txt', ''),
+                        'aba':       aba_label,
+                        'data':      '',
+                        'link':      '',
+                        'tags':      [],
+                        'arquivo':   fname,
                         'descricao': '',
                     })
             except Exception:

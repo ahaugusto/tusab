@@ -52,11 +52,32 @@ ASSETS_DIR = obter_caminho_assets()
 DATA_DIR   = os.path.join(DADOS_DIR, 'data')
 
 CEREBRO_DIR      = os.path.join(DATA_DIR, 'cerebro')
-LOCAL_TXT_DIR    = os.path.join(CEREBRO_DIR, 'youtube')
-DOCUMENTOS_DIR   = os.path.join(CEREBRO_DIR, 'documentos')
-TEXTOS_DIR       = os.path.join(CEREBRO_DIR, 'textos')
+LOCAL_TXT_DIR    = os.path.join(CEREBRO_DIR, 'youtube')   # legado — mantido para migração
+DOCUMENTOS_DIR   = os.path.join(CEREBRO_DIR, 'documentos')  # legado
+TEXTOS_DIR       = os.path.join(CEREBRO_DIR, 'textos')      # legado
 GESTAO_DIR       = os.path.join(DATA_DIR, 'gestao')
 TEMP_DIR         = os.path.join(DATA_DIR, 'temp')
+
+
+def get_canal_youtube_dir(prefixo: str) -> str:
+    """Diretório de transcrições YouTube por canal: data/cerebro/{prefixo}/youtube/"""
+    return os.path.join(CEREBRO_DIR, prefixo, 'youtube')
+
+
+def migrar_canal_para_subdir(prefixo: str):
+    """Move arquivos legados de cerebro/youtube/ para cerebro/{prefixo}/youtube/."""
+    import shutil
+    if not os.path.exists(LOCAL_TXT_DIR):
+        return
+    nova_dir = get_canal_youtube_dir(prefixo)
+    os.makedirs(nova_dir, exist_ok=True)
+    migrados = 0
+    for fname in os.listdir(LOCAL_TXT_DIR):
+        if fname.startswith(prefixo) and not os.path.exists(os.path.join(nova_dir, fname)):
+            shutil.move(os.path.join(LOCAL_TXT_DIR, fname), os.path.join(nova_dir, fname))
+            migrados += 1
+    if migrados:
+        print(f"✅ Migração: {migrados} arquivo(s) de '{prefixo}' → cerebro/{prefixo}/youtube/")
 TOKEN_PATH       = os.path.join(DATA_DIR, 'config', 'token.json')
 CREDENTIALS_PATH = os.path.join(ASSETS_DIR, 'credentials.json')
 
@@ -438,7 +459,9 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
     except Exception:
         pass
 
-    meta_path = os.path.join(LOCAL_TXT_DIR, f'{prefixo}_meta.json')
+    canal_yt_dir = get_canal_youtube_dir(prefixo)
+    os.makedirs(canal_yt_dir, exist_ok=True)
+    meta_path = os.path.join(canal_yt_dir, f'{prefixo}_meta.json')
     with open(meta_path, 'w', encoding='utf-8') as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
@@ -462,6 +485,7 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
     prefixo = canal_nome_safe
+    canal_youtube_dir = get_canal_youtube_dir(prefixo)
     drive_folder_name = f"Brain'IAC — {canal_nome_raw}"
     db_file = os.path.join(GESTAO_DIR, f'{prefixo}_base.csv')
 
@@ -471,11 +495,11 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
     print(f"   Prefixo: {prefixo}")
     print("=" * 70 + "\n")
 
-    for d in [LOCAL_TXT_DIR, DOCUMENTOS_DIR, TEXTOS_DIR, GESTAO_DIR, TEMP_DIR,
-              os.path.join(DATA_DIR, 'config')]:
+    for d in [canal_youtube_dir, GESTAO_DIR, TEMP_DIR, os.path.join(DATA_DIR, 'config')]:
         os.makedirs(d, exist_ok=True)
 
     migrar_cerebro_txt()
+    migrar_canal_para_subdir(prefixo)
 
     # --- 0. METADADOS DO CANAL ---
     print("📋 Coletando metadados do canal...")
@@ -564,12 +588,12 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
     # --- 2. BANCO DE DADOS LOCAL ---
     ids_nos_txts = set()
     arquivos_existentes = [
-        f for f in os.listdir(LOCAL_TXT_DIR)
+        f for f in os.listdir(canal_youtube_dir)
         if f.startswith(f"{prefixo}_Parte_") and f.endswith(".txt")
     ]
     for f_txt in arquivos_existentes:
         try:
-            with open(os.path.join(LOCAL_TXT_DIR, f_txt), 'r', encoding='utf-8-sig', errors='ignore') as f:
+            with open(os.path.join(canal_youtube_dir, f_txt), 'r', encoding='utf-8-sig', errors='ignore') as f:
                 encontrados = re.findall(r'LINK: https://www\.youtube\.com/watch\?v=([a-zA-Z0-9_-]+)', f.read())
                 ids_nos_txts.update(encontrados)
         except Exception:
@@ -637,12 +661,12 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
         ]
         if numeros:
             parte_atual = max(numeros)
-            caminho_retomada = os.path.join(LOCAL_TXT_DIR, f"{prefixo}_Parte_{parte_atual}.txt")
+            caminho_retomada = os.path.join(canal_youtube_dir, f"{prefixo}_Parte_{parte_atual}.txt")
             with open(caminho_retomada, 'r', encoding='utf-8-sig', errors='ignore') as f:
                 palavras_atuais = len(f.read().split())
 
     nome_arquivo_base = f"{prefixo}_Parte_{parte_atual}"
-    caminho_txt = os.path.join(LOCAL_TXT_DIR, f"{nome_arquivo_base}.txt")
+    caminho_txt = os.path.join(canal_youtube_dir, f"{nome_arquivo_base}.txt")
 
     pendentes = total_liquido - len(ids_ja_minerados)
     print(f"\n🚜 Iniciando extração — {pendentes} vídeos inéditos na fila...\n")
@@ -744,7 +768,7 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
                         parte_atual += 1
                         palavras_atuais = 0
                         nome_arquivo_base = f"{prefixo}_Parte_{parte_atual}"
-                        caminho_txt = os.path.join(LOCAL_TXT_DIR, f"{nome_arquivo_base}.txt")
+                        caminho_txt = os.path.join(canal_youtube_dir, f"{nome_arquivo_base}.txt")
                         print(f"      📂 NOVO ARQUIVO: Parte {parte_atual} iniciada.")
 
                     file_is_new = not os.path.exists(caminho_txt)
@@ -847,9 +871,9 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
     try:
         # Sincroniza parte final (e quaisquer partes pendentes por edge case)
         print("\n☁️ [SINCRONIZANDO PARTES FINAIS COM O DRIVE]...")
-        for f in sorted(os.listdir(LOCAL_TXT_DIR)):
+        for f in sorted(os.listdir(canal_youtube_dir)):
             if f.endswith(".txt") and f.startswith(prefixo):
-                fp = os.path.join(LOCAL_TXT_DIR, f)
+                fp = os.path.join(canal_youtube_dir, f)
                 if fp not in partes_sincronizadas:
                     upload_txt_como_gdoc_seguro(service, fp, id_docs)
 

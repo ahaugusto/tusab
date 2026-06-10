@@ -22,38 +22,40 @@ import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem } fro
  * @param {Function} props.onSetCanal     - callback(url) to propagate a canal URL to the main form
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo }) {
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
   const setShowAdd = (v) => { setShowAddLocal(v); setShowAddProp?.(v); };
-  const [mode, setMode]       = React.useState('texto'); // 'texto' | 'arquivo'
+  const [mode, setMode]       = React.useState('texto');
   const [title, setTitle]     = React.useState('');
   const [text, setText]       = React.useState('');
   const [saving, setSaving]   = React.useState(false);
   const [file, setFile]       = React.useState(null);
+  const [expandedCanais, setExpandedCanais] = React.useState({});
   const fileRef = React.useRef(null);
 
-  /** Reloads the repository list from the backend */
   const reload = () =>
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
 
-  /** Saves pasted text entry to the cerebro */
   const handleSaveText = async () => {
     if (!title.trim() || !text.trim()) return;
     setSaving(true);
-    await saveText(title.trim(), text.trim()).catch(() => {});
+    await saveText(title.trim(), text.trim(), canalAtivo || '').catch(() => {});
     reload(); setShowAdd(false); setTitle(''); setText(''); setSaving(false);
   };
 
-  /** Uploads a file to the cerebro/documentos endpoint */
   const handleUpload = async () => {
     if (!file) return;
     setSaving(true);
     const form = new FormData();
     form.append('arquivo', file);
+    if (canalAtivo) form.append('canal', canalAtivo);
     await uploadDocument(form).catch(() => {});
     reload(); setShowAdd(false); setFile(null); setSaving(false);
   };
+
+  const toggleCanal = (nome) =>
+    setExpandedCanais(prev => ({ ...prev, [nome]: !prev[nome] }));
 
   /** Deletes a repositório item by type and id */
   const handleDelete = async (tipo, id) => {
@@ -61,8 +63,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
+  const canais = repositorio.canais || [];
   const totalYT  = repositorio.youtube?.length || 0;
   const totalDoc = (repositorio.documentos?.length || 0) + (repositorio.textos?.length || 0);
+  const total    = totalYT + totalDoc;
 
   return (
     <div className="space-y-4">
@@ -70,7 +74,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       <div className="flex items-center justify-between">
         <div>
           <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Repositório de Conhecimento</h2>
-          <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalYT + totalDoc} arquivo{totalYT + totalDoc !== 1 ? 's' : ''} na base</p>
+          <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            {total} arquivo{total !== 1 ? 's' : ''}
+            {canalAtivo && <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-50 text-violet-600'}`}>@{canalAtivo}</span>}
+          </p>
         </div>
         <button onClick={() => setShowAdd(!showAdd_)}
           className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
@@ -124,62 +131,62 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         </div>
       )}
 
-      {/* YouTube files list */}
-      {totalYT > 0 && (
-        <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-            <span className="text-sm">🎬</span>
-            <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>YouTube</p>
-            <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalYT} arquivo{totalYT !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="divide-y divide-white/5">
-            {repositorio.youtube.map((f, i) => (
-              <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
-                  <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Canal groups */}
+      {canais.map(canal => {
+        const cTotal = canal.youtube.length + canal.documentos.length + canal.textos.length;
+        const isOpen = expandedCanais[canal.nome] !== false; // default open
+        const isAvulso = canal.nome === '_avulso';
+        return (
+          <div key={canal.nome} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <button
+              onClick={() => toggleCanal(canal.nome)}
+              className={`w-full px-4 py-3 border-b flex items-center gap-2 text-left transition-colors ${darkMode ? 'border-white/10 bg-white/4 hover:bg-white/8' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}>
+              <span className="text-sm">{isAvulso ? '📁' : '📺'}</span>
+              <p className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+                {isAvulso ? 'Avulso' : `@${canal.nome}`}
+              </p>
+              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{cTotal} item{cTotal !== 1 ? 's' : ''}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className={`transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
 
-      {/* User documents list */}
-      {(repositorio.documentos?.length > 0 || repositorio.textos?.length > 0) && (
-        <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-            <span className="text-sm">📎</span>
-            <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Documentos adicionados</p>
-            <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{totalDoc} item{totalDoc !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="divide-y divide-white/5">
-            {[...(repositorio.documentos || []).map(d => ({...d, tipo_grupo: 'documentos'})),
-              ...(repositorio.textos || []).map(d => ({...d, tipo_grupo: 'textos'}))
-            ].map((item, i) => (
-              <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                <span className="text-sm shrink-0">{item.tipo_grupo === 'textos' ? '📝' : '📄'}</span>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    {item.titulo || item.nome_original}
-                  </p>
-                  <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                    {item.data} · {item.tipo?.toUpperCase()} · {item.chars?.toLocaleString()} chars
-                  </p>
-                </div>
-                <button onClick={() => handleDelete(item.tipo_grupo, item.id)}
-                  className={`p-1.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
-                  aria-label="Remover">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
-                </button>
+            {isOpen && (
+              <div className="divide-y divide-white/5">
+                {canal.youtube.map((f, i) => (
+                  <div key={`yt-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                    <span className="text-sm shrink-0">🎬</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+                    </div>
+                  </div>
+                ))}
+                {[...canal.documentos.map(d => ({...d, _tipo: 'documentos'})),
+                  ...canal.textos.map(d => ({...d, _tipo: 'textos'}))
+                ].map((item, i) => (
+                  <div key={`doc-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                    <span className="text-sm shrink-0">{item._tipo === 'textos' ? '📝' : '📄'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                    </div>
+                    <button onClick={() => handleDelete(item._tipo, item.id)}
+                      className={`p-1.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
+                      aria-label="Remover">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        );
+      })}
 
       {/* Empty state */}
-      {totalYT === 0 && totalDoc === 0 && (
+      {total === 0 && (
         <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
           <p className="text-2xl mb-3">📭</p>
           <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Repositório vazio</p>

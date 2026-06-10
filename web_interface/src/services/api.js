@@ -97,7 +97,7 @@ export const deleteCanalIndex = (canal_nome) => axios.delete(`${API_BASE}/agent/
 export const uploadDocument = (formData) => axios.post(`${API_BASE}/cerebro/upload`, formData);
 
 /** Saves pasted text to cerebro/textos/ */
-export const saveText = (titulo, conteudo) => axios.post(`${API_BASE}/cerebro/texto`, { titulo, conteudo });
+export const saveText = (titulo, conteudo, canal = '') => axios.post(`${API_BASE}/cerebro/texto`, { titulo, conteudo, canal });
 
 /** Deletes a document or text from the cerebro */
 export const deleteRepositorioItem = (tipo, id) => axios.delete(`${API_BASE}/cerebro/arquivo/${tipo}/${id}`);

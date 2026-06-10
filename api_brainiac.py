@@ -799,38 +799,83 @@ def agent_canal_delete(canal_nome: str):
 
 @app.get("/repositorio")
 def get_repositorio():
-    """Lista todos os arquivos do cerebro por tipo."""
+    """Lista arquivos do cerebro agrupados por canal + listas planas para compatibilidade."""
     cerebro_dir = motor_brainiac.CEREBRO_DIR
+    result = {"youtube": [], "documentos": [], "textos": [], "canais": []}
 
-    result = {"youtube": [], "documentos": [], "textos": []}
+    def _read_manifest(path):
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return []
 
-    # YouTube files
-    yt_dir = motor_brainiac.LOCAL_TXT_DIR
-    if os.path.exists(yt_dir):
+    def _list_youtube(yt_dir, canal_nome):
+        arquivos = []
+        if not os.path.exists(yt_dir):
+            return arquivos
         for fname in sorted(os.listdir(yt_dir)):
             if fname.endswith('.txt') and not fname.startswith('_'):
                 fpath = os.path.join(yt_dir, fname)
                 stat = os.stat(fpath)
-                result["youtube"].append({
-                    "nome": fname,
+                arquivos.append({
+                    "nome": fname, "canal": canal_nome,
                     "tamanho": stat.st_size,
                     "data": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y"),
-                    "caminho": fpath,
+                })
+        return arquivos
+
+    seen_yt = set()
+
+    # Pastas por canal (nova estrutura)
+    if os.path.exists(cerebro_dir):
+        for entry in sorted(os.scandir(cerebro_dir), key=lambda e: e.name):
+            if not entry.is_dir():
+                continue
+            canal_nome = entry.name
+            canal_yt_dir  = os.path.join(entry.path, 'youtube')
+            canal_doc_dir = os.path.join(entry.path, 'documentos')
+            canal_txt_dir = os.path.join(entry.path, 'textos')
+
+            yt_files  = _list_youtube(canal_yt_dir, canal_nome)
+            docs      = _read_manifest(os.path.join(canal_doc_dir, '_manifest.json'))
+            textos    = _read_manifest(os.path.join(canal_txt_dir, '_manifest.json'))
+
+            # Adiciona campo canal aos itens de manifesto
+            for item in docs:   item['canal'] = canal_nome
+            for item in textos: item['canal'] = canal_nome
+
+            if yt_files or docs or textos:
+                result["canais"].append({
+                    "nome": canal_nome, "youtube": yt_files,
+                    "documentos": docs, "textos": textos,
+                })
+                for f in yt_files:
+                    key = f["nome"]
+                    if key not in seen_yt:
+                        seen_yt.add(key)
+                        result["youtube"].append(f)
+                result["documentos"] += docs
+                result["textos"]     += textos
+
+    # Legado: cerebro/youtube/ flat (backward compat)
+    legacy_yt = motor_brainiac.LOCAL_TXT_DIR
+    if os.path.exists(legacy_yt):
+        for fname in sorted(os.listdir(legacy_yt)):
+            if fname.endswith('.txt') and not fname.startswith('_') and fname not in seen_yt:
+                fpath = os.path.join(legacy_yt, fname)
+                stat  = os.stat(fpath)
+                result["youtube"].append({
+                    "nome": fname, "canal": "",
+                    "tamanho": stat.st_size,
+                    "data": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y"),
                 })
 
-    # Documentos
-    doc_dir = os.path.join(cerebro_dir, "documentos")
-    manifest_doc = os.path.join(doc_dir, "_manifest.json")
-    if os.path.exists(manifest_doc):
-        with open(manifest_doc, 'r', encoding='utf-8') as f:
-            result["documentos"] = json.load(f)
-
-    # Textos
-    txt_dir2 = os.path.join(cerebro_dir, "textos")
-    manifest_txt = os.path.join(txt_dir2, "_manifest.json")
-    if os.path.exists(manifest_txt):
-        with open(manifest_txt, 'r', encoding='utf-8') as f:
-            result["textos"] = json.load(f)
+    # Legado: cerebro/documentos/ e cerebro/textos/ flat
+    result["documentos"] += _read_manifest(os.path.join(cerebro_dir, "documentos", "_manifest.json"))
+    result["textos"]     += _read_manifest(os.path.join(cerebro_dir, "textos",     "_manifest.json"))
 
     return result
 
@@ -861,16 +906,25 @@ def get_relatorio(canal: str):
         return {"error": True, "message": str(e)}
 
 
+def _get_canal_prefixo_ativo(canal_form: str = "") -> str:
+    """Retorna o prefixo de canal ativo (form > state > '_avulso')."""
+    raw = canal_form or state.stats.get("canal_nome", "") or ""
+    if not raw:
+        return "_avulso"
+    return re.sub(r'[<>:"/\\|?*\s]', '_', raw).strip('_') or "_avulso"
+
+
 @app.post("/cerebro/upload")
 async def cerebro_upload(
     arquivo: UploadFile = File(...),
     canal: str = Form(default="")
 ):
-    """Recebe arquivo (PDF, DOCX, MD, TXT) e converte para .txt no cerebro/documentos/."""
+    """Recebe arquivo (PDF, DOCX, MD, TXT) e converte para .txt no cerebro/{canal}/documentos/."""
     import uuid as _uuid
 
     cerebro_dir = motor_brainiac.CEREBRO_DIR
-    doc_dir = os.path.join(cerebro_dir, "documentos")
+    canal_prefixo = _get_canal_prefixo_ativo(canal)
+    doc_dir = os.path.join(cerebro_dir, canal_prefixo, "documentos")
     os.makedirs(doc_dir, exist_ok=True)
 
     ext = os.path.splitext(arquivo.filename)[1].lower()
@@ -934,14 +988,16 @@ async def cerebro_upload(
 class TextoRequest(BaseModel):
     titulo: str
     conteudo: str
+    canal: str = ""
 
 @app.post("/cerebro/texto")
 def cerebro_texto(req: TextoRequest):
-    """Salva texto colado pelo usuário no cerebro/textos/."""
+    """Salva texto colado pelo usuário no cerebro/{canal}/textos/."""
     import uuid as _uuid
 
     cerebro_dir = motor_brainiac.CEREBRO_DIR
-    txt_dir2 = os.path.join(cerebro_dir, "textos")
+    canal_prefixo = _get_canal_prefixo_ativo(req.canal)
+    txt_dir2 = os.path.join(cerebro_dir, canal_prefixo, "textos")
     os.makedirs(txt_dir2, exist_ok=True)
 
     if not req.conteudo.strip():
@@ -979,38 +1035,48 @@ def cerebro_texto(req: TextoRequest):
 
 @app.delete("/cerebro/arquivo/{tipo}/{fid}")
 def cerebro_delete(tipo: str, fid: str):
-    """Remove arquivo do cerebro (documentos ou textos)."""
+    """Remove arquivo do cerebro (documentos ou textos) — busca em todos os subdirs de canal."""
     cerebro_dir = motor_brainiac.CEREBRO_DIR
 
     if tipo not in ("documentos", "textos"):
         return {"error": True, "message": "Tipo inválido"}
 
-    subdir = os.path.join(cerebro_dir, tipo)
-    manifest_path = os.path.join(subdir, "_manifest.json")
+    # Coleta todos os manifests possíveis (nova estrutura + legado)
+    candidate_dirs = []
+    if os.path.exists(cerebro_dir):
+        for entry in os.scandir(cerebro_dir):
+            if entry.is_dir():
+                candidate_dirs.append(os.path.join(entry.path, tipo))
+    candidate_dirs.append(os.path.join(cerebro_dir, tipo))  # legado
 
-    if not os.path.exists(manifest_path):
-        return {"error": True, "message": "Manifesto não encontrado"}
+    for subdir in candidate_dirs:
+        manifest_path = os.path.join(subdir, "_manifest.json")
+        if not os.path.exists(manifest_path):
+            continue
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+        except Exception:
+            continue
 
-    with open(manifest_path, 'r', encoding='utf-8') as f:
-        manifest = json.load(f)
+        entry = next((e for e in manifest if e["id"] == fid), None)
+        if not entry:
+            continue
 
-    entry = next((e for e in manifest if e["id"] == fid), None)
-    if not entry:
-        return {"error": True, "message": "Arquivo não encontrado"}
+        txt_path = os.path.join(subdir, entry["nome_txt"])
+        real_path   = os.path.realpath(txt_path)
+        real_subdir = os.path.realpath(subdir)
+        if not real_path.startswith(real_subdir + os.sep):
+            return {"error": True, "message": "Caminho inválido"}
+        if os.path.exists(txt_path):
+            os.remove(txt_path)
 
-    txt_path = os.path.join(subdir, entry["nome_txt"])
-    real_path = os.path.realpath(txt_path)
-    real_subdir = os.path.realpath(subdir)
-    if not real_path.startswith(real_subdir + os.sep):
-        return {"error": True, "message": "Caminho inválido"}
-    if os.path.exists(txt_path):
-        os.remove(txt_path)
+        manifest = [e for e in manifest if e["id"] != fid]
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+        return {"ok": True}
 
-    manifest = [e for e in manifest if e["id"] != fid]
-    with open(manifest_path, 'w', encoding='utf-8') as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
-
-    return {"ok": True}
+    return {"error": True, "message": "Arquivo não encontrado"}
 
 
 # ==========================================
