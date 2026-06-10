@@ -592,15 +592,16 @@ def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None
 
     # Aceita canal do estado global ou do corpo da requisição (fallback pós-restart)
     canal_nome = state.stats.get("canal_nome", "") or (req.canal_nome if req else "")
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_') if canal_nome else ""
-
+    # Sem canal configurado, indexa apenas documentos/textos do repositório
     if not canal_nome:
-        return {"error": True, "message": "Nenhum canal configurado."}
+        canal_nome = "repositorio"
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
 
     # Indexação BM25 é 100% local — não requer chave de API.
 
     background_tasks.add_task(_run_indexacao, canal_nome, canal_prefixo)
-    return {"message": f"Indexação iniciada para @{canal_nome}."}
+    msg = f"Indexação iniciada para @{canal_nome}." if canal_nome != "repositorio" else "Indexação do repositório iniciada."
+    return {"message": msg}
 
 
 @app.post("/agent/test-key")

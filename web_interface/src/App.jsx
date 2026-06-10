@@ -127,6 +127,7 @@ function App() {
   const { seen, markSeen, KEYS } = useOnboarding();
   const { hasSeenWarning, markWarningShown } = useDriveWarning();
   const [showDriveWarning, setShowDriveWarning] = useState(false);
+  const [driveOpen,        setDriveOpen]        = useState(false);
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState('');
   const [chatLoading,      setChatLoading]      = useState(false);
@@ -319,7 +320,7 @@ function App() {
       setShowPostModal(true);
       const notify = () => new Notification("Brain'IAC — Extração concluída!", {
         body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
-        icon: '/logo.svg',
+        icon: '/icon.png',
       });
       if (Notification.permission === 'granted') {
         notify();
@@ -409,7 +410,8 @@ function App() {
   /** Opens the extraction-type modal, or shows canal error if none configured */
   const handleStart = () => {
     if (!canalConfigurado) { setCanalError(t('channel.error_required')); return; }
-    setShowExtractionModal(true);
+    if (extractionTypes.length === 0) return;
+    handleStartConfirm(extractionTypes);
   };
 
   /** Confirms extraction with selected content types */
@@ -736,11 +738,11 @@ function App() {
                   </div>
                 ) : (
                   <div>
-                    <p className={`text-[11px] font-bold uppercase tracking-widest mb-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                    <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                       {{ extracao: t('tabs.extraction'), repositorio: 'Repositório', relatorio: 'Relatório', agente: t('tabs.agent') }[activeTab]}
-                    </p>
+                    </h1>
                     {canalConfigurado && (
-                      <p className={`text-sm font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>@{cleanCanalName(canalConfigurado)}</p>
+                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
                     )}
                   </div>
                 )}
@@ -833,39 +835,49 @@ function App() {
                       </div>
                     )}
                   </div>
-                  {/* Drive section */}
+                  {/* Extraction types — inline */}
                   <div className="space-y-2">
-                    <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('drive.title')}</p>
-                    <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] ${darkMode ? 'bg-white/4 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
-                      <Info size={11} className="text-primary shrink-0 mt-0.5" aria-hidden="true" />
-                      <p className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
-                        Sincronize os extraídos com o Drive para usar no{' '}
-                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('ops.types_label')}</p>
+                      <button
+                        onClick={() => setExtractionTypes(extractionTypes.length === ALL_TYPES.length ? [] : ALL_TYPES)}
+                        className={`text-[10px] font-semibold transition-colors ${darkMode ? 'text-slate-500 hover:text-primary' : 'text-slate-400 hover:text-primary'} ${BTN_FOCUS}`}>
+                        {extractionTypes.length === ALL_TYPES.length ? 'Desmarcar tudo' : t('ops.types_select_all')}
+                      </button>
                     </div>
-                    <DriveToggle
-                      driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
-                      onAuth={handleDriveAuth} onCancel={handleDriveCancel}
-                      isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
-                    />
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { key: 'Videos',    label: t('ops.type_videos')    },
+                        { key: 'Shorts',    label: t('ops.type_shorts')    },
+                        { key: 'Ao_Vivo',   label: t('ops.type_lives')     },
+                        { key: 'Podcasts',  label: t('ops.type_podcasts')  },
+                        { key: 'Cursos',    label: t('ops.type_courses')   },
+                        { key: 'Playlists', label: t('ops.type_playlists') },
+                      ].map(({ key, label }) => {
+                        const active = extractionTypes.includes(key);
+                        return (
+                          <button key={key}
+                            onClick={() => setExtractionTypes(prev =>
+                              active ? prev.filter(k => k !== key) : [...prev, key]
+                            )}
+                            disabled={isRunning}
+                            className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${BTN_FOCUS}
+                              ${active
+                                ? darkMode ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-primary/10 border-primary/30 text-primary'
+                                : darkMode ? 'bg-white/4 border-white/10 text-slate-500 hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'}`}>
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {extractionTypes.length === 0 && (
+                      <p className="text-[10px] text-warning flex items-center gap-1">
+                        <AlertTriangle size={10} aria-hidden="true" /> Selecione ao menos um tipo.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Drive local banner */}
-              <AnimatePresence>
-                {(driveStatus === 'sem_credenciais' || driveStatus === 'nao_autenticado') && !isRunning && (
-                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                    role="note" aria-label={t('banner.aria')}
-                    className={`rounded-2xl px-4 py-3 border flex items-center gap-3 text-xs ${darkMode ? 'bg-warning/8 border-warning/20 text-warning' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                    <CloudOff size={16} className="shrink-0" aria-hidden="true" />
-                    <span>
-                      <strong>{t('banner.local_mode')}</strong>{' '}
-                      <span>{t('banner.local_desc_pre')}<code className="font-mono text-[11px]">cerebro/youtube/</code>{t('banner.local_desc_post')}</span>
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               {/* Progress bar */}
               <AnimatePresence>
@@ -1061,9 +1073,56 @@ function App() {
             {/* ── TAB: REPOSITÓRIO ── */}
             {activeTab === 'repositorio' && (
               <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio"
-                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 custom-scrollbar">
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 space-y-4 custom-scrollbar">
+
+                {/* ── Drive toggle — topo ── */}
+                <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className="px-5 py-3.5 flex items-center gap-3">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      className={`shrink-0 ${driveStatus === 'autenticado' ? 'text-secondary' : 'text-primary'}`} aria-hidden="true">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09A16 16 0 0014.09 14"/><path d="M22 16.92v3"/>
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('drive.title')}</p>
+                      <p className={`text-[10px] ${driveStatus === 'autenticado' ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {driveStatus === 'autenticado' ? t('drive.connected') : t('drive.not_authenticated')}
+                      </p>
+                    </div>
+                    {/* Toggle switch */}
+                    <button
+                      role="switch"
+                      aria-checked={driveStatus === 'autenticado'}
+                      title={driveStatus === 'autenticado' ? 'Drive conectado' : 'Conectar Google Drive'}
+                      onClick={() => {
+                        const willOpen = !driveOpen;
+                        setDriveOpen(willOpen);
+                        if (willOpen && driveStatus !== 'autenticado') handleDriveAuth();
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${BTN_FOCUS}
+                        ${driveStatus === 'autenticado' ? 'bg-secondary' : driveOpen ? 'bg-primary/60' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200
+                        ${driveStatus === 'autenticado' || driveOpen ? 'left-6' : 'left-1'}`} />
+                    </button>
+                  </div>
+                  {/* Expandable content */}
+                  {(driveOpen || driveStatus === 'autenticado') && (
+                    <div className={`px-5 pb-4 pt-0 border-t space-y-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Sincronize os arquivos extraídos com o Drive para usar no{' '}
+                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
+                      </p>
+                      <DriveToggle
+                        driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
+                        onAuth={handleDriveAuth} onCancel={() => { handleDriveCancel(); setDriveOpen(false); }}
+                        isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Onboarding hint ── */}
                 {!seen(KEYS.repositorio) && (
-                  <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2.5 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
+                  <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
                     <span className="text-base shrink-0">💡</span>
                     <div className="flex-1">
                       <p className={`text-xs font-bold mb-0.5 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
@@ -1072,46 +1131,13 @@ function App() {
                     <button onClick={() => markSeen(KEYS.repositorio)} className={`p-1 rounded text-xs shrink-0 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
                   </div>
                 )}
+
                 <RepositorioTab
                   darkMode={darkMode} repositorio={repositorio} setRepositorio={setRepositorio}
                   history={history} btnFocus={BTN_FOCUS}
                   onSetCanal={(url) => { setCanalInput(url); }}
                   showAdd={repoAddOpen} setShowAdd={setRepoAddOpen}
                 />
-
-                {/* Drive accordion */}
-                <div className={`rounded-2xl border overflow-hidden mt-4 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                  <button
-                    aria-expanded={driveStatus === 'autenticado'}
-                    onClick={() => driveStatus !== 'autenticado' ? handleDriveAuth() : undefined}
-                    className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary shrink-0" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09A16 16 0 0014.09 14"/><path d="M22 16.92v3"/></svg>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('drive.title')}</p>
-                      <p className={`text-[10px] ${driveStatus === 'autenticado' ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {driveStatus === 'autenticado' ? t('drive.connected') : t('drive.not_authenticated')}
-                      </p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${driveStatus === 'autenticado'
-                      ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
-                      : darkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                      {driveStatus === 'autenticado' ? '✓' : 'Conectar'}
-                    </span>
-                  </button>
-                  {driveStatus !== 'autenticado' && (
-                    <div className={`px-5 pb-4 pt-0 border-t space-y-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Sincronize os arquivos extraídos com o Drive para usar no{' '}
-                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
-                      </p>
-                      <DriveToggle
-                        driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
-                        onAuth={handleDriveAuth} onCancel={handleDriveCancel}
-                        isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
-                      />
-                    </div>
-                  )}
-                </div>
               </div>
             )}
 

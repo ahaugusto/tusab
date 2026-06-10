@@ -90,9 +90,9 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
       <div className={`hidden lg:flex flex-col items-center justify-center w-1/2 px-12 border-r ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
         <button onClick={() => {}} className="focus-visible:outline-none rounded-2xl transition-opacity hover:opacity-90">
           <img
-            src={darkMode ? '/logo_dark.png' : '/logo.svg'}
+            src={darkMode ? '/logo_dark.png?v=2' : '/logo_light.png?v=2'}
             alt="Brain'IAC — Index.Augment.Converse"
-            style={{ width: 340, height: 340, objectFit: 'contain', padding: darkMode ? '50px' : '0px' }}
+            style={{ width: 340, height: 340, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
         </button>
@@ -107,9 +107,9 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-8">
           <img
-            src={darkMode ? '/logo_dark.png' : '/logo.svg'}
+            src={darkMode ? '/logo_dark.png?v=2' : '/logo_light.png?v=2'}
             alt="Brain'IAC"
-            style={{ width: 140, height: 140, objectFit: 'contain', padding: darkMode ? '20px' : '0px' }}
+            style={{ width: 140, height: 140, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
         </div>
