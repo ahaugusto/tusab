@@ -82,8 +82,9 @@ D. Landing page mínima
 
 E. Primeira venda B2B formal
    → Demo com criador educacional (50k–500k inscritos)
-   → Case da AUVP como referência
    → Contrato simples, nota fiscal, feedback documentado
+   Nota: a AUVP é uma proposta separada (chatbot embarcado na plataforma
+   deles) — não é canal de venda do Sebayt. Prospecção própria necessária.
 
 ─────────────────────────────────────────
 PRÓXIMO SPRINT — PRODUTO

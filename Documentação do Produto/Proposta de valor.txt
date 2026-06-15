@@ -203,7 +203,6 @@ DIFERENCIAIS REAIS
   Groq, GPT ou Claude quando o usuário optar por mais potência
 · A ferramenta não é gratuita, mas o uso padrão é — distinção intencional
 · Gestão completa via interface — adicionar, visualizar, deletar fontes
-· Já tem case real: AUVP / Investidor Sardinha
 
 ─────────────────────────────────────────
 POSIÇÃO NO MERCADO
@@ -317,9 +316,17 @@ Braço estratégico (para B2B e perfis avançados):
 VALIDAÇÃO
 ─────────────────────────────────────────
 
-A ideia foi comprada pela AUVP antes de existir como produto.
-O produto desktop está funcional com todas as fontes implementadas.
-O próximo passo é a primeira venda B2B como plataforma.
+O Sebayt nasceu de uma necessidade real: acompanhar o volume de conteúdo
+do canal AUVP (Raul Sena / Investidor Sardinha). A dor era genuína —
+e a solução funcionou antes de existir como produto.
+
+A AUVP evoluiu para uma proposta separada: um chatbot embarcado na
+plataforma de educação deles. Produto diferente, público diferente.
+O Sebayt é o PKM desktop para o usuário final — distribuição direta B2C
+e B2B com criadores e instituições.
+
+O produto está funcional com todas as fontes implementadas.
+O próximo passo é a primeira venda com prospecção própria.
 
 ─────────────────────────────────────────
 PITCH DE UM PARÁGRAFO
@@ -331,6 +338,6 @@ que responde suas perguntas citando a fonte exata de onde veio.
 Roda na sua máquina, funciona offline, zero custo com Ollama.
 Para criadores, vira um mentor com a própria voz.
 Para instituições, transforma qualquer acervo em infraestrutura
-consultável. A AUVP já validou o modelo. Agora escalamos."
+consultável — sem servidor externo, sem assinatura obrigatória."
 
 
