@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Trophy, X, CheckCircle2, CloudOff, ShieldCheck, ExternalLink, Bot, Info } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
+import ModalWrapper from '../shared/ModalWrapper';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -30,16 +31,11 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
   const driveConnected = driveStatus === 'autenticado';
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <ModalWrapper onClose={onClose} label={t('modal.title_finished')}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        onClick={e => e.stopPropagation()}
         className={`rounded-2xl p-6 max-w-lg w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
       >
         {/* Header */}
@@ -132,7 +128,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
           {t('modal.close')}
         </button>
       </motion.div>
-    </motion.div>
+    </ModalWrapper>
   );
 }
 

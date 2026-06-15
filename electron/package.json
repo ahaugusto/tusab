@@ -47,6 +47,7 @@
           "api_brainiac.py",
           "motor_brainiac.py",
           "agent_brainiac.py",
+          "brainiac_engine/**",
           "credentials.json",
           "web_interface/dist/**",
           "assets/**"
@@ -75,8 +76,7 @@
       "createDesktopShortcut":         true,
       "createStartMenuShortcut":       true,
       "shortcutName":                  "brainiac",
-      "license":                       "build_resources/license.txt",
-      "installerSidebar":              "build_resources/installer_sidebar.bmp"
+      "license":                       "build_resources/license.txt"
     },
 
     "publish": {

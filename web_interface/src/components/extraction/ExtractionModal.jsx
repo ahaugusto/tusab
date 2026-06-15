@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { X, Zap } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
+import ModalWrapper from '../shared/ModalWrapper';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -45,16 +46,11 @@ function ExtractionModal({ onClose, onConfirm, darkMode }) {
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <ModalWrapper onClose={onClose} label={t('ops.types_modal_title')}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        onClick={e => e.stopPropagation()}
         className={`rounded-2xl p-6 max-w-sm w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
       >
         {/* Header */}
@@ -114,7 +110,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode }) {
           {t('ops.start_confirm')}
         </button>
       </motion.div>
-    </motion.div>
+    </ModalWrapper>
   );
 }
 

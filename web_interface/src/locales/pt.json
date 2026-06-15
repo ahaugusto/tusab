@@ -1,6 +1,8 @@
 ﻿{
   "splash.by": "Desenvolvido por CriAugu",
   "tabs.extraction": "Extração",
+  "tabs.repositorio": "Repositório",
+  "tabs.relatorio": "Relatório",
   "tabs.agent": "Configurar Agente",
   "header.engine": "Brain'IAC",
   "header.universal": "Motor Universal",
@@ -117,6 +119,7 @@
   "ops.types_modal_title": "O que deseja extrair?",
   "ops.types_modal_subtitle": "Selecione os tipos de conteúdo do canal.",
   "ops.types_select_all": "Selecionar tudo",
+  "ops.deselect_all": "Desmarcar tudo",
   "ops.start_confirm": "Confirmar e Iniciar",
   "ops.types_label": "O que extrair",
   "ops.type_videos": "Vídeos",
@@ -130,8 +133,8 @@
   "onboarding.next": "Próximo",
   "onboarding.finish": "Começar",
   "onboarding.step_of": "de",
-  "onboarding.s1_title": "Bem-vindo ao Brain'IAC",
-  "onboarding.s1_body": "Brain'IAC transforma conteúdo em uma base de conhecimento consultável por IA. A ferramenta tem 4 abas independentes — você pode acessá-las em qualquer ordem, conforme o seu fluxo.",
+  "onboarding.s1_title": "Seu especialista particular",
+  "onboarding.s1_body": "Aponte o que quer aprender — um canal, um PDF, um documento. O Brain'IAC absorve tudo e responde suas perguntas citando a fonte exata.",
   "onboarding.s2_title": "Aba Extração",
   "onboarding.s2_body": "Cole a URL de um canal do YouTube, selecione os tipos de conteúdo (vídeos, shorts, lives, podcasts…) e inicie a extração. Tudo no mesmo lugar, sem etapas intermediárias.",
   "onboarding.s3_title": "Aba Repositório",
@@ -181,5 +184,13 @@
   "home.source_youtube_title": "Canal YouTube",
   "home.source_youtube_desc": "Extraia o conteúdo de qualquer canal",
   "home.source_files_title": "Arquivos",
-  "home.source_files_desc": "Adicione PDFs, documentos e textos"
+  "home.source_files_desc": "Adicione PDFs, documentos e textos",
+  "agent.ollama_offline": "Ollama offline. Inicie o Ollama para continuar usando o chat local.",
+  "agent.rebuild_index": "Recriar índice",
+  "chat.select_base_title": "Selecione uma base",
+  "chat.select_base_desc": "Escolha qual base de conhecimento usar nesta conversa",
+  "chat.chunks_indexed": "chunks indexados",
+  "chat.switch_base": "Trocar base",
+  "chat.clear": "Limpar",
+  "chat.close": "Fechar chat"
 }

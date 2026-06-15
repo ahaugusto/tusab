@@ -1,6 +1,8 @@
 ﻿{
   "splash.by": "Developed by CriAugu",
   "tabs.extraction": "Extraction",
+  "tabs.repositorio": "Repository",
+  "tabs.relatorio": "Report",
   "tabs.agent": "Configure Agent",
   "header.engine": "Brain'IAC",
   "header.universal": "Universal Engine",
@@ -117,6 +119,7 @@
   "ops.types_modal_title": "What would you like to extract?",
   "ops.types_modal_subtitle": "Select the content types from the channel.",
   "ops.types_select_all": "Select all",
+  "ops.deselect_all": "Deselect all",
   "ops.start_confirm": "Confirm and Start",
   "ops.types_label": "What to extract",
   "ops.type_videos": "Videos",
@@ -130,8 +133,8 @@
   "onboarding.next": "Next",
   "onboarding.finish": "Get started",
   "onboarding.step_of": "of",
-  "onboarding.s1_title": "Welcome to Brain'IAC",
-  "onboarding.s1_body": "Brain'IAC turns content into an AI-queryable knowledge base. The tool has 4 independent tabs — access them in any order, following your own workflow.",
+  "onboarding.s1_title": "Your personal expert",
+  "onboarding.s1_body": "Point to what you want to learn — a channel, a PDF, a document. Brain'IAC absorbs it all and answers your questions citing the exact source.",
   "onboarding.s2_title": "Extraction Tab",
   "onboarding.s2_body": "Paste a YouTube channel URL, select the content types you want (videos, shorts, lives, podcasts…) and start extraction. Everything in one place, no intermediate steps.",
   "onboarding.s3_title": "Repository Tab",
@@ -181,5 +184,13 @@
   "home.source_youtube_title": "YouTube Channel",
   "home.source_youtube_desc": "Extract content from any channel",
   "home.source_files_title": "Files",
-  "home.source_files_desc": "Add PDFs, documents and text"
+  "home.source_files_desc": "Add PDFs, documents and text",
+  "agent.ollama_offline": "Ollama is offline. Start Ollama to continue using local chat.",
+  "agent.rebuild_index": "Rebuild index",
+  "chat.select_base_title": "Select a base",
+  "chat.select_base_desc": "Choose which knowledge base to use in this conversation",
+  "chat.chunks_indexed": "chunks indexed",
+  "chat.switch_base": "Switch base",
+  "chat.clear": "Clear",
+  "chat.close": "Close chat"
 }

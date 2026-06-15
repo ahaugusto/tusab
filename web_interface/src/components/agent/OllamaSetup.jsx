@@ -6,7 +6,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
-import { CheckCircle2, RefreshCw, ChevronDown, Settings2 } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ChevronDown, Settings2, ExternalLink, Info } from 'lucide-react';
 import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -63,6 +63,33 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
   };
 
   return (
+    <div className="space-y-3">
+
+      {/* What is Ollama — hint */}
+      <div className={`rounded-xl p-3.5 border flex gap-2.5 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+        <Info size={13} className={`shrink-0 mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+        <div className="space-y-1.5 min-w-0">
+          <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>O que é o Ollama?</p>
+          <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+            O <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>Ollama</strong> é um serviço que roda modelos de IA diretamente no seu computador — sem internet, sem custo por uso e sem enviar dados para servidores externos. É a forma recomendada de usar o Brain'IAC.
+          </p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
+            <a href="https://ollama.com" target="_blank" rel="noreferrer"
+              className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
+              ollama.com <ExternalLink size={9} />
+            </a>
+            <a href="https://github.com/ollama/ollama" target="_blank" rel="noreferrer"
+              className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
+              GitHub <ExternalLink size={9} />
+            </a>
+            <a href="https://ollama.com/library" target="_blank" rel="noreferrer"
+              className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
+              Biblioteca de modelos <ExternalLink size={9} />
+            </a>
+          </div>
+        </div>
+      </div>
+
     <div className={`rounded-xl p-4 space-y-3 border ${darkMode ? 'bg-secondary/5 border-secondary/20' : 'bg-emerald-50 border-emerald-200'}`}>
 
       {/* Status indicator */}
@@ -159,6 +186,7 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ data/config/agent_config.json
 .env.*
 
 # --- Dados gerados em runtime ---
+data/cerebro/
 data/cerebro_txt/
 data/gestao/
 data/agent_index/
@@ -64,6 +65,12 @@ ENV/
 .idea/
 *.suo
 *.user
+
+# --- Claude Code (settings locais, não o skill) ---
+.claude/settings.local.json
+
+# --- PDFs de terceiros em documentação ---
+Documentação do Produto/*.pdf
 
 # --- Logs de crash (podem conter informações sensíveis) ---
 brainiac_crash.log

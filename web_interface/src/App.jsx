@@ -29,7 +29,7 @@ import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWar
 import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig, loadAgentConfig,
-  testAgentKey, startIndexing, cancelIndexing, fetchCanalMeta, sendChatStream,
+  testAgentKey, startIndexing, cancelIndexing, fetchCanalMeta, sendChatStream, clearChatHistory,
   fetchOllamaStatus, deleteCanalIndex, openFolder,
 } from './services/api';
 
@@ -105,9 +105,11 @@ function App() {
   const [configSaved,      setConfigSaved]      = useState(false);
   const [testingKey,       setTestingKey]       = useState(false);
   const [testKeyResult,    setTestKeyResult]    = useState(null);
+  const [keyTested,        setKeyTested]        = useState(false);
   const [showIndexInfo,    setShowIndexInfo]    = useState(false);
   const [lastIndexLogs,    setLastIndexLogs]    = useState([]);
   const [configOpen,       setConfigOpen]       = useState(true);
+  const [telemetryOpen,    setTelemetryOpen]    = useState(false);
   const [indexOpen,        setIndexOpen]        = useState(true);
   const [showAgentHint,    setShowAgentHint]    = useState(false);
   const [savingConfig,     setSavingConfig]     = useState(false);
@@ -124,6 +126,7 @@ function App() {
   const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getConsent() === 'yes');
   const [progressToast,    setProgressToast]    = useState(null);
+  const showError = (message) => setProgressToast({ type: 'error', message });
   const { seen, markSeen, KEYS } = useOnboarding();
   const { hasSeenWarning, markWarningShown } = useDriveWarning();
   const [showDriveWarning, setShowDriveWarning] = useState(false);
@@ -137,6 +140,7 @@ function App() {
   const logContainerRef = useRef(null);
   const mainScrollRef   = useRef(null);
   const agentScrollRef  = useRef(null);
+  const isVisibleRef    = useRef(true);
 
   // ─── Derived values ────────────────────────────────────────────────────────
   const progress        = status.stats.progress || 0;
@@ -166,6 +170,13 @@ function App() {
   const cleanCanalName = (n) => n ? n.split('?')[0] : '';
 
   // ─── Effects ───────────────────────────────────────────────────────────────
+
+  /** Pauses polling when tab is in background */
+  useEffect(() => {
+    const onVisibility = () => { isVisibleRef.current = !document.hidden; };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   /** Syncs dark class on html element */
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); }, [darkMode]);
@@ -216,9 +227,10 @@ function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  /** Polls /status every 2 seconds */
+  /** Polls /status every 2 seconds (pauses when tab hidden) */
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (!isVisibleRef.current) return;
       try {
         const res = await axios.get(`${API_BASE}/status`);
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
@@ -235,9 +247,10 @@ function App() {
     }
   }, [status.logs.length, status.is_running]);
 
-  /** Polls /agent/status every 3 seconds */
+  /** Polls /agent/status every 3 seconds (pauses when tab hidden) */
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (!isVisibleRef.current) return;
       try {
         const res = await axios.get(`${API_BASE}/agent/status`);
         setAgentStatus(res.data);
@@ -269,7 +282,7 @@ function App() {
   /** Saves selected Ollama model to config */
   const handleOllamaModelChange = async (model) => {
     setOllamaModel(model);
-    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model }).catch(() => {});
+    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model }).catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
   };
 
   /** Polls Ollama status every 5 seconds */
@@ -328,6 +341,11 @@ function App() {
     const s = status.stats.status;
     if (s === 'Finalizado ✓' && prevExtractionStatus.current !== 'Finalizado ✓') {
       setShowPostModal(true);
+      Analytics.extracaoConcluida({
+        videos_processados: status.stats.videos_processed,
+        videos_total:       status.stats.videos_total,
+        sem_legenda:        status.stats.videos_sem_legenda,
+      });
       const notify = () => new Notification("Brain'IAC — Extração concluída!", {
         body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
         icon: '/icon.png',
@@ -340,6 +358,12 @@ function App() {
     }
     prevExtractionStatus.current = s;
   }, [status.stats.status]);
+
+  /** Tracks tab visits for the activation funnel (repositório / relatório) */
+  useEffect(() => {
+    if (activeTab === 'repositorio') Analytics.repositorioAcessado();
+    if (activeTab === 'relatorio')   Analytics.relatorioAcessado();
+  }, [activeTab]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -368,7 +392,8 @@ function App() {
     setAgentApiKey('');
     setTestKeyResult(null);
     setAgentKeyError('');
-    await saveAgentConfig({ provider: 'ollama', api_key: '' }).catch(() => {});
+    setKeyTested(false);
+    await saveAgentConfig({ provider: 'ollama', api_key: '' }).catch(() => showError('Erro ao remover chave. Tente novamente.'));
     setUseExternalProvider(false);
     setAgentProvider('ollama');
     const r = await axios.get(`${API_BASE}/agent/status`).catch(() => null);
@@ -384,18 +409,26 @@ function App() {
     try {
       const res = await saveAgentConfig({ provider, api_key: apiKey });
       if (res.data.error) setAgentKeyError(res.data.message);
-      else { setConfigSaved(true); setTimeout(() => setConfigSaved(false), 4000); }
+      else {
+        setConfigSaved(true);
+        Analytics.provedorConfigurado(provider);
+        setTimeout(() => setConfigSaved(false), 4000);
+      }
     } catch { setAgentKeyError(t('agent.key_error_server')); }
     setSavingConfig(false);
   };
 
-  /** Tests the currently saved API key */
+  /** Tests the API key inline (without saving) */
   const handleTestKey = async () => {
-    setTestingKey(true); setTestKeyResult(null);
+    setTestingKey(true); setTestKeyResult(null); setKeyTested(false);
     try {
-      const res = await testAgentKey();
-      setTestKeyResult({ ok: !res.data.error, message: res.data.message });
-    } catch { setTestKeyResult({ ok: false, message: t('agent.key_error_server') }); }
+      const res = await testAgentKey({ provider: agentProvider, api_key: agentApiKey.trim() });
+      const ok = !res.data.error;
+      setTestKeyResult({ ok, message: res.data.message });
+      setKeyTested(ok);
+    } catch {
+      setTestKeyResult({ ok: false, message: t('agent.key_error_server') });
+    }
     setTestingKey(false);
   };
 
@@ -413,7 +446,8 @@ function App() {
 
   /** Removes an indexed canal and updates the extras list */
   const handleDeleteCanal = async (nome) => {
-    await deleteCanalIndex(nome).catch(() => {});
+    const ok = await deleteCanalIndex(nome).then(() => true).catch(() => false);
+    if (!ok) { showError('Erro ao remover canal. Tente novamente.'); return; }
     setCanaisExtras(prev => prev.filter(c => c !== nome));
   };
 
@@ -428,6 +462,7 @@ function App() {
   const handleStartConfirm = (fontes) => {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
+    Analytics.extracaoIniciada(fontes);
     startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); });
   };
 
@@ -460,12 +495,18 @@ function App() {
   const handleChatSend = async () => {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
+
+    if (agentProvider === 'ollama' && !ollamaStatus.running) {
+      setChatInput('');
+      setChatMessages(prev => [...prev,
+        { role: 'user',  content: msg },
+        { role: 'error', content: t('agent.ollama_offline') },
+      ]);
+      return;
+    }
+
     setChatInput('');
     Analytics.chatPergunta(buscaAmpla ? 'ampla' : 'restrita', useExternalProvider ? agentProvider : 'ollama');
-    const historico = chatMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .slice(-6)
-      .map(m => ({ role: m.role, content: m.content }));
     setChatMessages(prev => [...prev, { role: 'user', content: msg }]);
     setChatLoading(true);
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', fontes: [], streaming: true }]);
@@ -474,7 +515,6 @@ function App() {
       const response = await sendChatStream({
         mensagem:      msg,
         canal_nome:    agentStatus.canal_indexado || canalConfigurado,
-        historico,
         canais_extras: canaisExtras,
         busca_ampla:   buscaAmpla,
       });
@@ -551,6 +591,7 @@ function App() {
           <ProgressToast
             key="progress-toast"
             darkMode={darkMode}
+            type={progressToast.type || 'success'}
             message={progressToast.message}
             nextStep={progressToast.nextStep}
             onNext={progressToast.onNext}
@@ -597,15 +638,15 @@ function App() {
             <button onClick={() => setShowHome(true)} aria-label="Voltar à tela inicial" title="Voltar ao início"
               className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
               <img src="/icon.png" alt="Brain'IAC"
-                style={{ width: 34, height: 34, objectFit: 'contain' }}
+                style={{ width: 34, height: 34, objectFit: 'contain', filter: darkMode ? 'brightness(1.4)' : 'none' }}
                 onError={e => { e.target.style.display = 'none'; }} />
             </button>
             <div className="flex flex-col items-center gap-1 flex-1">
               {[
-                { id: 'extracao',    icon: Zap,      label: t('tabs.extraction') },
-                { id: 'repositorio', icon: BookOpen,  label: 'Repositório'        },
-                { id: 'relatorio',   icon: BarChart3, label: 'Relatório'          },
-                { id: 'agente',      icon: Settings,  label: t('tabs.agent')      },
+                { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
+                { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
+                { id: 'relatorio',   icon: BarChart3, label: t('tabs.relatorio')   },
+                { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
               ].map(({ id, icon: Icon, label }) => (
                 <button key={id}
                   onClick={() => {
@@ -665,10 +706,10 @@ function App() {
               </div>
               <div className="flex flex-col gap-1 flex-1">
                 {[
-                  { id: 'extracao',    icon: Zap,      label: t('tabs.extraction') },
-                  { id: 'repositorio', icon: BookOpen,  label: 'Repositório'        },
-                  { id: 'relatorio',   icon: BarChart3, label: 'Relatório'          },
-                  { id: 'agente',      icon: Settings,  label: t('tabs.agent')      },
+                  { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
+                  { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
+                  { id: 'relatorio',   icon: BarChart3, label: t('tabs.relatorio')   },
+                  { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
                 ].map(({ id, icon: Icon, label }) => (
                   <button key={id}
                     onClick={() => {
@@ -698,7 +739,7 @@ function App() {
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 {darkMode ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
-                {darkMode ? 'Modo claro' : 'Modo escuro'}
+                {darkMode ? t('footer.light') : t('footer.dark')}
               </button>
             </motion.nav>
           )}
@@ -711,7 +752,7 @@ function App() {
           {showHome && (
             <HomeScreen
               darkMode={darkMode} history={history} repositorio={repositorio}
-              agentStatus={agentStatus} btnFocus={BTN_FOCUS}
+              agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
@@ -749,7 +790,7 @@ function App() {
                 ) : (
                   <div>
                     <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {{ extracao: t('tabs.extraction'), repositorio: 'Repositório', relatorio: 'Relatório', agente: t('tabs.agent') }[activeTab]}
+                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), agente: t('tabs.agent') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
@@ -758,23 +799,34 @@ function App() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {/* Drive status badge — always visible */}
-                {(driveStatus === 'nao_autenticado' || driveStatus === 'sem_credenciais') && (
+                {/* Drive status chip — always navigates to Repositório */}
+                {driveStatus !== 'autenticado' && (
                   <button
                     onClick={() => setActiveTab('repositorio')}
-                    title="Conectar Google Drive — ir para Repositório"
+                    title={driveStatus === 'em_progresso' ? 'Autenticando Drive…' : 'Conectar Google Drive'}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
-                      ${darkMode ? 'border-warning/30 text-warning bg-warning/8 hover:bg-warning/15' : 'border-amber-300 text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
-                    <CloudOff size={12} aria-hidden="true" />
+                      ${driveStatus === 'em_progresso'
+                        ? darkMode ? 'border-primary/30 text-primary bg-primary/8 hover:bg-primary/15' : 'border-violet-300 text-violet-600 bg-violet-50 hover:bg-violet-100'
+                        : darkMode ? 'border-warning/30 text-warning bg-warning/8 hover:bg-warning/15' : 'border-amber-300 text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
+                    {driveStatus === 'em_progresso'
+                      ? <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+                      : <CloudOff size={12} aria-hidden="true" />}
                     <span className="hidden sm:inline">Drive</span>
                   </button>
                 )}
                 {driveStatus === 'autenticado' && (
-                  <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border
-                    ${darkMode ? 'border-secondary/25 text-secondary bg-secondary/8' : 'border-emerald-200 text-emerald-600 bg-emerald-50'}`}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  <button
+                    onClick={() => setActiveTab('repositorio')}
+                    title={isRunning ? 'Drive sincronizando…' : 'Drive conectado — ir para Repositório'}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                      ${isRunning
+                        ? darkMode ? 'border-secondary/40 text-secondary bg-secondary/12 hover:bg-secondary/20' : 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                        : darkMode ? 'border-white/15 text-slate-400 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-500 bg-slate-50 hover:bg-slate-100'}`}>
+                    {isRunning
+                      ? <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+                      : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>}
                     <span className="hidden sm:inline">Drive</span>
-                  </span>
+                  </button>
                 )}
               </div>
             </header>
@@ -852,7 +904,7 @@ function App() {
                       <button
                         onClick={() => setExtractionTypes(extractionTypes.length === ALL_TYPES.length ? [] : ALL_TYPES)}
                         className={`text-[10px] font-semibold transition-colors ${darkMode ? 'text-slate-500 hover:text-primary' : 'text-slate-400 hover:text-primary'} ${BTN_FOCUS}`}>
-                        {extractionTypes.length === ALL_TYPES.length ? 'Desmarcar tudo' : t('ops.types_select_all')}
+                        {extractionTypes.length === ALL_TYPES.length ? t('ops.deselect_all') : t('ops.types_select_all')}
                       </button>
                     </div>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -1158,7 +1210,8 @@ function App() {
             {activeTab === 'relatorio' && (
               <div id="panel-relatorio" role="tabpanel" aria-labelledby="tab-relatorio"
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 custom-scrollbar">
-                <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS} />
+                <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
+                  onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
               </div>
             )}
 
@@ -1241,29 +1294,6 @@ function App() {
                         <div className="p-5 space-y-4">
                           <OllamaSetup darkMode={darkMode} ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus} btnFocus={BTN_FOCUS} ollamaModel={ollamaModel} onModelChange={handleOllamaModelChange} />
 
-                          {/* Analytics consent toggle */}
-                          <div className={`py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
-                                <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                                  Registra eventos de uso — quais abas foram abertas, extrações iniciadas, indexações e perguntas no chat.
-                                  <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> Nenhum conteúdo pessoal é coletado</strong>: sem texto de mensagens, nomes de arquivos, URLs de canais ou chaves de API.
-                                  Os dados são enviados ao <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> (servidores na UE/EUA) e usados exclusivamente para melhorar o produto.
-                                </p>
-                              </div>
-                              <button
-                                role="switch" aria-checked={analyticsEnabled}
-                                onClick={() => {
-                                  if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
-                                  else { acceptAnalytics(); setAnalyticsEnabled(true); }
-                                }}
-                                className={`relative shrink-0 mt-0.5 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
-                                <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                              </button>
-                            </div>
-                          </div>
-
                           {/* External provider toggle */}
                           <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                             <div>
@@ -1300,7 +1330,7 @@ function App() {
                                     { id: 'anthropic', label: 'Anthropic Claude' },
                                     { id: 'groq',      label: 'Groq (gratuito)'  },
                                   ].map(({ id, label }) => (
-                                    <button key={id} onClick={() => setAgentProvider(id)}
+                                    <button key={id} onClick={() => { setAgentProvider(id); setTestKeyResult(null); setKeyTested(false); }}
                                       className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${BTN_FOCUS}
                                         ${agentProvider === id
                                           ? 'border-primary bg-primary/15 text-primary'
@@ -1320,10 +1350,13 @@ function App() {
                                   <Info size={11} className="shrink-0 mt-0.5" />
                                   <span>Ao usar este provedor, mensagens e trechos da sua base são enviados para servidores externos fora do Brasil (LGPD Art. 33).</span>
                                 </div>
-                                <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                                {/* Step 1 — key input */}
+                                <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
+                                  ${keyTested ? darkMode ? 'border-secondary/50 bg-secondary/5' : 'border-emerald-300 bg-emerald-50' : darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                                   <input type={showApiKey ? 'text' : 'password'}
                                     placeholder={t('agent.key_placeholder')}
-                                    value={agentApiKey} onChange={e => { setAgentApiKey(e.target.value); setAgentKeyError(''); }}
+                                    value={agentApiKey}
+                                    onChange={e => { setAgentApiKey(e.target.value); setAgentKeyError(''); setTestKeyResult(null); setKeyTested(false); }}
                                     className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
                                   <button onClick={() => setShowApiKey(!showApiKey)}
                                     className={`shrink-0 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500'} ${BTN_FOCUS}`}
@@ -1331,6 +1364,24 @@ function App() {
                                     {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                                   </button>
                                 </div>
+
+                                {/* Step 2 — test button */}
+                                <button onClick={handleTestKey}
+                                  disabled={testingKey || !agentApiKey.trim() || keyTested}
+                                  className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed ${BTN_FOCUS}
+                                    ${keyTested
+                                      ? darkMode ? 'bg-secondary/15 text-secondary border border-secondary/30' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : !agentApiKey.trim()
+                                        ? 'opacity-40 ' + (darkMode ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200')
+                                        : darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 border border-violet-200'}`}>
+                                  {testingKey
+                                    ? <><Loader2 size={12} className="animate-spin" /> Testando…</>
+                                    : keyTested
+                                      ? <><CheckCircle2 size={12} /> Chave verificada</>
+                                      : <><Zap size={12} /> Testar chave</>}
+                                </button>
+
+                                {/* Feedback messages */}
                                 {agentKeyError && (
                                   <p role="alert" className="text-[11px] text-danger flex items-center gap-1">
                                     <AlertTriangle size={11} /> {agentKeyError}
@@ -1341,25 +1392,82 @@ function App() {
                                     {testKeyResult.ok ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />} {testKeyResult.message}
                                   </p>
                                 )}
+                                {agentApiKey.trim() && !keyTested && !testKeyResult && (
+                                  <p className={`text-[10px] flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                    <Info size={10} /> Teste a chave antes de salvar
+                                  </p>
+                                )}
+
+                                {/* Step 3 — save / clear (only after successful test) */}
                                 <div className="flex gap-2">
                                   <button onClick={handleRemoveApiKey}
                                     className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
                                     Limpar
                                   </button>
-                                  <button onClick={handleSaveAgentConfig} disabled={savingConfig || !agentApiKey.trim()}
-                                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
+                                  <button onClick={handleSaveAgentConfig}
+                                    disabled={savingConfig || !keyTested}
+                                    title={!keyTested ? 'Teste a chave primeiro' : undefined}
+                                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+                                      ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
                                     {savingConfig ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
                                     {savingConfig ? t('agent.saving') : configSaved ? `✓ ${t('agent.config_saved')}` : t('agent.save_config')}
-                                  </button>
-                                  <button onClick={handleTestKey} disabled={testingKey || !agentStatus.configured}
-                                    title={t('agent.test_key')}
-                                    className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'} ${BTN_FOCUS}`}>
-                                    {testingKey ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                                   </button>
                                 </div>
                               </motion.div>
                             )}
                           </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </section>
+
+                {/* Telemetry section */}
+                <section aria-labelledby="agent-telemetry-heading"
+                  className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <button
+                    aria-expanded={telemetryOpen} aria-controls="agent-telemetry-body"
+                    onClick={() => setTelemetryOpen(v => !v)}
+                    className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${telemetryOpen && (darkMode ? 'border-b border-white/10' : 'border-b border-slate-100')} ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={analyticsEnabled ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    <h3 id="agent-telemetry-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+                      Telemetria
+                    </h3>
+                    {analyticsEnabled && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-secondary mr-2">
+                        <CheckCircle2 size={11} /> Ativa
+                      </span>
+                    )}
+                    <motion.div animate={{ rotate: telemetryOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {telemetryOpen && (
+                      <motion.div id="agent-telemetry-body"
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
+                        style={{ overflow: 'hidden' }}>
+                        <div className="p-5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
+                              <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                                Registra eventos de uso — quais abas foram abertas, extrações iniciadas, indexações e perguntas no chat.
+                                <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> Nenhum conteúdo pessoal é coletado</strong>: sem texto de mensagens, nomes de arquivos, URLs de canais ou chaves de API.
+                                Os dados são enviados ao <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> (servidores na UE/EUA) e usados exclusivamente para melhorar o produto.
+                              </p>
+                            </div>
+                            <button
+                              role="switch" aria-checked={analyticsEnabled}
+                              onClick={() => {
+                                if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
+                                else { acceptAnalytics(); setAnalyticsEnabled(true); }
+                              }}
+                              className={`relative shrink-0 mt-0.5 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                              <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -1538,13 +1646,22 @@ function App() {
               chatInput={chatInput} setChatInput={setChatInput}
               chatLoading={chatLoading}
               onSend={handleChatSend}
+              onRecriarIndice={handleAgentIndex}
+              onClearHistory={() => {
+                const canal = agentStatus.canal_indexado || canalConfigurado;
+                if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
+              }}
               agentStatus={agentStatus}
               canalConfigurado={canalConfigurado}
               onSelectCanal={setCanalConfigurado}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
               buscaAmpla={buscaAmpla}
-              setBuscaAmpla={setBuscaAmpla}
+              setBuscaAmpla={(updater) => {
+                const next = typeof updater === 'function' ? updater(buscaAmpla) : updater;
+                Analytics.buscaAmplaToggled(next);
+                setBuscaAmpla(next);
+              }}
             />
 
             {/* Floating chat button */}

@@ -6,8 +6,10 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
+import ReactDOM from 'react-dom';
+import ModalWrapper from '../shared/ModalWrapper';
 import { Loader2 } from 'lucide-react';
-import { fetchRelatorio } from '../../services/api';
+import { fetchRelatorio, limparHistorico } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -20,11 +22,36 @@ import { fetchRelatorio } from '../../services/api';
  * @param {string}  props.btnFocus  - Tailwind focus-visible ring classes
  * @returns {JSX.Element}
  */
-function RelatorioTab({ darkMode, history, btnFocus }) {
-  const [canal,   setCanal]   = React.useState('');
-  const [data,    setData]    = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
-  const [filtro,  setFiltro]  = React.useState('todos');
+function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
+  const [canal,        setCanal]        = React.useState('');
+  const [data,         setData]         = React.useState(null);
+  const [loading,      setLoading]      = React.useState(false);
+  const [filtro,       setFiltro]       = React.useState('todos');
+  const [showLimpar,   setShowLimpar]   = React.useState(false);
+  const [limparSel,    setLimparSel]    = React.useState({});
+  const [limpando,     setLimpando]     = React.useState(false);
+
+  const toggleSel = (prefixo) =>
+    setLimparSel(s => ({ ...s, [prefixo]: !s[prefixo] }));
+
+  const toggleTodos = () => {
+    const todos = history.every(h => limparSel[h.canal]);
+    const next  = {};
+    history.forEach(h => { next[h.canal] = !todos; });
+    setLimparSel(next);
+  };
+
+  const handleLimpar = async () => {
+    const selecionados = history.map(h => h.canal).filter(p => limparSel[p]);
+    if (!selecionados.length) return;
+    setLimpando(true);
+    await limparHistorico(selecionados).catch(() => {});
+    setLimpando(false);
+    setShowLimpar(false);
+    setLimparSel({});
+    if (selecionados.includes(canal)) { setCanal(''); setData(null); }
+    onRefreshHistory?.();
+  };
 
   /** Pre-selects the first canal when history is loaded */
   React.useEffect(() => {
@@ -44,8 +71,27 @@ function RelatorioTab({ darkMode, history, btnFocus }) {
   const filtrados = filtro === 'todos' ? videos : videos.filter(v => v.Status === filtro);
   const stats    = data?.stats;
 
+  const todosSelected = history.length > 0 && history.every(h => limparSel[h.canal]);
+  const algumSelected = history.some(h => limparSel[h.canal]);
+
   return (
     <div className="space-y-4">
+      {/* Header com botão limpar */}
+      {history.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Relatório de Extrações</h2>
+            <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''} com histórico</p>
+          </div>
+          <button onClick={() => setShowLimpar(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
+              ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+            Limpar histórico
+          </button>
+        </div>
+      )}
+
       {/* Canal selector — multi-channel */}
       {history.length > 1 && (
         <div className="flex items-center gap-2">
@@ -67,6 +113,61 @@ function RelatorioTab({ darkMode, history, btnFocus }) {
           </div>
           <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal}</p>
         </div>
+      )}
+
+      {/* Modal — limpar histórico */}
+      {showLimpar && ReactDOM.createPortal(
+        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({}); }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar histórico">
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar histórico</h3>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Selecione os canais cujo histórico deseja remover:</p>
+              </div>
+            </div>
+
+            {/* Selecionar todos */}
+            <label className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer border transition-colors
+              ${todosSelected ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
+                              : darkMode ? 'border-white/10 hover:border-white/20' : 'border-slate-200 hover:border-slate-300'}`}>
+              <input type="checkbox" checked={todosSelected} onChange={toggleTodos} className="accent-red-500 w-3.5 h-3.5" />
+              <span className={`text-xs font-bold flex-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Selecionar todos</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>{history.length}</span>
+            </label>
+
+            <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+              {history.map(h => (
+                <label key={h.canal}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors
+                    ${limparSel[h.canal]
+                      ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
+                      : darkMode ? 'border-white/8 hover:border-white/15' : 'border-slate-150 hover:border-slate-200'}`}>
+                  <input type="checkbox" checked={!!limparSel[h.canal]} onChange={() => toggleSel(h.canal)} className="accent-red-500 w-3.5 h-3.5" />
+                  <span className="text-sm shrink-0">📺</span>
+                  <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>@{h.canal}</span>
+                  <span className={`text-[10px] whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.extraidos} vídeos</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => { setShowLimpar(false); setLimparSel({}); }}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
+                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                Cancelar
+              </button>
+              <button onClick={handleLimpar} disabled={limpando || !algumSelected}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
+                  ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                {limpando ? 'Removendo…' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>,
+        document.body
       )}
 
       {loading && (

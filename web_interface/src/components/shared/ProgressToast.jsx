@@ -8,28 +8,32 @@
  */
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
- * ProgressToast — contextual "next step" notification after a key action
+ * ProgressToast — contextual notification after a key action
  *
  * @param {Object}   props
  * @param {boolean}  props.darkMode      - dark/light theme flag
- * @param {string}   props.message       - success message
+ * @param {string}   props.message       - message to display
+ * @param {'success'|'error'} [props.type='success'] - visual variant
  * @param {string}   [props.nextStep]    - optional next action label
  * @param {Function} [props.onNext]      - callback for next action button
  * @param {Function} props.onClose       - callback to dismiss
  * @param {number}   [props.autoClose=6000] - ms before auto-dismiss (0 = manual)
  * @returns {JSX.Element}
  */
-function ProgressToast({ darkMode, message, nextStep, onNext, onClose, autoClose = 6000 }) {
+function ProgressToast({ darkMode, message, type = 'success', nextStep, onNext, onClose, autoClose = 6000 }) {
   useEffect(() => {
     if (!autoClose) return;
     const t = setTimeout(onClose, autoClose);
     return () => clearTimeout(t);
   }, [autoClose, onClose]);
+
+  const isError = type === 'error';
+  const Icon = isError ? AlertCircle : CheckCircle2;
 
   return (
     <motion.div
@@ -38,9 +42,12 @@ function ProgressToast({ darkMode, message, nextStep, onNext, onClose, autoClose
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2 }}
       className={`fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border p-4 shadow-2xl
-        ${darkMode ? 'bg-[#0C1122] border-secondary/30' : 'bg-white border-emerald-200 shadow-emerald-100/60'}`}>
+        ${isError
+          ? darkMode ? 'bg-[#0C1122] border-red-500/30' : 'bg-white border-red-200 shadow-red-100/60'
+          : darkMode ? 'bg-[#0C1122] border-secondary/30' : 'bg-white border-emerald-200 shadow-emerald-100/60'
+        }`}>
       <div className="flex items-start gap-3">
-        <CheckCircle2 size={16} className="text-secondary shrink-0 mt-0.5" />
+        <Icon size={16} className={`shrink-0 mt-0.5 ${isError ? 'text-red-400' : 'text-secondary'}`} />
         <div className="flex-1 min-w-0">
           <p className={`text-xs font-medium ${darkMode ? 'text-white' : 'text-slate-800'}`}>{message}</p>
           {nextStep && (

@@ -6,7 +6,10 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
-import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem } from '../../services/api';
+import ReactDOM from 'react-dom';
+import ModalWrapper from '../shared/ModalWrapper';
+import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase } from '../../services/api';
+import { Analytics } from '../../services/analytics';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -32,6 +35,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [saving, setSaving]   = React.useState(false);
   const [file, setFile]       = React.useState(null);
   const [expandedCanais, setExpandedCanais] = React.useState({});
+  const [showLimpar, setShowLimpar]         = React.useState(false);
+  const [limparSel, setLimparSel]           = React.useState({ youtube: false, documentos: false, textos: false });
+  const [limpando, setLimpando]             = React.useState(false);
   const fileRef = React.useRef(null);
 
   const reload = () =>
@@ -40,7 +46,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const handleSaveText = async () => {
     if (!title.trim() || !text.trim()) return;
     setSaving(true);
-    await saveText(title.trim(), text.trim(), canalAtivo || '').catch(() => {});
+    const ok = await saveText(title.trim(), text.trim(), canalAtivo || '').then(() => true).catch(() => false);
+    if (ok) Analytics.documentoAdicionado('texto');
     reload(); setShowAdd(false); setTitle(''); setText(''); setSaving(false);
   };
 
@@ -50,12 +57,23 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     const form = new FormData();
     form.append('arquivo', file);
     if (canalAtivo) form.append('canal', canalAtivo);
-    await uploadDocument(form).catch(() => {});
+    const ok = await uploadDocument(form).then(() => true).catch(() => false);
+    if (ok) Analytics.documentoAdicionado(file.name.split('.').pop()?.toLowerCase() || 'arquivo');
     reload(); setShowAdd(false); setFile(null); setSaving(false);
   };
 
   const toggleCanal = (nome) =>
     setExpandedCanais(prev => ({ ...prev, [nome]: !prev[nome] }));
+
+  const handleLimpar = async () => {
+    if (!limparSel.youtube && !limparSel.documentos && !limparSel.textos) return;
+    setLimpando(true);
+    await limparBase(limparSel).catch(() => {});
+    setShowLimpar(false);
+    setLimparSel({ youtube: false, documentos: false, textos: false });
+    setLimpando(false);
+    reload();
+  };
 
   /** Deletes a repositório item by type and id */
   const handleDelete = async (tipo, id) => {
@@ -63,10 +81,26 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
-  const canais = repositorio.canais || [];
-  const totalYT  = repositorio.youtube?.length || 0;
-  const totalDoc = (repositorio.documentos?.length || 0) + (repositorio.textos?.length || 0);
-  const total    = totalYT + totalDoc;
+  const canais    = repositorio.canais      || [];
+  const flatYT    = repositorio.youtube    || [];
+  const flatDocs  = repositorio.documentos || [];
+  const flatTexts = repositorio.textos     || [];
+  const total     = flatYT.length + flatDocs.length + flatTexts.length;
+
+  // Items already shown inside canal accordions — don't duplicate them
+  const coveredYT  = new Set(canais.flatMap(c => c.youtube.map(f => f.nome)));
+  const coveredIds = new Set(canais.flatMap(c => [...c.documentos, ...c.textos].map(d => d.id)));
+
+  // Orphan items (legacy flat structure or items without an active canal)
+  const orphanYT    = flatYT.filter(f => !coveredYT.has(f.nome));
+  const orphanDocs  = flatDocs.filter(d => !coveredIds.has(d.id));
+  const orphanTexts = flatTexts.filter(t => !coveredIds.has(t.id));
+
+  const orphanGroups = [
+    { key: 'orp-youtube',    label: 'YouTube',    emoji: '🎬', items: orphanYT,    tipo: null },
+    { key: 'orp-documentos', label: 'Documentos', emoji: '📄', items: orphanDocs,  tipo: 'documentos' },
+    { key: 'orp-textos',     label: 'Textos',     emoji: '📝', items: orphanTexts, tipo: 'textos' },
+  ].filter(g => g.items.length > 0);
 
   return (
     <div className="space-y-4">
@@ -79,11 +113,74 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             {canalAtivo && <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-50 text-violet-600'}`}>@{canalAtivo}</span>}
           </p>
         </div>
-        <button onClick={() => setShowAdd(!showAdd_)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
-          + Adicionar
-        </button>
+        <div className="flex items-center gap-2">
+          {total > 0 && (
+            <button onClick={() => setShowLimpar(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
+                ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200'}`}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+              Limpar
+            </button>
+          )}
+          <button onClick={() => setShowAdd(!showAdd_)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
+            + Adicionar
+          </button>
+        </div>
       </div>
+
+      {/* Modal — limpar base (portal para evitar clipping por transform de pai) */}
+      {showLimpar && ReactDOM.createPortal(
+        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar base de conhecimento">
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar base de conhecimento</h3>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Esta ação é irreversível. Selecione o que deseja remover:</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { key: 'youtube',    emoji: '🎬', label: 'YouTube', count: flatYT.length },
+                { key: 'documentos', emoji: '📄', label: 'Documentos', count: flatDocs.length },
+                { key: 'textos',     emoji: '📝', label: 'Textos', count: flatTexts.length },
+              ].filter(opt => opt.count > 0).map(opt => (
+                <label key={opt.key}
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors
+                    ${limparSel[opt.key]
+                      ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
+                      : darkMode ? 'border-white/10 hover:border-white/20' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <input type="checkbox" checked={limparSel[opt.key]}
+                    onChange={e => setLimparSel(s => ({ ...s, [opt.key]: e.target.checked }))}
+                    className="accent-red-500 w-3.5 h-3.5" />
+                  <span className="text-sm">{opt.emoji}</span>
+                  <span className={`text-xs font-medium flex-1 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{opt.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>{opt.count}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
+                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                Cancelar
+              </button>
+              <button onClick={handleLimpar}
+                disabled={limpando || (!limparSel.youtube && !limparSel.documentos && !limparSel.textos)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
+                  ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                {limpando ? 'Removendo…' : 'Confirmar remoção'}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>,
+        document.body
+      )}
 
       {/* Add panel */}
       {showAdd_ && (
@@ -179,6 +276,55 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Orphan groups — legacy flat files not covered by any canal accordion */}
+      {orphanGroups.map(group => {
+        const isOpen = expandedCanais[group.key] !== false;
+        return (
+          <div key={group.key} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <button
+              onClick={() => toggleCanal(group.key)}
+              className={`w-full px-4 py-3 border-b flex items-center gap-2 text-left transition-colors ${darkMode ? 'border-white/10 bg-white/4 hover:bg-white/8' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}>
+              <span className="text-sm">{group.emoji}</span>
+              <p className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{group.label}</p>
+              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{group.items.length} item{group.items.length !== 1 ? 's' : ''}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className={`transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+            {isOpen && (
+              <div className="divide-y divide-white/5">
+                {group.tipo === null
+                  ? group.items.map((f, i) => (
+                    <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                      <span className="text-sm shrink-0">🎬</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+                      </div>
+                    </div>
+                  ))
+                  : group.items.map((item, i) => (
+                    <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                      <span className="text-sm shrink-0">{group.tipo === 'textos' ? '📝' : '📄'}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                      </div>
+                      <button onClick={() => handleDelete(group.tipo, item.id)}
+                        className={`p-1.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
+                        aria-label="Remover">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+                      </button>
+                    </div>
+                  ))
+                }
               </div>
             )}
           </div>

@@ -9,6 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { HelpCircle, X } from 'lucide-react';
+import ModalWrapper from './ModalWrapper';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -33,16 +34,11 @@ function GuideModal({ onClose, darkMode }) {
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <ModalWrapper onClose={onClose} label={t('guide.title')}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        onClick={e => e.stopPropagation()}
         className={`rounded-2xl p-6 max-w-2xl w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
       >
         {/* Header */}
@@ -73,7 +69,7 @@ function GuideModal({ onClose, darkMode }) {
           ))}
         </div>
       </motion.div>
-    </motion.div>
+    </ModalWrapper>
   );
 }
 
