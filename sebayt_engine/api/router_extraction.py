@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Rotas de extração: configurar canal, iniciar/pausar/cancelar motor.
 """
@@ -10,8 +10,8 @@ import threading
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 
-import motor_brainiac
-from brainiac_engine.state import state
+import motor_sebayt
+from sebayt_engine.state import state
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ def run_motor():
         state.is_running = True
         state.stats["status"] = "Mapeando YouTube"
 
-        motor_brainiac.brainiac_engine(
+        motor_sebayt.sebayt_engine(
             canal_url=state.canal_url,
             evento_pausa=state.evento_pausa,
             evento_cancelar=state.evento_cancelar,

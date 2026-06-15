@@ -12,8 +12,8 @@ import tempfile
 import pytest
 
 # --- Isolamento de dados: precisa acontecer antes de qualquer import da app ---
-_TMP_DATA = tempfile.mkdtemp(prefix="brainiac_test_")
-os.environ["BRAINIAC_DATA_DIR"] = _TMP_DATA
+_TMP_DATA = tempfile.mkdtemp(prefix="sebayt_test_")
+os.environ["SEBAYT_DATA_DIR"] = _TMP_DATA
 
 # Raiz do projeto no sys.path (tests/ fica um nível abaixo)
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,14 +25,14 @@ if _ROOT not in sys.path:
 def client():
     """TestClient da API com stdout/stderr restaurados (a app os redireciona)."""
     from fastapi.testclient import TestClient
-    import api_brainiac
+    import api_sebayt
 
     # A app sobrescreve sys.stdout/stderr com o LogRedirector ao importar.
     # Restaura para o pytest exibir saída normalmente.
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
 
-    return TestClient(api_brainiac.app)
+    return TestClient(api_sebayt.app)
 
 
 @pytest.fixture()

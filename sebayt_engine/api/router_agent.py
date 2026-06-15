@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Rotas do agente RAG: configuração, indexação, chat e integrações Ollama.
 """
@@ -12,8 +12,8 @@ from fastapi import APIRouter, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-import agent_brainiac
-from brainiac_engine.state import state
+import agent_sebayt
+from sebayt_engine.state import state
 
 router = APIRouter()
 
@@ -32,7 +32,7 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
         def cb(msg):
             state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": msg})
 
-        agent_brainiac.indexar(
+        agent_sebayt.indexar(
             canal_nome=canal_nome,
             canal_prefixo=canal_prefixo,
             callback=cb,
@@ -79,7 +79,7 @@ class AgentChatStreamRequest(BaseModel):
 
 @router.get("/agent/status")
 def agent_status():
-    status = agent_brainiac.get_agent_status()
+    status = agent_sebayt.get_agent_status()
     status["indexing"]    = state.agent_indexing
     status["index_logs"]  = state.agent_index_logs[-30:]
     return status
@@ -92,7 +92,7 @@ def log_viewer():
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <title>Brain'IAC — Log de Indexação</title>
+  <title>Sebayt — Log de Indexação</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;padding:1.5rem;min-height:100vh}
@@ -107,7 +107,7 @@ def log_viewer():
   </style>
 </head>
 <body>
-  <h1>Brain'IAC — Log de Indexação</h1>
+  <h1>Sebayt — Log de Indexação</h1>
   <div class="sub">Atualização automática a cada 1 s &nbsp;·&nbsp; <a href="javascript:void(0)" onclick="clearLog()" style="color:#475569">limpar</a></div>
   <div id="log"><span style="color:#334155">Aguardando logs...</span></div>
   <div id="status"></div>
@@ -206,17 +206,17 @@ def ollama_pull_progress():
 
 @router.get("/agent/canal-meta")
 def agent_canal_meta():
-    config = agent_brainiac.carregar_config()
+    config = agent_sebayt.carregar_config()
     canal_nome = state.stats.get("canal_nome", "") or config.get("canal_indexado", "")
     if not canal_nome:
         return {}
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    return agent_brainiac._carregar_meta_canal(canal_prefixo)
+    return agent_sebayt._carregar_meta_canal(canal_prefixo)
 
 
 @router.get("/agent/config")
 def get_agent_config():
-    config = agent_brainiac.carregar_config()
+    config = agent_sebayt.carregar_config()
     raw_key = config.get("api_key", "")
     return {
         "provider":     config.get("provider", "gemini"),
@@ -229,7 +229,7 @@ def get_agent_config():
 def agent_config(req: AgentConfigRequest):
     if state.agent_indexing:
         return {"error": True, "message": "Indexação em andamento. Aguarde."}
-    config = agent_brainiac.carregar_config()
+    config = agent_sebayt.carregar_config()
     config["provider"] = req.provider
     if req.api_key:
         config["api_key"] = req.api_key
@@ -241,7 +241,7 @@ def agent_config(req: AgentConfigRequest):
         config["groq_model"] = req.groq_model
     if req.ollama_model:
         config["ollama_model"] = req.ollama_model
-    agent_brainiac.salvar_config(config)
+    agent_sebayt.salvar_config(config)
     return {"message": "Configuração salva com sucesso."}
 
 
@@ -272,7 +272,7 @@ def agent_test_key(req: TestKeyRequest = None):
     if req and req.provider and req.api_key:
         config = {"provider": req.provider, "api_key": req.api_key}
     else:
-        config = agent_brainiac.carregar_config()
+        config = agent_sebayt.carregar_config()
     provider = config.get("provider", "")
     if not provider or (not config.get("api_key") and provider != "ollama"):
         return {"error": True, "message": "Nenhuma chave configurada."}
@@ -360,7 +360,7 @@ def agent_chat(req: AgentChatRequest):
         hist = list(state.chat_histories.get(req.canal_nome, []))
     try:
         with state.agent_chat_lock:
-            resultado = agent_brainiac.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla)
+            resultado = agent_sebayt.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla)
         if not resultado.get("error"):
             hist = hist + [
                 {"role": "user",      "content": mensagem},
@@ -388,7 +388,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 
     def _gen():
         try:
-            for chunk in agent_brainiac.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla):
+            for chunk in agent_sebayt.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla):
                 try:
                     data = json.loads(chunk)
                     if data.get("texto"):
@@ -415,13 +415,13 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 def agent_canal_delete(canal_nome: str):
     import re as _re
     canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    idx_path = agent_brainiac._index_path(canal_prefixo)
-    agent_brainiac._invalidar_cache(canal_prefixo)
+    idx_path = agent_sebayt._index_path(canal_prefixo)
+    agent_sebayt._invalidar_cache(canal_prefixo)
     if os.path.exists(idx_path):
         os.remove(idx_path)
-        config = agent_brainiac.carregar_config()
+        config = agent_sebayt.carregar_config()
         if config.get('canal_indexado') == canal_nome:
             config['canal_indexado'] = ''
-            agent_brainiac.salvar_config(config)
+            agent_sebayt.salvar_config(config)
         return {"ok": True}
     return {"error": True, "message": "Índice não encontrado"}
