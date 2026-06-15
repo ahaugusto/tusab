@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 import pandas as pd
 from datetime import datetime
@@ -6,7 +6,7 @@ import yt_dlp
 import requests
 import platform
 
-class BrainIACEngine:
+class SebaytEngine:
     def __init__(self, log_callback=None):
         """
         log_callback: Função para injetar logs em tempo real na UI.

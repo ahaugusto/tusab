@@ -1,4 +1,4 @@
-import customtkinter as ctk
+﻿import customtkinter as ctk
 import threading
 import sys
 import os
@@ -6,7 +6,7 @@ import re
 import json
 from datetime import datetime
 from PIL import Image
-import motor_brainiac
+import motor_sebayt
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -230,7 +230,7 @@ class BrainIAcApp(ctk.CTk):
             pass
 
     def _atualizar_canal_detectado(self, url):
-        nome = motor_brainiac.extrair_nome_canal(url) if url.strip() else "—"
+        nome = motor_sebayt.extrair_nome_canal(url) if url.strip() else "—"
         self._lbl_canal_detectado.configure(text=f"@{nome}" if url.strip() else "—")
 
     def _build_sidebar(self):
@@ -422,7 +422,7 @@ class BrainIAcApp(ctk.CTk):
         self.evento_cancelar.clear()
         self.evento_pausa.set()
 
-        nome = motor_brainiac.extrair_nome_canal(canal_url)
+        nome = motor_sebayt.extrair_nome_canal(canal_url)
         self.btn_start.configure(state="disabled", text="⚙  RODANDO...", fg_color=C["border"], text_color=C["txt3"])
         self.btn_pause.configure(state="normal", text="⏸  PAUSAR", fg_color="#7C3E00")
         self.btn_cancel.configure(state="normal")
@@ -441,7 +441,7 @@ class BrainIAcApp(ctk.CTk):
         else:
             self.evento_pausa.set()
             self.btn_pause.configure(text="⏸  PAUSAR", fg_color="#7C3E00", hover_color="#5C2D00")
-            nome = motor_brainiac.extrair_nome_canal(self.entry_url.get().strip())
+            nome = motor_sebayt.extrair_nome_canal(self.entry_url.get().strip())
             self._set_status(f"Extraindo @{nome}", C["yellow"], "Motor em operação. Use Pausar ou Cancelar a qualquer momento.")
             self._progress.start()
 
@@ -454,7 +454,7 @@ class BrainIAcApp(ctk.CTk):
 
     def _rodar_motor(self, canal_url):
         try:
-            motor_brainiac.brainiac_engine(
+            motor_sebayt.sebayt_engine(
                 canal_url=canal_url,
                 evento_pausa=self.evento_pausa,
                 evento_cancelar=self.evento_cancelar

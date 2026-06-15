@@ -1,7 +1,7 @@
 {
-  "name": "brainiac",
+  "name": "sebayt",
   "version": "2.0.0",
-  "description": "Brain'IAC — Index.Augment.Converse",
+  "description": "Sebayt — Index.Augment.Converse",
   "main": "main.js",
   "author": {
     "name":  "CriAugu",
@@ -24,8 +24,8 @@
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId":       "com.criaugu.brainiac",
-    "productName": "brainiac",
+    "appId":       "com.criaugu.sebayt",
+    "productName": "Sebayt",
     "copyright":   "© 2026 CriAugu — CNPJ 65.131.075/0001-57",
 
     "directories": {
@@ -44,10 +44,10 @@
         "from": "../",
         "to":   "app",
         "filter": [
-          "api_brainiac.py",
-          "motor_brainiac.py",
-          "agent_brainiac.py",
-          "brainiac_engine/**",
+          "api_sebayt.py",
+          "motor_sebayt.py",
+          "agent_sebayt.py",
+          "sebayt_engine/**",
           "credentials.json",
           "web_interface/dist/**",
           "assets/**"
@@ -75,14 +75,14 @@
       "uninstallerIcon":               "../assets/logo.ico",
       "createDesktopShortcut":         true,
       "createStartMenuShortcut":       true,
-      "shortcutName":                  "brainiac",
+      "shortcutName":                  "Sebayt",
       "license":                       "build_resources/license.txt"
     },
 
     "publish": {
       "provider": "github",
       "owner":    "criaugu",
-      "repo":     "brainiac"
+      "repo":     "sebayt"
     }
   }
 }

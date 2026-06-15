@@ -1,13 +1,13 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Fonte única de verdade para:
   - obter_caminho_dados / obter_caminho_assets
   - constantes de path (DATA_DIR, CEREBRO_DIR, …)
   - escrita atômica de CSV e JSON
 
-Ambos motor_brainiac.py e agent_brainiac.py importavam cópias idênticas
+Ambos motor_sebayt.py e agent_sebayt.py importavam cópias idênticas
 dessas funções. Centralizando aqui eliminamos a duplicação e garantimos que
-BRAINIAC_DATA_DIR (injetado pelo Electron ou pelo conftest de testes) é
+SEBAYT_DATA_DIR (injetado pelo Electron ou pelo conftest de testes) é
 respeitado por todos os módulos.
 """
 
@@ -15,16 +15,16 @@ import os
 import sys
 import json
 
-_PACK = os.path.dirname(os.path.abspath(__file__))   # .../brainiac_engine/
+_PACK = os.path.dirname(os.path.abspath(__file__))   # .../sebayt_engine/
 _ROOT = os.path.dirname(_PACK)                        # raiz do projeto
 
 
 def obter_caminho_dados() -> str:
     """Pasta raiz dos dados persistentes.
-    Prioridade: BRAINIAC_DATA_DIR → PyInstaller frozen → raiz do projeto.
+    Prioridade: SEBAYT_DATA_DIR → PyInstaller frozen → raiz do projeto.
     """
-    if os.environ.get('BRAINIAC_DATA_DIR'):
-        return os.environ['BRAINIAC_DATA_DIR']
+    if os.environ.get('SEBAYT_DATA_DIR'):
+        return os.environ['SEBAYT_DATA_DIR']
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
     return _ROOT

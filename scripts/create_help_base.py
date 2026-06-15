@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Script para criar o arquivo de ajuda do BrainIAc em cerebro/textos/.
 Executado uma vez para gerar o conteúdo inicial da base de conhecimento embutida.
@@ -295,7 +295,7 @@ for data_dir in data_dir_candidates:
     if os.path.exists(os.path.dirname(textos_dir)):
         os.makedirs(textos_dir, exist_ok=True)
 
-        txt_path = os.path.join(textos_dir, '_brainiac_ajuda.txt')
+        txt_path = os.path.join(textos_dir, '_sebayt_ajuda.txt')
         with open(txt_path, 'w', encoding='utf-8') as f:
             f.write(HELP_CONTENT)
 
@@ -315,7 +315,7 @@ for data_dir in data_dir_candidates:
         manifest.insert(0, {
             'id': 'brainiac_help',
             'titulo': 'BrainIAc — Documentação e Ajuda',
-            'nome_txt': '_brainiac_ajuda.txt',
+            'nome_txt': '_sebayt_ajuda.txt',
             'tipo': 'sistema',
             'chars': len(HELP_CONTENT),
             'data': datetime.now().strftime('%d/%m/%Y'),

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file analytics.js
  * @description Posthog analytics service — opt-in only.
  *   All tracking is gated behind explicit user consent stored in localStorage.
@@ -10,7 +10,7 @@
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CONSENT_KEY  = 'brainiac_analytics_consent'; // 'yes' | 'no' | null
+const CONSENT_KEY  = 'Sebayt_analytics_consent'; // 'yes' | 'no' | null
 const POSTHOG_KEY  = import.meta.env.VITE_POSTHOG_KEY || '';
 const POSTHOG_HOST = 'https://app.posthog.com';
 

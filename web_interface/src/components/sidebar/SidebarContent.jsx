@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file SidebarContent.jsx
  * @description Sidebar panel with language/theme toggles, logo, canal config, Drive toggle and extraction controls
  * @module components/sidebar/SidebarContent
@@ -208,7 +208,7 @@ function SidebarContent({
           </select>
         </div>
         <button
-          onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
+          onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
           aria-label={darkMode ? t('footer.light') : t('footer.dark')}
           aria-pressed={darkMode}
           className={`p-1.5 rounded-lg border transition-colors ${darkMode ? 'bg-white/5 border-white/15 text-slate-400 hover:bg-white/10 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700'} ${btnFocus}`}>
@@ -223,8 +223,8 @@ function SidebarContent({
           aria-label="Voltar à tela inicial"
           className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
           <img
-            src={darkMode ? '/logo_light.png?v=2' : '/logo_dark.png?v=2'}
-            alt="Brain'IAC — Index.Augment.Converse"
+            src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
+            alt="Sebayt — Index.Augment.Converse"
             style={{ width: '220px', height: '220px', objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
@@ -312,7 +312,7 @@ function SidebarContent({
               <p className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
                 Sincronize os arquivos extraídos com o Drive para usar no{' '}
                 <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
-                O BrainIAc monta o repositório; o NotebookLM atua como interface de leitura.
+                O Sebayt monta o repositório; o NotebookLM atua como interface de leitura.
               </p>
             </div>
             <DriveToggle

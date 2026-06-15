@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Rotas de status geral, autenticação Drive, histórico e abertura de pastas.
 """
@@ -11,9 +11,9 @@ import glob
 import pandas as pd
 from fastapi import APIRouter, BackgroundTasks
 
-import motor_brainiac
-import agent_brainiac
-from brainiac_engine.state import state
+import motor_sebayt
+import agent_sebayt
+from sebayt_engine.state import state
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ router = APIRouter()
 def run_drive_auth():
     try:
         state.drive_cancel_event.clear()
-        motor_brainiac.get_drive_service(stop_event=state.drive_cancel_event)
+        motor_sebayt.get_drive_service(stop_event=state.drive_cancel_event)
 
         if state.drive_cancel_event.is_set():
             print("⚠️ Autenticação do Drive cancelada pelo usuário.")
@@ -49,7 +49,7 @@ def get_status():
     elif state.drive_auth_error:
         drive_status = "erro"
     else:
-        drive_status = motor_brainiac.get_drive_status()
+        drive_status = motor_sebayt.get_drive_status()
 
     with state.state_lock:
         stats_snapshot = dict(state.stats)
@@ -90,7 +90,7 @@ def cancel_drive_auth():
 def get_history():
     """Retorna resumo de todas as extrações anteriores a partir dos CSVs de gestão."""
     history = []
-    pattern = os.path.join(motor_brainiac.GESTAO_DIR, "*_base.csv")
+    pattern = os.path.join(motor_sebayt.GESTAO_DIR, "*_base.csv")
     for csv_path in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         try:
             df = pd.read_csv(csv_path, encoding="utf-8-sig")
@@ -135,10 +135,10 @@ def get_history():
 def open_folder(name: str):
     import subprocess
     folders = {
-        "data":        motor_brainiac.DATA_DIR,
-        "cerebro_txt": motor_brainiac.LOCAL_TXT_DIR,
-        "gestao":      motor_brainiac.GESTAO_DIR,
-        "agent_index": agent_brainiac.INDEX_DIR,
+        "data":        motor_sebayt.DATA_DIR,
+        "cerebro_txt": motor_sebayt.LOCAL_TXT_DIR,
+        "gestao":      motor_sebayt.GESTAO_DIR,
+        "agent_index": agent_sebayt.INDEX_DIR,
     }
     target = folders.get(name)
     if not target:

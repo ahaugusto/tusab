@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file App.jsx
  * @description Root application shell — orchestrates state, routing and layout
  * @module App
@@ -62,7 +62,7 @@ function App() {
   const { t } = useTranslation();
 
   // ─── UI state ──────────────────────────────────────────────────────────────
-  const [showOnboarding,   setShowOnboarding]   = useState(() => !localStorage.getItem('brainiac_onboarded'));
+  const [showOnboarding,   setShowOnboarding]   = useState(() => !localStorage.getItem('sebayt_onboarded'));
   const [showGuide,        setShowGuide]        = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
@@ -72,7 +72,7 @@ function App() {
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
   const [darkMode,         setDarkMode]         = useState(() => {
-    const saved = localStorage.getItem('brainiac_theme');
+    const saved = localStorage.getItem('Sebayt_theme');
     if (saved !== null) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
@@ -208,7 +208,7 @@ function App() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e) => {
-      if (localStorage.getItem('brainiac_theme') === null) setDarkMode(e.matches);
+      if (localStorage.getItem('Sebayt_theme') === null) setDarkMode(e.matches);
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -346,9 +346,9 @@ function App() {
         videos_total:       status.stats.videos_total,
         sem_legenda:        status.stats.videos_sem_legenda,
       });
-      const notify = () => new Notification("Brain'IAC — Extração concluída!", {
+      const notify = () => new Notification("Sebayt — Extração concluída!", {
         body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
-        icon: '/icon.png',
+        icon: '/logo_light_mode.svg',
       });
       if (Notification.permission === 'granted') {
         notify();
@@ -637,8 +637,8 @@ function App() {
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button onClick={() => setShowHome(true)} aria-label="Voltar à tela inicial" title="Voltar ao início"
               className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
-              <img src="/icon.png" alt="Brain'IAC"
-                style={{ width: 34, height: 34, objectFit: 'contain', filter: darkMode ? 'brightness(1.4)' : 'none' }}
+              <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
+                style={{ width: 34, height: 34, objectFit: 'contain' }}
                 onError={e => { e.target.style.display = 'none'; }} />
             </button>
             <div className="flex flex-col items-center gap-1 flex-1">
@@ -651,9 +651,9 @@ function App() {
                 <button key={id}
                   onClick={() => {
                     setActiveTab(id);
-                    if (id === 'agente' && !localStorage.getItem('brainiac_agent_visited')) {
+                    if (id === 'agente' && !localStorage.getItem('Sebayt_agent_visited')) {
                       setShowAgentHint(true);
-                      localStorage.setItem('brainiac_agent_visited', '1');
+                      localStorage.setItem('Sebayt_agent_visited', '1');
                     }
                   }}
                   aria-label={label} title={label}
@@ -674,7 +674,7 @@ function App() {
               <HelpCircle size={15} aria-hidden="true" />
             </button>
             <button
-              onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
+              onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
               aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
               title={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors mb-1 ${BTN_FOCUS}
@@ -696,7 +696,8 @@ function App() {
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => { setShowHome(true); setSidebarOpen(false); }}
                   className="rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-none">
-                  <img src="/icon.png" alt="Brain'IAC" style={{ width: 32, height: 32, objectFit: 'contain' }}
+                  <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
+                    style={{ width: 32, height: 32, objectFit: 'contain' }}
                     onError={e => { e.target.style.display = 'none'; }} />
                 </button>
                 <button onClick={() => setSidebarOpen(false)} aria-label="Fechar menu"
@@ -714,9 +715,9 @@ function App() {
                   <button key={id}
                     onClick={() => {
                       setActiveTab(id); setSidebarOpen(false);
-                      if (id === 'agente' && !localStorage.getItem('brainiac_agent_visited')) {
+                      if (id === 'agente' && !localStorage.getItem('Sebayt_agent_visited')) {
                         setShowAgentHint(true);
-                        localStorage.setItem('brainiac_agent_visited', '1');
+                        localStorage.setItem('Sebayt_agent_visited', '1');
                       }
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors text-left ${BTN_FOCUS}
@@ -735,7 +736,7 @@ function App() {
                 {t('guide.title')}
               </button>
               <button
-                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
+                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 {darkMode ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
@@ -755,7 +756,7 @@ function App() {
               agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
-              onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('brainiac_theme', next ? 'dark' : 'light'); }}
+              onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
               onChangeLang={changeLang}
             />
           )}

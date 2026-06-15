@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file HomeScreen.jsx
  * @description Landing / home screen with two source paths and utility navigation cards
  * @module components/home/HomeScreen
@@ -90,8 +90,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       <div className={`hidden lg:flex flex-col items-center justify-center w-1/2 px-12 border-r ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
         <button onClick={() => {}} className="focus-visible:outline-none rounded-2xl transition-opacity hover:opacity-90">
           <img
-            src={darkMode ? '/logo_light.png?v=2' : '/logo_dark.png?v=2'}
-            alt="Brain'IAC — Index.Augment.Converse"
+            src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
+            alt="Sebayt — Index.Augment.Converse"
             style={{ width: 340, height: 340, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
@@ -107,8 +107,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-8">
           <img
-            src={darkMode ? '/logo_light.png?v=2' : '/logo_dark.png?v=2'}
-            alt="Brain'IAC"
+            src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
+            alt="Sebayt"
             style={{ width: 140, height: 140, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />

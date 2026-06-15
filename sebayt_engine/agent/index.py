@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Indexação BM25 local — sem dependência de chave de API.
 
@@ -15,12 +15,12 @@ import re
 import json
 import threading
 
-from brainiac_engine.storage import (
+from sebayt_engine.storage import (
     DATA_DIR, CEREBRO_DIR, INDEX_DIR,
     TXT_DIR, DOC_DIR, TEXT_DIR,
     salvar_json_atomico,
 )
-from brainiac_engine.agent.config import carregar_config, salvar_config
+from sebayt_engine.agent.config import carregar_config, salvar_config
 
 
 # ── Helpers de path ───────────────────────────────────────────────────────────
