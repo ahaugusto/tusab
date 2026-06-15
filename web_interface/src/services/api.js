@@ -60,8 +60,8 @@ export const saveAgentConfig = (payload) => axios.post(`${API_BASE}/agent/config
 /** Loads saved agent configuration */
 export const loadAgentConfig = () => axios.get(`${API_BASE}/agent/config`);
 
-/** Tests the configured API key */
-export const testAgentKey = () => axios.post(`${API_BASE}/agent/test-key`);
+/** Tests an API key — pass { provider, api_key } to test inline without saving */
+export const testAgentKey = (payload = {}) => axios.post(`${API_BASE}/agent/test-key`, payload);
 
 /** Starts knowledge base indexing */
 export const startIndexing = (canal_nome) => axios.post(`${API_BASE}/agent/index`, { canal_nome });
@@ -78,6 +78,9 @@ export const sendChatStream = (payload) => fetch(`${API_BASE}/agent/chat/stream`
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(payload),
 });
+
+/** Clears server-side conversation history for a canal */
+export const clearChatHistory = (canal_nome) => axios.post(`${API_BASE}/agent/chat/clear`, { canal_nome, mensagem: '', historico: [], canais_extras: [], busca_ampla: false });
 
 /** Fetches Ollama service status and installed models */
 export const fetchOllamaStatus = () => axios.get(`${API_BASE}/agent/ollama/status`);
@@ -101,6 +104,12 @@ export const saveText = (titulo, conteudo, canal = '') => axios.post(`${API_BASE
 
 /** Deletes a document or text from the cerebro */
 export const deleteRepositorioItem = (tipo, id) => axios.delete(`${API_BASE}/cerebro/arquivo/${tipo}/${id}`);
+
+/** Clears selected content types from the entire knowledge base */
+export const limparBase = (payload) => axios.delete(`${API_BASE}/cerebro/limpar`, { data: payload });
+
+/** Removes extraction history for selected canal prefixes (empty = all) */
+export const limparHistorico = (prefixos = []) => axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos } });
 
 // ─── System ──────────────────────────────────────────────────────────────────
 

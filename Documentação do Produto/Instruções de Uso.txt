@@ -1,0 +1,24 @@
+ara a sua pergunta sobre qual versão abrir:
+
+Para ver como o cliente vê → dist_electron/win-unpacked/brainiac.exe
+É exatamente o que você mandaria para um cliente. Sem código-fonte, sem ferramentas de dev. A experiência real.
+
+Para iterar rápido no onboarding (editar texto e ver na hora) → dev mode:
+
+
+# Terminal 1 — backend
+.venv\Scripts\python.exe api_brainiac.py
+
+# Terminal 2 — frontend (abre no browser em localhost:5173)
+cd web_interface; npm run dev
+Nesse modo cada mudança de texto aparece em segundos, sem rebuildar nada.
+
+Para ver o onboarding de novo (já que você provavelmente já passou por ele):
+
+No dev mode, abra o DevTools do browser (F12) e rode no console:
+
+
+localStorage.removeItem('brainiac_onboarding')
+Depois recarrega a página — o onboarding aparece do zero.
+
+Quer que eu suba o backend agora e você abre o npm run dev para iterar no onboarding em tempo real? Assim você edita o pt.json e vê o resultado imediatamente no browser.

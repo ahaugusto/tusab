@@ -1,128 +1,235 @@
-﻿# 🧠 Brain'IAC — Intelligence Engine v2.0 (Web)
+# Brain'IAC Engine
 
-> **Motor de extração de conhecimento para YouTube** — transforme qualquer canal público em uma base de dados estruturada, pronta para ser ingerida por ferramentas de IA como NotebookLM e Gemini.
+**INDEX · AUGMENT · CONVERSE**
 
-Desenvolvido por **Augusto Brasil** · [CriAugu](https://criaugu.com.br)
+Seu especialista particular. Aponte o que quer aprender — um canal do YouTube, um PDF, um documento — o Brain'IAC absorve tudo e responde suas perguntas citando a fonte exata. Roda na sua máquina, funciona offline, zero custo com Ollama.
 
----
-
-## 🎯 O que é o Brain'IAc?
-
-O **Brain'IAc** é uma ferramenta desktop Python que automatiza a construção de uma base de conhecimento corporativa ou de estudos a partir do conteúdo de qualquer canal público do YouTube.
-
-Você informa a URL. O motor varre tudo (Vídeos, Shorts, Podcasts, Lives, Cursos e Playlists), extrai as legendas baseadas em tempo, limpa o texto e o particiona em blocos otimizados para sistemas de IA com **arquitetura RAG (Retrieval-Augmented Generation)**. Tudo de forma inteligente, iterativa (nunca extrai duas vezes) e sincronizada na nuvem.
-
-**Características:**
-* **Extração textual apenas:** Não baixa os arquivos pesados de vídeo/áudio, extraindo apenas os arquivos das legendas (VTT).
-* **Chunking Vetorial:** Divide automaticamente o conteúdo em blocos de até 40.000 palavras para evitar limite de tokens e prevenir o Erro 500 em LLMs.
-* **Smart Sync (Google Drive):** Sincroniza relatórios, banco SQL (em CSV) e metadados diretamente para o Google Docs no seu Drive pessoal.
-* **Graceful Shutdown:** Permite pausar e cancelar. Ao cancelar, o sistema sinaliza fim do laço, salva último estado e sobe os relatórios ao Drive em base limpa.
+Desenvolvido por **Augusto Brasil** · CriAugu — CNPJ 65.131.075/0001-57
 
 ---
 
-## 📐 Duas Arquiteturas no Projeto
+## O que é
 
-Pensado para flexibilidade, este repositório possui dois motores independentes:
+Brain'IAC é um sistema de gestão de conhecimento pessoal (PKM) com IA local. Você decide o que o especialista aprende — vídeos, documentos, anotações — e consulta por chat em linguagem natural. Ele só responde com o que você indexou, sempre citando a fonte.
 
-1. **`motor_Brain'IAC.py` + `app_Brain'IAC.py` (Oficial & Atual)**
-   - Versão completa com painel de Telemetria Dinâmico (Logs codificados por cores, timestamps).
-   - Integração completa via API OAuth2 com o Google Drive para auto-salvamento em nuvem.
-   - Possui Pausa Dinâmica e Graceful Shutdown.
-   
-2. **`engine_Brain'IAC.py` (Motor Standalone offline)**
-   - Versão simplificada que faz a inteligência de baixar, ripar o VTT e salvar em `Brain'IAC_txt/` somente localmente.
-   - Ideal para automações futuras, testes rápidos ou setups sem conexão com API do Google Drive.
+O diferencial: extração de canais YouTube inteiros + processamento 100% local, para quem não pode ou não quer mandar dados para a nuvem.
 
----
-
-## ⚙️ Pipeline de Execução (Modo Oficial)
-
-1. **Mapeamento:** `yt-dlp` varre as seções do canal montando lista com UUIDs, Data, Views e Título. Compara com CSV de estados anteriores.
-2. **Extração Local:** Para o delta inédito, baixa metadados (`.vtt`), recorta tags e gera chunks semânticos (`.txt`).
-3. **Controle:** Audita estado, views e sucessos em `base.csv`. 
-4. **Sync Drive:** Envia os Docs vetoriais, os relatórios e CSVs para `/Gestao_Metadados` através da REST do Google Drive.
+| Letra | Etapa | O que faz |
+|-------|-------|-----------|
+| **I** | Index | Extração e indexação de YouTube, PDFs, DOCX, Markdown, texto livre |
+| **A** | Augment | RAG com BM25 + recuperação de contexto entrega chunks precisos ao modelo |
+| **C** | Converse | Chat com streaming, citação de fonte e histórico de conversa |
 
 ---
 
-## 🚀 Guia de Instalação e Uso
+## Funcionalidades
 
-### 1. Preparação Local
+- Extração automática de canais inteiros do YouTube (legendas + metadados)
+- Upload de PDFs, DOCX, Markdown e TXT
+- Colar texto diretamente pela interface
+- Agente RAG local: BM25Okapi + anti-alucinação + multi-canal
+- Chat com streaming de resposta e citação verificável da fonte
+- Seletor de modelos Ollama e provedores externos (Groq, OpenAI, Anthropic, Google)
+- Backup opcional para Google Drive (escopo `drive.file`)
+- Relatório de extração por canal com estatísticas e tabela de vídeos
+- Internacionalização: Português, Inglês, Espanhol
+- Telemetria opt-in (PostHog)
 
-Clone o repositório e instale as dependências:
-```bash
-git clone https://github.com/AHAugusto/Brain'IAC.git
-cd Brain'IAC
+---
+
+## Provedores de IA
+
+| Provedor | Modelo padrão | Custo | Requer API key |
+|----------|--------------|-------|----------------|
+| Ollama (padrão) | llama3.2:1b | Gratuito | Não |
+| Groq | llama-3.1-70b-versatile | Free tier | Sim |
+| OpenAI | gpt-4o-mini | Pago | Sim |
+| Anthropic | claude-sonnet-4-6 | Pago | Sim |
+| Google | gemini-1.5-flash | Pago | Sim |
+
+O Ollama é configurado na primeira execução via wizard embutido. Para provedores externos, configure a chave em **Configurar Agente** — ela é testada antes de ser salva.
+
+---
+
+## Stack
+
+**Backend:** Python 3.12 + FastAPI + Uvicorn — API REST em `localhost:8001`  
+**Agente RAG:** rank_bm25 (BM25Okapi) + Ollama / provedores externos  
+**Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React  
+**Desktop:** Electron 34 + electron-builder (instalador NSIS para Windows)  
+**Extração:** yt-dlp (bundled) + pdfplumber + python-docx  
+**Drive:** Google Auth OAuth2 (escopo drive.file)
+
+---
+
+## Estrutura do repositório
+
+```
+Brainiac/
+  api_brainiac.py           <- entry point FastAPI (165 linhas)
+  motor_brainiac.py         <- shim de re-export (compatibilidade)
+  agent_brainiac.py         <- shim de re-export (compatibilidade)
+  brainiac_engine/          <- pacote Python principal
+    storage.py              <- caminhos de dados + IO atômico
+    state.py                <- AppState singleton + LogRedirector
+    agent/
+      config.py             <- carregar/salvar agent_config.json
+      index.py              <- BM25 indexing + cache
+      chat.py               <- RAG chat + streaming
+    motor/
+      drive.py              <- OAuth Google Drive + upload
+      extraction.py         <- engine de extração YouTube
+    api/
+      router_status.py      <- GET /status, /drive-auth, /history
+      router_extraction.py  <- POST /set-channel, /start, /pause, /cancel
+      router_agent.py       <- /agent/* (chat, config, index, ollama)
+      router_repositorio.py <- /repositorio, /relatorio, /cerebro/*
+  requirements.txt          <- dependências Python
+  requirements-lock.txt     <- versões pinadas (reprodutibilidade)
+  build.ps1                 <- script unificado de build (PowerShell)
+  tests/                    <- suite de testes (23 testes)
+  web_interface/            <- frontend React
+    src/
+      App.jsx               <- orquestrador principal
+      components/           <- componentes por domínio
+      services/api.js       <- camada de API centralizada
+      hooks/                <- hooks customizados (polling)
+      locales/              <- traduções PT/EN/ES
+    dist/                   <- build do frontend (gerado)
+  electron/                 <- wrapper desktop
+    main.js
+    package.json
+  Documentação do Produto/  <- documentação estratégica e técnica
+```
+
+---
+
+## Estrutura de dados em produção
+
+Dados do usuário ficam em `%AppData%\Brain'IAC\data\` (em dev: `./data/`):
+
+```
+data/
+  cerebro/
+    {canal}/
+      youtube/      <- extrações .txt do YouTube
+      documentos/   <- uploads + _manifest.json
+      textos/       <- texto colado + _manifest.json
+  gestao/           <- CSVs de metadados e histórico por canal
+  agent_index/      <- índices BM25 em JSON por canal
+  temp/             <- VTTs temporários (auto-removidos)
+  config/           <- agent_config.json e token.json (OAuth)
+```
+
+---
+
+## Instalação para desenvolvimento
+
+**Pré-requisitos:** Node.js 20+, Python 3.12+, Git
+
+```powershell
+# Clonar o repositório
+git clone <repo>
+cd Brainiac
+
+# Criar virtualenv Python
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+
+# Dependências do frontend
+cd web_interface
+npm install
+cd ..
+
+# Dependências do Electron
+cd electron
+npm install
+cd ..
 ```
 
-> **Aviso:** O utilitário `yt-dlp` precisa estar executável. Você pode instalá-lo via pacote master, brew, ou winget se necessário: `python -m pip install -U yt-dlp`.
+**Rodar em modo dev (dois terminais):**
 
-### 2. Configurando a API do Google Drive (Uma Única Vez)
+```powershell
+# Terminal 1 — backend
+.venv\Scripts\python.exe api_brainiac.py
 
-O Brain'IAC cria Google Docs programaticamente. Você precisa prover uma chave `credentials.json` para gerar seu Token pessoal local (que jamais sobe para o Git).
-1. Acesse o [Google Cloud Console](https://console.cloud.google.com/).
-2. Crie um projeto e habilite a **Google Drive API**.
-3. Crie credenciais do tipo **OAuth 2.0 (Aplicativo Desktop)** e baixe o arquivo json.
-4. Renomeie para `credentials.json` e coloque na pasta raiz local do projeto.
-5. Ao executar pela 1ª vez, o app abrirá o Chrome pedindo sua autorização. Após aceite, o OAuth cria um arquivo de renovação (`token.json`).
-
-### 3. Executando o Sistema
-
-**Interface Web (v2.0 — recomendada):**
-```bash
-python api_Brain'IAC.py
+# Terminal 2 — frontend
+cd web_interface
+npm run dev
 ```
-O servidor abre em `http://127.0.0.1:8000` e lança automaticamente no Edge no modo app.
-Cole a URL do canal, clique em **Confirmar Canal** e depois em **Iniciar Extração**.
 
-**Interface Desktop (v1.0 — legado):**
-```bash
-python app_Brain'IAC.py
-```
-Cole a URL (`https://www.youtube.com/@CanalX`) e aperte **Ligar Motor**.
+Interface disponível em `http://localhost:5173`. Backend em `http://localhost:8001`.
 
-**Recompilar o frontend (se necessário):**
-```bash
-cd web_interface && npm install && npm run build
-```
+**Variáveis de ambiente:**
+
+| Variável | Descrição |
+|----------|-----------|
+| `ELECTRON_RUN` | Definida pelo Electron em produção — altera caminhos para `%AppData%` |
+| `BRAINIAC_DATA_DIR` | Sobrescreve o diretório de dados (usado em testes e no Electron packaged) |
+| `VITE_POSTHOG_KEY` | Chave PostHog para telemetria (nunca commitar — usar `web_interface/.env`) |
 
 ---
 
-## 📦 Compilando Executável nativo
+## Build de produção
 
-Use a especificação preparada do PyInstaller para build local do app fechado:
-```bash
-pyinstaller Brain'IAC.spec --noconfirm
-```
-O `.exe` portátil aparecerá em `/dist/Brain'IAC_Engine.exe`. *(Mantenha o exe próximo do token.json/credentials.json para funcionar o sync nuvem).*
+O script `build.ps1` unifica todo o processo de empacotamento:
 
----
+```powershell
+# Build completo (frontend + instalador NSIS)
+powershell.exe -File build.ps1
 
-## 📁 Estrutura de Arquivos
-
-```
-Brain'IAC/
-├── app_Brain'IAC.py        # Interface principal CustomTkinter
-├── motor_Brain'IAC.py      # Core RAG e GDrive API
-├── engine_Brain'IAC.py     # Engine Standalone (Extração Offline)
-├── Brain'IAC.spec          # Config de compilação
-├── logo.png / .ico        # Identidade visual corporativa
-├── requirements.txt       # Libs a rodar
-└── _backup_local/         # (Ignorado no Git) Backups antigos e assets UI
+# Opções
+powershell.exe -File build.ps1 -SkipFrontend    # só Electron
+powershell.exe -File build.ps1 -Dir              # sem installer (só unpacked)
 ```
 
----
+**Pré-requisito:** `electron/python_env/` deve estar populado com Python 3.12 embeddable + dependências, e `electron/bin/yt-dlp.exe` deve existir. Esses diretórios são grandes e ficam no `.gitignore` — configure uma vez localmente antes de buildar.
 
-## 🧠 Ingestão RAG (IA) do Produto Final
-
-* **Google NotebookLM (Recomendado):** Vá em notebooklm.google.com, puxe a aba Google Drive importando a subpasta gerada `Cerebro_Docs`. Você tem agora o Q&A indexado e alucinação zero de todo o Cérebro do canal.
-* **Google AI Studio / Gemini:** Usando a interface do AI Studio, anexe os txts para uso com Gemini 1.5 PRO (2 Milhões contexto massivo gratuito) criando agentes profundos.
+Saída: `dist_electron/brainiac Setup 2.0.0.exe`
 
 ---
 
-## 🔒 Privacidade e Segurança
-* `.gitignore` garante o isolamento bloqueando envios da `token.json`, base de dados sensíveis e credenciais API à nuvem aberta.
-* Permissões limitadas e locais sem espelhamento reverso de IP. 
+## Testes
+
+```powershell
+.venv\Scripts\python.exe -m pytest tests/ -v
+```
+
+**23/23 verde.** A suite inclui 17 testes de integração (TestClient FastAPI) e 6 testes de confiabilidade (escrita atômica, concorrência, índice corrompido).
 
 ---
-**Brain'IAc — Intelligence Engine** · MIT License
+
+## Configurando o Google Drive (opcional)
+
+1. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto e habilite a **Google Drive API**
+2. Crie credenciais OAuth 2.0 (Aplicativo Desktop) e baixe o JSON
+3. Renomeie para `credentials.json` e coloque na raiz do projeto
+4. Na interface do Brain'IAC, ative o toggle do Drive — o fluxo OAuth abrirá no navegador
+5. Após autorizar, `token.json` é salvo localmente (ambos no `.gitignore`)
+
+---
+
+## Segurança
+
+O Brain'IAC roda localmente — sem servidor central, sem dados na nuvem por padrão. Todos os dados ficam na máquina do usuário.
+
+**Controles implementados:**
+
+- CORS restrito a `localhost:8001`
+- Path traversal bloqueado com `os.path.realpath()` em todos os endpoints de arquivo
+- Prompt injection mitigado com delimitadores XML no pipeline RAG
+- URL do YouTube validada por regex whitelist antes de ser passada ao yt-dlp
+- Histórico do chat mantido no servidor (não confiado no cliente)
+- Electron com `contextIsolation: true` e `nodeIntegration: false`
+- yt-dlp executado via lista de argumentos (nunca `shell=True`)
+- Chave de API mascarada (`***`) na resposta GET `/agent/config`
+- Arquivos sensíveis no `.gitignore`: `credentials.json`, `token.json`, `.env`, `agent_config.json`
+
+---
+
+## Licença
+
+Copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57  
+Todos os direitos reservados. Lei nº 9.609/1998 (Lei do Software) + Lei nº 9.610/1998.  
+Registro INPI pendente — Programa de Computador "Brain'IAC".

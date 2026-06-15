@@ -191,9 +191,13 @@ DIFERENCIAIS REAIS
 
 · Multi-fonte — YouTube + PDFs + DOCX + Markdown + texto livre
 · Responde com a voz e didática da fonte original, não com IA genérica
-· Cita sempre: título, data e link da origem
+· Cita sempre: título, data e link da origem — auditável por design
+· Human in the loop — o usuário verifica, questiona e decide; a IA nunca
+  inventa além do que foi indexado
 · Roda 100% local — dados nunca saem da máquina
-· Gratuito para uso básico (Ollama); escalável com Groq, GPT ou Claude
+· Uso gratuito com Ollama (sem assinatura, sem API key); escalável com
+  Groq, GPT ou Claude quando o usuário optar por mais potência
+· A ferramenta não é gratuita, mas o uso padrão é — distinção intencional
 · Gestão completa via interface — adicionar, visualizar, deletar fontes
 · Já tem case real: AUVP / Investidor Sardinha
 

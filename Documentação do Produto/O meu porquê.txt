@@ -47,3 +47,40 @@ Não é uma IA genérica.
 É o conhecimento de quem você já confia —
 respondendo suas perguntas, na própria voz e didática do criador,
 com fonte, data e link do vídeo original.
+
+─────────────────────────────────────────
+OS 4 PORQUÊS FUNDAMENTAIS
+─────────────────────────────────────────
+
+1. IA COMO FERRAMENTA — NÃO COMO SUBSTITUTO
+
+   Vivemos numa era dominada pela inteligência artificial.
+   A maioria dos produtos de IA quer substituir o raciocínio humano.
+   O Brain'IAC tem o propósito oposto: usar a máquina para fortalecer
+   a sua inteligência. É a IA como ferramenta do seu próprio pensamento.
+
+   A IA não pensa por você. Ela amplifica o que você já sabe
+   e o conhecimento que você escolheu acumular.
+
+2. ACESSÍVEL SEM CUSTO DE PLATAFORMA
+
+   A ferramenta não é gratuita, mas o seu uso é.
+   O motor conversacional padrão é o Ollama — local, sem assinatura,
+   sem repasse de dados para terceiros. As fontes de informação são
+   o seu próprio conteúdo anexado e conteúdo público do YouTube.
+   Você não paga por token. Você não depende de API key para usar.
+
+3. DEMOCRATIZAR A IA DE FORMA AUDITÁVEL E SEGURA
+
+   O Brain'IAC não responde com conhecimento inventado.
+   Ele só sabe o que você ensinou a ele — e sempre cita a fonte.
+   O usuário verifica, questiona, decide. Human in the loop.
+   Isso não é limitação de design — é garantia de confiança.
+   Auditar a origem de uma resposta é um direito, não um luxo.
+
+4. CONHECIMENTO MAIS ACESSÍVEL, PERSONALIZÁVEL E EFICAZ
+
+   O mesmo conteúdo que foi ao ar uma vez no YouTube pode responder
+   perguntas para sempre. O mesmo PDF que ficou na pasta pode virar
+   um mentor disponível a qualquer hora. O Brain'IAC não cria
+   conhecimento novo — ele torna o que você já tem utilizável.

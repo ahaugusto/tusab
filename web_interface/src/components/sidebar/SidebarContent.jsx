@@ -223,7 +223,7 @@ function SidebarContent({
           aria-label="Voltar à tela inicial"
           className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
           <img
-            src={darkMode ? '/logo_dark.png?v=2' : '/logo_light.png?v=2'}
+            src={darkMode ? '/logo_light.png?v=2' : '/logo_dark.png?v=2'}
             alt="Brain'IAC — Index.Augment.Converse"
             style={{ width: '220px', height: '220px', objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}

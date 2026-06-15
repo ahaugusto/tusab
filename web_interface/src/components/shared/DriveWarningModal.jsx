@@ -8,6 +8,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, FolderOpen, FolderX, ArrowRight, X } from 'lucide-react';
+import ModalWrapper from './ModalWrapper';
 
 const STORAGE_KEY = 'brainiac_drive_security_warned';
 
@@ -41,18 +42,11 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onCancel} />
+        <ModalWrapper onClose={onCancel} zIndex="z-50" backdrop="bg-black/50 backdrop-blur-sm" label="Aviso de segurança">
 
           {/* Panel */}
           <motion.div
-            className={`relative z-10 w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-5 ${base}`}
+            className={`w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-5 ${base}`}
             initial={{ scale: 0.95, opacity: 0, y: 8 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 8 }}
@@ -127,7 +121,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
             </div>
 
           </motion.div>
-        </motion.div>
+        </ModalWrapper>
       )}
     </AnimatePresence>
   );
