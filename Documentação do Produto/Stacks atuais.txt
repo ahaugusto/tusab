@@ -1,4 +1,4 @@
-﻿Brain'IAC — STACKS E ARQUITETURA
+﻿Sebayt — STACKS E ARQUITETURA
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 Atualizado: Junho 2026
 
@@ -6,7 +6,7 @@ Atualizado: Junho 2026
 BACKEND
 ─────────────────────────────────────────
 
-Python 3.11 (embeddable no build de produção)
+Python 3.12 (embeddable no build de produção)
 FastAPI — servidor web e API REST (localhost:8001)
 Uvicorn — servidor ASGI
 yt-dlp — extração de legendas e metadados do YouTube (binário bundled)
@@ -66,6 +66,7 @@ Organização modular (desde v0.4.1):
         ExtractionModal.jsx     ← seletor de tipos de conteúdo
         PostExtractionModal.jsx ← modal pós-extração
       shared/
+        ModalWrapper.jsx        ← backdrop único: focus trap, Escape, aria-dialog
         GuideModal.jsx          ← guia de uso (6 passos)
         Onboarding.jsx          ← wizard de primeiro acesso
         StatCard.jsx            ← card de métrica reutilizável
@@ -93,7 +94,7 @@ Ollama — baixado e instalado automaticamente na primeira execução (Win/macOS
 ESTRUTURA DE DADOS EM PRODUÇÃO
 ─────────────────────────────────────────
 
-Dados do usuário → %AppData%\Brain'IAC\data\
+Dados do usuário → %AppData%\Sebayt\data\
   cerebro/
     youtube/       — extrações .txt do YouTube por canal
     documentos/    — uploads do usuário (PDF, DOCX, TXT, MD) + _manifest.json
@@ -115,7 +116,7 @@ Modular — componentes isolados, hooks customizados, serviço de API centraliza
 DevOps comments — JSDoc padronizado em todos os arquivos
 Streaming SSE — respostas do agente via ReadableStream para UX em tempo real
 Anti-alucinação — threshold BM25 (score ≥ 0.5) + verificação pós-geração
-ELECTRON_RUN / Brain'IAC_DATA_DIR — vars de ambiente para dev/produção
+ELECTRON_RUN / SEBAYT_DATA_DIR — vars de ambiente para dev/produção
 
 ─────────────────────────────────────────
 PROTEÇÃO INTELECTUAL
@@ -123,7 +124,7 @@ PROTEÇÃO INTELECTUAL
 
 Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 Lei nº 9.609/1998 (Lei do Software) + Lei nº 9.610/1998
-Registro INPI pendente — Programa de Computador "Brain'IAC"
+Registro INPI pendente — Programa de Computador "Sebayt"
 
 ─────────────────────────────────────────
 PRINCÍPIO DA STACK

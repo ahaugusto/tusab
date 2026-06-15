@@ -1,4 +1,4 @@
-# Empacotamento, Distribuição e Estratégia de Código — Brain'IAC
+﻿# Empacotamento, Distribuição e Estratégia de Código — Sebayt
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
 **Criado em:** 12 de junho de 2026
@@ -20,7 +20,7 @@ mínima de que o produto existe como objeto funcional.
 
 ## 2. Dois modos de funcionar — por que a diferença importa
 
-O Brain'IAC tem dois modos de existência completamente diferentes:
+O Sebayt tem dois modos de existência completamente diferentes:
 
 **Modo desenvolvimento**
 Você roda direto do código-fonte na sua máquina de trabalho. Ela já tem Python
@@ -143,7 +143,7 @@ contínua é o produto**, não apenas o software inicial.
 
 - Qualquer usuário técnico vê imediatamente que o yt-dlp é um componente
   separado e como atualizá-lo manualmente (substituir o `.exe`)
-- Fóruns e comunidades publicariam tutoriais em dias: "como manter o Brain'IAC
+- Fóruns e comunidades publicariam tutoriais em dias: "como manter o Sebayt
   atualizado sem pagar"
 - O argumento de assinatura baseado em atualizações desaparece
 - O trabalho de empacotamento — que levou sessões inteiras de resolução de
@@ -180,7 +180,7 @@ funcionando com o YouTube".
 ### Conclusão
 
 **O modelo de receita escolhido e o código aberto são estruturalmente incompatíveis
-no caso específico do Brain'IAC.**
+no caso específico do Sebayt.**
 
 O esforço de empacotamento realizado (Python embeddable, resolução de bugs de
 encoding, integração electron-builder, smoke test) representa uma barreira de
@@ -195,4 +195,4 @@ A decisão de manter fechado não precisa ser permanente. O caminho natural é:
 
 ---
 
-*Documento criado em 12/06/2026 · Brain'IAC v3.0 · © 2026 CriAugu*
+*Documento criado em 12/06/2026 · Sebayt v3.0 · © 2026 CriAugu*

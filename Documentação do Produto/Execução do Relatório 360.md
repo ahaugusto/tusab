@@ -1,4 +1,4 @@
-# Execução do Relatório 360 — Diário de Evolução
+﻿# Execução do Relatório 360 — Diário de Evolução
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
 **Documento-base:** [Relatório de Produto 360 — Junho 2026](Relatório%20de%20Produto%20360%20—%20Junho%202026.md)
@@ -93,10 +93,10 @@ momento errado corrompia o histórico ou o índice — inaceitável na máquina 
 cliente pagante.
 
 **O que foi feito:**
-- [x] `state_lock` (RLock) protegendo `state.stats` e `state.logs` em `api_brainiac.py`
+- [x] `state_lock` (RLock) protegendo `state.stats` e `state.logs` em `api_sebayt.py`
 - [x] `hist_lock` protegendo `state.chat_histories` nos 3 pontos de acesso (chat, stream, clear)
-- [x] `_bm25_lock` protegendo o cache de índices em `agent_brainiac.py` (canal principal + canais extras)
-- [x] Helpers `salvar_csv_atomico()` e `salvar_json_atomico()` em `motor_brainiac.py`
+- [x] `_bm25_lock` protegendo o cache de índices em `agent_sebayt.py` (canal principal + canais extras)
+- [x] Helpers `salvar_csv_atomico()` e `salvar_json_atomico()` em `motor_sebayt.py`
 - [x] Substituídas as 6 escritas de CSV do motor de extração
 - [x] Substituídas as escritas de JSON: índice BM25, agent_config.json, summaries, meta do canal e os 3 manifests do repositório
 
@@ -166,10 +166,10 @@ seria operar no escuro exatamente no código mais delicado. A suíte foi criada 
 com os fixes para validá-los.
 
 **O que foi feito:**
-- [x] `tests/conftest.py` — isolamento total: `BRAINIAC_DATA_DIR` aponta para diretório temporário antes de importar a app; testes nunca tocam dados reais
+- [x] `tests/conftest.py` — isolamento total: `SEBAYT_DATA_DIR` aponta para diretório temporário antes de importar a app; testes nunca tocam dados reais
 - [x] `tests/test_api.py` — 17 testes de integração espelhando o smoke.ps1: status, history, repositório, validação de URL (incluindo flag de yt-dlp maliciosa), test-key inline, chat sem índice, histórico forjado ignorado, texto colado (criar/listar/deletar), serve estático e path traversal
 - [x] `tests/test_confiabilidade.py` — 6 testes do sprint: escrita atômica de CSV/JSON/config, índice corrompido, índice vazio, e concorrência real (8 threads no LogRedirector + 8 threads no chat_histories)
-- [x] `.github/workflows/ci.yml` — dois jobs paralelos a cada push/PR na main: pytest (Python 3.11, Ubuntu, com dist mínimo fabricado para os testes de serve estático) e build do frontend (Node 20, `npm ci` + `vite build`)
+- [x] `.github/workflows/ci.yml` — dois jobs paralelos a cada push/PR na main: pytest (Python 3.12, Ubuntu, com dist mínimo fabricado para os testes de serve estático) e build do frontend (Node 20, `npm ci` + `vite build`)
 - [x] Resultado: **23/23 verdes** localmente; smoke.ps1 manteve 10/10 no app real
 
 **Explicação técnica:**
@@ -178,7 +178,7 @@ testes rodam em ~5s. O ponto não óbvio é o conftest: `api_brainiac` redirecio
 `sys.stdout/stderr` para o `LogRedirector` no import (design do app), então a fixture
 restaura os streams para o pytest reportar normalmente. O isolamento via variável de
 ambiente funciona porque `motor_brainiac.obter_caminho_dados()` prioriza
-`BRAINIAC_DATA_DIR` — o mesmo mecanismo que o Electron usa em produção, reutilizado
+`SEBAYT_DATA_DIR` — o mesmo mecanismo que o Electron usa em produção, reutilizado
 para teste. No CI, em vez de compilar o frontend inteiro no job de backend, um
 `index.html` mínimo é fabricado — suficiente para exercer o code path real do
 `serve_static` e do fallback de path traversal.
@@ -239,44 +239,44 @@ investimento em testes já se pagou.
 
 ---
 
-### 2.6 ✅ Modularização do monólito Python → `brainiac_engine/` (P3) — 12/06/2026
+### 2.6 ✅ Modularização do monólito Python → `sebayt_engine/` (P3) — 12/06/2026
 
 **Por que era P3:** os três arquivos raiz somavam ~3 000 linhas e cresciam sem
 separação de responsabilidades — cada bugfix exigia entender o arquivo inteiro.
-O `api_brainiac.py` acumulava estado global, roteamento, lógica de negócio,
+O `api_sebayt.py` acumulava estado global, roteamento, lógica de negócio,
 autenticação OAuth e dois sistemas de chat. Qualquer nova feature amplificava
 a entropia.
 
 **O que foi feito:**
-- [x] Criado pacote `brainiac_engine/` com 3 subpacotes e 9 módulos
-- [x] `brainiac_engine/storage.py` — caminhos de dados, constantes e helpers atômicos (elimina duplicata idêntica que existia em `motor_brainiac.py` e `agent_brainiac.py`)
-- [x] `brainiac_engine/state.py` — `AppState` singleton, `LogRedirector` e `_debug_excepthook` (extraídos do `api_brainiac.py`)
-- [x] `brainiac_engine/agent/` — 3 módulos: `config.py`, `index.py` (BM25), `chat.py` (RAG); `agent_brainiac.py` vira shim de re-exports
-- [x] `brainiac_engine/motor/` — 2 módulos: `drive.py` (OAuth + upload Drive) e `extraction.py` (engine principal); `motor_brainiac.py` vira shim de re-exports
-- [x] `brainiac_engine/api/` — 4 roteadores FastAPI (`router_status`, `router_extraction`, `router_agent`, `router_repositorio`); `api_brainiac.py` cai de 1 189 → 165 linhas
-- [x] `electron/package.json` — `extraResources.filter` atualizado com `"brainiac_engine/**"` para o build do instalador
-- [x] `tests/test_confiabilidade.py` — import de `LogRedirector` corrigido para `brainiac_engine.state`
+- [x] Criado pacote `sebayt_engine/` com 3 subpacotes e 9 módulos
+- [x] `sebayt_engine/storage.py` — caminhos de dados, constantes e helpers atômicos (elimina duplicata idêntica que existia em `motor_sebayt.py` e `agent_sebayt.py`)
+- [x] `sebayt_engine/state.py` — `AppState` singleton, `LogRedirector` e `_debug_excepthook` (extraídos do `api_sebayt.py`)
+- [x] `sebayt_engine/agent/` — 3 módulos: `config.py`, `index.py` (BM25), `chat.py` (RAG); `agent_sebayt.py` vira shim de re-exports
+- [x] `sebayt_engine/motor/` — 2 módulos: `drive.py` (OAuth + upload Drive) e `extraction.py` (engine principal); `motor_sebayt.py` vira shim de re-exports
+- [x] `sebayt_engine/api/` — 4 roteadores FastAPI (`router_status`, `router_extraction`, `router_agent`, `router_repositorio`); `api_sebayt.py` cai de 1 189 → 165 linhas
+- [x] `electron/package.json` — `extraResources.filter` atualizado com `"sebayt_engine/**"` para o build do instalador
+- [x] `tests/test_confiabilidade.py` — import de `LogRedirector` corrigido para `sebayt_engine.state`
 - [x] Suíte pytest: **23/23 verde** em todos os 5 passos da migração
 
 **Explicação técnica:**
 O maior risco da migração era o `LogRedirector` (intercepta `sys.stdout` no import)
 e o `AppState` singleton — ambos precisam existir antes dos outros módulos e não
 podem ser importados duas vezes. Resolvido com import order: `motor_brainiac` e
-`agent_brainiac` carregam primeiro, só então `from brainiac_engine.state import state`
-dispara o redirect (ordem idêntica ao original). O nome do pacote é `brainiac_engine/`
+`agent_brainiac` carregam primeiro, só então `from sebayt_engine.state import state`
+dispara o redirect (ordem idêntica ao original). O nome do pacote é `sebayt_engine/`
 e não `brainiac/` para evitar colisão com `brainiac.spec` (spec do PyInstaller) na
 raiz. O shim pattern nos três arquivos raiz preserva todos os `motor_brainiac.X` e
-`agent_brainiac.X` do `api_brainiac.py` sem modificar o código chamador — zero risco
+`agent_brainiac.X` do `api_sebayt.py` sem modificar o código chamador — zero risco
 de regressão nos endpoints. A hierarquia de dependências é acíclica:
 `api → agent/motor → storage`, sem nenhum import circular. O bug latente
-`threading` não importado no `run_motor` do `api_brainiac.py` foi corrigido
+`threading` não importado no `run_motor` do `api_sebayt.py` foi corrigido
 ao mover a função para `router_extraction.py` com import explícito.
 
 **Explicação simples:**
 Os três arquivos eram como uma cozinha onde a receita, o fogão, a geladeira e o
 livro de contabilidade ficavam todos na mesma gaveta. Agora cada coisa está no
 armário certo: armazenamento, estado do app, motor de extração, agente de IA e
-rotas da API — cada um no seu lugar, com uma etiqueta clara. O `api_brainiac.py`
+rotas da API — cada um no seu lugar, com uma etiqueta clara. O `api_sebayt.py`
 virou apenas a recepção: recebe a visita e manda para o departamento certo, sem
 tentar resolver tudo sozinho. Sem mudar nenhuma funcionalidade, o código ficou 7×
 menor no arquivo principal e muito mais fácil de manter.
@@ -299,7 +299,7 @@ menor no arquivo principal e muito mais fácil de manter.
 - [x] App.jsx: check Ollama offline em `handleChatSend` — se `agentProvider === 'ollama'` e `!ollamaStatus.running`, insere mensagem de erro local sem chamar o backend
 - [x] App.jsx: prop `onRecriarIndice={handleAgentIndex}` passada ao ChatDrawer
 - [x] ChatDrawer.jsx: todos os 7 strings hardcoded substituídos por `t()` · ícone `RefreshCw` adicionado · botão "Recriar índice" + prop `onRecriarIndice` na bolha de erro
-- [x] `build.ps1` criado: parâmetros `-SkipFrontend`/`-SkipElectron`; executa `npm run build` no frontend, copia `.py` + `brainiac_engine/` + `scripts/` para `electron/resources/python/`, executa `npm run dist` no Electron
+- [x] `build.ps1` criado: parâmetros `-SkipFrontend`/`-SkipElectron`; executa `npm run build` no frontend, copia `.py` + `sebayt_engine/` + `scripts/` para `electron/resources/python/`, executa `npm run dist` no Electron
 - [x] `Documentação do Produto/Política de Privacidade.md` criada: LGPD/GDPR completa (transferência internacional, direitos, bases legais, retenção, segurança, menores)
 - [x] **23/23 pytest verde** após todas as mudanças
 
@@ -376,7 +376,7 @@ Antes, fechar um modal pela tecla Esc dependia de cada tela ter implementado iss
 | Data | Sessão | Itens |
 |------|--------|-------|
 | 11/06/2026 | Sprint de confiabilidade | P0: locks + escrita atômica ✅ · telemetria ✅ · P1: pytest + CI ✅ · recovery de índice ◐ · bônus requirements ✅ |
-| 12/06/2026 | Modularização do monólito | P3: brainiac_engine/ completo (storage · state · agent · motor · api) · api_brainiac.py 1 189 → 165 linhas · electron-builder atualizado · 23/23 pytest ✅ |
+| 12/06/2026 | Modularização do monólito | P3: sebayt_engine/ completo (storage · state · agent · motor · api) · api_sebayt.py 1 189 → 165 linhas · electron-builder atualizado · 23/23 pytest ✅ |
 | 12/06/2026 | P0 completo + UX P1 | P0: requirements-lock ✅ · build.ps1 ✅ · i18n 11 chaves ✅ · rate-limit/Pydantic/mascaramento ✅ · política de privacidade ✅ · P1: Ollama offline ✅ · recriar-índice UI ✅ · visibilitychange polling ✅ · 23/23 pytest ✅ |
 | 12/06/2026 | Smoke test Electron dev mode | Diagnóstico ELECTRON_RUN_AS_NODE=1 (VS Code define esta var que faz Electron rodar como Node.js puro, sem browser process) · fix em build.ps1 · smoke test dev mode ✅ (Electron vivo 8s+) |
 | 12/06/2026 | Setup empacotamento + smoke test packaged | python_env/ (Python 3.12.10 + 76 pacotes) ✅ · bin/yt-dlp.exe ✅ · build.ps1 encoding fix (UTF-8→UTF-16 LE) ✅ · build completo --dir ✅ · brainiac.exe packaged smoke test HTTP 200 em 2s ✅ |

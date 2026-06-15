@@ -1,5 +1,5 @@
 # ============================================================
-# BRAINIAC — .gitignore
+# SEBAYT — .gitignore
 # ============================================================
 
 # --- Credenciais e tokens OAuth (NUNCA subir) ---
@@ -73,7 +73,7 @@ ENV/
 Documentação do Produto/*.pdf
 
 # --- Logs de crash (podem conter informações sensíveis) ---
-brainiac_crash.log
+sebayt_crash.log
 *.log
 
 # --- OS ---

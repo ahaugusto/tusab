@@ -1,4 +1,4 @@
-﻿O PORQUÊ DO Brain'IAC
+﻿O PORQUÊ DO Sebayt
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────
@@ -36,7 +36,7 @@ O problema não é falta de conteúdo.
 O PORQUÊ
 ─────────────────────────────────────────
 
-O Brain'IAC existe para transformar conhecimento em vídeo
+O Sebayt existe para transformar conhecimento em vídeo
 em conhecimento consultável.
 
 Para quem quer aprender sem perder tempo.
@@ -56,7 +56,7 @@ OS 4 PORQUÊS FUNDAMENTAIS
 
    Vivemos numa era dominada pela inteligência artificial.
    A maioria dos produtos de IA quer substituir o raciocínio humano.
-   O Brain'IAC tem o propósito oposto: usar a máquina para fortalecer
+   O Sebayt tem o propósito oposto: usar a máquina para fortalecer
    a sua inteligência. É a IA como ferramenta do seu próprio pensamento.
 
    A IA não pensa por você. Ela amplifica o que você já sabe
@@ -72,7 +72,7 @@ OS 4 PORQUÊS FUNDAMENTAIS
 
 3. DEMOCRATIZAR A IA DE FORMA AUDITÁVEL E SEGURA
 
-   O Brain'IAC não responde com conhecimento inventado.
+   O Sebayt não responde com conhecimento inventado.
    Ele só sabe o que você ensinou a ele — e sempre cita a fonte.
    O usuário verifica, questiona, decide. Human in the loop.
    Isso não é limitação de design — é garantia de confiança.
@@ -82,5 +82,5 @@ OS 4 PORQUÊS FUNDAMENTAIS
 
    O mesmo conteúdo que foi ao ar uma vez no YouTube pode responder
    perguntas para sempre. O mesmo PDF que ficou na pasta pode virar
-   um mentor disponível a qualquer hora. O Brain'IAC não cria
+   um mentor disponível a qualquer hora. O Sebayt não cria
    conhecimento novo — ele torna o que você já tem utilizável.

@@ -1,4 +1,4 @@
-﻿AVALIAÇÃO ESTRATÉGICA — Brain'IAC
+﻿AVALIAÇÃO ESTRATÉGICA — Sebayt
 © 2026 CriAugu — Atualizado: Junho 2026
 
 Análise crítica sob seis perspectivas da cadeia de produto digital.
@@ -35,7 +35,7 @@ PREOCUPA
   Vai virar gargalo de manutenção conforme o produto cresce.
   Próxima refatoração: extrair estado global para Context API ou Zustand.
 
-· api_Brain'IAC.py ~700 linhas sem separação rotas/serviços/repositório
+· api_Sebayt.py ~700 linhas sem separação rotas/serviços/repositório
   Para a fase atual é aceitável, mas dificulta testes e crescimento.
   Arquitetura ideal: routers FastAPI separados por domínio.
 
@@ -47,7 +47,7 @@ AÇÕES PRIORITÁRIAS
   (extração, indexação, chat) — protege contra regressões
 ○ Migrar estado global do App.jsx para Context API
   quando o produto entrar em fase de crescimento
-○ Separar api_Brain'IAC.py em routers por domínio na v2
+○ Separar api_Sebayt.py em routers por domínio na v2
 
 DÉBITO TÉCNICO CRÍTICO
 Ausência de testes automatizados. Investimento de maior retorno agora.
@@ -161,24 +161,24 @@ Realizada análise de código end-to-end. Achados por severidade:
 CRÍTICO (bloqueia distribuição)
 ① CORS aberto — allow_origins=["*"] com allow_credentials=True
   Qualquer site ou processo local pode chamar qualquer endpoint da API.
-  Arquivo: api_Brain'IAC.py linha 27
+  Arquivo: api_Sebayt.py linha 27
   Fix: restringir a ["http://localhost:8001", "http://127.0.0.1:8001"]
 
 ② yt-dlp recebe playlist ID sem validação de formato
   ID vem da saída do próprio yt-dlp mas sem sanitização posterior.
   Um canal malicioso poderia injetar argumentos via ID de playlist.
-  Arquivo: motor_Brain'IAC.py linha 503
+  Arquivo: motor_Sebayt.py linha 503
   Fix: validar com regex ^[A-Za-z0-9_\-]{10,50}$ antes de montar URL
 
 ALTO (corrigir antes do lançamento)
 ③ Upload sem limite de tamanho
   await arquivo.read() sem MAX_FILE_SIZE → DoS por arquivo gigante.
-  Arquivo: api_Brain'IAC.py linha 767
+  Arquivo: api_Sebayt.py linha 767
   Fix: limitar a 50 MB, rejeitar com mensagem clara
 
 ④ Path traversal no delete de arquivo
   os.path.join() sem validação os.path.realpath() pode sair do subdir.
-  Arquivo: api_Brain'IAC.py linha 864
+  Arquivo: api_Sebayt.py linha 864
   Fix: verificar que caminho real está dentro do subdiretório permitido
 
 MÉDIO (corrigir antes da v1.0)
@@ -195,11 +195,11 @@ BAIXO (backlog)
   Fix: Field(..., max_length=5000) e Field(default=[], max_length=20)
 
 AÇÕES PRIORITÁRIAS
-✅ Brain'IAC_crash.log ao .gitignore
-○ Fix ① CORS — api_Brain'IAC.py (imediato, 5 min)
-○ Fix ② yt-dlp playlist validation — motor_Brain'IAC.py (imediato, 5 min)
-○ Fix ③ Upload size limit — api_Brain'IAC.py (imediato, 5 min)
-○ Fix ④ Path traversal — api_Brain'IAC.py (imediato, 5 min)
+✅ Sebayt_crash.log ao .gitignore
+○ Fix ① CORS — api_Sebayt.py (imediato, 5 min)
+○ Fix ② yt-dlp playlist validation — motor_Sebayt.py (imediato, 5 min)
+○ Fix ③ Upload size limit — api_Sebayt.py (imediato, 5 min)
+○ Fix ④ Path traversal — api_Sebayt.py (imediato, 5 min)
 ✅ Fix ⑤ dangerouslySetInnerHTML — App.jsx
 ~ Fix ⑥ Keychain via keytar — mitigado com aviso na pasta + modal Drive
 ○ Fix ⑦ Pydantic field limits — backlog
@@ -260,7 +260,7 @@ AÇÕES PRIORITÁRIAS
 ○ Adicionar detecção de índice corrompido + recovery automático
 ~~Botão "Exportar base"~~ — descartado (Drive já cobre)
 ○ Indicador de saúde do Ollama mais visível no painel do agente
-○ Brain'IAC_crash.log no .gitignore (compartilhado com pilar de segurança)
+○ Sebayt_crash.log no .gitignore (compartilhado com pilar de segurança)
 
 ─────────────────────────────────────────
 7. LGPD E PRIVACIDADE
@@ -271,7 +271,7 @@ Revisão realizada em Junho 2026 com foco na Lei Geral de Proteção de Dados
 armazenamento de dados pessoais.
 
 CONTEXTO
-O Brain'IAC é local-first — a maior parte dos dados nunca sai da máquina.
+O Sebayt é local-first — a maior parte dos dados nunca sai da máquina.
 Mas três superfícies de coleta existem:
   1. Posthog Analytics (opt-in) — eventos de uso enviados para servidores fora do BR
   2. APIs externas (Gemini, OpenAI, Anthropic, Groq) — mensagens do chat + contexto da base
@@ -397,7 +397,7 @@ MATRIZ DE PRIORIDADES CONSOLIDADA
 ─────────────────────────────────────────
 
 IMEDIATO (zero ou baixo esforço, alto impacto)
-✅ Adicionar Brain'IAC_crash.log ao .gitignore
+✅ Adicionar Sebayt_crash.log ao .gitignore
 ✅ Tooltip no toggle Busca Ampla no chat
 ✅ Badge "base desatualizada" na aba Configurar Agente
 
@@ -452,7 +452,7 @@ VALIDAÇÃO PELO ECOSSISTEMA
 [Junho 2026] Google lança Gemma 4 12B via Ollama
 
 Relevância estratégica: o maior player em IA está construindo na direção
-local-first — mesma filosofia do Brain'IAC. Isso não é coincidência,
+local-first — mesma filosofia do Sebayt. Isso não é coincidência,
 é validação de mercado.
 
 Impacto por pilar:
@@ -467,7 +467,7 @@ ARQUITETO
 PRODUCT MANAGER
 · Seletor de modelo Ollama (estava na Fase 3) sobe para próximo sprint
   — usuários com Gemma 4 já instalam pelo próprio fluxo do Ollama,
-  mas o Brain'IAC precisa listar e permitir selecionar
+  mas o Sebayt precisa listar e permitir selecionar
 · Requisito de hardware aumenta: Gemma 4 12B exige 8GB RAM
   — llama3.2:1b deve continuar como padrão, Gemma 4 como opção avançada
 
@@ -476,27 +476,27 @@ ESTRATEGISTA
   O ecossistema local está amadurecendo rapidamente
   Criadores ainda não têm PKM que aproveite isso — momento de ir ao mercado
 · Risco de commoditização: modelos melhores ficam cada vez mais acessíveis
-  O diferencial defensável do Brain'IAC não é o modelo — é a camada
+  O diferencial defensável do Sebayt não é o modelo — é a camada
   de extração (YouTube nativo), indexação e citação de fontes
 
 CONCLUSÃO
-O Brain'IAC não compete com o Gemma 4. São camadas diferentes:
+O Sebayt não compete com o Gemma 4. São camadas diferentes:
   Gemma 4 → motor de linguagem
-  Brain'IAC → infraestrutura de conhecimento pessoal
+  Sebayt → infraestrutura de conhecimento pessoal
 
-Quanto melhor o motor, mais valioso fica o Brain'IAC como camada de cima.
+Quanto melhor o motor, mais valioso fica o Sebayt como camada de cima.
 
 O Google está validando a filosofia, não competindo com o produto.
 Cada avanço do ecossistema local — Gemma 4, LiteRT-LM, Ollama melhorando —
-aumenta o teto do Brain'IAC, não diminui.
+aumenta o teto do Sebayt, não diminui.
 
 Por quê? Porque o usuário final não vai configurar Ollama, baixar o Gemma 4
-e montar um pipeline de RAG. Ele vai abrir o Brain'IAC, colar o link do canal
-e perguntar. O trabalho técnico invisível é exatamente o que o Brain'IAC resolve.
+e montar um pipeline de RAG. Ele vai abrir o Sebayt, colar o link do canal
+e perguntar. O trabalho técnico invisível é exatamente o que o Sebayt resolve.
 
 O NotebookLM faz algo parecido mas deliberadamente não quer o nicho local/privado
 — é um produto Google, sempre dependerá dos servidores do Google.
-Esse espaço fica aberto. O Brain'IAC ocupa.
+Esse espaço fica aberto. O Sebayt ocupa.
 
 ─────────────────────────────────────────
 NOTAS DE EVOLUÇÃO
@@ -508,7 +508,7 @@ NOTAS DE EVOLUÇÃO
 · Avaliação estratégica inicial registrada neste documento
 
 [Junho 2026 — itens imediatos]
-· Brain'IAC_crash.log adicionado ao .gitignore (segurança)
+· Sebayt_crash.log adicionado ao .gitignore (segurança)
 · Tooltip hover no toggle Busca Ampla/Restrita do chat
 · Badge "N novos" na Base de Conhecimento quando desatualizada
 
@@ -524,7 +524,7 @@ NOTAS DE EVOLUÇÃO
 · Seletor de modelos Ollama sobe da Fase 3 para próximo sprint
 · Roadmap de imagens/áudio simplificado: Gemma 4 processa nativamente
 · Conclusão estratégica: quanto melhor o ecossistema local, mais
-  valioso o Brain'IAC como camada de infraestrutura de conhecimento
+  valioso o Sebayt como camada de infraestrutura de conhecimento
 
 [Junho 2026 — auditoria de segurança]
 · Auditoria end-to-end realizada — 7 achados (2 críticos, 2 altos, 2 médios, 1 baixo)

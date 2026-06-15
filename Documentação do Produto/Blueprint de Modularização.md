@@ -1,4 +1,4 @@
-# Blueprint de Modularização — Brain'IAC Engine
+﻿# Blueprint de Modularização — Sebayt Engine
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
 **Status:** Proposta aprovada para execução incremental
@@ -13,7 +13,7 @@ de testes provam isso. Mas ele acumula três problemas que vão escalar:
 
 | Problema | Sintoma hoje | Risco amanhã |
 |---|---|---|
-| `obter_caminho_dados()` duplicada em `motor_brainiac.py` e `agent_brainiac.py` | Mudança precisa ser feita 2× | 3 versões divergentes após a próxima edição |
+| `obter_caminho_dados()` duplicada em `motor_sebayt.py` e `agent_sebayt.py` | Mudança precisa ser feita 2× | 3 versões divergentes após a próxima edição |
 | 32 rotas em um único arquivo de 1.296 linhas | Difícil localizar e revisar uma rota | Adicionar MCP server, auth ou rate-limit exige editar o mesmo arquivo em 5 lugares |
 | `AppState` e `LogRedirector` misturados com rotas HTTP | Testar estado requer subir a API inteira | Logging estruturado (P3) vai refatorar exatamente essa classe |
 
@@ -26,11 +26,11 @@ comportamento visível e sem exigir pausa na entrega de features.
 
 | # | Restrição | De onde vem |
 |---|---|---|
-| R1 | `api_brainiac.py` permanece na raiz como ponto de entrada | Electron o invoca via `python api_brainiac.py` |
-| R2 | `motor_brainiac.py` e `agent_brainiac.py` permanecem na raiz como shims | `electron/package.json` → `extraResources.filter` os lista explicitamente; testes os importam diretamente |
+| R1 | `api_sebayt.py` permanece na raiz como ponto de entrada | Electron o invoca via `python api_sebayt.py` |
+| R2 | `motor_sebayt.py` e `agent_sebayt.py` permanecem na raiz como shims | `electron/package.json` → `extraResources.filter` os lista explicitamente; testes os importam diretamente |
 | R3 | `AppState` singleton vive em exatamente um lugar | `state_lock` (RLock) e `hist_lock` foram adicionados como par — separá-los seria risco |
-| R4 | `LogRedirector` continua parseando strings de print com emoji | Contrato implícito com `motor_brainiac.py`; quebrar isso silencia os logs da UI |
-| R5 | `brainiac.spec` (PyInstaller) usa `Analysis(['api_brainiac.py'], ...)` | Auto-descobre imports; não precisará de mudanças se não usarmos `importlib.import_module` dinâmico |
+| R4 | `LogRedirector` continua parseando strings de print com emoji | Contrato implícito com `motor_sebayt.py`; quebrar isso silencia os logs da UI |
+| R5 | `brainiac.spec` (PyInstaller) usa `Analysis(['api_sebayt.py'], ...)` | Auto-descobre imports; não precisará de mudanças se não usarmos `importlib.import_module` dinâmico |
 | R6 | Cada passo de migração termina com pytest 23/23 verde | Garantia de não-regressão antes de avançar |
 | R7 | Nome do pacote não pode ser `brainiac/` | `brainiac.spec` existe na raiz; diretório `brainiac/` colidiria no namespace do Python |
 
@@ -39,12 +39,12 @@ comportamento visível e sem exigir pausa na entrega de features.
 ## Estrutura alvo
 
 ```
-brainiac_engine/                   ← pacote novo (sem conflito com brainiac.spec)
+sebayt_engine/                   ← pacote novo (sem conflito com brainiac.spec)
   __init__.py                      ← vazio; re-exports opcionais futuros
   storage.py                       ← paths + helpers atômicos (elimina duplicação)
-  state.py                         ← AppState + LogRedirector (saem de api_brainiac.py)
+  state.py                         ← AppState + LogRedirector (saem de api_sebayt.py)
   motor/
-    __init__.py                    ← re-exporta brainiac_engine() para o shim
+    __init__.py                    ← re-exporta sebayt_engine() para o shim
     youtube.py                     ← yt-dlp, mapeamento, extração de legendas
     drive.py                       ← OAuth Google Drive, upload
     processor.py                   ← sumarização, corte de chunks, CSV/JSON output
@@ -64,9 +64,9 @@ brainiac_engine/                   ← pacote novo (sem conflito com brainiac.sp
     router_static.py               ← serve_static fallback SPA
 
 # Raiz — permanece como hoje, se torna fina:
-api_brainiac.py                    ← entrypoint: importa state, monta routers, sobe uvicorn
-motor_brainiac.py                  ← shim: from brainiac_engine.motor import *
-agent_brainiac.py                  ← shim: from brainiac_engine.agent import *
+api_sebayt.py                    ← entrypoint: importa state, monta routers, sobe uvicorn
+motor_sebayt.py                  ← shim: from sebayt_engine.motor import *
+agent_sebayt.py                  ← shim: from sebayt_engine.agent import *
 ```
 
 ---
@@ -79,7 +79,7 @@ Cada passo é uma PR independente. pytest verde antes de fechar.
 
 **O que muda:** extrair `obter_caminho_dados()`, as constantes de path (`DATA_DIR`,
 `CEREBRO_DIR`, etc.) e os helpers atômicos (`salvar_csv_atomico`, `salvar_json_atomico`)
-para `brainiac_engine/storage.py`. Atualizar `motor_brainiac.py` e `agent_brainiac.py`
+para `sebayt_engine/storage.py`. Atualizar `motor_sebayt.py` e `agent_sebayt.py`
 para importar de lá.
 
 **Benefício imediato:** a duplicação de `obter_caminho_dados()` — idêntica nos dois
@@ -95,7 +95,7 @@ os mesmos símbolos.
 ### Passo 2 — `state.py`: isolar AppState e LogRedirector
 
 **O que muda:** mover `AppState` e `LogRedirector` (e o bloco de `sys.stdout =
-LogRedirector()`) para `brainiac_engine/state.py`. `api_brainiac.py` importa `state`
+LogRedirector()`) para `sebayt_engine/state.py`. `api_sebayt.py` importa `state`
 de lá.
 
 **Benefício imediato:** logging estruturado (P3) e testes de concorrência unitários
@@ -109,15 +109,15 @@ os padrões de emoji que ele parseia são um contrato vivo com o motor. A única
 
 ---
 
-### Passo 3 — `agent/` package: mover agent_brainiac.py
+### Passo 3 — `agent/` package: mover agent_sebayt.py
 
-**O que muda:** conteúdo de `agent_brainiac.py` migra para os módulos em
-`brainiac_engine/agent/`. `agent_brainiac.py` na raiz vira shim de 3 linhas:
+**O que muda:** conteúdo de `agent_sebayt.py` migra para os módulos em
+`sebayt_engine/agent/`. `agent_sebayt.py` na raiz vira shim de 3 linhas:
 
 ```python
-# agent_brainiac.py — shim de compatibilidade
-from brainiac_engine.agent import *           # noqa: F401,F403
-from brainiac_engine.agent.config import *    # noqa: F401,F403
+# agent_sebayt.py — shim de compatibilidade
+from sebayt_engine.agent import *           # noqa: F401,F403
+from sebayt_engine.agent.config import *    # noqa: F401,F403
 ```
 
 **Benefício imediato:** `config.py` vira o ponto único de acesso às chaves de API —
@@ -127,29 +127,29 @@ substituir armazenamento em JSON por keytar (P3) passa a ser uma mudança de 1 a
 
 ---
 
-### Passo 4 — `motor/` package: mover motor_brainiac.py
+### Passo 4 — `motor/` package: mover motor_sebayt.py
 
-**O que muda:** conteúdo de `motor_brainiac.py` migra para os módulos em
-`brainiac_engine/motor/`. `motor_brainiac.py` na raiz vira shim.
+**O que muda:** conteúdo de `motor_sebayt.py` migra para os módulos em
+`sebayt_engine/motor/`. `motor_sebayt.py` na raiz vira shim.
 
 **Benefício imediato:** `drive.py` fica isolado — autenticação OAuth tem seu próprio
 arquivo. Quando vier rate-limiting por fonte (P0 pendente), cada source fica no
 seu módulo.
 
-**Atualizar `electron/package.json`:** adicionar `"brainiac_engine/**"` ao
+**Atualizar `electron/package.json`:** adicionar `"sebayt_engine/**"` ao
 `extraResources.filter`.
 
 **Atualizar `brainiac.spec`:** não é necessário — PyInstaller auto-descobre
-`brainiac_engine/` via grafo de imports a partir de `api_brainiac.py`.
+`sebayt_engine/` via grafo de imports a partir de `api_sebayt.py`.
 
 **Teste de aceitação:** `pytest tests/ -v` → 23/23 verde. `smoke.ps1` verde.
 
 ---
 
-### Passo 5 — `api/` routers: desafogar api_brainiac.py
+### Passo 5 — `api/` routers: desafogar api_sebayt.py
 
-**O que muda:** as 32 rotas de `api_brainiac.py` migram para routers FastAPI por
-domínio (ver estrutura acima). `api_brainiac.py` cai para ~80 linhas:
+**O que muda:** as 32 rotas de `api_sebayt.py` migram para routers FastAPI por
+domínio (ver estrutura acima). `api_sebayt.py` cai para ~80 linhas:
 app criado, CORS adicionado, routers montados, uvicorn iniciado.
 
 **Benefício imediato:** adicionar MCP server (P3) = novo arquivo `router_mcp.py` +
@@ -164,11 +164,11 @@ Revisão manual: endpoints no app Electron funcionando (extração, chat, Drive)
 
 | Item do roadmap | Onde encaixa na nova estrutura |
 |---|---|
-| **Servidor MCP** | `brainiac_engine/api/router_mcp.py` — router independente, monta no mesmo app FastAPI |
-| **Auth middleware / rate-limit** | `brainiac_engine/api/middleware.py` — adicionado no `__init__.py` da api/, antes de montar routers |
-| **Logging estruturado** | `brainiac_engine/state.py` — `LogRedirector` substituído por wrapper de `structlog` em 1 arquivo |
-| **Keychain (keytar)** | `brainiac_engine/agent/config.py` — `carregar_config`/`salvar_config` são o único ponto de acesso; trocar JSON por keytar = mudar 2 funções |
-| **Atualização automática da base + LRU do cache BM25** | `brainiac_engine/agent/index.py` — `_bm25_cache` está isolado, fácil adicionar evição |
+| **Servidor MCP** | `sebayt_engine/api/router_mcp.py` — router independente, monta no mesmo app FastAPI |
+| **Auth middleware / rate-limit** | `sebayt_engine/api/middleware.py` — adicionado no `__init__.py` da api/, antes de montar routers |
+| **Logging estruturado** | `sebayt_engine/state.py` — `LogRedirector` substituído por wrapper de `structlog` em 1 arquivo |
+| **Keychain (keytar)** | `sebayt_engine/agent/config.py` — `carregar_config`/`salvar_config` são o único ponto de acesso; trocar JSON por keytar = mudar 2 funções |
+| **Atualização automática da base + LRU do cache BM25** | `sebayt_engine/agent/index.py` — `_bm25_cache` está isolado, fácil adicionar evição |
 | **Hooks de domínio + Context no React (P3)** | Não afeta o backend — mas a separação de routers torna a API mais previsível para o frontend |
 
 ---
@@ -179,7 +179,7 @@ Cada módulo interno pode exportar um `__metadata__` para tooling futuro (MCP
 introspection, geração de docs, health checks):
 
 ```python
-# brainiac_engine/agent/chat.py
+# sebayt_engine/agent/chat.py
 __metadata__ = {
     "domain":     "agent",
     "public_api": ["chat_com_agente", "chat_stream"],
@@ -197,7 +197,7 @@ precisar listar capacidades.
 - Comportamento de qualquer endpoint
 - Formato das respostas da API
 - Padrões de print/emoji que o `LogRedirector` parseia
-- Variável de ambiente `BRAINIAC_DATA_DIR`
+- Variável de ambiente `SEBAYT_DATA_DIR`
 - Mecanismo de isolamento dos testes (`conftest.py`)
 - Os 3 arquivos de raiz (continuam existindo como shims ou entry point)
 
@@ -205,7 +205,7 @@ precisar listar capacidades.
 
 ## Checklist de execução
 
-- [ ] **P1** — Criar `brainiac_engine/` + Passo 1 (storage) → pytest verde
+- [ ] **P1** — Criar `sebayt_engine/` + Passo 1 (storage) → pytest verde
 - [ ] **P2** — Passo 2 (state) → pytest verde
 - [ ] **P3** — Passo 3 (agent package) → pytest verde + smoke
 - [ ] **P4** — Passo 4 (motor package) → pytest verde + smoke + electron/package.json

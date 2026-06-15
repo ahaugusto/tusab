@@ -1,4 +1,4 @@
-﻿SEGURANÇA — Brain'IAC
+﻿SEGURANÇA — Sebayt
 © 2026 CriAugu — Atualizado: Junho 2026
 
 Documento técnico e não-técnico sobre a postura de segurança do produto,
@@ -8,7 +8,7 @@ auditoria realizada e correções aplicadas.
 POR QUE SEGURANÇA IMPORTA AQUI
 ─────────────────────────────────────────
 
-O Brain'IAC roda localmente na máquina do usuário.
+O Sebayt roda localmente na máquina do usuário.
 Isso é um diferencial de privacidade — mas não elimina riscos.
 
 Três superfícies de ataque existem mesmo num app desktop local:
@@ -44,7 +44,7 @@ Subprocessos seguros:
 
 Arquivos sensíveis protegidos:
 · credentials.json, token.json, .env, agent_config.json e
-  Brain'IAC_crash.log estão no .gitignore — nunca foram commitados.
+  Sebayt_crash.log estão no .gitignore — nunca foram commitados.
 
 Sanitização de nomes de arquivo:
 · Nomes de arquivos enviados via upload passam por regex que remove
@@ -267,7 +267,7 @@ no servidor de arquivos estáticos e na integridade do contexto do chat.
 FIX ⑧ — PATH TRAVERSAL NO SERVE_STATIC (ALTO → CORRIGIDO)
 ─────────────────────────────────────────
 
-Arquivo: api_brainiac.py — endpoint serve_static
+Arquivo: api_sebayt.py — endpoint serve_static
 
 ANTES:
   file_path = request.path_params.get("file_path", "index.html")
@@ -307,7 +307,7 @@ do frontend. Se não começar, o endpoint entrega index.html
 FIX ⑨ — PROMPT INJECTION NO AGENTE RAG (MÉDIO → CORRIGIDO)
 ─────────────────────────────────────────
 
-Arquivo: agent_brainiac.py — função _montar_prompt
+Arquivo: agent_sebayt.py — função _montar_prompt
 
 ANTES:
   prompt = f"Contexto:\n{blocos_texto}\n\nHistórico:\n{hist_str}\n\nPergunta: {pergunta}\n\nRESPOSTA:"
@@ -362,7 +362,7 @@ impedir payloads de injeção muito longos.
 FIX ⑩ — DRIVE QUERY INJECTION (MÉDIO → CORRIGIDO)
 ─────────────────────────────────────────
 
-Arquivo: motor_brainiac.py — funções garantir_pasta_drive e _enviar_texto_gdoc
+Arquivo: motor_sebayt.py — funções garantir_pasta_drive e _enviar_texto_gdoc
 
 ANTES:
   query = f"name='{nome_pasta}' and mimeType='...' and trashed=false"
@@ -400,7 +400,7 @@ em toda construção de query com nomes fornecidos pelo usuário.
 FIX ⑪ — VALIDAÇÃO DE URL YOUTUBE (BAIXO → CORRIGIDO)
 ─────────────────────────────────────────
 
-Arquivo: api_brainiac.py — endpoint set_channel
+Arquivo: api_sebayt.py — endpoint set_channel
 
 ANTES:
   canal_url = body.get("canal_url", "").strip()
@@ -439,7 +439,7 @@ Qualquer outro valor retorna erro com mensagem orientando o formato.
 FIX ⑫ — HISTÓRICO DO CHAT NO SERVIDOR (BAIXO → CORRIGIDO)
 ─────────────────────────────────────────
 
-Arquivos: api_brainiac.py — endpoints /agent/chat e /agent/chat/stream
+Arquivos: api_sebayt.py — endpoints /agent/chat e /agent/chat/stream
           web_interface/src/App.jsx — sendChatStream
 
 ANTES:
@@ -448,7 +448,7 @@ ANTES:
   historico = body.historico  # lista vinda do cliente
 
 DEPOIS:
-  # api_brainiac.py — AppState mantém histórico por canal no servidor
+  # api_sebayt.py — AppState mantém histórico por canal no servidor
   class AppState:
       chat_histories: dict = {}  # {canal_nome: [{role, content}]}
 
@@ -492,7 +492,7 @@ efeito real no servidor, não apenas na tela.
 POSTURA GERAL DE SEGURANÇA
 ─────────────────────────────────────────
 
-O Brain'IAC tem uma postura de segurança boa para um app desktop local:
+O Sebayt tem uma postura de segurança boa para um app desktop local:
 · Sem servidor central para ser atacado ou comprometido
 · Dados nunca saem da máquina sem consentimento explícito do usuário
 · Electron configurado com as melhores práticas (contextIsolation, etc.)

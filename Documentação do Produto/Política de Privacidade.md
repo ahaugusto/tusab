@@ -1,4 +1,4 @@
-# Política de Privacidade — Brain'IAC
+﻿# Política de Privacidade — Sebayt
 
 **Versão:** 1.0  
 **Data de vigência:** 12 de junho de 2026  
@@ -9,7 +9,7 @@
 
 ## 1. Apresentação
 
-O Brain'IAC é um sistema de gestão de conhecimento pessoal (PKM) com IA local, desenvolvido e comercializado por CriAugu. Esta Política descreve como coletamos, usamos, armazenamos e protegemos seus dados em conformidade com a **Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)** e com o **GDPR (Regulamento UE 2016/679)**, onde aplicável.
+O Sebayt é um sistema de gestão de conhecimento pessoal (PKM) com IA local, desenvolvido e comercializado por CriAugu. Esta Política descreve como coletamos, usamos, armazenamos e protegemos seus dados em conformidade com a **Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)** e com o **GDPR (Regulamento UE 2016/679)**, onde aplicável.
 
 ---
 
@@ -17,7 +17,7 @@ O Brain'IAC é um sistema de gestão de conhecimento pessoal (PKM) com IA local,
 
 ### 2.1 Dados processados localmente (sem transferência)
 
-O Brain'IAC opera com princípio **local-first**. Os dados abaixo são processados exclusivamente na máquina do usuário e **nunca são enviados aos nossos servidores**:
+O Sebayt opera com princípio **local-first**. Os dados abaixo são processados exclusivamente na máquina do usuário e **nunca são enviados aos nossos servidores**:
 
 | Dado | Finalidade | Local de armazenamento |
 |------|------------|------------------------|
@@ -66,7 +66,7 @@ Se o usuário optar por ativar a sincronização com o Google Drive:
 - A autenticação OAuth2 é realizada **diretamente pelo dispositivo do usuário** com os servidores do Google.
 - O `token.json` de acesso é armazenado localmente em `config/token.json`.
 - A CriAugu **não tem acesso** ao token ou aos arquivos do Drive do usuário.
-- O escopo de acesso solicitado ao Google é o mínimo necessário: criação e leitura de arquivos na pasta específica do Brain'IAC.
+- O escopo de acesso solicitado ao Google é o mínimo necessário: criação e leitura de arquivos na pasta específica do Sebayt.
 
 ---
 
@@ -85,7 +85,7 @@ Se o usuário optar por ativar a sincronização com o Google Drive:
 
 Ao utilizar provedores de IA externos (OpenAI, Google Gemini, Anthropic, Groq), **o conteúdo das consultas (perguntas e contexto de busca)** é transmitido aos servidores desses provedores, que podem estar localizados fora do Brasil.
 
-O Brain'IAC exibe um aviso explícito no painel de configuração ao selecionar um provedor externo. Ao configurar e utilizar tais provedores, o usuário declara ciência e aceita os termos de privacidade do provedor escolhido.
+O Sebayt exibe um aviso explícito no painel de configuração ao selecionar um provedor externo. Ao configurar e utilizar tais provedores, o usuário declara ciência e aceita os termos de privacidade do provedor escolhido.
 
 Provedores externos e suas políticas:
 - **OpenAI:** https://openai.com/privacy
@@ -112,7 +112,7 @@ Para exercer seus direitos ou em caso de dúvidas, contate: **augusto.brasil@sau
 
 ## 6. Segurança dos Dados
 
-- O Brain'IAC utiliza **escrita atômica** (write-to-tmp + rename) para garantir integridade dos arquivos locais.
+- O Sebayt utiliza **escrita atômica** (write-to-tmp + rename) para garantir integridade dos arquivos locais.
 - Chaves de API são armazenadas em JSON local, sem criptografia em repouso. **Recomendamos** que o usuário utilize criptografia de disco (BitLocker no Windows, FileVault no macOS) para maior segurança.
 - A comunicação com o backend local (FastAPI) é restrita a `127.0.0.1:8001` — inacessível pela rede.
 - O código-fonte é auditável (exceto partes proprietárias — consulte o arquivo de licença).
@@ -133,7 +133,7 @@ Para exercer seus direitos ou em caso de dúvidas, contate: **augusto.brasil@sau
 
 ## 8. Cookies e Tecnologias de Rastreamento
 
-O Brain'IAC **não utiliza cookies**. É uma aplicação desktop local (Electron) sem acesso a cookies do navegador.
+O Sebayt **não utiliza cookies**. É uma aplicação desktop local (Electron) sem acesso a cookies do navegador.
 
 A telemetria de uso (quando consentida) utiliza a biblioteca PostHog SDK, que armazena um identificador anônimo em `localStorage` do frontend Electron. Este identificador não é vinculado a nenhum dado pessoal.
 
@@ -141,7 +141,7 @@ A telemetria de uso (quando consentida) utiliza a biblioteca PostHog SDK, que ar
 
 ## 9. Menores de Idade
 
-O Brain'IAC não é destinado a menores de 16 anos. Não coletamos intencionalmente dados de menores. Se você acredita que dados de um menor foram coletados, entre em contato para exclusão imediata.
+O Sebayt não é destinado a menores de 16 anos. Não coletamos intencionalmente dados de menores. Se você acredita que dados de um menor foram coletados, entre em contato para exclusão imediata.
 
 ---
 

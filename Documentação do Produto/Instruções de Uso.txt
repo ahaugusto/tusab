@@ -1,4 +1,4 @@
-ara a sua pergunta sobre qual versão abrir:
+﻿ara a sua pergunta sobre qual versão abrir:
 
 Para ver como o cliente vê → dist_electron/win-unpacked/brainiac.exe
 É exatamente o que você mandaria para um cliente. Sem código-fonte, sem ferramentas de dev. A experiência real.
@@ -7,7 +7,7 @@ Para iterar rápido no onboarding (editar texto e ver na hora) → dev mode:
 
 
 # Terminal 1 — backend
-.venv\Scripts\python.exe api_brainiac.py
+.venv\Scripts\python.exe api_sebayt.py
 
 # Terminal 2 — frontend (abre no browser em localhost:5173)
 cd web_interface; npm run dev
