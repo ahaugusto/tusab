@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Engine de extração de transcrições do YouTube e geração de base de conhecimento.
 """
@@ -11,12 +11,12 @@ import json
 import pandas as pd
 from datetime import datetime
 
-from brainiac_engine.storage import (
+from sebayt_engine.storage import (
     DATA_DIR, CEREBRO_DIR, LOCAL_TXT_DIR,
     GESTAO_DIR, TEMP_DIR,
     salvar_csv_atomico, salvar_json_atomico,
 )
-from brainiac_engine.motor.drive import (
+from sebayt_engine.motor.drive import (
     get_drive_status, get_drive_service,
     garantir_pasta_drive,
     upload_txt_como_gdoc_seguro, upload_arquivo_drive,
@@ -165,7 +165,7 @@ def gerar_relatorio_checkup(canal_nome_safe, db_file):
 
     with open(caminho_relatorio, 'w', encoding='utf-8') as f:
         f.write("-" * 55 + "\n")
-        f.write("🧠 RELATÓRIO DE COBERTURA — Brain'IAC\n")
+        f.write("🧠 RELATÓRIO DE COBERTURA — Sebayt\n")
         f.write(f"Canal: @{canal_nome_safe}\n")
         f.write("-" * 55 + "\n")
         f.write(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n")
@@ -178,7 +178,7 @@ def gerar_relatorio_checkup(canal_nome_safe, db_file):
         f.write("DETALHAMENTO POR SEÇÃO:\n")
         f.write(stats.to_string() + "\n")
         f.write("-" * 55 + "\n")
-        f.write("Gerado por Brain'IAC — Index.Augment.Converse\n")
+        f.write("Gerado por Sebayt — Index.Augment.Converse\n")
 
     print(f"      ✅ Relatório gerado: {caminho_relatorio}")
     return caminho_relatorio
@@ -189,7 +189,7 @@ def gerar_readme(canal_nome_raw, canal_nome_safe):
     caminho_readme = os.path.join(GESTAO_DIR, f'{canal_nome_safe}_README.md')
 
     conteudo = f"""# 🧠 Base de Conhecimento — @{canal_nome_raw}
-*Gerada automaticamente pelo Brain'IAC — Index.Augment.Converse*
+*Gerada automaticamente pelo Sebayt — Index.Augment.Converse*
 
 ## O que é este ativo?
 Este repositório contém as transcrições limpas e organizadas de todo o conteúdo
@@ -209,13 +209,13 @@ Faça upload manual de 2 a 3 arquivos da pasta local `cerebro_txt` e use prompts
 
 ## Estrutura
 ```
-Brain'IAC — {canal_nome_raw}/
+Sebayt — {canal_nome_raw}/
 ├── Cerebro_Docs/          # Documentos Google (prontos para NotebookLM)
 └── Gestao_Metadados/      # CSV com índice completo + relatório de cobertura
 ```
 
 ---
-*Ativo mantido automaticamente pelo Brain'IAC · CriAugu*
+*Ativo mantido automaticamente pelo Sebayt · CriAugu*
 """
     with open(caminho_readme, 'w', encoding='utf-8') as f:
         f.write(conteudo)
@@ -280,16 +280,16 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
 
 # ── Engine principal ──────────────────────────────────────────────────────────
 
-def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None):
+def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None):
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
     prefixo = canal_nome_safe
     canal_youtube_dir = get_canal_youtube_dir(prefixo)
-    drive_folder_name = f"Brain'IAC — {canal_nome_raw}"
+    drive_folder_name = f"Sebayt — {canal_nome_raw}"
     db_file = os.path.join(GESTAO_DIR, f'{prefixo}_base.csv')
 
     print("\n" + "=" * 70)
-    print("🧠 Brain'IAC — Intelligence Engine")
+    print("🧠 Sebayt — Intelligence Engine")
     print(f"   Canal: {canal_url}")
     print(f"   Prefixo: {prefixo}")
     print("=" * 70 + "\n")
@@ -589,7 +589,7 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
                             handle = meta_canal.get('canal_handle', f'@{canal_nome_raw}')
                             inscritos = meta_canal.get('inscritos', '')
                             f.write(
-                                f"# Brain'IAC — Base de Conhecimento\n"
+                                f"# Sebayt — Base de Conhecimento\n"
                                 f"# Canal: {meta_canal.get('canal_nome', canal_nome_raw)} ({handle})\n"
                                 f"# URL: {canal_url}\n"
                                 + (f"# Inscritos: {inscritos}\n" if inscritos else "")
@@ -704,7 +704,7 @@ def brainiac_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_f
             print("\n⚠️ PROCESSO INTERROMPIDO — Dados parciais salvos no Drive.")
         else:
             print("\n🏆 MISSÃO CUMPRIDA! Base de conhecimento atualizada no Drive.")
-            print("\n🚀 PROCESSO Brain'IAC FINALIZADO COM SUCESSO!")
+            print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
 
     except Exception as e:
         print(f"❌ Erro crítico no ambiente de nuvem: {e}")

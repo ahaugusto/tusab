@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Testes do sprint de confiabilidade:
 escrita atômica (CSV/JSON), validação de índice corrompido e locks.
@@ -14,10 +14,10 @@ import pytest
 # ─── Escrita atômica ──────────────────────────────────────────────────────────
 
 def test_salvar_csv_atomico_escreve_e_nao_deixa_tmp(client, data_dir, tmp_path):
-    import motor_brainiac
+    import motor_sebayt
     df = pd.DataFrame([{"ID": "abc123", "Status": "Sucesso"}])
     alvo = str(tmp_path / "base.csv")
-    motor_brainiac.salvar_csv_atomico(df, alvo)
+    motor_sebayt.salvar_csv_atomico(df, alvo)
     assert os.path.exists(alvo)
     assert not os.path.exists(alvo + ".tmp")
     relido = pd.read_csv(alvo)
@@ -25,65 +25,65 @@ def test_salvar_csv_atomico_escreve_e_nao_deixa_tmp(client, data_dir, tmp_path):
 
 
 def test_salvar_json_atomico_sobrescreve_sem_corromper(client, tmp_path):
-    import motor_brainiac
+    import motor_sebayt
     alvo = str(tmp_path / "meta.json")
-    motor_brainiac.salvar_json_atomico({"v": 1}, alvo)
-    motor_brainiac.salvar_json_atomico({"v": 2}, alvo, indent=2)
+    motor_sebayt.salvar_json_atomico({"v": 1}, alvo)
+    motor_sebayt.salvar_json_atomico({"v": 2}, alvo, indent=2)
     with open(alvo, encoding="utf-8") as f:
         assert json.load(f)["v"] == 2
     assert not os.path.exists(alvo + ".tmp")
 
 
 def test_salvar_config_atomico(client):
-    import agent_brainiac
-    agent_brainiac.salvar_config({"provider": "ollama", "api_key": ""})
-    assert os.path.exists(agent_brainiac.CONFIG_PATH)
-    assert not os.path.exists(agent_brainiac.CONFIG_PATH + ".tmp")
-    assert agent_brainiac.carregar_config()["provider"] == "ollama"
+    import agent_sebayt
+    agent_sebayt.salvar_config({"provider": "ollama", "api_key": ""})
+    assert os.path.exists(agent_sebayt.CONFIG_PATH)
+    assert not os.path.exists(agent_sebayt.CONFIG_PATH + ".tmp")
+    assert agent_sebayt.carregar_config()["provider"] == "ollama"
 
 
 # ─── Índice corrompido → erro claro, não crash ────────────────────────────────
 
 def test_indice_corrompido_gera_erro_orientando_reindexacao(client):
-    import agent_brainiac
+    import agent_sebayt
     canal = "canal_corrompido_teste"
     prefixo = "canal_corrompido_teste"
-    os.makedirs(agent_brainiac.INDEX_DIR, exist_ok=True)
-    idx = agent_brainiac._index_path(prefixo)
+    os.makedirs(agent_sebayt.INDEX_DIR, exist_ok=True)
+    idx = agent_sebayt._index_path(prefixo)
     with open(idx, "w", encoding="utf-8") as f:
         f.write('{"canal_nome": "x", "chunks": [TRUNCADO')  # JSON inválido
 
     try:
         with pytest.raises(ValueError, match="corrompido"):
-            agent_brainiac._recuperar_contexto("pergunta", canal)
+            agent_sebayt._recuperar_contexto("pergunta", canal)
     finally:
         os.remove(idx)
-        agent_brainiac._invalidar_cache(prefixo)
+        agent_sebayt._invalidar_cache(prefixo)
 
 
 def test_indice_vazio_gera_erro_claro(client):
-    import agent_brainiac
+    import agent_sebayt
     canal = "canal_vazio_teste"
     prefixo = "canal_vazio_teste"
-    os.makedirs(agent_brainiac.INDEX_DIR, exist_ok=True)
-    idx = agent_brainiac._index_path(prefixo)
+    os.makedirs(agent_sebayt.INDEX_DIR, exist_ok=True)
+    idx = agent_sebayt._index_path(prefixo)
     with open(idx, "w", encoding="utf-8") as f:
         json.dump({"canal_nome": "x", "chunks": []}, f)
 
     try:
         with pytest.raises(ValueError, match="corrompido ou vazio"):
-            agent_brainiac._recuperar_contexto("pergunta", canal)
+            agent_sebayt._recuperar_contexto("pergunta", canal)
     finally:
         os.remove(idx)
-        agent_brainiac._invalidar_cache(prefixo)
+        agent_sebayt._invalidar_cache(prefixo)
 
 
 # ─── Locks: escrita concorrente não perde incrementos ─────────────────────────
 
 def test_log_redirector_concorrente_nao_perde_incrementos(client):
-    import api_brainiac
-    from brainiac_engine.state import LogRedirector
-    state = api_brainiac.state
+    import api_sebayt
+    from sebayt_engine.state import LogRedirector
+    state = api_sebayt.state
 
     with state.state_lock:
         state.stats["videos_processed"] = 0
@@ -109,8 +109,8 @@ def test_log_redirector_concorrente_nao_perde_incrementos(client):
 
 def test_chat_histories_concorrente_sem_excecao(client):
     """Leitura/escrita/limpeza simultâneas do histórico não podem lançar exceção."""
-    import api_brainiac
-    state = api_brainiac.state
+    import api_sebayt
+    state = api_sebayt.state
     erros = []
 
     def escreve(i):

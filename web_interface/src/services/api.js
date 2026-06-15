@@ -1,6 +1,6 @@
-/**
+﻿/**
  * @file api.js
- * @description Centralized API service layer for BrainIAc backend communication
+ * @description Centralized API service layer for Sebayt backend communication
  * @module services/api
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57

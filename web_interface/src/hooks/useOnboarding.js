@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file useOnboarding.js
  * @description Hook for contextual onboarding — tracks which features the user
  *   has seen and provides helpers to mark them as visited.
@@ -12,11 +12,11 @@ import { useState, useCallback } from 'react';
 // ─── Feature keys ────────────────────────────────────────────────────────────
 
 const KEYS = {
-  repositorio:     'brainiac_onb_repositorio',
-  relatorio:       'brainiac_onb_relatorio',
-  chatFirstSend:   'brainiac_onb_chat_first',
-  indexDone:       'brainiac_onb_index_done',
-  docAdded:        'brainiac_onb_doc_added',
+  repositorio:     'Sebayt_onb_repositorio',
+  relatorio:       'Sebayt_onb_relatorio',
+  chatFirstSend:   'Sebayt_onb_chat_first',
+  indexDone:       'Sebayt_onb_index_done',
+  docAdded:        'Sebayt_onb_doc_added',
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

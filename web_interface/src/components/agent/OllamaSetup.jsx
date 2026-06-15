@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file OllamaSetup.jsx
  * @description Ollama local model status card with download, refresh and advanced model selector
  * @module components/agent/OllamaSetup
@@ -71,7 +71,7 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
         <div className="space-y-1.5 min-w-0">
           <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>O que é o Ollama?</p>
           <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-            O <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>Ollama</strong> é um serviço que roda modelos de IA diretamente no seu computador — sem internet, sem custo por uso e sem enviar dados para servidores externos. É a forma recomendada de usar o Brain'IAC.
+            O <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>Ollama</strong> é um serviço que roda modelos de IA diretamente no seu computador — sem internet, sem custo por uso e sem enviar dados para servidores externos. É a forma recomendada de usar o Sebayt.
           </p>
           <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
             <a href="https://ollama.com" target="_blank" rel="noreferrer"

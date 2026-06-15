@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 AppState (singleton) e LogRedirector.
 
@@ -13,7 +13,7 @@ fronteiras de acesso seguro:
 
 LogRedirector captura sys.stdout/stderr e converte print() do motor em
 entradas de log na UI. O contrato de parsing (emojis ✅ 📂 "Sem legenda")
-é implícito com motor_brainiac.py e NÃO pode ser quebrado em refactors.
+é implícito com motor_sebayt.py e NÃO pode ser quebrado em refactors.
 """
 
 import os
@@ -78,7 +78,7 @@ class LogRedirector:
     """Intercepta sys.stdout/stderr e converte prints do motor em log da UI.
 
     ATENÇÃO: os padrões de emoji e string abaixo (✅, 📂, "Sem legenda", etc.)
-    formam um contrato implícito com motor_brainiac.py. Alterar as strings de
+    formam um contrato implícito com motor_sebayt.py. Alterar as strings de
     print no motor sem ajustar aqui (ou vice-versa) silencia os logs na UI.
     """
 
@@ -131,7 +131,7 @@ _orig_excepthook = sys.excepthook
 
 def _debug_excepthook(t, v, tb):
     import traceback
-    crash_path = os.path.join(_ROOT, 'brainiac_crash.log')
+    crash_path = os.path.join(_ROOT, 'sebayt_crash.log')
     with open(crash_path, 'w') as _f:
         traceback.print_exception(t, v, tb, file=_f)
     _orig_excepthook(t, v, tb)

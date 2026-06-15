@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Integração com Google Drive: autenticação OAuth2 e upload de arquivos/docs.
 """
@@ -13,7 +13,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
 
-from brainiac_engine.storage import TOKEN_PATH, CREDENTIALS_PATH
+from sebayt_engine.storage import TOKEN_PATH, CREDENTIALS_PATH
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 

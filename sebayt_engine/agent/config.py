@@ -1,4 +1,4 @@
-# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Leitura e escrita da configuração do agente RAG.
 Ponto único de acesso a agent_config.json — quando vier keytar (P3),
@@ -8,7 +8,7 @@ apenas essas duas funções mudam.
 import os
 import json
 
-from brainiac_engine.storage import CONFIG_PATH, salvar_json_atomico
+from sebayt_engine.storage import CONFIG_PATH, salvar_json_atomico
 
 
 def carregar_config() -> dict:

@@ -1,8 +1,8 @@
-# Brain'IAC Engine
+﻿# Sebayt Engine
 
 **INDEX · AUGMENT · CONVERSE**
 
-Seu especialista particular. Aponte o que quer aprender — um canal do YouTube, um PDF, um documento — o Brain'IAC absorve tudo e responde suas perguntas citando a fonte exata. Roda na sua máquina, funciona offline, zero custo com Ollama.
+Seu especialista particular. Aponte o que quer aprender — um canal do YouTube, um PDF, um documento — o Sebayt absorve tudo e responde suas perguntas citando a fonte exata. Roda na sua máquina, funciona offline, zero custo com Ollama.
 
 Desenvolvido por **Augusto Brasil** · CriAugu — CNPJ 65.131.075/0001-57
 
@@ -10,7 +10,7 @@ Desenvolvido por **Augusto Brasil** · CriAugu — CNPJ 65.131.075/0001-57
 
 ## O que é
 
-Brain'IAC é um sistema de gestão de conhecimento pessoal (PKM) com IA local. Você decide o que o especialista aprende — vídeos, documentos, anotações — e consulta por chat em linguagem natural. Ele só responde com o que você indexou, sempre citando a fonte.
+Sebayt é um sistema de gestão de conhecimento pessoal (PKM) com IA local. Você decide o que o especialista aprende — vídeos, documentos, anotações — e consulta por chat em linguagem natural. Ele só responde com o que você indexou, sempre citando a fonte.
 
 O diferencial: extração de canais YouTube inteiros + processamento 100% local, para quem não pode ou não quer mandar dados para a nuvem.
 
@@ -65,11 +65,11 @@ O Ollama é configurado na primeira execução via wizard embutido. Para provedo
 ## Estrutura do repositório
 
 ```
-Brainiac/
-  api_brainiac.py           <- entry point FastAPI (165 linhas)
-  motor_brainiac.py         <- shim de re-export (compatibilidade)
-  agent_brainiac.py         <- shim de re-export (compatibilidade)
-  brainiac_engine/          <- pacote Python principal
+Sebayt/
+  api_sebayt.py           <- entry point FastAPI (165 linhas)
+  motor_sebayt.py         <- shim de re-export (compatibilidade)
+  agent_sebayt.py         <- shim de re-export (compatibilidade)
+  sebayt_engine/          <- pacote Python principal
     storage.py              <- caminhos de dados + IO atômico
     state.py                <- AppState singleton + LogRedirector
     agent/
@@ -106,7 +106,7 @@ Brainiac/
 
 ## Estrutura de dados em produção
 
-Dados do usuário ficam em `%AppData%\Brain'IAC\data\` (em dev: `./data/`):
+Dados do usuário ficam em `%AppData%\Sebayt\data\` (em dev: `./data/`):
 
 ```
 data/
@@ -130,7 +130,7 @@ data/
 ```powershell
 # Clonar o repositório
 git clone <repo>
-cd Brainiac
+cd Sebayt
 
 # Criar virtualenv Python
 python -m venv .venv
@@ -152,7 +152,7 @@ cd ..
 
 ```powershell
 # Terminal 1 — backend
-.venv\Scripts\python.exe api_brainiac.py
+.venv\Scripts\python.exe api_sebayt.py
 
 # Terminal 2 — frontend
 cd web_interface
@@ -166,7 +166,7 @@ Interface disponível em `http://localhost:5173`. Backend em `http://localhost:8
 | Variável | Descrição |
 |----------|-----------|
 | `ELECTRON_RUN` | Definida pelo Electron em produção — altera caminhos para `%AppData%` |
-| `BRAINIAC_DATA_DIR` | Sobrescreve o diretório de dados (usado em testes e no Electron packaged) |
+| `SEBAYT_DATA_DIR` | Sobrescreve o diretório de dados (usado em testes e no Electron packaged) |
 | `VITE_POSTHOG_KEY` | Chave PostHog para telemetria (nunca commitar — usar `web_interface/.env`) |
 
 ---
@@ -186,7 +186,7 @@ powershell.exe -File build.ps1 -Dir              # sem installer (só unpacked)
 
 **Pré-requisito:** `electron/python_env/` deve estar populado com Python 3.12 embeddable + dependências, e `electron/bin/yt-dlp.exe` deve existir. Esses diretórios são grandes e ficam no `.gitignore` — configure uma vez localmente antes de buildar.
 
-Saída: `dist_electron/brainiac Setup 2.0.0.exe`
+Saída: `dist_electron/Sebayt Setup 2.0.0.exe`
 
 ---
 
@@ -205,14 +205,14 @@ Saída: `dist_electron/brainiac Setup 2.0.0.exe`
 1. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto e habilite a **Google Drive API**
 2. Crie credenciais OAuth 2.0 (Aplicativo Desktop) e baixe o JSON
 3. Renomeie para `credentials.json` e coloque na raiz do projeto
-4. Na interface do Brain'IAC, ative o toggle do Drive — o fluxo OAuth abrirá no navegador
+4. Na interface do Sebayt, ative o toggle do Drive — o fluxo OAuth abrirá no navegador
 5. Após autorizar, `token.json` é salvo localmente (ambos no `.gitignore`)
 
 ---
 
 ## Segurança
 
-O Brain'IAC roda localmente — sem servidor central, sem dados na nuvem por padrão. Todos os dados ficam na máquina do usuário.
+O Sebayt roda localmente — sem servidor central, sem dados na nuvem por padrão. Todos os dados ficam na máquina do usuário.
 
 **Controles implementados:**
 
@@ -232,4 +232,4 @@ O Brain'IAC roda localmente — sem servidor central, sem dados na nuvem por pad
 
 Copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57  
 Todos os direitos reservados. Lei nº 9.609/1998 (Lei do Software) + Lei nº 9.610/1998.  
-Registro INPI pendente — Programa de Computador "Brain'IAC".
+Registro INPI pendente — Programa de Computador "Sebayt".
