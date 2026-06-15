@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw } from 'lucide-react';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -43,6 +43,8 @@ function ChatDrawer({
   setChatInput,
   chatLoading,
   onSend,
+  onClearHistory,
+  onRecriarIndice,
   agentStatus,
   canalConfigurado,
   onSelectCanal,
@@ -107,14 +109,14 @@ function ChatDrawer({
                 </div>
               </div>
               {chatMessages.length > 0 && (
-                <button onClick={() => setChatMessages([])}
+                <button onClick={() => { setChatMessages([]); onClearHistory?.(); }}
                   className={`text-[10px] px-2 py-1 rounded-lg border transition-colors ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
-                  Limpar
+                  {t('chat.clear')}
                 </button>
               )}
               <button onClick={() => setChatOpen(false)}
                 className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-                aria-label="Fechar chat">
+                aria-label={t('chat.close')}>
                 <X size={16} />
               </button>
             </div>
@@ -134,9 +136,9 @@ function ChatDrawer({
                   ) : !canalAtivo || showRepoModal ? (
                     <>
                       <Database size={28} className="text-primary" aria-hidden="true" />
-                      <p className={`text-xs font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Selecione uma base</p>
+                      <p className={`text-xs font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.select_base_title')}</p>
                       <p className={`text-[11px] text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        Escolha qual base de conhecimento usar nesta conversa
+                        {t('chat.select_base_desc')}
                       </p>
                       <div className="w-full mt-1 space-y-2">
                         {canaisIndexados.map(canal => (
@@ -147,7 +149,7 @@ function ChatDrawer({
                             <Database size={14} className="text-primary shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
-                              <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{canal.chunks} chunks indexados</p>
+                              <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{canal.chunks} {t('chat.chunks_indexed')}</p>
                             </div>
                             <ChevronRight size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
                           </button>
@@ -163,7 +165,7 @@ function ChatDrawer({
                       {canaisIndexados.length > 1 && (
                         <button onClick={() => setShowRepoModal(true)}
                           className={`text-[10px] underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
-                          Trocar base
+                          {t('chat.switch_base')}
                         </button>
                       )}
                     </>
@@ -183,16 +185,44 @@ function ChatDrawer({
                           {msg.content}
                           {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
                         </p>
+                        {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && (
+                          <button
+                            onClick={onRecriarIndice}
+                            className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100 transition-opacity">
+                            <RefreshCw size={9} aria-hidden="true" />
+                            {t('agent.rebuild_index')}
+                          </button>
+                        )}
                         {msg.fontes && msg.fontes.length > 0 && !msg.streaming && (
-                          <div className={`pt-2 border-t space-y-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                            <p className={`text-[10px] font-bold uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('agent.sources')}</p>
-                            {msg.fontes.map((f, j) => (
-                              <a key={j} href={f.link} target="_blank" rel="noreferrer"
-                                className={`flex items-start gap-1.5 text-[10px] hover:underline ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
-                                <ExternalLink size={9} className="mt-0.5 shrink-0" />
-                                <span>{f.titulo}{f.data ? ` · ${f.data}` : ''}{canalMeta?.canal_handle ? ` · ${canalMeta.canal_handle}` : ''}</span>
-                              </a>
-                            ))}
+                          <div className={`pt-2 border-t space-y-1.5 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                            <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('agent.sources')}</p>
+                            {msg.fontes.map((f, j) => {
+                              const isYt  = f.aba === 'youtube' || !!f.link;
+                              const icon  = isYt ? '🎬' : f.aba === 'texto' ? '📝' : '📄';
+                              const label = f.titulo || f.arquivo?.replace('.txt', '') || 'Sem título';
+                              const sub   = f.arquivo?.replace('.txt', '') !== label ? f.arquivo?.replace('.txt', '') : null;
+                              return (
+                                <div key={j} className={`rounded-lg p-2 flex items-start gap-2 ${darkMode ? 'bg-white/5' : 'bg-slate-100/60'}`}>
+                                  <span className="text-sm shrink-0 mt-0.5">{icon}</span>
+                                  <div className="flex-1 min-w-0">
+                                    {f.link
+                                      ? <a href={f.link} target="_blank" rel="noreferrer"
+                                          className={`text-[10px] font-medium leading-snug flex items-center gap-1 hover:underline ${darkMode ? 'text-slate-200 hover:text-white' : 'text-slate-700 hover:text-slate-900'}`}>
+                                          <span className="truncate">{label}</span>
+                                          <ExternalLink size={8} className="shrink-0 opacity-60" />
+                                        </a>
+                                      : <p className={`text-[10px] font-medium leading-snug truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{label}</p>
+                                    }
+                                    {sub && <p className={`text-[9px] truncate mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{sub}</p>}
+                                    <div className={`flex items-center gap-1.5 mt-0.5 flex-wrap text-[9px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                      {f.data   && <span>{f.data}</span>}
+                                      {f.canal  && <span className={`px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>@{f.canal}</span>}
+                                      {!isYt && f.arquivo && <span className={`px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{f.arquivo.split('.').pop()?.toUpperCase()}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -214,7 +244,7 @@ function ChatDrawer({
             <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
               <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                 <input type="text"
-                  placeholder={!chatHabilitado ? 'Selecione uma base primeiro...' : t('agent.chat_placeholder_ready')}
+                  placeholder={!chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()}

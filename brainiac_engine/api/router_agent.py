@@ -1,0 +1,427 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+"""
+Rotas do agente RAG: configuração, indexação, chat e integrações Ollama.
+"""
+
+import os
+import re
+import json
+import time
+
+from fastapi import APIRouter, BackgroundTasks
+from fastapi.responses import HTMLResponse, StreamingResponse
+from pydantic import BaseModel, Field
+
+import agent_brainiac
+from brainiac_engine.state import state
+
+router = APIRouter()
+
+_MAX_HIST_MSGS = 12  # 6 trocas user+assistant
+_test_key_last: float = 0.0  # rate-limit: máx 1 chamada por 5s
+
+
+# ── Background helper ─────────────────────────────────────────────────────────
+
+def _run_indexacao(canal_nome: str, canal_prefixo: str):
+    try:
+        state.agent_indexing   = True
+        state.agent_index_logs = []
+        state.agent_index_stop.clear()
+
+        def cb(msg):
+            state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": msg})
+
+        agent_brainiac.indexar(
+            canal_nome=canal_nome,
+            canal_prefixo=canal_prefixo,
+            callback=cb,
+            stop_event=state.agent_index_stop,
+        )
+    except Exception as e:
+        state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": f"❌ Erro na indexação: {e}"})
+    finally:
+        state.agent_indexing = False
+
+
+# ── Models ────────────────────────────────────────────────────────────────────
+
+class AgentConfigRequest(BaseModel):
+    provider:      str  = Field(max_length=30)
+    api_key:       str  = Field(max_length=300)
+    embed_api_key: str  = Field(default="", max_length=300)
+    groq_model:    str  = Field(default="", max_length=80)
+    ollama_model:  str  = Field(default="", max_length=80)
+
+class AgentChatRequest(BaseModel):
+    mensagem:      str  = Field(max_length=4000)
+    canal_nome:    str  = Field(max_length=120)
+    historico:     list = []
+    canais_extras: list = []
+    busca_ampla:   bool = False
+
+class AgentIndexRequest(BaseModel):
+    canal_nome: str = Field(default="", max_length=120)
+
+class TestKeyRequest(BaseModel):
+    provider: str = Field(default='', max_length=30)
+    api_key:  str = Field(default='', max_length=300)
+
+class AgentChatStreamRequest(BaseModel):
+    mensagem:      str  = Field(max_length=4000)
+    canal_nome:    str  = Field(max_length=120)
+    historico:     list = []
+    canais_extras: list = []
+    busca_ampla:   bool = False
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.get("/agent/status")
+def agent_status():
+    status = agent_brainiac.get_agent_status()
+    status["indexing"]    = state.agent_indexing
+    status["index_logs"]  = state.agent_index_logs[-30:]
+    return status
+
+
+@router.get("/log", response_class=HTMLResponse)
+def log_viewer():
+    """Página HTML standalone com log de indexação em tempo real."""
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Brain'IAC — Log de Indexação</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;padding:1.5rem;min-height:100vh}
+    h1{font-size:1rem;font-weight:700;color:#a78bfa;margin-bottom:.25rem}
+    .sub{font-size:.75rem;color:#475569;margin-bottom:1.5rem}
+    #log{background:#020817;border:1px solid #1e293b;border-radius:.75rem;padding:1rem;min-height:200px;max-height:80vh;overflow-y:auto;font-size:.78rem;line-height:1.7}
+    .entry{color:#94a3b8}
+    .entry.ok{color:#34d399}
+    .entry.err{color:#f87171}
+    .entry.info{color:#a78bfa}
+    #status{margin-top:.75rem;font-size:.72rem;color:#334155}
+  </style>
+</head>
+<body>
+  <h1>Brain'IAC — Log de Indexação</h1>
+  <div class="sub">Atualização automática a cada 1 s &nbsp;·&nbsp; <a href="javascript:void(0)" onclick="clearLog()" style="color:#475569">limpar</a></div>
+  <div id="log"><span style="color:#334155">Aguardando logs...</span></div>
+  <div id="status"></div>
+  <script>
+    const el = document.getElementById('log');
+    const st = document.getElementById('status');
+    let seen = 0;
+    function clearLog(){ el.innerHTML=''; seen=0; }
+    function colorClass(msg){
+      if(msg.includes('✅')||msg.includes('concluí')) return 'ok';
+      if(msg.includes('❌')||msg.includes('Erro')) return 'err';
+      if(msg.includes('🔍')||msg.includes('📦')||msg.includes('📄')) return 'info';
+      return '';
+    }
+    async function poll(){
+      try{
+        const r = await fetch('/agent/status');
+        const d = await r.json();
+        const logs = d.index_logs || [];
+        if(logs.length > seen){
+          if(seen === 0) el.innerHTML = '';
+          logs.slice(seen).forEach(l=>{
+            const div = document.createElement('div');
+            div.className = 'entry ' + colorClass(l.message);
+            div.textContent = '[' + l.timestamp + '] ' + l.message;
+            el.appendChild(div);
+          });
+          seen = logs.length;
+          el.scrollTop = el.scrollHeight;
+        }
+        st.textContent = d.indexing ? '⏳ Indexação em andamento…' : (seen > 0 ? '✅ Indexação concluída.' : 'Sem atividade de indexação.');
+      }catch(e){ st.textContent = '⚠ Sem conexão com o backend.'; }
+    }
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>""")
+
+
+@router.get("/agent/ollama/status")
+def ollama_status():
+    """Verifica se Ollama está rodando e quais modelos estão instalados."""
+    import requests as _req
+    try:
+        r = _req.get('http://localhost:11434/api/tags', timeout=3)
+        models = [m['name'] for m in r.json().get('models', [])]
+        return {'running': True, 'models': models}
+    except Exception:
+        return {'running': False, 'models': []}
+
+
+@router.post("/agent/ollama/pull")
+async def ollama_pull(background_tasks: BackgroundTasks):
+    """Inicia o download do modelo padrão llama3.2:1b em background."""
+    if not hasattr(state, 'ollama_pull_progress'):
+        state.ollama_pull_progress = {'status': 'idle', 'pct': 0, 'message': ''}
+
+    def _pull():
+        import requests as _req
+        state.ollama_pull_progress = {'status': 'pulling', 'pct': 0, 'message': 'Iniciando download...'}
+        try:
+            with _req.post(
+                'http://localhost:11434/api/pull',
+                json={'name': 'llama3.2:1b', 'stream': True},
+                stream=True, timeout=600
+            ) as resp:
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    import json as _json
+                    data = _json.loads(line)
+                    status = data.get('status', '')
+                    completed = data.get('completed', 0)
+                    total = data.get('total', 0)
+                    pct = int(completed / total * 100) if total > 0 else 0
+                    state.ollama_pull_progress = {
+                        'status': 'pulling', 'pct': pct,
+                        'message': status[:80] if status else ''
+                    }
+            state.ollama_pull_progress = {'status': 'done', 'pct': 100, 'message': 'Modelo pronto!'}
+        except Exception as e:
+            state.ollama_pull_progress = {'status': 'error', 'pct': 0, 'message': str(e)[:120]}
+
+    background_tasks.add_task(_pull)
+    return {'message': 'Download iniciado.'}
+
+
+@router.get("/agent/ollama/pull-progress")
+def ollama_pull_progress():
+    """Retorna o progresso do download do modelo."""
+    if not hasattr(state, 'ollama_pull_progress'):
+        return {'status': 'idle', 'pct': 0, 'message': ''}
+    return state.ollama_pull_progress
+
+
+@router.get("/agent/canal-meta")
+def agent_canal_meta():
+    config = agent_brainiac.carregar_config()
+    canal_nome = state.stats.get("canal_nome", "") or config.get("canal_indexado", "")
+    if not canal_nome:
+        return {}
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    return agent_brainiac._carregar_meta_canal(canal_prefixo)
+
+
+@router.get("/agent/config")
+def get_agent_config():
+    config = agent_brainiac.carregar_config()
+    raw_key = config.get("api_key", "")
+    return {
+        "provider":     config.get("provider", "gemini"),
+        "api_key":      "***" if raw_key else "",
+        "ollama_model": config.get("ollama_model", "llama3.2:1b"),
+    }
+
+
+@router.post("/agent/config")
+def agent_config(req: AgentConfigRequest):
+    if state.agent_indexing:
+        return {"error": True, "message": "Indexação em andamento. Aguarde."}
+    config = agent_brainiac.carregar_config()
+    config["provider"] = req.provider
+    if req.api_key:
+        config["api_key"] = req.api_key
+    elif req.provider == "ollama":
+        config["api_key"] = ""
+    if req.embed_api_key:
+        config["embed_api_key"] = req.embed_api_key
+    if req.groq_model:
+        config["groq_model"] = req.groq_model
+    if req.ollama_model:
+        config["ollama_model"] = req.ollama_model
+    agent_brainiac.salvar_config(config)
+    return {"message": "Configuração salva com sucesso."}
+
+
+@router.post("/agent/index")
+def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None):
+    if state.agent_indexing:
+        return {"error": True, "message": "Indexação já está em andamento."}
+    if state.is_running:
+        return {"error": True, "message": "Aguarde a extração terminar antes de indexar."}
+
+    canal_nome = state.stats.get("canal_nome", "") or (req.canal_nome if req else "")
+    if not canal_nome:
+        canal_nome = "repositorio"
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+
+    background_tasks.add_task(_run_indexacao, canal_nome, canal_prefixo)
+    msg = f"Indexação iniciada para @{canal_nome}." if canal_nome != "repositorio" else "Indexação do repositório iniciada."
+    return {"message": msg}
+
+
+@router.post("/agent/test-key")
+def agent_test_key(req: TestKeyRequest = None):
+    global _test_key_last
+    now = time.time()
+    if now - _test_key_last < 5.0:
+        return {"error": True, "message": "Aguarde alguns segundos antes de testar novamente."}
+    _test_key_last = now
+    if req and req.provider and req.api_key:
+        config = {"provider": req.provider, "api_key": req.api_key}
+    else:
+        config = agent_brainiac.carregar_config()
+    provider = config.get("provider", "")
+    if not provider or (not config.get("api_key") and provider != "ollama"):
+        return {"error": True, "message": "Nenhuma chave configurada."}
+    try:
+        provider = config["provider"]
+        api_key  = config["api_key"]
+        if provider == "ollama":
+            import requests as _req
+            r = _req.get('http://localhost:11434/api/tags', timeout=3)
+            models = [m['name'] for m in r.json().get('models', [])]
+            if not models:
+                return {"error": True, "message": "Ollama rodando mas nenhum modelo instalado. Instale um modelo primeiro."}
+            return {"ok": True, "message": f"Ollama ativo! Modelos: {', '.join(models[:3])}"}
+        if provider == "groq":
+            from openai import OpenAI
+            modelo = config.get("groq_model", "llama-3.1-8b-instant")
+            OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1").chat.completions.create(
+                model=modelo,
+                messages=[{"role": "user", "content": "ok"}],
+                max_tokens=1,
+            )
+            return {"ok": True, "message": f"Groq ativo! Modelo: {modelo}"}
+        if provider == "openai":
+            from openai import OpenAI
+            OpenAI(api_key=api_key).chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": "ok"}],
+                max_tokens=1,
+            )
+        elif provider == "anthropic":
+            import anthropic
+            anthropic.Anthropic(api_key=api_key).messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1,
+                messages=[{"role": "user", "content": "ok"}],
+            )
+        elif provider in ("gemini", "google"):
+            import google.generativeai as _genai
+            _genai.configure(api_key=api_key)
+            modelos_disponiveis = [
+                m.name.replace("models/", "")
+                for m in _genai.list_models()
+                if "generateContent" in m.supported_generation_methods
+            ]
+            CANDIDATOS = [
+                "gemini-1.5-flash", "gemini-1.5-flash-latest",
+                "gemini-1.5-flash-002", "gemini-1.5-pro",
+                "gemini-pro", "gemini-2.0-flash-lite",
+            ]
+            modelo_escolhido = next(
+                (m for m in CANDIDATOS if m in modelos_disponiveis), None
+            )
+            if not modelo_escolhido:
+                return {
+                    "error": True,
+                    "message": f"Nenhum modelo compatível encontrado. Disponíveis: {', '.join(modelos_disponiveis[:5])}"
+                }
+            _genai.GenerativeModel(modelo_escolhido).generate_content("ok")
+            return {"ok": True, "message": f"Chave válida! Modelo: {modelo_escolhido}"}
+        return {"ok": True, "message": "Chave válida! Conexão estabelecida com sucesso."}
+    except Exception as e:
+        return {"error": True, "message": f"Chave inválida: {e}"}
+
+
+@router.post("/agent/index-cancel")
+def agent_index_cancel():
+    state.agent_index_stop.set()
+    return {"message": "Indexação cancelada."}
+
+
+@router.post("/agent/chat/clear")
+def agent_chat_clear(req: AgentChatRequest):
+    """Limpa histórico de conversa do lado do servidor para o canal informado."""
+    with state.hist_lock:
+        state.chat_histories.pop(req.canal_nome, None)
+    return {"message": "Histórico limpo."}
+
+
+@router.post("/agent/chat")
+def agent_chat(req: AgentChatRequest):
+    if state.agent_indexing:
+        return {"error": True, "message": "Indexação em andamento. Aguarde."}
+    mensagem = req.mensagem[:2000].strip()
+    with state.hist_lock:
+        hist = list(state.chat_histories.get(req.canal_nome, []))
+    try:
+        with state.agent_chat_lock:
+            resultado = agent_brainiac.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla)
+        if not resultado.get("error"):
+            hist = hist + [
+                {"role": "user",      "content": mensagem},
+                {"role": "assistant", "content": resultado.get("resposta", "")},
+            ]
+            with state.hist_lock:
+                state.chat_histories[req.canal_nome] = hist[-_MAX_HIST_MSGS:]
+        return resultado
+    except Exception as e:
+        return {"error": True, "message": str(e)}
+
+
+@router.post("/agent/chat/stream")
+def agent_chat_stream(req: AgentChatStreamRequest):
+    if state.agent_indexing:
+        def _err():
+            yield json.dumps({'error': 'Indexação em andamento. Aguarde.'})
+        return StreamingResponse(_err(), media_type='text/plain')
+
+    mensagem = req.mensagem[:2000].strip()
+    with state.hist_lock:
+        hist = list(state.chat_histories.get(req.canal_nome, []))
+
+    resposta_acumulada = []
+
+    def _gen():
+        try:
+            for chunk in agent_brainiac.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla):
+                try:
+                    data = json.loads(chunk)
+                    if data.get("texto"):
+                        resposta_acumulada.append(data["texto"])
+                except Exception:
+                    pass
+                yield chunk + '\n'
+        except Exception as e:
+            yield json.dumps({'error': str(e)}) + '\n'
+        finally:
+            if resposta_acumulada:
+                resposta_completa = "".join(resposta_acumulada)
+                novo_hist = hist + [
+                    {"role": "user",      "content": mensagem},
+                    {"role": "assistant", "content": resposta_completa},
+                ]
+                with state.hist_lock:
+                    state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+
+    return StreamingResponse(_gen(), media_type='text/plain')
+
+
+@router.delete("/agent/canal/{canal_nome}")
+def agent_canal_delete(canal_nome: str):
+    import re as _re
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    idx_path = agent_brainiac._index_path(canal_prefixo)
+    agent_brainiac._invalidar_cache(canal_prefixo)
+    if os.path.exists(idx_path):
+        os.remove(idx_path)
+        config = agent_brainiac.carregar_config()
+        if config.get('canal_indexado') == canal_nome:
+            config['canal_indexado'] = ''
+            agent_brainiac.salvar_config(config)
+        return {"ok": True}
+    return {"error": True, "message": "Índice não encontrado"}

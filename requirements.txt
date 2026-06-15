@@ -10,7 +10,7 @@ google-api-python-client
 rank_bm25
 openai
 anthropic
-google-genai
+google-generativeai  # SDK usado pelo chat Gemini (import google.generativeai)
 
 # --- Processamento de documentos ---
 pdfplumber

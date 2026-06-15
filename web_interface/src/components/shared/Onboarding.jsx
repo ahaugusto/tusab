@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Brain, Play, FolderOpen, Bot, BarChart2 } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
+import ModalWrapper from './ModalWrapper';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -25,7 +26,11 @@ function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
 
   const STEPS = [
-    { icon: Brain,      title: t('onboarding.s1_title'), body: t('onboarding.s1_body') },
+    {
+      icon: Brain,
+      title: t('onboarding.s1_title'),
+      body: t('onboarding.s1_body'),
+    },
     { icon: Play,       title: t('onboarding.s2_title'), body: t('onboarding.s2_body') },
     { icon: FolderOpen, title: t('onboarding.s3_title'), body: t('onboarding.s3_body') },
     { icon: Bot,        title: t('onboarding.s4_title'), body: t('onboarding.s4_body') },
@@ -43,10 +48,7 @@ function Onboarding({ onDone }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-4"
-    >
+    <ModalWrapper onClose={finish} disableBackdrop label="Introdução ao Brain'IAC">
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 12 }}
@@ -73,7 +75,17 @@ function Onboarding({ onDone }) {
 
         {/* Content */}
         <h2 className="text-lg font-bold text-white mb-2">{current.title}</h2>
-        <p className="text-sm text-slate-400 leading-relaxed">{current.body}</p>
+        <p className="text-sm text-slate-400 leading-relaxed mb-4">{current.body}</p>
+        {current.whys && (
+          <ul className="space-y-2.5">
+            {current.whys.map((w, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="mt-0.5 w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                <span className="text-xs text-slate-400 leading-relaxed">{w}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* Navigation */}
         <div className="flex items-center justify-between mt-8">
@@ -96,7 +108,7 @@ function Onboarding({ onDone }) {
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </ModalWrapper>
   );
 }
 

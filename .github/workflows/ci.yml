@@ -1,0 +1,58 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+# CI mínimo: testes de integração do backend + build do frontend a cada push/PR.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: |
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      # dist mínimo para os testes de serve estático / path traversal
+      # (evita compilar o frontend inteiro neste job)
+      - name: Criar dist mínimo do frontend
+        run: |
+          mkdir -p web_interface/dist/assets
+          echo '<!doctype html><html><body>BrainIAC CI</body></html>' > web_interface/dist/index.html
+
+      - name: Rodar testes
+        run: pytest tests/ -v --tb=short
+
+  frontend-build:
+    name: Frontend (vite build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web_interface
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build de produção
+        run: npx vite build

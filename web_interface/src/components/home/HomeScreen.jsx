@@ -8,7 +8,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onNavigate, onAddFiles, onToggleTheme, onChangeLang }) {
+function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onAddFiles, onToggleTheme, onChangeLang }) {
   const { t, i18n: homeI18n } = useTranslation();
   const currentLang = homeI18n.language.startsWith('pt') ? 'pt' : homeI18n.language.startsWith('en') ? 'en' : 'es';
 
@@ -17,12 +17,11 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
   const totalCanais  = history.length;
   const configured   = agentStatus.configured;
   const indexed      = agentStatus.canais_indexados?.length > 0;
+  const ollamaOk     = ollamaStatus?.running && ollamaStatus?.models?.length > 0;
+  const agentReady   = configured || ollamaOk;
 
   // ── Source cards (top, side-by-side) ──────────────────────────────────────
-  const sourcePrimary = darkMode
-    ? 'bg-primary/15 border-primary/30 hover:bg-primary/20'
-    : 'bg-violet-50 border-violet-200 hover:bg-violet-100';
-  const sourceSecondary = darkMode
+  const sourceBase = darkMode
     ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20'
     : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300';
 
@@ -35,7 +34,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         ? t('home.card_extract_done', { count: totalCanais })
         : t('home.source_youtube_desc'),
       badge:  totalCanais > 0 ? String(totalCanais) : null,
-      style:  sourcePrimary,
+      accent: true,
       action: () => onNavigate('extracao'),
     },
     {
@@ -46,7 +45,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         ? t('home.card_repo_done', { count: totalDocs })
         : t('home.source_files_desc'),
       badge:  totalDocs > 0 ? String(totalDocs) : null,
-      style:  sourceSecondary,
+      accent: false,
       action: onAddFiles,
     },
   ];
@@ -76,6 +75,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
       desc:   configured ? (indexed ? t('home.card_agent_ready') : t('home.card_agent_index')) : t('home.card_agent_desc'),
       badge:  configured ? '✓' : null,
       color:  configured && indexed ? 'secondary' : 'primary',
+      alert:  !agentReady,
     },
   ];
 
@@ -90,7 +90,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
       <div className={`hidden lg:flex flex-col items-center justify-center w-1/2 px-12 border-r ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
         <button onClick={() => {}} className="focus-visible:outline-none rounded-2xl transition-opacity hover:opacity-90">
           <img
-            src={darkMode ? '/logo_dark.png?v=2' : '/logo_light.png?v=2'}
+            src={darkMode ? '/logo_light.png?v=2' : '/logo_dark.png?v=2'}
             alt="Brain'IAC — Index.Augment.Converse"
             style={{ width: 340, height: 340, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
@@ -107,7 +107,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-8">
           <img
-            src={darkMode ? '/logo_dark.png?v=2' : '/logo_light.png?v=2'}
+            src={darkMode ? '/logo_light.png?v=2' : '/logo_dark.png?v=2'}
             alt="Brain'IAC"
             style={{ width: 140, height: 140, objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
@@ -126,7 +126,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
                 <button
                   key={card.id}
                   onClick={card.action}
-                  className={`relative p-4 rounded-2xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${btnFocus} ${card.style}`}>
+                  className={`relative p-4 rounded-2xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${btnFocus} ${sourceBase}`}>
                   {card.badge && (
                     <span className={`absolute top-2.5 right-2.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeClass('primary')}`}>
                       {card.badge}
@@ -151,8 +151,16 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
                   key={card.id}
                   onClick={() => onNavigate(card.id)}
                   className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus}
-                    ${darkMode ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
-                  {card.badge && (
+                    ${card.alert
+                      ? darkMode ? 'bg-amber-500/8 border-amber-500/30 hover:bg-amber-500/12 hover:border-amber-500/50' : 'bg-amber-50 border-amber-200 hover:border-amber-300 shadow-sm'
+                      : darkMode ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                  {card.alert && (
+                    <span className={`absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      Configurar
+                    </span>
+                  )}
+                  {!card.alert && card.badge && (
                     <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass(card.color)}`}>
                       {card.badge}
                     </span>
@@ -160,8 +168,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, btnFocus, onN
                   <div className="flex items-center gap-3">
                     <span className="text-xl shrink-0">{card.icon}</span>
                     <div>
-                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
-                      <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
+                      <p className={`text-xs font-bold ${card.alert ? darkMode ? 'text-amber-300' : 'text-amber-800' : darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
+                      <p className={`text-[10px] mt-0.5 ${card.alert ? darkMode ? 'text-amber-500/80' : 'text-amber-600' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
                     </div>
                   </div>
                 </button>
