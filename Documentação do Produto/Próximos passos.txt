@@ -62,6 +62,13 @@ SPRINT IMEDIATO — PRODUTO (em execução)
    Touch targets ≥ 44px, aria-labels em botões de ícone, tabelas com
    caption sr-only, focus trap em modais, aria-expanded em painéis.
 
+✅ Query expansion para provedores rápidos (v2.1.1)
+   BM25 agora usa variações da pergunta geradas pelo LLM (Groq, OpenAI,
+   Anthropic, Gemini) para cobrir sinônimos e paráfrases. Desabilitado
+   para Ollama (modelos pequenos geram expansões de baixa qualidade e
+   adicionam 10–15s de latência). Expansão propaga para busca multi-canal.
+   Ver: Documentação do Produto/BM25 e Query Expansion.txt
+
 ✅ Suporte a imagens e áudio no repositório (v2.1.0)
    Imagens: Ollama multimodal (llava/gemma3) → fallback Tesseract OCR.
    Áudio: transcrição local com faster-whisper (modelo base, CPU).
