@@ -42,6 +42,30 @@ def run_drive_auth():
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+def _count_files_on_disk() -> int:
+    """Conta arquivos .txt extraídos que realmente existem no disco."""
+    from sebayt_engine.storage import CEREBRO_DIR
+    count = 0
+    if os.path.isdir(CEREBRO_DIR):
+        for canal_dir in os.scandir(CEREBRO_DIR):
+            if not canal_dir.is_dir():
+                continue
+            yt_dir = os.path.join(canal_dir.path, "youtube")
+            if os.path.isdir(yt_dir):
+                count += sum(
+                    1 for f in os.listdir(yt_dir)
+                    if f.endswith(".txt") and not f.startswith("_")
+                )
+    # Legado: cerebro/youtube/ flat
+    legacy = os.path.join(CEREBRO_DIR, "youtube")
+    if os.path.isdir(legacy):
+        count += sum(
+            1 for f in os.listdir(legacy)
+            if f.endswith(".txt") and not f.startswith("_")
+        )
+    return count
+
+
 @router.get("/status")
 def get_status():
     if state.drive_auth_running:
@@ -54,6 +78,11 @@ def get_status():
     with state.state_lock:
         stats_snapshot = dict(state.stats)
         logs_snapshot  = state.logs[-50:]
+
+    # Substituir o contador em memória pelo total real no disco
+    # (para ficar consistente com o Repositório após limpeza)
+    if not state.is_running:
+        stats_snapshot["files_generated"] = _count_files_on_disk()
 
     return {
         "is_running":       state.is_running,
