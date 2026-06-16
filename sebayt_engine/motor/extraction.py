@@ -406,24 +406,8 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
     sub_langs = detectar_idiomas_canal(all_videos)
     print(f"      📋 Idiomas configurados: {sub_langs}\n")
 
-    # --- 1c. CONEXÃO ANTECIPADA COM DRIVE (sync incremental) ---
+    # --- 1c. VERIFICAÇÃO DE DRIVE (conexão adiada para após extração local) ---
     status_drive = get_drive_status()
-    service = None
-    id_docs = None
-    id_meta_drive = None
-    partes_sincronizadas = set()
-
-    if status_drive == 'autenticado':
-        try:
-            print("🔐 Conectando ao Drive para sync incremental...")
-            service = get_drive_service(stop_event=evento_cancelar)
-            root_id = garantir_pasta_drive(service, drive_folder_name)
-            id_docs = garantir_pasta_drive(service, "Cerebro_Docs", root_id)
-            id_meta_drive = garantir_pasta_drive(service, "Gestao_Metadados", root_id)
-            print("      ✅ Drive conectado. Partes sincronizadas em tempo real.\n")
-        except Exception as e:
-            print(f"      ⚠️ Drive não disponível agora: {e}. Modo local ativado.\n")
-            service = None
 
     # --- 2. BANCO DE DADOS LOCAL ---
     ids_nos_txts = set()
@@ -597,14 +581,6 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
                     num_palavras = len(texto.split())
 
                     if palavras_atuais + num_palavras > MAX_WORDS_PER_FILE:
-                        # Sync parte completa antes de abrir a próxima
-                        if service and id_docs and caminho_txt not in partes_sincronizadas and os.path.exists(caminho_txt):
-                            try:
-                                print(f"      ☁️ Sincronizando Parte {parte_atual} com o Drive...")
-                                upload_txt_como_gdoc_seguro(service, caminho_txt, id_docs)
-                                partes_sincronizadas.add(caminho_txt)
-                            except Exception as e:
-                                print(f"      ⚠️ Sync incremental falhou: {e}")
                         parte_atual += 1
                         palavras_atuais = 0
                         nome_arquivo_base = f"{prefixo}_Parte_{parte_atual}"
@@ -693,29 +669,37 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
             salvar_csv_atomico(df_db, db_file)
             ids_ja_minerados.add(v_id)
 
-    # --- 4. FINALIZAÇÃO E SYNC ---
-    if service is None:
+    # --- 4. FINALIZAÇÃO LOCAL ---
+    print("      📁 Transcrições salvas localmente.")
+    print("      📊 Banco de dados salvo em: gestao_local/")
+
+    if evento_cancelar and evento_cancelar.is_set():
+        print("\n⚠️ PROCESSO INTERROMPIDO — Dados parciais salvos localmente.")
+        return
+
+    print("\n✅ EXTRAÇÃO LOCAL CONCLUÍDA COM SUCESSO!")
+
+    # --- 5. SYNC COM DRIVE (opcional, após extração completa) ---
+    if status_drive != 'autenticado':
         if status_drive == 'sem_credenciais':
-            print("\n⚠️ [DRIVE PULADO] credentials.json não encontrado na pasta do aplicativo.")
-        elif status_drive != 'autenticado':
-            print("\n⚠️ [DRIVE PULADO] Google Drive não autenticado.")
+            print("\n⚠️ [DRIVE PULADO] credentials.json não encontrado.")
         else:
-            print("\n⚠️ [DRIVE PULADO] Conexão com Drive falhou durante a execução.")
-        print("      📁 Transcrições salvas localmente em: cerebro_txt/")
-        print("      📊 Banco de dados salvo em: gestao_local/")
-        if not (evento_cancelar and evento_cancelar.is_set()):
-            print("\n✅ EXTRAÇÃO LOCAL CONCLUÍDA COM SUCESSO!")
-            print("   Autentique o Drive e re-execute para sincronizar na nuvem.")
+            print("\n⚠️ [DRIVE PULADO] Google Drive não autenticado.")
+        print("   Autentique o Drive e re-execute para sincronizar na nuvem.")
+        print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
         return
 
     try:
-        # Sincroniza parte final (e quaisquer partes pendentes por edge case)
-        print("\n☁️ [SINCRONIZANDO PARTES FINAIS COM O DRIVE]...")
+        print("\n🔐 Conectando ao Drive...")
+        service = get_drive_service(stop_event=evento_cancelar)
+        root_id = garantir_pasta_drive(service, drive_folder_name)
+        id_docs = garantir_pasta_drive(service, "Cerebro_Docs", root_id)
+        id_meta_drive = garantir_pasta_drive(service, "Gestao_Metadados", root_id)
+
+        print("\n☁️ [SINCRONIZANDO COM O DRIVE]...")
         for f in sorted(os.listdir(canal_youtube_dir)):
             if f.endswith(".txt") and f.startswith(prefixo):
-                fp = os.path.join(canal_youtube_dir, f)
-                if fp not in partes_sincronizadas:
-                    upload_txt_como_gdoc_seguro(service, fp, id_docs)
+                upload_txt_como_gdoc_seguro(service, os.path.join(canal_youtube_dir, f), id_docs)
 
         print("\n📊 Sincronizando metadados...")
         upload_arquivo_drive(service, db_file, id_meta_drive)
@@ -728,11 +712,10 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
         if os.path.exists(caminho_readme):
             upload_arquivo_drive(service, caminho_readme, id_meta_drive)
 
-        if evento_cancelar and evento_cancelar.is_set():
-            print("\n⚠️ PROCESSO INTERROMPIDO — Dados parciais salvos no Drive.")
-        else:
-            print("\n🏆 MISSÃO CUMPRIDA! Base de conhecimento atualizada no Drive.")
-            print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
+        print("\n🏆 MISSÃO CUMPRIDA! Base de conhecimento atualizada no Drive.")
+        print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
 
     except Exception as e:
-        print(f"❌ Erro crítico no ambiente de nuvem: {e}")
+        print(f"\n⚠️ Sync com Drive falhou: {e}")
+        print("   Dados estão salvos localmente. Re-execute para tentar sincronizar.")
+        print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
