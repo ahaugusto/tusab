@@ -10,10 +10,11 @@ import { useTranslation } from 'react-i18next';
 import {
   Globe, Sun, Moon, Link2, CheckCircle2, XCircle, AlertTriangle, Loader2, Zap,
   ShieldCheck, ShieldOff, ShieldAlert, ExternalLink, PlayCircle, FileText, Info,
-  FolderPlus,
+  FolderPlus, ListOrdered, Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import i18n from '../../i18n';
+import { queueAdd, queueClear } from '../../services/api';
 
 // ─── DriveToggle (internal sub-component) ────────────────────────────────────
 
@@ -176,12 +177,41 @@ function SidebarContent({
   const { t } = useTranslation();
   const errorId = 'canal-error';
   const [activeSource, setActiveSource] = useState('youtube');
+  const [queue,        setQueue]        = useState([]);
+  const [queueInput,   setQueueInput]   = useState('');
+  const [queueError,   setQueueError]   = useState('');
+  const [queueAdding,  setQueueAdding]  = useState(false);
 
   /** Removes the configured canal from state */
   const handleRemoveCanal = () => { setCanalConfigurado(''); setCanalInput(''); };
 
   /** Cleans canal name by stripping query params */
   const cleanCanalName = (n) => n ? n.split('?')[0] : '';
+
+  /** Adds a URL to the extraction queue */
+  const handleQueueAdd = async () => {
+    const url = queueInput.trim();
+    if (!url) return;
+    setQueueAdding(true); setQueueError('');
+    try {
+      const res = await queueAdd(url);
+      if (res.data.error) { setQueueError(res.data.message); }
+      else {
+        setQueue(prev => [...prev, url]);
+        setQueueInput('');
+      }
+    } catch { setQueueError('Erro ao adicionar à fila'); }
+    setQueueAdding(false);
+  };
+
+  /** Clears the entire queue locally and on the backend */
+  const handleQueueClear = async () => {
+    await queueClear().catch(() => {});
+    setQueue([]);
+  };
+
+  /** Removes a single item from the local queue display (backend manages the real list) */
+  const handleQueueRemoveLocal = (idx) => setQueue(prev => prev.filter((_, i) => i !== idx));
 
   /** Changes i18n language and updates the HTML lang attribute */
   const changeLang = (lng) => {
@@ -335,6 +365,73 @@ function SidebarContent({
             <Zap size={15} aria-hidden="true" />
             {t('ops.start')}
           </button>
+
+          {/* ── Fila de extração ── */}
+          <div className={`border-t pt-3 mt-1 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <ListOrdered size={11} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
+              <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+                Fila {queue.length > 0 && <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-600'}`}>{queue.length}</span>}
+              </p>
+            </div>
+
+            {/* Input para adicionar à fila */}
+            <div className="space-y-1.5">
+              <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                <Link2 size={12} className="text-slate-400 shrink-0" aria-hidden="true" />
+                <input
+                  type="url"
+                  placeholder="youtube.com/@próximocanal"
+                  value={queueInput}
+                  onChange={e => { setQueueInput(e.target.value); setQueueError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleQueueAdd()}
+                  aria-label="URL do próximo canal para a fila"
+                  className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                <button onClick={handleQueueAdd} disabled={queueAdding || !queueInput.trim()}
+                  aria-label="Adicionar à fila"
+                  className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-40
+                    ${darkMode ? 'bg-white/10 text-slate-300 hover:bg-white/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} ${btnFocus}`}>
+                  {queueAdding ? <Loader2 size={10} className="animate-spin" /> : '+'}
+                </button>
+              </div>
+              {queueError && (
+                <p role="alert" className="text-[10px] text-danger flex items-center gap-1">
+                  <AlertTriangle size={10} aria-hidden="true" /> {queueError}
+                </p>
+              )}
+            </div>
+
+            {/* Lista dos canais na fila */}
+            {queue.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {queue.map((url, idx) => {
+                  const nome = url.match(/@([^/?\s]+)/)?.[1] || url.split('/').pop();
+                  return (
+                    <div key={idx} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${darkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
+                      <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded ${darkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{idx + 1}</span>
+                      <span className={`flex-1 truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>@{nome}</span>
+                      <button onClick={() => handleQueueRemoveLocal(idx)}
+                        aria-label={`Remover @${nome} da fila`}
+                        className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-danger' : 'text-slate-400 hover:text-danger'} ${btnFocus}`}>
+                        <XCircle size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+                <button onClick={handleQueueClear}
+                  className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors mt-1
+                    ${darkMode ? 'text-danger/60 hover:text-danger hover:bg-danger/10' : 'text-red-400 hover:text-red-600 hover:bg-red-50'} ${btnFocus}`}>
+                  <Trash2 size={10} aria-hidden="true" /> Limpar fila
+                </button>
+              </div>
+            )}
+
+            {queue.length === 0 && (
+              <p className={`text-[10px] mt-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                Adicione canais para extrair em sequência após o atual.
+              </p>
+            )}
+          </div>
         </>
       )}
 

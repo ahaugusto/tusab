@@ -18,36 +18,77 @@ router = APIRouter()
 
 # ── Background helper ─────────────────────────────────────────────────────────
 
+def _reset_stats():
+    """Zera contadores de progresso antes de cada extração."""
+    with state.state_lock:
+        state.logs                           = []
+        state.stats["videos_processed"]     = 0
+        state.stats["videos_total"]         = 0
+        state.stats["videos_sem_legenda"]   = 0
+        state.stats["videos_legenda_curta"] = 0
+        state.stats["files_generated"]      = 0
+        state.stats["progress"]             = 0
+        state.stats["idioma_detectado"]     = ""
+
+
 def run_motor():
-    try:
-        state.is_running = True
-        state.stats["status"] = "Mapeando YouTube"
+    """Executa a extração do canal atual e, ao terminar, consome a fila."""
+    while True:
+        try:
+            state.is_running = True
+            state.stats["status"] = "Mapeando YouTube"
+            _reset_stats()
 
-        motor_sebayt.sebayt_engine(
-            canal_url=state.canal_url,
-            evento_pausa=state.evento_pausa,
-            evento_cancelar=state.evento_cancelar,
-            fontes_filtro=state.fontes_filtro or None
-        )
+            motor_sebayt.sebayt_engine(
+                canal_url=state.canal_url,
+                evento_pausa=state.evento_pausa,
+                evento_cancelar=state.evento_cancelar,
+                fontes_filtro=state.fontes_filtro or None,
+            )
 
-        if state.evento_cancelar.is_set():
-            state.stats["status"] = "Interrompido"
-        else:
-            state.stats["status"] = "Finalizado ✓"
+            cancelado = state.evento_cancelar.is_set()
+            if cancelado:
+                state.stats["status"] = "Interrompido"
+                # Cancelamento limpa a fila — o usuário abortou tudo
+                with state.queue_lock:
+                    state.extraction_queue.clear()
+                break
+
+            state.stats["status"]   = "Finalizado ✓"
             state.stats["progress"] = 100
 
-        def _reset_status():
-            time.sleep(15)
-            if not state.is_running:
-                state.stats["status"]   = "Ocioso"
-                state.stats["progress"] = 0
-        threading.Thread(target=_reset_status, daemon=True).start()
-    except Exception as e:
-        print(f"❌ ERRO NO MOTOR: {e}")
-        state.stats["status"] = "Erro"
-    finally:
-        state.is_running = False
-        state.is_paused  = False
+        except Exception as e:
+            print(f"❌ ERRO NO MOTOR: {e}")
+            state.stats["status"] = "Erro"
+            # Erro num canal não cancela a fila; continua para o próximo
+        finally:
+            state.is_running = False
+            state.is_paused  = False
+
+        # Verifica fila antes de decidir se terminou
+        with state.queue_lock:
+            proximo = state.extraction_queue.pop(0) if state.extraction_queue else None
+
+        if proximo is None:
+            # Fila vazia — aguarda 15s e reseta status
+            def _reset_status():
+                time.sleep(15)
+                if not state.is_running:
+                    state.stats["status"]   = "Ocioso"
+                    state.stats["progress"] = 0
+            threading.Thread(target=_reset_status, daemon=True).start()
+            break
+
+        # Próximo canal da fila — configura e continua o loop
+        url = proximo["url"]
+        match = re.search(r'@([^/?\s]+)', url)
+        state.canal_url             = url
+        state.stats["canal_nome"]   = match.group(1) if match else url.rstrip('/').split('/')[-1]
+        state.stats["status"]       = "Na fila"
+        state.fontes_filtro         = proximo.get("fontes", [])
+        state.evento_cancelar.clear()
+        state.evento_pausa.set()
+        state.is_paused             = False
 
 
 # ── Models ────────────────────────────────────────────────────────────────────
@@ -56,6 +97,10 @@ class ChannelRequest(BaseModel):
     canal_url: str
 
 class StartRequest(BaseModel):
+    fontes: list = []
+
+class QueueAddRequest(BaseModel):
+    canal_url: str
     fontes: list = []
 
 
@@ -84,17 +129,8 @@ def start_engine(background_tasks: BackgroundTasks, req: StartRequest = None):
     if not state.canal_url:
         return {"message": "Configure a URL do canal antes de iniciar", "error": True}
     if not state.is_running:
-        with state.state_lock:
-            state.logs                             = []
-            state.stats["videos_processed"]       = 0
-            state.stats["videos_total"]           = 0
-            state.stats["videos_sem_legenda"]     = 0
-            state.stats["videos_legenda_curta"]   = 0
-            state.stats["files_generated"]        = 0
-            state.stats["progress"]               = 0
-            state.stats["status"]                 = "Iniciando"
-            state.stats["idioma_detectado"]       = ""
-        state.fontes_filtro                   = (req.fontes if req else [])
+        state.stats["status"]   = "Iniciando"
+        state.fontes_filtro     = (req.fontes if req else [])
         state.evento_cancelar.clear()
         state.evento_pausa.set()
         state.is_paused = False
@@ -127,3 +163,31 @@ def cancel_engine():
         state.stats["status"] = "Cancelando..."
         return {"message": "Cancelando"}
     return {"message": "Motor não está rodando"}
+
+
+@router.post("/queue/add")
+def queue_add(req: QueueAddRequest):
+    """Adiciona um canal à fila de extração sequencial."""
+    url = req.canal_url.strip()
+    if not url or not _YT_URL_RE.match(url):
+        return {"error": True, "message": "URL inválida. Use o formato: https://www.youtube.com/@canal"}
+    with state.queue_lock:
+        state.extraction_queue.append({"url": url, "fontes": req.fontes})
+        tamanho = len(state.extraction_queue)
+    return {"ok": True, "queue_size": tamanho}
+
+
+@router.delete("/queue/clear")
+def queue_clear():
+    """Remove todos os itens pendentes da fila (não afeta a extração em curso)."""
+    with state.queue_lock:
+        state.extraction_queue.clear()
+    return {"ok": True}
+
+
+@router.get("/queue")
+def queue_status():
+    """Retorna os itens atualmente na fila."""
+    with state.queue_lock:
+        itens = list(state.extraction_queue)
+    return {"queue": itens}
