@@ -210,6 +210,31 @@ Saída: `dist_electron/Sebayt Setup 2.0.0.exe`
 
 ---
 
+## Interface responsiva e acessível
+
+A interface foi projetada para funcionar bem em dispositivos móveis, tablets e desktops.
+
+**Breakpoints:**
+
+| Breakpoint | Largura | Comportamento |
+|------------|---------|---------------|
+| Mobile | < 768px | Nav drawer deslizante, logo compacta, botões full-width |
+| Tablet (`md:`) | ≥ 768px | Nav rail lateral fixa, painel logo aparece na Home |
+| Desktop (`lg:`) | ≥ 1024px | Logo maior (320px), padding ampliado |
+
+**Acessibilidade (WCAG 2.1 AA):**
+
+- Touch targets mínimos de 44×44px em todos os botões interativos
+- `aria-label` em todos os botões de ícone sem texto visível
+- `aria-expanded` em painéis expansíveis (configurações avançadas)
+- `role="dialog" aria-modal="true"` em todos os modais via `ModalWrapper`
+- Navegação por teclado com focus trap em modais e `Escape` para fechar
+- `<caption className="sr-only">` nas tabelas de dados
+- `aria-live="polite"` no status de extração em tempo real
+- `role="tabpanel" aria-labelledby` nos painéis de aba
+
+---
+
 ## Segurança
 
 O Sebayt roda localmente — sem servidor central, sem dados na nuvem por padrão. Todos os dados ficam na máquina do usuário.
