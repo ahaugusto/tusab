@@ -69,6 +69,10 @@ class AppState:
         # Filtro de fontes de extração
         self.fontes_filtro: list = []
 
+        # Fila de extração sequencial: lista de {"url": str, "fontes": list}
+        self.extraction_queue: list = []
+        self.queue_lock = threading.Lock()
+
 
 # Singleton — importado diretamente por api_brainiac e pelos routers
 state = AppState()

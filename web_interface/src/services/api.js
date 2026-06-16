@@ -41,8 +41,17 @@ export const startExtraction = (fontes) => axios.post(`${API_BASE}/start`, { fon
 /** Pauses or resumes the extraction engine */
 export const pauseExtraction = () => axios.post(`${API_BASE}/pause`);
 
-/** Cancels the running extraction */
+/** Cancels the running extraction (also clears the queue) */
 export const cancelExtraction = () => axios.post(`${API_BASE}/cancel`);
+
+/** Adds a channel URL to the extraction queue */
+export const queueAdd = (canal_url, fontes = []) => axios.post(`${API_BASE}/queue/add`, { canal_url, fontes });
+
+/** Clears all pending items from the extraction queue */
+export const queueClear = () => axios.delete(`${API_BASE}/queue/clear`);
+
+/** Returns current queue contents */
+export const fetchQueue = () => axios.get(`${API_BASE}/queue`);
 
 // ─── Drive ───────────────────────────────────────────────────────────────────
 

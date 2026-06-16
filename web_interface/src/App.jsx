@@ -162,6 +162,7 @@ function App() {
     if (s.includes('Finalizado'))                          return 'text-secondary';
     if (s.includes('Erro') || s.includes('Interrompido')) return 'text-danger';
     if (s.includes('Pausa'))                              return 'text-warning';
+    if (s.includes('Na fila'))                            return 'text-accent';
     if (isRunning)                                        return 'text-primary';
     return darkMode ? 'text-slate-200' : 'text-slate-700';
   };
