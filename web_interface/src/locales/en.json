@@ -49,6 +49,7 @@
   "banner.aria": "Local mode active",
   "progress.title": "Progress",
   "progress.processing": "Processing captions...",
+  "progress.mapping": "Mapping channel, please wait...",
   "stats.open_folder": "Open folder",
   "stats.processed": "Processed Videos",
   "stats.files": "Generated Files",

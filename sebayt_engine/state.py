@@ -41,6 +41,7 @@ class AppState:
         self.stats               = {
             "videos_processed":    0,
             "videos_total":        0,
+            "videos_mapeados":     0,
             "videos_sem_legenda":  0,
             "videos_legenda_curta":0,
             "files_generated":     0,
@@ -116,9 +117,17 @@ class LogRedirector:
             if m_lang:
                 state.stats["idioma_detectado"] = m_lang.group(1).strip()
 
-            m = re.search(r'(\d+)\s+v[íi]deos?\s+mapeados?', clean, re.IGNORECASE)
+            # Print incremental por fonte: "📋 Videos: 2173 vídeos mapeados (2173 no total)"
+            m_inc = re.search(r'(\d+)\s+v[íi]deos?\s+mapeados?\s+\((\d+)\s+no\s+total\)', clean, re.IGNORECASE)
+            if m_inc:
+                state.stats["videos_mapeados"] = int(m_inc.group(2))
+                state.stats["status"] = "Mapeando YouTube"
+
+            # Print final: "✅ 2173 vídeos mapeados no canal."
+            m = re.search(r'(\d+)\s+v[íi]deos?\s+mapeados?\s+no\s+canal', clean, re.IGNORECASE)
             if m:
                 state.stats["videos_total"] = int(m.group(1))
+                state.stats["videos_mapeados"] = int(m.group(1))
                 state.stats["status"] = "Extraindo legendas"
 
             if len(state.logs) > 500:

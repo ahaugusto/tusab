@@ -321,6 +321,7 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
     # --- 1. MAPEAMENTO ---
     all_videos = []
     ids_mapeados = set()
+    titulos_mapeados = set()  # fallback de dedup quando upload_date = NA
 
     print("📡 Mapeando conteúdo do canal no YouTube...\n")
     for fonte in FONTES:
@@ -343,28 +344,46 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
                     stdout_v = executar_comando(cmd_v)
                     for line in stdout_v.split('\n'):
                         parts = line.split('|||')
-                        if len(parts) >= 4 and parts[0] not in ids_mapeados:
+                        if len(parts) >= 4:
+                            vid, titulo = parts[0], parts[3].strip()
+                            if vid in ids_mapeados:
+                                continue
+                            if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
+                                continue
                             all_videos.append({
-                                'id': parts[0], 'date': formatar_data(parts[1]),
-                                'views': parts[2], 'title': parts[3],
+                                'id': vid, 'date': formatar_data(parts[1]),
+                                'views': parts[2], 'title': titulo,
                                 'aba': f"Playlist: {p_lines[i]}"
                             })
-                            ids_mapeados.add(parts[0])
+                            ids_mapeados.add(vid)
+                            if titulo:
+                                titulos_mapeados.add(titulo)
         else:
             cmd = [
                 'yt-dlp', '--flat-playlist', '--ignore-errors',
                 '--print', '%(id)s|||%(upload_date)s|||%(view_count)s|||%(title)s', url
             ]
             stdout = executar_comando(cmd)
+            novos_fonte = 0
             for line in stdout.split('\n'):
                 parts = line.split('|||')
-                if len(parts) >= 4 and parts[0] not in ids_mapeados:
+                if len(parts) >= 4:
+                    vid, titulo = parts[0], parts[3].strip()
+                    if vid in ids_mapeados:
+                        continue
+                    if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
+                        continue
                     all_videos.append({
-                        'id': parts[0], 'date': formatar_data(parts[1]),
-                        'views': parts[2], 'title': parts[3],
+                        'id': vid, 'date': formatar_data(parts[1]),
+                        'views': parts[2], 'title': titulo,
                         'aba': aba
                     })
-                    ids_mapeados.add(parts[0])
+                    ids_mapeados.add(vid)
+                    if titulo:
+                        titulos_mapeados.add(titulo)
+                    novos_fonte += 1
+            if novos_fonte > 0:
+                print(f"   📋 {aba}: {novos_fonte} vídeos mapeados ({len(all_videos)} no total)\n")
 
     df_full = pd.DataFrame(all_videos)
     total_liquido = len(df_full)

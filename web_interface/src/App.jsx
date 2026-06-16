@@ -960,18 +960,35 @@ function App() {
                         {totalVideos > 0 && (
                           <span className={`text-xs font-mono ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{processedVideos} / {totalVideos}</span>
                         )}
+                        {totalVideos === 0 && status.stats.videos_mapeados > 0 && (
+                          <span className={`text-xs font-mono ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{status.stats.videos_mapeados} mapeados</span>
+                        )}
                         <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{progress}%</span>
                       </div>
                     </div>
-                    <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}
-                      aria-label={`${t('progress.title')}: ${progress}%`}
-                      className={`h-2.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
-                      <motion.div className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                        initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: 'easeOut' }} />
-                    </div>
+
+                    {/* Barra indeterminada durante mapeamento de canal extenso */}
+                    {isRunning && totalVideos === 0 ? (
+                      <div className={`h-2.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}
+                        role="progressbar" aria-valuetext={t('progress.mapping')} aria-busy="true">
+                        <motion.div
+                          className="h-full w-1/3 rounded-full bg-gradient-to-r from-primary to-accent"
+                          animate={{ x: ['0%', '200%', '0%'] }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }} />
+                      </div>
+                    ) : (
+                      <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}
+                        aria-label={`${t('progress.title')}: ${progress}%`}
+                        className={`h-2.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
+                        <motion.div className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                          initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: 'easeOut' }} />
+                      </div>
+                    )}
+
                     {isRunning && !isPaused && (
                       <p aria-live="polite" className={`text-[11px] mt-2 flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-                        <Loader2 size={10} className="animate-spin" aria-hidden="true" /> {t('progress.processing')}
+                        <Loader2 size={10} className="animate-spin" aria-hidden="true" />
+                        {totalVideos === 0 ? t('progress.mapping') : t('progress.processing')}
                       </p>
                     )}
                   </motion.div>
