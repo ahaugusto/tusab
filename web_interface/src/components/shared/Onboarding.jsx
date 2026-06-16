@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Brain, Play, FolderOpen, Bot, BarChart2 } from 'lucide-react';
+import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2 } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from './ModalWrapper';
 
@@ -26,15 +26,13 @@ function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
 
   const STEPS = [
-    {
-      icon: Brain,
-      title: t('onboarding.s1_title'),
-      body: t('onboarding.s1_body'),
-    },
-    { icon: Play,       title: t('onboarding.s2_title'), body: t('onboarding.s2_body') },
-    { icon: FolderOpen, title: t('onboarding.s3_title'), body: t('onboarding.s3_body') },
-    { icon: Bot,        title: t('onboarding.s4_title'), body: t('onboarding.s4_body') },
-    { icon: BarChart2,  title: t('onboarding.s5_title'), body: t('onboarding.s5_body') },
+    { icon: Brain,         title: t('onboarding.s1_title'), body: t('onboarding.s1_body') },
+    { icon: Play,          title: t('onboarding.s2_title'), body: t('onboarding.s2_body') },
+    { icon: FolderOpen,    title: t('onboarding.s3_title'), body: t('onboarding.s3_body') },
+    { icon: Cloud,         title: t('onboarding.s4_title'), body: t('onboarding.s4_body') },
+    { icon: Cpu,           title: t('onboarding.s5_title'), body: t('onboarding.s5_body') },
+    { icon: MessageSquare, title: t('onboarding.s6_title'), body: t('onboarding.s6_body') },
+    { icon: BarChart2,     title: t('onboarding.s7_title'), body: t('onboarding.s7_body') },
   ];
 
   const total   = STEPS.length;
