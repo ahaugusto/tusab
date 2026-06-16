@@ -14,7 +14,7 @@ import ModalWrapper from './ModalWrapper';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
- * GuideModal — displays a 6-step how-to guide in a modal overlay
+ * GuideModal — displays a 10-step how-to guide in a modal overlay
  *
  * @param {Object} props
  * @param {Function} props.onClose - callback to close the modal
@@ -25,12 +25,16 @@ function GuideModal({ onClose, darkMode }) {
   const { t } = useTranslation();
 
   const steps = [
-    { step: 1, color: 'primary',   text: t('guide.step1') },
-    { step: 2, color: 'primary',   text: t('guide.step2') },
-    { step: 3, color: 'accent',    text: t('guide.step3') },
-    { step: 4, color: 'secondary', text: t('guide.step4') },
-    { step: 5, color: 'secondary', text: t('guide.step5') },
-    { step: 6, color: 'primary',   text: t('guide.step6') },
+    { step: 1,  color: 'primary',   text: t('guide.step1')  },
+    { step: 2,  color: 'primary',   text: t('guide.step2')  },
+    { step: 3,  color: 'accent',    text: t('guide.step3')  },
+    { step: 4,  color: 'accent',    text: t('guide.step4')  },
+    { step: 5,  color: 'secondary', text: t('guide.step5')  },
+    { step: 6,  color: 'secondary', text: t('guide.step6')  },
+    { step: 7,  color: 'secondary', text: t('guide.step7')  },
+    { step: 8,  color: 'primary',   text: t('guide.step8')  },
+    { step: 9,  color: 'primary',   text: t('guide.step9')  },
+    { step: 10, color: 'accent',    text: t('guide.step10') },
   ];
 
   return (
@@ -39,7 +43,7 @@ function GuideModal({ onClose, darkMode }) {
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className={`rounded-2xl p-6 max-w-2xl w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+        className={`rounded-2xl p-6 max-w-3xl w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
@@ -54,13 +58,13 @@ function GuideModal({ onClose, darkMode }) {
           </div>
           <button onClick={onClose}
             className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-            aria-label="Fechar guia">
+            aria-label={t('nav.close_menu')}>
             <X size={16} />
           </button>
         </div>
 
-        {/* Steps grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Steps grid — 2 columns on sm+, scrollable on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto pr-1">
           {steps.map(({ step, color, text }) => (
             <div key={step} className={`flex gap-3 p-3 rounded-xl ${darkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
               <div className={`w-5 h-5 rounded-full bg-${color}/20 text-${color} flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5`} aria-hidden="true">{step}</div>
