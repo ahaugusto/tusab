@@ -106,10 +106,11 @@ def limpar_vtt(caminho_vtt):
     return " ".join(resultado).strip()
 
 
-# Idiomas suportados pelo sistema, em ordem de prioridade de busca de legenda.
-# pt-BR é separado de pt porque o YouTube trata como variantes distintas.
-# A cascata cobre canais BR, PT, EN e ES sem duplicar requests.
-_SUB_LANGS = 'pt,pt-BR,en,es'
+# Idiomas em ordem de tentativa. Baixados em duas passagens para evitar 429:
+# 1a passagem: pt e pt-BR (cobre 90%+ dos canais BR/PT)
+# 2a passagem: en, es -- só se a 1a nao gerou nenhum VTT
+_SUB_LANGS_PRIMARY   = 'pt,pt-BR'
+_SUB_LANGS_FALLBACK  = 'en,es'
 
 # Timeout padrão para qualquer chamada yt-dlp (segundos).
 # Mapeamento de canal grande pode levar mais — executar_comando não usa timeout
@@ -197,12 +198,13 @@ def _ytdlp_update():
 
 
 def detectar_idiomas_canal(_all_videos):
-    """Cascata de idiomas para busca de legendas.
+    """Retorna par (primary, fallback) de idiomas para busca de legendas.
 
-    Cobre canais BR (pt-BR), Portugal (pt), anglófonos (en) e hispânicos (es).
-    O yt-dlp tenta cada idioma na ordem e usa o primeiro disponível.
+    Estratégia de duas passagens para evitar 429:
+    - Primária: pt,pt-BR (cobre 90%+ dos canais BR/PT, uma única request)
+    - Fallback: en,es (só tentado se a primária não gerou nenhum VTT)
     """
-    return _SUB_LANGS
+    return _SUB_LANGS_PRIMARY, _SUB_LANGS_FALLBACK
 
 
 def gerar_fontes(canal_url):
@@ -480,8 +482,8 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
     salvar_json_atomico(existing_summary, summary_path)
 
     # --- 1b. IDIOMAS ---
-    sub_langs = detectar_idiomas_canal(all_videos)
-    print(f"      📋 Idiomas configurados: {sub_langs}\n")
+    sub_langs_primary, sub_langs_fallback = detectar_idiomas_canal(all_videos)
+    print(f"      📋 Idiomas: primário={sub_langs_primary} | fallback={sub_langs_fallback}\n")
 
     # --- 1c. VERIFICAÇÃO DE DRIVE (conexão adiada para após extração local) ---
     status_drive = get_drive_status()
@@ -600,18 +602,32 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
             temp_base = f"temp_{v_id}"
             temp_out = os.path.join(TEMP_DIR, temp_base)
 
-            # Baixa legendas. --print não pode ser combinado com --write-auto-subs
-            # no yt-dlp 2026+ (ativa simulação que suprime escrita de arquivos).
-            _, sub_err, sub_rc = _ytdlp_run(
-                ['--skip-download', '--write-auto-subs', '--write-subs',
-                 '--sub-langs', sub_langs, '--output', temp_out,
-                 '--js-runtimes', 'node', v_link],
-                capture_stderr=True,
-            )
+            # Passagem 1: idiomas primários (pt, pt-BR).
+            # Evita 429 tentando todos os idiomas de uma vez só.
+            def _sub_cmd(langs):
+                return ['--skip-download', '--write-auto-subs', '--write-subs',
+                        '--sub-langs', langs, '--output', temp_out,
+                        '--js-runtimes', 'node', v_link]
+
+            def _has_vtt():
+                return any(
+                    f.startswith(temp_base) and f.endswith('.vtt')
+                    for f in os.listdir(TEMP_DIR)
+                )
+
+            _, sub_err, sub_rc = _ytdlp_run(_sub_cmd(sub_langs_primary), capture_stderr=True)
             if sub_rc != 0 and sub_err:
                 erros = [l for l in sub_err.splitlines() if 'ERROR' in l]
                 if erros:
-                    print(f"      ⚠️ yt-dlp: {erros[-1][:120]}")
+                    print(f"      ⚠️ yt-dlp (primário): {erros[-1][:120]}")
+
+            # Passagem 2: fallback (en, es) — só se não encontrou VTT na primária.
+            if not _has_vtt():
+                _, sub_err2, sub_rc2 = _ytdlp_run(_sub_cmd(sub_langs_fallback), capture_stderr=True)
+                if sub_rc2 != 0 and sub_err2:
+                    erros2 = [l for l in sub_err2.splitlines() if 'ERROR' in l]
+                    if erros2:
+                        print(f"      ⚠️ yt-dlp (fallback): {erros2[-1][:120]}")
 
             # Busca data + tags numa única chamada para evitar request extra.
             data_real = video['date']
