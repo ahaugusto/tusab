@@ -137,10 +137,9 @@ def open_folder(name: str, prefixo: str = ""):
     from sebayt_engine.storage import CEREBRO_DIR
     folders = {
         "data":          motor_sebayt.DATA_DIR,
-        "cerebro_txt":   motor_sebayt.LOCAL_TXT_DIR,
         "gestao":        motor_sebayt.GESTAO_DIR,
         "agent_index":   agent_sebayt.INDEX_DIR,
-        "canal_youtube": os.path.join(CEREBRO_DIR, prefixo, "youtube") if prefixo else motor_sebayt.LOCAL_TXT_DIR,
+        "canal_youtube": os.path.join(CEREBRO_DIR, prefixo, "youtube") if prefixo else motor_sebayt.CEREBRO_DIR,
     }
     target = folders.get(name)
     if not target:
