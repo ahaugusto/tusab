@@ -347,7 +347,7 @@ function App() {
         videos_total:       status.stats.videos_total,
         sem_legenda:        status.stats.videos_sem_legenda,
       });
-      const notify = () => new Notification("Sebayt — Extração concluída!", {
+      const notify = () => new Notification(t('notify.extraction_done'), {
         body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
         icon: '/logo_light_mode.svg',
       });
@@ -633,10 +633,10 @@ function App() {
 
         {/* ── Nav Rail (tablet+) ── */}
         {!showHome && (
-          <nav aria-label="Navegação principal"
+          <nav aria-label={t('nav.main')}
             className={`hidden md:flex shrink-0 flex-col items-center w-14 py-3 border-r
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            <button onClick={() => setShowHome(true)} aria-label="Voltar à tela inicial" title="Voltar ao início"
+            <button onClick={() => setShowHome(true)} aria-label={t('nav.home')} title={t('nav.home')}
               className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
               <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
                 style={{ width: 34, height: 34, objectFit: 'contain' }}
@@ -676,8 +676,8 @@ function App() {
             </button>
             <button
               onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
-              aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              title={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              aria-label={darkMode ? t('footer.light') : t('footer.dark')}
+              title={darkMode ? t('footer.light') : t('footer.dark')}
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors mb-1 ${BTN_FOCUS}
                 ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
               {darkMode ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
@@ -689,7 +689,7 @@ function App() {
         {/* Mobile nav drawer */}
         <AnimatePresence>
           {sidebarOpen && (
-            <motion.nav aria-label="Navegação principal"
+            <motion.nav aria-label={t('nav.main')}
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
               className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 md:hidden
@@ -701,7 +701,7 @@ function App() {
                     style={{ width: 32, height: 32, objectFit: 'contain' }}
                     onError={e => { e.target.style.display = 'none'; }} />
                 </button>
-                <button onClick={() => setSidebarOpen(false)} aria-label="Fechar menu"
+                <button onClick={() => setSidebarOpen(false)} aria-label={t('nav.close_menu')}
                   className={`p-2 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'} ${BTN_FOCUS}`}>
                   <X size={16} />
                 </button>

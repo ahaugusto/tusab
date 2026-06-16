@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
 import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase } from '../../services/api';
 import { Analytics } from '../../services/analytics';
@@ -39,6 +40,7 @@ function _emojiTipo(item) {
  * @returns {JSX.Element}
  */
 function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo }) {
+  const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
   const setShowAdd = (v) => { setShowAddLocal(v); setShowAddProp?.(v); };
@@ -120,7 +122,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Repositório de Conhecimento</h2>
+          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.title')}</h2>
           <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
             {total} arquivo{total !== 1 ? 's' : ''}
             {canalAtivo && <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-50 text-violet-600'}`}>@{canalAtivo}</span>}
@@ -132,7 +134,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
                 ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200'}`}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
-              Limpar
+              {t('repo.clear')}
             </button>
           )}
           <button onClick={() => setShowAdd(!showAdd_)}
@@ -144,14 +146,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
       {/* Modal — limpar base (portal para evitar clipping por transform de pai) */}
       {showLimpar && ReactDOM.createPortal(
-        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar base de conhecimento">
+        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('repo.clear_title')}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <div>
-                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar base de conhecimento</h3>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.clear_title')}</h3>
                 <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Esta ação é irreversível. Selecione o que deseja remover:</p>
               </div>
             </div>
@@ -181,7 +183,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <button onClick={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
               <button onClick={handleLimpar}
                 disabled={limpando || (!limparSel.youtube && !limparSel.documentos && !limparSel.textos)}
@@ -215,7 +217,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 className={`w-full rounded-xl border px-3 py-2 text-xs outline-none resize-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
               <button onClick={handleSaveText} disabled={saving || !title.trim() || !text.trim()}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
-                {saving ? 'Salvando...' : 'Salvar texto'}
+                {saving ? t('repo.saving') : t('repo.save_text')}
               </button>
             </>
           ) : (

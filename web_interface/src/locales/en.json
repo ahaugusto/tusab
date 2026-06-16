@@ -192,5 +192,17 @@
   "chat.chunks_indexed": "chunks indexed",
   "chat.switch_base": "Switch base",
   "chat.clear": "Clear",
-  "chat.close": "Close chat"
+  "chat.close": "Close chat",
+  "nav.main": "Main navigation",
+  "nav.home": "Back to home",
+  "nav.close_menu": "Close menu",
+  "notify.extraction_done": "Sebayt — Extraction complete!",
+  "repo.title": "Knowledge Repository",
+  "repo.clear": "Clear",
+  "repo.clear_title": "Clear knowledge base",
+  "repo.cancel": "Cancel",
+  "repo.saving": "Saving...",
+  "repo.save_text": "Save text",
+  "relatorio.title": "Extraction Report",
+  "relatorio.clear": "Clear history"
 }
