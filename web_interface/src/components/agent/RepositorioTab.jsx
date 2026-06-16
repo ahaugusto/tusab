@@ -11,6 +11,19 @@ import ModalWrapper from '../shared/ModalWrapper';
 import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const _EXTS_IMAGEM = new Set(['png','jpg','jpeg','webp','bmp','tiff','tif']);
+const _EXTS_AUDIO  = new Set(['mp3','wav','m4a','ogg','flac','opus','aac']);
+
+function _emojiTipo(item) {
+  const ext = (item.tipo || '').toLowerCase();
+  if (_EXTS_IMAGEM.has(ext)) return '🖼️';
+  if (_EXTS_AUDIO.has(ext))  return '🎵';
+  if (item._tipo === 'textos') return '📝';
+  return '📄';
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -211,13 +224,18 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 ${darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}
                 onClick={() => fileRef.current?.click()}>
                 <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {file ? file.name : 'Clique para selecionar PDF, DOCX, TXT ou MD'}
+                  {file ? file.name : 'Clique para selecionar arquivo'}
                 </p>
                 <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  Suporte: .pdf .docx .txt .md
+                  Documentos: .pdf .docx .txt .md
+                </p>
+                <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Imagens: .png .jpg .jpeg .webp · Áudio: .mp3 .wav .m4a .ogg .flac
                 </p>
               </div>
-              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden"
+              <input ref={fileRef} type="file"
+                accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac"
+                className="hidden"
                 onChange={e => setFile(e.target.files[0] || null)} />
               <button onClick={handleUpload} disabled={saving || !file}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30 ${btnFocus}`}>
@@ -264,7 +282,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   ...canal.textos.map(d => ({...d, _tipo: 'textos'}))
                 ].map((item, i) => (
                   <div key={`doc-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                    <span className="text-sm shrink-0">{item._tipo === 'textos' ? '📝' : '📄'}</span>
+                    <span className="text-sm shrink-0">{_emojiTipo(item)}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
                       <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
@@ -312,7 +330,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   ))
                   : group.items.map((item, i) => (
                     <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                      <span className="text-sm shrink-0">{group.tipo === 'textos' ? '📝' : '📄'}</span>
+                      <span className="text-sm shrink-0">{_emojiTipo({...item, _tipo: group.tipo})}</span>
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
                         <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>

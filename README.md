@@ -26,6 +26,8 @@ O diferencial: extração de canais YouTube inteiros + processamento 100% local,
 
 - Extração automática de canais inteiros do YouTube (legendas + metadados)
 - Upload de PDFs, DOCX, Markdown e TXT
+- Upload de imagens (PNG, JPG, WEBP etc.) — descrição via Ollama multimodal ou OCR Tesseract
+- Upload de áudio (MP3, WAV, M4A etc.) — transcrição via faster-whisper local
 - Colar texto diretamente pela interface
 - Agente RAG local: BM25Okapi + anti-alucinação + multi-canal
 - Chat com streaming de resposta e citação verificável da fonte
@@ -58,6 +60,8 @@ O Ollama é configurado na primeira execução via wizard embutido. Para provedo
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React  
 **Desktop:** Electron 34 + electron-builder (instalador NSIS para Windows)  
 **Extração:** yt-dlp (bundled) + pdfplumber + python-docx  
+**Imagens:** Ollama multimodal (llava/gemma3) → fallback Tesseract OCR  
+**Áudio:** faster-whisper (modelo `base`, CPU, ~150 MB)  
 **Drive:** Google Auth OAuth2 (escopo drive.file)
 
 ---
