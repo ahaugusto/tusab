@@ -62,6 +62,12 @@ SPRINT IMEDIATO — PRODUTO (em execução)
    Touch targets ≥ 44px, aria-labels em botões de ícone, tabelas com
    caption sr-only, focus trap em modais, aria-expanded em painéis.
 
+✅ Suporte a imagens e áudio no repositório (v2.1.0)
+   Imagens: Ollama multimodal (llava/gemma3) → fallback Tesseract OCR.
+   Áudio: transcrição local com faster-whisper (modelo base, CPU).
+   Dependências opcionais: pytesseract (pip) + Tesseract binário; faster-whisper (pip).
+   O conteúdo extraído entra no BM25 igual a qualquer outro documento.
+
 ─────────────────────────────────────────
 QUANDO O PRODUTO ESTIVER PRONTO PARA LANÇAR
 ─────────────────────────────────────────

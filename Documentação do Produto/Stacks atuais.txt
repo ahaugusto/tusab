@@ -16,11 +16,17 @@ pdfplumber — extração de texto de PDFs
 python-docx — extração de texto de DOCX
 python-multipart — upload de arquivos via FastAPI
 
+Dependências opcionais (imagens e áudio):
+  pytesseract — OCR fallback para imagens (requer Tesseract binário: winget install tesseract)
+  faster-whisper — transcrição local de áudio, modelo base ~150 MB, roda em CPU sem GPU
+
 ─────────────────────────────────────────
 AGENTE RAG
 ─────────────────────────────────────────
 
 rank_bm25 — busca lexical BM25Okapi com cache em memória por canal
+  → Imagens indexadas como documentos (descrição ou OCR convertida para .txt)
+  → Áudios indexados como documentos (transcrição convertida para .txt)
   → Enriquecimento: tags YouTube (3×) + keywords TF-IDF (2×) + descrições
   → Query expansion: LLM gera variações da pergunta, scores combinados
   → Multi-canal: busca simultânea em múltiplos índices com merge
