@@ -79,6 +79,21 @@ Padrão de comentários DevOps aplicado em todos os arquivos:
   · Seções marcadas: // ─── Nome ───────────
   · Handlers documentados com JSDoc inline
 
+Responsividade:
+  Breakpoints: sm (640px) · md (768px) · lg (1024px)
+  · Mobile (<768px): nav drawer deslizante, logo compacta, botões full-width
+  · Tablet (md): nav rail lateral fixa, painel logo na Home, sem drawer
+  · Desktop (lg): logo 320px, padding ampliado, layout split na Home
+
+Acessibilidade (WCAG 2.1 AA):
+  · Touch targets ≥ 44×44px em todos os botões interativos
+  · aria-label em todos os botões de ícone sem texto visível
+  · aria-expanded em painéis expansíveis
+  · role="dialog" aria-modal="true" via ModalWrapper em todos os modais
+  · Focus trap + Escape-to-close em modais
+  · caption sr-only em tabelas de dados
+  · aria-live="polite" no status de extração
+
 ─────────────────────────────────────────
 DISTRIBUIÇÃO
 ─────────────────────────────────────────

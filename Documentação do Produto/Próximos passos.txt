@@ -57,6 +57,11 @@ SPRINT IMEDIATO — PRODUTO (em execução)
    Redundante: pasta cerebro/ já é local (acesso direto) e o Drive
    já cobre o compartilhamento com outros usuários. Sem valor adicional.
 
+✅ Responsividade e acessibilidade (v2.0.1)
+   Layout responsivo: breakpoints md (768px) e lg (1024px) em toda a UI.
+   Touch targets ≥ 44px, aria-labels em botões de ícone, tabelas com
+   caption sr-only, focus trap em modais, aria-expanded em painéis.
+
 ─────────────────────────────────────────
 QUANDO O PRODUTO ESTIVER PRONTO PARA LANÇAR
 ─────────────────────────────────────────
