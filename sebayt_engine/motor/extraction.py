@@ -4,6 +4,7 @@ Engine de extração de transcrições do YouTube e geração de base de conheci
 """
 
 import os
+import sys
 import time
 import subprocess
 import re
@@ -105,10 +106,18 @@ def limpar_vtt(caminho_vtt):
     return " ".join(resultado).strip()
 
 
+def _resolve_cmd(cmd):
+    """Substitui 'yt-dlp' pelo invocador via sys.executable para garantir
+    que o módulo correto do venv seja usado em qualquer ambiente (dev, Electron packaged)."""
+    if cmd and cmd[0] == 'yt-dlp':
+        return [sys.executable, '-m', 'yt_dlp'] + cmd[1:]
+    return cmd
+
+
 def executar_comando(cmd):
     creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
     result = subprocess.run(
-        cmd, capture_output=True, text=False,
+        _resolve_cmd(cmd), capture_output=True, text=False,
         check=False, creationflags=creationflags
     )
     return result.stdout.decode('utf-8', errors='replace')
@@ -238,9 +247,9 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
     try:
         creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         result = subprocess.run(
-            ['yt-dlp', '--flat-playlist', '--playlist-items', '1',
+            _resolve_cmd(['yt-dlp', '--flat-playlist', '--playlist-items', '1',
              '--print', '%(channel)s|||%(uploader_id)s|||%(channel_follower_count)s',
-             '--js-runtimes', 'node', canal_url],
+             '--js-runtimes', 'node', canal_url]),
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             encoding='utf-8', errors='replace', creationflags=creationflags, timeout=30
         )
