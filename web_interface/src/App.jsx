@@ -625,15 +625,15 @@ function App() {
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-20 lg:hidden"
+              className="fixed inset-0 bg-black/60 z-20 md:hidden"
               onClick={() => setSidebarOpen(false)} aria-hidden="true" />
           )}
         </AnimatePresence>
 
-        {/* ── Nav Rail (desktop) ── */}
+        {/* ── Nav Rail (tablet+) ── */}
         {!showHome && (
           <nav aria-label="Navegação principal"
-            className={`hidden lg:flex shrink-0 flex-col items-center w-14 py-3 border-r
+            className={`hidden md:flex shrink-0 flex-col items-center w-14 py-3 border-r
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button onClick={() => setShowHome(true)} aria-label="Voltar à tela inicial" title="Voltar ao início"
               className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
@@ -691,7 +691,7 @@ function App() {
             <motion.nav aria-label="Navegação principal"
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
-              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 lg:hidden
+              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 md:hidden
                 ${darkMode ? 'bg-[#0C1122] border-r border-white/10' : 'bg-white border-r border-slate-200 shadow-xl'}`}>
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => { setShowHome(true); setSidebarOpen(false); }}
@@ -767,10 +767,10 @@ function App() {
             <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-accent/5' : 'bg-accent/3'}`} aria-hidden="true" />
 
             {/* Page header */}
-            <header className={`px-4 lg:px-8 py-3 lg:py-4 flex justify-between items-center shrink-0 gap-4 border-b ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
+            <header className={`px-4 md:px-6 lg:px-8 py-3 lg:py-4 flex justify-between items-center shrink-0 gap-4 border-b ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu de controle"
-                  className={`lg:hidden p-2 rounded-xl transition-colors ${darkMode ? 'bg-white/8 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${BTN_FOCUS}`}>
+                  className={`md:hidden p-2 rounded-xl transition-colors ${darkMode ? 'bg-white/8 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${BTN_FOCUS}`}>
                   <Menu size={20} />
                 </button>
                 {(isRunning || isPaused) ? (
@@ -805,7 +805,8 @@ function App() {
                   <button
                     onClick={() => setActiveTab('repositorio')}
                     title={driveStatus === 'em_progresso' ? 'Autenticando Drive…' : 'Conectar Google Drive'}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                    aria-label={driveStatus === 'em_progresso' ? 'Autenticando Drive' : 'Conectar Google Drive — ir para Repositório'}
+                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                       ${driveStatus === 'em_progresso'
                         ? darkMode ? 'border-primary/30 text-primary bg-primary/8 hover:bg-primary/15' : 'border-violet-300 text-violet-600 bg-violet-50 hover:bg-violet-100'
                         : darkMode ? 'border-warning/30 text-warning bg-warning/8 hover:bg-warning/15' : 'border-amber-300 text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
@@ -819,7 +820,8 @@ function App() {
                   <button
                     onClick={() => setActiveTab('repositorio')}
                     title={isRunning ? 'Drive sincronizando…' : 'Drive conectado — ir para Repositório'}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                    aria-label={isRunning ? 'Drive sincronizando' : 'Drive conectado — ir para Repositório'}
+                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                       ${isRunning
                         ? darkMode ? 'border-secondary/40 text-secondary bg-secondary/12 hover:bg-secondary/20' : 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
                         : darkMode ? 'border-white/15 text-slate-400 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-500 bg-slate-50 hover:bg-slate-100'}`}>

@@ -116,7 +116,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         <div className="flex items-center gap-2">
           {total > 0 && (
             <button onClick={() => setShowLimpar(true)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
                 ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200'}`}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
               Limpar
@@ -270,8 +270,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
                     </div>
                     <button onClick={() => handleDelete(item._tipo, item.id)}
-                      className={`p-1.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
-                      aria-label="Remover">
+                      className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
+                      aria-label={`Remover ${item.titulo || item.nome_original || 'arquivo'}`}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
                     </button>
                   </div>
@@ -318,8 +318,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                         <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
                       </div>
                       <button onClick={() => handleDelete(group.tipo, item.id)}
-                        className={`p-1.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
-                        aria-label="Remover">
+                        className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
+                        aria-label={`Remover ${item.titulo || item.nome_original || 'arquivo'}`}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
                       </button>
                     </div>

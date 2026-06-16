@@ -147,13 +147,16 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowAdvanced(v => !v)}
+                aria-label={showAdvanced ? 'Fechar configurações avançadas' : 'Abrir configurações avançadas'}
+                aria-expanded={showAdvanced}
                 title="Configurações avançadas"
-                className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-[10px] transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                className={`flex items-center gap-0.5 px-2.5 py-2 rounded text-[10px] transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                 <Settings2 size={10} />
                 <ChevronDown size={10} className={`transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} />
               </button>
-              <button onClick={refresh} title="Atualizar"
-                className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button onClick={refresh} title="Atualizar status do Ollama"
+                aria-label="Atualizar status do Ollama"
+                className={`p-2.5 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                 <RefreshCw size={11} />
               </button>
             </div>

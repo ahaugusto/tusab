@@ -84,7 +84,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
             <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''} com histórico</p>
           </div>
           <button onClick={() => setShowLimpar(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
               ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
             Limpar histórico
@@ -205,8 +205,9 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
 
           {/* Videos table */}
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            <div className={`max-h-96 overflow-y-auto custom-scrollbar`}>
+            <div className={`max-h-96 overflow-y-auto overflow-x-auto custom-scrollbar`}>
               <table className="w-full text-xs">
+                <caption className="sr-only">Lista de vídeos extraídos com título, data de publicação e status</caption>
                 <thead>
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Título</th>
@@ -219,7 +220,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
                     <tr key={i} className={`border-b last:border-0 ${darkMode ? 'border-white/5 hover:bg-white/4' : 'border-slate-50 hover:bg-slate-50'}`}>
                       <td className="px-4 py-2">
                         <a href={v.Link} target="_blank" rel="noreferrer"
-                          className={`hover:underline truncate block max-w-[200px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                          className={`hover:underline truncate block min-w-[120px] max-w-[280px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                           {v.Titulo}
                         </a>
                       </td>
