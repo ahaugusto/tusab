@@ -124,10 +124,9 @@ def executar_comando(cmd):
 
 
 def detectar_idiomas_canal(_all_videos):
-    """Retorna idioma fixo para evitar 429.
-    Tentativas duplas (pt + en) causam rate limit no YouTube — mantemos só pt,
-    que cobre canais BR e captura auto-legendas em pt-BR/pt por preferência."""
-    return 'pt'
+    """Retorna string de idiomas para o yt-dlp.
+    pt-BR cobre auto-legendas do YouTube Brasil; pt cobre canais PT e fallback."""
+    return 'pt,pt-BR'
 
 
 def gerar_fontes(canal_url):
@@ -528,9 +527,9 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
             # --print não pode ser combinado com --write-auto-subs no yt-dlp 2026+
             # (ativa simulação que suprime escrita de arquivos).
             res_sub = subprocess.run(
-                ['yt-dlp', '--skip-download', '--write-auto-subs', '--write-subs',
-                 '--sub-langs', sub_langs, '--output', temp_out,
-                 '--js-runtimes', 'node', v_link],
+                _resolve_cmd(['yt-dlp', '--skip-download', '--write-auto-subs', '--write-subs',
+                 '--sub-langs', 'pt,pt-BR', '--output', temp_out,
+                 '--js-runtimes', 'node', v_link]),
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                 encoding='utf-8', errors='replace', creationflags=creationflags
             )
