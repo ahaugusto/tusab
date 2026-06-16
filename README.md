@@ -222,8 +222,8 @@ A interface foi projetada para funcionar bem em dispositivos móveis, tablets e 
 
 | Breakpoint | Largura | Comportamento |
 |------------|---------|---------------|
-| Mobile | < 768px | Nav drawer deslizante, logo compacta, botões full-width |
-| Tablet (`md:`) | ≥ 768px | Nav rail lateral fixa, painel logo aparece na Home |
+| Mobile | < 768px | Nav drawer deslizante (w-52), logo 44 px, botões full-width |
+| Tablet (`md:`) | ≥ 768px | Nav rail lateral fixa (w-20) com ícone + label, logo 52 px |
 | Desktop (`lg:`) | ≥ 1024px | Logo maior (320px), padding ampliado |
 
 **Acessibilidade (WCAG 2.1 AA):**
@@ -236,6 +236,56 @@ A interface foi projetada para funcionar bem em dispositivos móveis, tablets e 
 - `<caption className="sr-only">` nas tabelas de dados
 - `aria-live="polite"` no status de extração em tempo real
 - `role="tabpanel" aria-labelledby` nos painéis de aba
+
+---
+
+## Changelog
+
+### v2.4.0 — 2026-06-16
+
+**Interface**
+- Nav rail expandida (`w-14 → w-20`) com labels abaixo de cada ícone
+- Logo compacta aumentada (34 px → 52 px no rail, 32 px → 44 px no drawer mobile)
+- Logos SVG oficiais aplicadas em todos os slots (light/dark, compacto/completo)
+- Botão "Arquivos Gerados" abre a pasta `cerebro/{canal}/youtube/` do canal ativo
+- Com múltiplos canais extraídos, modal de seleção permite escolher qual pasta abrir
+- Removida abertura de pasta genérica `cerebro_txt` (obsoleta)
+
+**Extração (anti-429)**
+- Estratégia de duas passagens para legendas: primária `pt,pt-BR` → fallback `en,es` só se nenhum VTT gerado
+- Flag `youtube:skip=translated_subs` elimina tentativas de legendas traduzidas de outros idiomas
+- `--sleep-requests 1` como proteção extra contra throttle do YouTube
+- Erros 429 suprimidos do log (comportamento esperado quando o idioma não existe no vídeo)
+
+---
+
+### v2.3.3 — 2026-06-15
+
+**Extração (confiabilidade yt-dlp)**
+- `_ytdlp_run()`: wrapper central para todas as chamadas ao yt-dlp — sempre usa `sys.executable -m yt_dlp` (resolve falha silenciosa do wrapper `.exe` no Windows com venv)
+- `_ytdlp_update()`: auto-atualização do yt-dlp via pip no início de cada extração
+- `--js-runtimes node` aplicado a todas as chamadas (evita erro de runtime JS)
+- Cascata de idiomas `pt,pt-BR,en,es` cobre canais BR, PT, anglófonos e hispânicos
+
+### v2.3.2 — 2026-06-15
+
+**Correções**
+- Legendas `pt-BR` não encontradas: `sub_langs = 'pt'` alterado para `'pt,pt-BR'`
+- Metadados não retornados: `result_meta.stdout` corrigido para usar `_ytdlp_run` com `meta_stdout`
+
+### v2.3.1 — 2026-06-15
+
+**Performance**
+- Sync com Google Drive movido para após a extração local completa (era incremental a cada parte)
+- Elimina lentidão e reconexões OAuth durante o loop de extração
+
+### v2.3.0 — 2026-06-15
+
+**UX / robustez**
+- Loading indeterminado durante mapeamento de canais longos (7000+ vídeos)
+- Contador "X mapeados" visível em tempo real durante o mapeamento
+- Deduplicação de vídeos por título quando `upload_date = NA`
+- Prints incrementais por fonte durante o mapeamento
 
 ---
 
