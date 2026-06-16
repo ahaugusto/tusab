@@ -18,34 +18,58 @@ from sebayt_engine.agent.index import (
 
 
 # ── Query expansion ───────────────────────────────────────────────────────────
+#
+# Objetivo: ampliar a cobertura do BM25 gerando variações da pergunta original.
+#
+# O BM25 é puramente léxico — compara tokens. Se o usuário pergunta "retorno"
+# e o documento usa "rendimento", o score cai mesmo que o significado seja o mesmo.
+# A query expansion pede ao LLM para gerar 2 reformulações sinônimas; o BM25
+# é rodado para cada variação e os scores são combinados por média.
+#
+# Habilitada apenas para provedores rápidos (Groq, OpenAI, Anthropic, Gemini):
+# latência típica ~0.3–1s. Desabilitada para Ollama: modelos pequenos
+# (llama3.2:1b) geram expansões de baixa qualidade e adicionam 10–15s de latência.
+#
+# Em caso de falha (timeout, API error) a função retorna apenas a pergunta
+# original — o chat nunca é bloqueado por falha na expansão.
+
+# Provedores rápidos o suficiente para query expansion sem degradar UX
+PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google'}
+
 
 def _expandir_query(pergunta: str, config: dict) -> list:
+    """Retorna [pergunta_original, variacao1, variacao2] usando o LLM configurado.
+
+    Sempre retorna ao menos [pergunta] — nunca lança exceção.
+    """
     provider = config.get('provider', '')
     api_key  = config.get('api_key', '')
 
+    if provider not in PROVEDORES_COM_EXPANSION:
+        return [pergunta]
+
     prompt_expansion = (
-        f"Gere 2 reformulações curtas e diferentes desta pergunta para busca em transcrições de vídeos do YouTube. "
-        f"Responda APENAS com as 2 reformulações, uma por linha, sem numeração nem explicação.\n"
+        "Gere 2 reformulações curtas e diferentes desta pergunta para busca "
+        "em transcrições de vídeos e documentos. Use sinônimos e variações "
+        "de vocabulário. Responda APENAS com as 2 reformulações, uma por linha, "
+        "sem numeração, sem explicação e sem prefixo.\n"
         f"Pergunta original: {pergunta}"
     )
 
     variacoes = []
     try:
-        if provider == 'ollama':
-            import requests as _req
-            modelo = config.get('ollama_model', 'llama3.2:1b')
-            r = _req.post('http://localhost:11434/api/generate',
-                json={'model': modelo, 'prompt': prompt_expansion, 'stream': False},
-                timeout=15)
-            r.raise_for_status()
-            linhas = r.json().get('response', '').strip().splitlines()
-            variacoes = [l.strip() for l in linhas if l.strip()][:2]
-
-        elif provider in ('gemini', 'google'):
+        if provider in ('gemini', 'google'):
             import google.generativeai as _genai
             _genai.configure(api_key=api_key)
-            CANDIDATOS = ['gemini-1.5-flash','gemini-1.5-flash-latest','gemini-1.5-flash-002','gemini-1.5-pro','gemini-pro','gemini-2.0-flash-lite']
-            modelos_ok = [m.name.replace('models/','') for m in _genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            CANDIDATOS = [
+                'gemini-1.5-flash', 'gemini-1.5-flash-latest',
+                'gemini-1.5-flash-002', 'gemini-1.5-pro',
+                'gemini-pro', 'gemini-2.0-flash-lite',
+            ]
+            modelos_ok = [
+                m.name.replace('models/', '') for m in _genai.list_models()
+                if 'generateContent' in m.supported_generation_methods
+            ]
             modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
             if modelo:
                 resp = _genai.GenerativeModel(modelo).generate_content(prompt_expansion)
@@ -57,7 +81,8 @@ def _expandir_query(pergunta: str, config: dict) -> list:
             resp = OpenAI(api_key=api_key).chat.completions.create(
                 model='gpt-4o-mini',
                 messages=[{'role': 'user', 'content': prompt_expansion}],
-                max_tokens=100,
+                max_tokens=120,
+                timeout=8,
             )
             linhas = resp.choices[0].message.content.strip().splitlines()
             variacoes = [l.strip() for l in linhas if l.strip()][:2]
@@ -65,14 +90,31 @@ def _expandir_query(pergunta: str, config: dict) -> list:
         elif provider == 'anthropic':
             import anthropic
             msg = anthropic.Anthropic(api_key=api_key).messages.create(
-                model='claude-haiku-4-5-20251001', max_tokens=100,
+                model='claude-haiku-4-5-20251001',
+                max_tokens=120,
                 messages=[{'role': 'user', 'content': prompt_expansion}],
+                timeout=8,
             )
             linhas = msg.content[0].text.strip().splitlines()
             variacoes = [l.strip() for l in linhas if l.strip()][:2]
 
+        elif provider == 'groq':
+            from openai import OpenAI
+            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
+            resp = OpenAI(
+                api_key=api_key,
+                base_url='https://api.groq.com/openai/v1',
+            ).chat.completions.create(
+                model=modelo,
+                messages=[{'role': 'user', 'content': prompt_expansion}],
+                max_tokens=120,
+                timeout=8,
+            )
+            linhas = resp.choices[0].message.content.strip().splitlines()
+            variacoes = [l.strip() for l in linhas if l.strip()][:2]
+
     except Exception:
-        pass
+        pass  # expansão é best-effort; falha silenciosa, pergunta original é suficiente
 
     return [pergunta] + variacoes
 
@@ -114,17 +156,16 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
         cached = _bm25_cache[canal_prefixo]
 
-    PROVEDORES_RAPIDOS = {'groq', 'openai', 'anthropic'}
-    queries = [pergunta]
-    if config and config.get('provider') in PROVEDORES_RAPIDOS:
-        queries = _expandir_query(pergunta, config)
+    queries = _expandir_query(pergunta, config) if config else [pergunta]
 
     import numpy as np
-    all_scores = []
-    for q in queries:
-        all_scores.append(cached['bm25'].get_scores(q.lower().split()))
-    scores = np.mean(all_scores, axis=0) if len(all_scores) > 1 else all_scores[0]
 
+    def _scores_para_queries(bm25_obj, qs):
+        """Roda BM25 para cada query e retorna a média dos scores."""
+        all_s = [bm25_obj.get_scores(q.lower().split()) for q in qs]
+        return np.mean(all_s, axis=0) if len(all_s) > 1 else all_s[0]
+
+    scores  = _scores_para_queries(cached['bm25'], queries)
     top_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:n]
 
     resultados = [
@@ -151,7 +192,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                         corpus_e = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks_e]
                         _bm25_cache[prefixo_extra] = {'chunks': chunks_e, 'bm25': BM25Okapi(corpus_e), 'mtime': mtime_e}
                     cached_e = _bm25_cache[prefixo_extra]
-                scores_e = cached_e['bm25'].get_scores(pergunta.lower().split())
+                scores_e = _scores_para_queries(cached_e['bm25'], queries)
                 top_e = sorted(range(len(scores_e)), key=lambda i: scores_e[i], reverse=True)[:3]
                 for i in top_e:
                     if scores_e[i] > 0:
