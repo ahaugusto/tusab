@@ -1058,7 +1058,7 @@ function App() {
                   darkMode={darkMode} />
                 <StatCard icon={FileText} label={t('stats.files')}     value={status.stats.files_generated}
                   color="accent"    sub={t('stats.parts')}
-                  onOpen={() => openFolder('cerebro_txt')}
+                  onOpen={() => openFolder(canalConfigurado ? 'canal_youtube' : 'cerebro_txt', canalConfigurado)}
                   darkMode={darkMode} />
                 <StatCard icon={Database} label={t('stats.db')}        value={canalConfigurado ? t('stats.active') : t('stats.waiting_db')}
                   color="secondary" sub={canalConfigurado ? `@${canalConfigurado}` : t('stats.no_channel')}

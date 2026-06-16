@@ -123,4 +123,5 @@ export const limparHistorico = (prefixos = []) => axios.delete(`${API_BASE}/hist
 // ─── System ──────────────────────────────────────────────────────────────────
 
 /** Opens a local folder in Windows Explorer */
-export const openFolder = (name) => axios.get(`${API_BASE}/open-folder?name=${name}`);
+export const openFolder = (name, prefixo = '') =>
+  axios.get(`${API_BASE}/open-folder?name=${name}${prefixo ? `&prefixo=${prefixo}` : ''}`);
