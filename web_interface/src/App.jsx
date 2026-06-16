@@ -735,7 +735,7 @@ function App() {
                 <button onClick={() => { setShowHome(true); setSidebarOpen(false); }}
                   className="rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-none">
                   <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
-                    style={{ width: 32, height: 32, objectFit: 'contain' }}
+                    style={{ width: 44, height: 44, objectFit: 'contain' }}
                     onError={e => { e.target.style.display = 'none'; }} />
                 </button>
                 <button onClick={() => setSidebarOpen(false)} aria-label={t('nav.close_menu')}
@@ -1097,9 +1097,10 @@ function App() {
                   color="accent"    sub={t('stats.parts')}
                   onOpen={() => {
                     const canais = history.filter(h => h.canal_nome);
+                    if (!canais.length && !canalConfigurado) return;
                     if (canais.length > 1) { setFolderPickerOpen(true); return; }
-                    const prefixo = canalConfigurado || (canais[0]?.canal_nome ?? '');
-                    openFolder(prefixo ? 'canal_youtube' : 'cerebro_txt', prefixo);
+                    const prefixo = canalConfigurado || canais[0].canal_nome;
+                    openFolder('canal_youtube', prefixo);
                   }}
                   darkMode={darkMode} />
                 <StatCard icon={Database} label={t('stats.db')}        value={canalConfigurado ? t('stats.active') : t('stats.waiting_db')}
