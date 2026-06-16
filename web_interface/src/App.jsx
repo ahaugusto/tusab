@@ -667,15 +667,15 @@ function App() {
         {/* ── Nav Rail (tablet+) ── */}
         {!showHome && (
           <nav aria-label={t('nav.main')}
-            className={`hidden md:flex shrink-0 flex-col items-center w-14 py-3 border-r
+            className={`hidden md:flex shrink-0 flex-col items-center w-20 py-3 border-r
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button onClick={() => setShowHome(true)} aria-label={t('nav.home')} title={t('nav.home')}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
+              className={`w-14 h-14 rounded-xl flex items-center justify-center mb-2 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
               <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
-                style={{ width: 34, height: 34, objectFit: 'contain' }}
+                style={{ width: 52, height: 52, objectFit: 'contain' }}
                 onError={e => { e.target.style.display = 'none'; }} />
             </button>
-            <div className="flex flex-col items-center gap-1 flex-1">
+            <div className="flex flex-col items-center gap-0.5 flex-1 w-full px-1.5">
               {[
                 { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
                 { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
@@ -690,31 +690,35 @@ function App() {
                       localStorage.setItem('Sebayt_agent_visited', '1');
                     }
                   }}
-                  aria-label={label} title={label}
-                  className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${BTN_FOCUS}
+                  aria-label={label}
+                  className={`relative w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                     ${activeTab === id
                       ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
-                  <Icon size={16} aria-hidden="true" />
+                  <Icon size={17} aria-hidden="true" />
+                  <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
                   {id === 'agente' && agentStatus.indexed && (
-                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true" />
+                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true" />
                   )}
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')} title={t('guide.title')}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${BTN_FOCUS}
-                ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
-              <HelpCircle size={15} aria-hidden="true" />
-            </button>
-            <button
-              onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
-              aria-label={darkMode ? t('footer.light') : t('footer.dark')}
-              title={darkMode ? t('footer.light') : t('footer.dark')}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors mb-1 ${BTN_FOCUS}
-                ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
-              {darkMode ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-            </button>
+            <div className="flex flex-col items-center gap-0.5 w-full px-1.5 mb-1">
+              <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
+                className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                <HelpCircle size={15} aria-hidden="true" />
+                <span className="text-[9px] font-semibold leading-none">Ajuda</span>
+              </button>
+              <button
+                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
+                aria-label={darkMode ? t('footer.light') : t('footer.dark')}
+                className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                {darkMode ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
+                <span className="text-[9px] font-semibold leading-none">{darkMode ? 'Claro' : 'Escuro'}</span>
+              </button>
+            </div>
             <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v0.4</p>
           </nav>
         )}
