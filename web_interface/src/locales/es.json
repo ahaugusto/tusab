@@ -49,6 +49,7 @@
   "banner.aria": "Modo local activo",
   "progress.title": "Progreso",
   "progress.processing": "Procesando subtítulos...",
+  "progress.mapping": "Mapeando canal, espere...",
   "stats.open_folder": "Abrir carpeta",
   "stats.processed": "Videos Procesados",
   "stats.files": "Archivos Generados",

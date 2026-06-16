@@ -24,6 +24,7 @@ def _reset_stats():
         state.logs                           = []
         state.stats["videos_processed"]     = 0
         state.stats["videos_total"]         = 0
+        state.stats["videos_mapeados"]      = 0
         state.stats["videos_sem_legenda"]   = 0
         state.stats["videos_legenda_curta"] = 0
         state.stats["files_generated"]      = 0
