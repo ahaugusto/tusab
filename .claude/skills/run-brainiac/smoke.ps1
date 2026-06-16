@@ -1,4 +1,21 @@
-param([switch]$KeepAlive)
+# Sebayt smoke driver
+# Versionamento semantico: -Suite full|patch|minor|major
+# full   = todos os 15 checks (pre-commit padrao)
+# patch  = apenas engine + yt-dlp (correcoes pontuais, sem tocar em features)
+# minor  = patch + agent + queue (novas features/endpoints)
+# major  = tudo (full alias -- para releases)
+#
+# Uso:
+#   smoke.ps1                    -> full (padrao do pre-commit)
+#   smoke.ps1 -Suite patch       -> engine + yt-dlp apenas
+#   smoke.ps1 -Suite minor       -> patch + agent + queue
+#   smoke.ps1 -KeepAlive         -> nao derruba o backend apos rodar
+
+param(
+    [ValidateSet('full','patch','minor','major')]
+    [string]$Suite = 'full',
+    [switch]$KeepAlive
+)
 
 $ROOT = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $VENV = Join-Path $ROOT ".venv\Scripts\python.exe"
@@ -35,7 +52,7 @@ function Fetch($method, $path, $body = $null) {
 }
 
 Write-Host ""
-Write-Host "Sebayt smoke driver" -ForegroundColor White
+Write-Host "Sebayt smoke driver  [suite: $Suite]" -ForegroundColor White
 Write-Host "Root: $ROOT"
 Write-Host ""
 
@@ -62,7 +79,11 @@ if (-not $already) {
     ok "Backend started (PID $($PROC.Id))"
 }
 
-# 1. yt-dlp -- verifica se o mapeamento de videos funciona
+# ==============================================================================
+# SUITE: patch  -- engine core + yt-dlp
+# Roda em: correcoes de bug, hotfix, qualquer commit que toque extraction.py
+# ==============================================================================
+
 section "yt-dlp"
 
 $ytdlpOut = & $VENV -m yt_dlp --flat-playlist --ignore-errors --no-update --print "%(id)s|||%(title)s" --playlist-end 3 "https://www.youtube.com/@investidorsardinha/videos" 2>&1
@@ -77,7 +98,6 @@ if ($ytLines.Count -ge 1) {
     info "Output: $($ytdlpOut | Select-Object -First 3 | Out-String)"
 }
 
-# 2. Engine
 section "Engine"
 
 $r = Fetch "GET" "/status"
@@ -97,7 +117,21 @@ if ($r.status -eq 200 -and $r.body -match '"youtube"') {
     ok "/repositorio schema OK"
 } else { fail "/repositorio $($r.status)" }
 
-# 3. Fila de extracao
+# Encerra aqui se suite = patch
+if ($Suite -eq 'patch') {
+    Write-Host ""
+    Write-Host "============================================"
+    Write-Host "  [patch]  PASS: $($script:PASS)   FAIL: $($script:FAIL)" -ForegroundColor $(if ($script:FAIL -eq 0) { "Green" } else { "Red" })
+    Write-Host "============================================"
+    if (-not $KeepAlive -and $PROC) { $PROC | Stop-Process -Force -ErrorAction SilentlyContinue }
+    exit $(if ($script:FAIL -eq 0) { 0 } else { 1 })
+}
+
+# ==============================================================================
+# SUITE: minor  -- patch + agent + fila
+# Roda em: novas features, novos endpoints, mudancas no agent ou queue
+# ==============================================================================
+
 section "Fila de extracao"
 
 $r = Fetch "GET" "/queue"
@@ -122,7 +156,6 @@ if ($r.status -eq 200 -and $r.body -match '"error":true') {
     ok "/queue/add rejeita URL invalida"
 } else { fail "/queue/add deveria rejeitar URL invalida: $($r.body)" }
 
-# 4. Agent
 section "Agent"
 
 $r = Fetch "GET" "/agent/status"
@@ -137,7 +170,21 @@ if ($r.status -eq 200) {
     else { info "Ollama not running (ok em dev)" }
 } else { fail "/agent/ollama/status $($r.status)" }
 
-# 5. Seguranca de API key
+# Encerra aqui se suite = minor
+if ($Suite -eq 'minor') {
+    Write-Host ""
+    Write-Host "============================================"
+    Write-Host "  [minor]  PASS: $($script:PASS)   FAIL: $($script:FAIL)" -ForegroundColor $(if ($script:FAIL -eq 0) { "Green" } else { "Red" })
+    Write-Host "============================================"
+    if (-not $KeepAlive -and $PROC) { $PROC | Stop-Process -Force -ErrorAction SilentlyContinue }
+    exit $(if ($script:FAIL -eq 0) { 0 } else { 1 })
+}
+
+# ==============================================================================
+# SUITE: full / major  -- tudo: seguranca, chat, frontend
+# Roda em: pre-commit (padrao), releases, merges para main
+# ==============================================================================
+
 section "Seguranca de API key"
 
 $invalidBody = '{"provider":"gemini","api_key":"INVALID_SMOKE_TEST_KEY_12345"}'
@@ -151,7 +198,6 @@ if ($r.status -eq 200 -and $r.body -notmatch '"api_key":"[^"*]{5,}"') {
     ok "/agent/config nao expoe chave em claro"
 } else { fail "/agent/config pode estar expondo api_key" }
 
-# 6. Chat
 section "Chat"
 
 $chatBody = '{"mensagem":"Smoke test.","canal_nome":"CanaldoEslen","historico":[],"canais_extras":[],"busca_ampla":false}'
@@ -165,7 +211,6 @@ if ($r.status -eq 200 -and $r.body -match '"resposta"') {
     info $r.body.Substring(0,[Math]::Min(100,$r.body.Length))
 } else { fail "/agent/chat $($r.status): $($r.body.Substring(0,[Math]::Min(80,$r.body.Length)))" }
 
-# 7. Frontend
 section "Frontend"
 
 $r = Fetch "GET" "/"
@@ -173,7 +218,6 @@ if ($r.status -eq 200 -and $r.body -match "<!DOCTYPE html") {
     ok "/ serve index.html"
 } else { fail "/ $($r.status)" }
 
-# 8. Seguranca path traversal
 section "Seguranca"
 
 $r = Fetch "GET" "/..%2F..%2F..%2Fdata%2Fconfig%2Fagent_config.json"
@@ -189,7 +233,7 @@ if ($r.body -match "<!DOCTYPE html") {
 # Resultado final
 Write-Host ""
 Write-Host "============================================"
-Write-Host "  PASS: $($script:PASS)   FAIL: $($script:FAIL)" -ForegroundColor $(if ($script:FAIL -eq 0) { "Green" } else { "Red" })
+Write-Host "  [full]  PASS: $($script:PASS)   FAIL: $($script:FAIL)" -ForegroundColor $(if ($script:FAIL -eq 0) { "Green" } else { "Red" })
 Write-Host "============================================"
 
 if (-not $KeepAlive -and $PROC) {
