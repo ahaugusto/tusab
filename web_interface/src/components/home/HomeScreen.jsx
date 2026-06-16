@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file HomeScreen.jsx
  * @description Landing / home screen with two source paths and utility navigation cards
  * @module components/home/HomeScreen
@@ -88,15 +88,13 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
 
       {/* Left — logo (tablet+) */}
       <div className={`hidden md:flex flex-col items-center justify-center w-1/2 px-8 lg:px-12 border-r ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
-        <button onClick={() => {}} className="focus-visible:outline-none rounded-2xl transition-opacity hover:opacity-90">
-          <img
-            src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
-            alt="Sebayt — Index.Augment.Converse"
-            className="w-48 h-48 md:w-56 md:h-56 lg:w-80 lg:h-80 object-contain"
-            onError={e => { e.target.style.display = 'none'; }}
-          />
-        </button>
-        <p className={`mt-4 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+        <img
+          src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
+          alt="Sebayt — Index.Augment.Converse"
+          className="w-full max-w-xs lg:max-w-sm object-contain object-top"
+          onError={e => { e.target.style.display = 'none'; }}
+        />
+        <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
           {t('home.tagline')}
         </p>
       </div>
@@ -105,13 +103,16 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 overflow-y-auto">
 
         {/* Mobile logo (shown only when left panel is hidden) */}
-        <div className="flex md:hidden flex-col items-center mb-8">
+        <div className="flex md:hidden flex-col items-center mb-6">
           <img
             src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
             alt="Sebayt"
-            className="w-28 h-28 object-contain"
+            className="w-32 h-32 object-contain"
             onError={e => { e.target.style.display = 'none'; }}
           />
+          <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            {t('home.tagline')}
+          </p>
         </div>
 
         <div className="w-full max-w-md space-y-4">
