@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-yt-dlp
+yt-dlp>=2026.3.17
 pandas
 google-auth
 google-auth-oauthlib

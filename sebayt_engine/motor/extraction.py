@@ -106,27 +106,103 @@ def limpar_vtt(caminho_vtt):
     return " ".join(resultado).strip()
 
 
+# Idiomas suportados pelo sistema, em ordem de prioridade de busca de legenda.
+# pt-BR é separado de pt porque o YouTube trata como variantes distintas.
+# A cascata cobre canais BR, PT, EN e ES sem duplicar requests.
+_SUB_LANGS = 'pt,pt-BR,en,es'
+
+# Timeout padrão para qualquer chamada yt-dlp (segundos).
+# Mapeamento de canal grande pode levar mais — executar_comando não usa timeout
+# pois aguarda stdout completo; as chamadas pontuais usam _YTDLP_TIMEOUT.
+_YTDLP_TIMEOUT = 60
+
+
 def _resolve_cmd(cmd):
-    """Substitui 'yt-dlp' pelo invocador via sys.executable para garantir
-    que o módulo correto do venv seja usado em qualquer ambiente (dev, Electron packaged)."""
+    """Garante que yt-dlp seja sempre invocado via sys.executable -m yt_dlp.
+
+    Necessário em qualquer ambiente Windows com venv: o wrapper yt-dlp.exe
+    falha silenciosamente quando o PATH não está configurado corretamente
+    (Electron packaged, ambientes CI, primeiro uso). Usando sys.executable
+    o módulo correto do venv é sempre encontrado.
+    """
     if cmd and cmd[0] == 'yt-dlp':
         return [sys.executable, '-m', 'yt_dlp'] + cmd[1:]
     return cmd
 
 
-def executar_comando(cmd):
+def _ytdlp_run(args, timeout=_YTDLP_TIMEOUT, capture_stderr=False):
+    """Wrapper único para todas as chamadas yt-dlp.
+
+    Sempre usa _resolve_cmd. Retorna (stdout, stderr, returncode).
+    Nunca lança exceção — falhas são retornadas como strings vazias.
+    """
     creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
-    result = subprocess.run(
-        _resolve_cmd(cmd), capture_output=True, text=False,
-        check=False, creationflags=creationflags
-    )
-    return result.stdout.decode('utf-8', errors='replace')
+    try:
+        r = subprocess.run(
+            _resolve_cmd(['yt-dlp'] + args),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE if capture_stderr else subprocess.DEVNULL,
+            encoding='utf-8', errors='replace',
+            check=False, creationflags=creationflags,
+            timeout=timeout,
+        )
+        return r.stdout, (r.stderr if capture_stderr else ''), r.returncode
+    except subprocess.TimeoutExpired:
+        return '', f'yt-dlp timeout após {timeout}s', 1
+    except Exception as e:
+        return '', str(e), 1
+
+
+def executar_comando(cmd, timeout=None):
+    """Executa comando yt-dlp via _ytdlp_run e retorna stdout.
+
+    Sem timeout por padrão — usado para mapeamento de canais grandes onde
+    o yt-dlp precisa varrer todas as páginas antes de retornar.
+    """
+    creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+    kw = dict(capture_output=True, text=False, check=False, creationflags=creationflags)
+    if timeout:
+        kw['timeout'] = timeout
+    try:
+        result = subprocess.run(_resolve_cmd(cmd), **kw)
+        return result.stdout.decode('utf-8', errors='replace')
+    except subprocess.TimeoutExpired:
+        return ''
+    except Exception:
+        return ''
+
+
+def _ytdlp_update():
+    """Atualiza yt-dlp para a versão mais recente via pip se houver nova versão.
+
+    Chamado uma vez na inicialização do motor. Falha silenciosa — nunca
+    bloqueia a extração se não houver internet ou permissão.
+    """
+    try:
+        stdout, _, rc = _ytdlp_run(['--version'], timeout=10)
+        versao_atual = stdout.strip()
+        if not versao_atual:
+            return
+        r = subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', '--upgrade', '--quiet', 'yt-dlp'],
+            capture_output=True, text=True, timeout=120,
+        )
+        if r.returncode == 0:
+            stdout2, _, _ = _ytdlp_run(['--version'], timeout=10)
+            versao_nova = stdout2.strip()
+            if versao_nova and versao_nova != versao_atual:
+                print(f"      🔄 yt-dlp atualizado: {versao_atual} → {versao_nova}\n")
+    except Exception:
+        pass
 
 
 def detectar_idiomas_canal(_all_videos):
-    """Retorna string de idiomas para o yt-dlp.
-    pt-BR cobre auto-legendas do YouTube Brasil; pt cobre canais PT e fallback."""
-    return 'pt,pt-BR'
+    """Cascata de idiomas para busca de legendas.
+
+    Cobre canais BR (pt-BR), Portugal (pt), anglófonos (en) e hispânicos (es).
+    O yt-dlp tenta cada idioma na ordem e usa o primeiro disponível.
+    """
+    return _SUB_LANGS
 
 
 def gerar_fontes(canal_url):
@@ -295,6 +371,8 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
     canal_youtube_dir = get_canal_youtube_dir(prefixo)
     drive_folder_name = f"Sebayt — {canal_nome_raw}"
     db_file = os.path.join(GESTAO_DIR, f'{prefixo}_base.csv')
+
+    _ytdlp_update()
 
     print("\n" + "=" * 70)
     print("🧠 Sebayt — Intelligence Engine")
@@ -521,36 +599,30 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
         try:
             temp_base = f"temp_{v_id}"
             temp_out = os.path.join(TEMP_DIR, temp_base)
-            creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
-            # Baixa legendas com caminho absoluto para evitar dependência do cwd.
-            # --print não pode ser combinado com --write-auto-subs no yt-dlp 2026+
-            # (ativa simulação que suprime escrita de arquivos).
-            res_sub = subprocess.run(
-                _resolve_cmd(['yt-dlp', '--skip-download', '--write-auto-subs', '--write-subs',
-                 '--sub-langs', 'pt,pt-BR', '--output', temp_out,
-                 '--js-runtimes', 'node', v_link]),
-                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                encoding='utf-8', errors='replace', creationflags=creationflags
+            # Baixa legendas. --print não pode ser combinado com --write-auto-subs
+            # no yt-dlp 2026+ (ativa simulação que suprime escrita de arquivos).
+            _, sub_err, sub_rc = _ytdlp_run(
+                ['--skip-download', '--write-auto-subs', '--write-subs',
+                 '--sub-langs', sub_langs, '--output', temp_out,
+                 '--js-runtimes', 'node', v_link],
+                capture_stderr=True,
             )
-            if res_sub.returncode != 0 and res_sub.stderr:
-                erros = [l for l in res_sub.stderr.splitlines()
-                         if 'ERROR' in l or 'WARNING' in l]
+            if sub_rc != 0 and sub_err:
+                erros = [l for l in sub_err.splitlines() if 'ERROR' in l]
                 if erros:
                     print(f"      ⚠️ yt-dlp: {erros[-1][:120]}")
 
             # Busca data + tags numa única chamada para evitar request extra.
             data_real = video['date']
             tags_str  = ''
-            result_meta = subprocess.run(
-                ['yt-dlp', '--skip-download',
+            meta_stdout, _, _ = _ytdlp_run(
+                ['--skip-download',
                  '--print', '%(upload_date)s|||%(tags)j|||%(description)s',
                  '--js-runtimes', 'node', v_link],
-                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                encoding='utf-8', errors='replace', creationflags=creationflags
             )
             descricao_str = ''
-            for linha in result_meta.stdout.strip().splitlines():
+            for linha in meta_stdout.strip().splitlines():
                 partes = linha.split('|||')
                 data_part = partes[0].strip()
                 if re.match(r'^\d{8}$', data_part):
