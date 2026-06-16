@@ -75,6 +75,13 @@ SPRINT IMEDIATO — PRODUTO (em execução)
    Dependências opcionais: pytesseract (pip) + Tesseract binário; faster-whisper (pip).
    O conteúdo extraído entra no BM25 igual a qualquer outro documento.
 
+✅ Fila de extração sequencial (v2.2.0)
+   Usuário enfileira N canais → motor extrai um por um automaticamente.
+   Cancelamento limpa a fila; erro num canal não interrompe os seguintes.
+   Backend: extraction_queue + queue_lock em AppState; run_motor() em loop while True.
+   Endpoints: POST /queue/add, DELETE /queue/clear, GET /queue.
+   UI: input + botão + na sidebar, lista numerada, botão limpar fila.
+
 ─────────────────────────────────────────
 QUANDO O PRODUTO ESTIVER PRONTO PARA LANÇAR
 ─────────────────────────────────────────
