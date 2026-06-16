@@ -602,30 +602,34 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
             temp_base = f"temp_{v_id}"
             temp_out = os.path.join(TEMP_DIR, temp_base)
 
-            # Passagem 1: idiomas primários (pt, pt-BR).
-            # Evita 429 tentando todos os idiomas de uma vez só.
-            def _sub_cmd(langs):
-                return ['--skip-download', '--write-auto-subs', '--write-subs',
-                        '--sub-langs', langs, '--output', temp_out,
-                        '--js-runtimes', 'node', v_link]
-
             def _has_vtt():
                 return any(
                     f.startswith(temp_base) and f.endswith('.vtt')
                     for f in os.listdir(TEMP_DIR)
                 )
 
+            def _sub_cmd(langs):
+                # skip=translated_subs: nao tenta traducoes automaticas de outros
+                # idiomas (fonte principal dos 429 em canais BR tentando 'en').
+                # sleep-requests 1: pausa minima entre requests para evitar throttle.
+                return ['--skip-download', '--write-auto-subs', '--write-subs',
+                        '--sub-langs', langs, '--output', temp_out,
+                        '--extractor-args', 'youtube:skip=translated_subs',
+                        '--sleep-requests', '1',
+                        '--js-runtimes', 'node', v_link]
+
+            # Passagem 1: pt,pt-BR — cobre canais brasileiros e portugueses.
             _, sub_err, sub_rc = _ytdlp_run(_sub_cmd(sub_langs_primary), capture_stderr=True)
             if sub_rc != 0 and sub_err:
-                erros = [l for l in sub_err.splitlines() if 'ERROR' in l]
+                erros = [l for l in sub_err.splitlines() if 'ERROR' in l and '429' not in l]
                 if erros:
                     print(f"      ⚠️ yt-dlp (primário): {erros[-1][:120]}")
 
-            # Passagem 2: fallback (en, es) — só se não encontrou VTT na primária.
+            # Passagem 2: en,es — só se a primária não gerou nenhum VTT.
             if not _has_vtt():
                 _, sub_err2, sub_rc2 = _ytdlp_run(_sub_cmd(sub_langs_fallback), capture_stderr=True)
                 if sub_rc2 != 0 and sub_err2:
-                    erros2 = [l for l in sub_err2.splitlines() if 'ERROR' in l]
+                    erros2 = [l for l in sub_err2.splitlines() if 'ERROR' in l and '429' not in l]
                     if erros2:
                         print(f"      ⚠️ yt-dlp (fallback): {erros2[-1][:120]}")
 
