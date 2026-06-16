@@ -16,3 +16,7 @@ google-generativeai  # SDK usado pelo chat Gemini (import google.generativeai)
 pdfplumber
 python-docx
 python-multipart
+
+# --- Imagens e áudio (opcional — instalação separada) ---
+# pytesseract   # OCR fallback para imagens (requer binário Tesseract no sistema)
+# faster-whisper  # transcrição de áudio local (CPU, ~150 MB modelo base)

@@ -152,12 +152,102 @@ def get_relatorio(canal: str):
         return {"error": True, "message": str(e)}
 
 
+_EXTS_IMAGEM = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}
+_EXTS_AUDIO  = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".opus", ".aac"}
+_MAX_IMAGEM  = 20 * 1024 * 1024   # 20 MB
+_MAX_AUDIO   = 100 * 1024 * 1024  # 100 MB
+_MAX_DOC     = 50 * 1024 * 1024   # 50 MB
+
+
+def _extrair_imagem(conteudo_bytes: bytes, filename: str) -> str:
+    """Extrai texto de imagem: tenta Ollama multimodal, fallback Tesseract OCR."""
+    import io, base64
+
+    # ── Caminho 1: Ollama multimodal (llava / gemma3) ─────────────────────────
+    try:
+        import json as _json
+        import urllib.request as _ur
+        b64 = base64.b64encode(conteudo_bytes).decode()
+        payload = _json.dumps({
+            "model": "llava",
+            "prompt": (
+                "Descreva em detalhes o conteúdo desta imagem. "
+                "Se houver texto visível, transcreva-o na íntegra. "
+                "Responda em português."
+            ),
+            "images": [b64],
+            "stream": False,
+        }).encode()
+        req = _ur.Request(
+            "http://localhost:11434/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with _ur.urlopen(req, timeout=60) as resp:
+            resultado = _json.loads(resp.read())
+            texto = resultado.get("response", "").strip()
+            if texto:
+                return f"[Descrição gerada por Ollama multimodal]\n\n{texto}"
+    except Exception:
+        pass  # Ollama indisponível ou modelo não instalado → tenta Tesseract
+
+    # ── Caminho 2: Tesseract OCR ──────────────────────────────────────────────
+    try:
+        import pytesseract
+        from PIL import Image
+        img = Image.open(io.BytesIO(conteudo_bytes))
+        texto = pytesseract.image_to_string(img, lang="por+eng")
+        if texto.strip():
+            return f"[Texto extraído por OCR (Tesseract)]\n\n{texto.strip()}"
+    except ImportError:
+        raise RuntimeError(
+            "Nenhum extrator de imagem disponível. "
+            "Instale pytesseract (pip install pytesseract) e o Tesseract binário, "
+            "ou inicie o Ollama com um modelo multimodal (llava ou gemma3:12b)."
+        )
+    except Exception as e:
+        raise RuntimeError(f"Erro no OCR: {e}")
+
+    raise RuntimeError("Imagem sem conteúdo extraível (nenhum texto detectado).")
+
+
+def _extrair_audio(conteudo_bytes: bytes, filename: str) -> str:
+    """Transcreve áudio com faster-whisper (modelo 'base', CPU)."""
+    import io, tempfile, os as _os
+
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        raise RuntimeError(
+            "faster-whisper não instalado. "
+            "Execute: .venv\\Scripts\\python.exe -m pip install faster-whisper"
+        )
+
+    ext = _os.path.splitext(filename)[1].lower()
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        tmp.write(conteudo_bytes)
+        tmp_path = tmp.name
+
+    try:
+        model = WhisperModel("base", device="cpu", compute_type="int8")
+        segments, info = model.transcribe(tmp_path, language="pt", beam_size=5)
+        texto = " ".join(seg.text.strip() for seg in segments).strip()
+        idioma = info.language
+    finally:
+        _os.unlink(tmp_path)
+
+    if not texto:
+        raise RuntimeError("Áudio sem conteúdo transcrito.")
+
+    return f"[Transcrição gerada por Whisper — idioma detectado: {idioma}]\n\n{texto}"
+
+
 @router.post("/cerebro/upload")
 async def cerebro_upload(
     arquivo: UploadFile = File(...),
     canal: str = Form(default="")
 ):
-    """Recebe arquivo (PDF, DOCX, MD, TXT) e converte para .txt no cerebro/{canal}/documentos/."""
+    """Recebe arquivo (PDF, DOCX, MD, TXT, imagem ou áudio) e converte para .txt no cerebro/{canal}/documentos/."""
     import uuid as _uuid
 
     cerebro_dir = motor_sebayt.CEREBRO_DIR
@@ -169,12 +259,15 @@ async def cerebro_upload(
     fid = str(_uuid.uuid4())[:8]
     nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', os.path.splitext(arquivo.filename)[0])[:40]
 
-    MAX_FILE_SIZE = 50 * 1024 * 1024
-    conteudo_bytes = await arquivo.read()
-    if len(conteudo_bytes) > MAX_FILE_SIZE:
-        return {"error": True, "message": "Arquivo excede o limite de 50 MB"}
-    texto = ""
+    eh_imagem = ext in _EXTS_IMAGEM
+    eh_audio  = ext in _EXTS_AUDIO
+    limite    = _MAX_IMAGEM if eh_imagem else (_MAX_AUDIO if eh_audio else _MAX_DOC)
 
+    conteudo_bytes = await arquivo.read()
+    if len(conteudo_bytes) > limite:
+        return {"error": True, "message": f"Arquivo excede o limite de {limite // 1024 // 1024} MB"}
+
+    texto = ""
     try:
         if ext == ".pdf":
             import pdfplumber, io
@@ -186,8 +279,14 @@ async def cerebro_upload(
             texto = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
         elif ext in (".txt", ".md"):
             texto = conteudo_bytes.decode("utf-8", errors="replace")
+        elif eh_imagem:
+            texto = _extrair_imagem(conteudo_bytes, arquivo.filename)
+        elif eh_audio:
+            texto = _extrair_audio(conteudo_bytes, arquivo.filename)
         else:
             return {"error": True, "message": f"Formato não suportado: {ext}"}
+    except RuntimeError as e:
+        return {"error": True, "message": str(e)}
     except Exception as e:
         return {"error": True, "message": f"Erro ao processar arquivo: {e}"}
 
