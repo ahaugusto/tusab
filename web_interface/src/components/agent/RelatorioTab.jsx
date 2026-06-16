@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
 import { Loader2 } from 'lucide-react';
 import { fetchRelatorio, limparHistorico } from '../../services/api';
@@ -23,6 +24,7 @@ import { fetchRelatorio, limparHistorico } from '../../services/api';
  * @returns {JSX.Element}
  */
 function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
+  const { t } = useTranslation();
   const [canal,        setCanal]        = React.useState('');
   const [data,         setData]         = React.useState(null);
   const [loading,      setLoading]      = React.useState(false);
@@ -80,14 +82,14 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
       {history.length > 0 && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Relatório de Extrações</h2>
+            <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('relatorio.title')}</h2>
             <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''} com histórico</p>
           </div>
           <button onClick={() => setShowLimpar(true)}
             className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
               ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
-            Limpar histórico
+            {t('relatorio.clear')}
           </button>
         </div>
       )}
