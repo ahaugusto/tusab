@@ -96,6 +96,9 @@ function App() {
   const [canalError,       setCanalError]       = useState('');
   const [configurando,     setConfigurando]     = useState(false);
 
+  // ─── Open-folder picker ────────────────────────────────────────────────────
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+
   // ─── Agent state ───────────────────────────────────────────────────────────
   const [agentStatus,      setAgentStatus]      = useState({ configured: false, provider: '', canal_indexado: '', index_count: 0, indexed: false, indexing: false, index_logs: [], canais_indexados: [] });
   const [agentProvider,    setAgentProvider]    = useState('gemini');
@@ -572,6 +575,36 @@ function App() {
       </a>
 
       {/* ── Modals ── */}
+      {/* Folder picker — choose which canal to open */}
+      <AnimatePresence>
+        {folderPickerOpen && (
+          <motion.div
+            key="folder-picker"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => setFolderPickerOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className={`w-full max-w-sm rounded-2xl shadow-2xl p-5 ${darkMode ? 'bg-slate-900 border border-white/10' : 'bg-white border border-slate-200'}`}
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Abrir pasta do canal</h2>
+              <div className="flex flex-col gap-1.5">
+                {history.filter(h => h.canal_nome).map((h, i) => (
+                  <button key={i}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'hover:bg-white/10 text-slate-200' : 'hover:bg-slate-100 text-slate-700'}`}
+                    onClick={() => { openFolder('canal_youtube', h.canal_nome); setFolderPickerOpen(false); }}
+                  >
+                    @{h.canal_nome}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Analytics consent — shown once on first launch */}
       <AnimatePresence>
         {showConsent && (
@@ -1058,7 +1091,12 @@ function App() {
                   darkMode={darkMode} />
                 <StatCard icon={FileText} label={t('stats.files')}     value={status.stats.files_generated}
                   color="accent"    sub={t('stats.parts')}
-                  onOpen={() => openFolder(canalConfigurado ? 'canal_youtube' : 'cerebro_txt', canalConfigurado)}
+                  onOpen={() => {
+                    const canais = history.filter(h => h.canal_nome);
+                    if (canais.length > 1) { setFolderPickerOpen(true); return; }
+                    const prefixo = canalConfigurado || (canais[0]?.canal_nome ?? '');
+                    openFolder(prefixo ? 'canal_youtube' : 'cerebro_txt', prefixo);
+                  }}
                   darkMode={darkMode} />
                 <StatCard icon={Database} label={t('stats.db')}        value={canalConfigurado ? t('stats.active') : t('stats.waiting_db')}
                   color="secondary" sub={canalConfigurado ? `@${canalConfigurado}` : t('stats.no_channel')}
