@@ -254,7 +254,7 @@ function ChatDrawer({
                 <button
                   onClick={onSend}
                   disabled={!chatHabilitado || !chatInput.trim() || chatLoading}
-                  className="p-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   aria-label={t('agent.send')}>
                   <Send size={13} />
                 </button>

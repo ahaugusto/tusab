@@ -88,7 +88,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode }) {
             return (
               <button key={id} onClick={() => toggle(id)}
                 role="checkbox" aria-checked={checked}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${BTN_FOCUS}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition-colors ${BTN_FOCUS}
                   ${checked
                     ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
                     : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
