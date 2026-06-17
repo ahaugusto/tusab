@@ -1,6 +1,6 @@
 /**
  * @file RelatorioTab.jsx
- * @description Extraction report tab: channel selector, stats and video status table
+ * @description Extraction report tab: channel selector, stats, dynamic filters and video table
  * @module components/agent/RelatorioTab
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
@@ -9,26 +9,19 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { fetchRelatorio, limparHistorico } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-/**
- * RelatorioTab — shows per-canal extraction statistics and a filterable video table
- *
- * @param {Object}  props
- * @param {boolean} props.darkMode  - dark/light theme flag
- * @param {Array}   props.history   - list of extracted channels
- * @param {string}  props.btnFocus  - Tailwind focus-visible ring classes
- * @returns {JSX.Element}
- */
 function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
   const { t } = useTranslation();
   const [canal,        setCanal]        = React.useState('');
   const [data,         setData]         = React.useState(null);
   const [loading,      setLoading]      = React.useState(false);
-  const [filtro,       setFiltro]       = React.useState('todos');
+  const [filtroStatus, setFiltroStatus] = React.useState('todos');
+  const [filtroAba,    setFiltroAba]    = React.useState('todas');
+  const [busca,        setBusca]        = React.useState('');
   const [showLimpar,   setShowLimpar]   = React.useState(false);
   const [limparSel,    setLimparSel]    = React.useState({});
   const [limpando,     setLimpando]     = React.useState(false);
@@ -55,26 +48,53 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
     onRefreshHistory?.();
   };
 
-  /** Pre-selects the first canal when history is loaded */
   React.useEffect(() => {
     if (history.length > 0 && !canal) setCanal(history[0].canal);
   }, [history]);
 
-  /** Fetches report data whenever the selected canal changes */
   React.useEffect(() => {
     if (!canal) return;
     setLoading(true);
+    setFiltroStatus('todos');
+    setFiltroAba('todas');
+    setBusca('');
     fetchRelatorio(canal)
       .then(r => { setData(r.data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [canal]);
 
-  const videos   = data?.videos || [];
-  const filtrados = filtro === 'todos' ? videos : videos.filter(v => v.Status === filtro);
-  const stats    = data?.stats;
+  const videos = data?.videos || [];
+  const stats  = data?.stats;
+
+  // Unique tabs present in this canal's data
+  const abasDisponiveis = React.useMemo(() => {
+    const set = new Set(videos.map(v => v.Aba).filter(Boolean));
+    return [...set].sort();
+  }, [videos]);
+
+  // Apply all filters
+  const filtrados = React.useMemo(() => {
+    return videos.filter(v => {
+      if (filtroStatus !== 'todos' && v.Status !== filtroStatus) return false;
+      if (filtroAba    !== 'todas' && v.Aba    !== filtroAba)    return false;
+      if (busca.trim()) {
+        const q = busca.trim().toLowerCase();
+        if (!(v.Titulo || '').toLowerCase().includes(q) && !(v.Link || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [videos, filtroStatus, filtroAba, busca]);
 
   const todosSelected = history.length > 0 && history.every(h => limparSel[h.canal]);
   const algumSelected = history.some(h => limparSel[h.canal]);
+
+  const formatViews = (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n === 0) return '—';
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}K`;
+    return String(n);
+  };
 
   return (
     <div className="space-y-4">
@@ -94,7 +114,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
         </div>
       )}
 
-      {/* Canal selector — multi-channel */}
+      {/* Canal selector */}
       {history.length > 1 && (
         <div className="flex items-center gap-2">
           <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Canal:</label>
@@ -131,7 +151,6 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
               </div>
             </div>
 
-            {/* Selecionar todos */}
             <label className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer border transition-colors
               ${todosSelected ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
                               : darkMode ? 'border-white/10 hover:border-white/20' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -195,38 +214,101 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
             ))}
           </div>
 
-          {/* Filter tabs */}
-          <div className="flex gap-1.5">
-            {[['todos','Todos'], ['Sucesso','Extraídos'], ['Sem Legenda','Sem legenda'], ['Legenda Curta','Leg. curta']].map(([v, l]) => (
-              <button key={v} onClick={() => setFiltro(v)}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtro === v ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
-                {l}
-              </button>
-            ))}
+          {/* ── Filtros dinâmicos ── */}
+          <div className="space-y-2">
+            {/* Busca por título */}
+            <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+              <Search size={12} className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+              <input
+                type="text"
+                placeholder="Buscar por título…"
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+                className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+              {busca && (
+                <button onClick={() => setBusca('')} className="shrink-0 text-slate-400 hover:text-slate-600">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtro de status */}
+            <div className="flex gap-1.5 flex-wrap">
+              {[['todos','Todos'], ['Sucesso','Extraídos'], ['Sem Legenda','Sem legenda'], ['Legenda Curta','Leg. curta']].map(([v, l]) => (
+                <button key={v} onClick={() => setFiltroStatus(v)}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtroStatus === v ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtro de aba — só aparece quando há mais de uma aba */}
+            {abasDisponiveis.length > 1 && (
+              <div className="flex gap-1.5 flex-wrap">
+                <button onClick={() => setFiltroAba('todas')}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtroAba === 'todas' ? 'bg-secondary/20 text-secondary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
+                  Todas as abas
+                </button>
+                {abasDisponiveis.map(aba => (
+                  <button key={aba} onClick={() => setFiltroAba(aba)}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtroAba === aba ? 'bg-secondary/20 text-secondary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
+                    {aba.startsWith('Playlist:') ? '▶ ' + aba.replace('Playlist: ', '') : aba}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Contador de resultados */}
+            <p className={`text-[10px] px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+              {filtrados.length === videos.length
+                ? `${videos.length} vídeos`
+                : `${filtrados.length} de ${videos.length} vídeos`}
+              {busca && ` para "${busca}"`}
+            </p>
           </div>
 
           {/* Videos table */}
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            <div className={`max-h-96 overflow-y-auto overflow-x-auto custom-scrollbar`}>
+            <div className="max-h-96 overflow-y-auto overflow-x-auto custom-scrollbar">
               <table className="w-full text-xs">
-                <caption className="sr-only">Lista de vídeos extraídos com título, data de publicação e status</caption>
+                <caption className="sr-only">Lista de vídeos com título, data, views, aba e status</caption>
                 <thead>
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Título</th>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Data</th>
+                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Data</th>
+                    <th className={`text-right px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Views</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Aba</th>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {filtrados.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Nenhum vídeo encontrado com esses filtros
+                      </td>
+                    </tr>
+                  )}
                   {filtrados.slice(0, 200).map((v, i) => (
                     <tr key={i} className={`border-b last:border-0 ${darkMode ? 'border-white/5 hover:bg-white/4' : 'border-slate-50 hover:bg-slate-50'}`}>
                       <td className="px-4 py-2">
                         <a href={v.Link} target="_blank" rel="noreferrer"
-                          className={`hover:underline truncate block min-w-[120px] max-w-[280px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                          className={`hover:underline truncate block min-w-[120px] max-w-[260px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                           {v.Titulo}
                         </a>
                       </td>
                       <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Pub}</td>
+                      <td className={`px-4 py-2 text-right whitespace-nowrap font-mono text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {formatViews(v.Views)}
+                      </td>
+                      <td className="px-4 py-2">
+                        {v.Aba && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
+                            ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                            {v.Aba.startsWith('Playlist:') ? '▶ ' + v.Aba.replace('Playlist: ', '') : v.Aba}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold
                           ${v.Status === 'Sucesso' ? (darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700')

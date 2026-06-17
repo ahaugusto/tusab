@@ -43,6 +43,10 @@ class LimparRequest(BaseModel):
 class LimparHistoricoRequest(BaseModel):
     prefixos: list = []
 
+class BuscarPayload(BaseModel):
+    query: str
+    canal: str = ''
+
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -487,3 +491,98 @@ def cerebro_limpar(req: LimparRequest):
         deletados['textos']     += _limpar_dir(os.path.join(cerebro_dir, 'textos'))
 
     return {'ok': True, 'deletados': deletados}
+
+
+@router.post("/cerebro/buscar")
+def cerebro_buscar(req: BuscarPayload):
+    """Busca por texto nos arquivos .txt do cerebro, retornando até 20 resultados com trecho."""
+    cerebro_dir = motor_tusab.CEREBRO_DIR
+    query = req.query.strip()
+
+    if not query:
+        return {"resultados": [], "total": 0, "query": query}
+
+    query_lower = query.lower()
+    resultados = []
+
+    # Determina raiz de busca: todo o cerebro_dir, ou subdir do canal filtrado
+    if req.canal:
+        canal_safe = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal).strip('_')
+        search_root = os.path.join(cerebro_dir, canal_safe)
+    else:
+        search_root = cerebro_dir
+
+    if not os.path.exists(search_root):
+        return {"resultados": [], "total": 0, "query": query}
+
+    def _inferir_tipo(rel_path: str) -> str:
+        parts = rel_path.replace("\\", "/").split("/")
+        for part in parts:
+            if part == "youtube":
+                return "youtube"
+            if part == "documentos":
+                return "documento"
+            if part == "textos":
+                return "texto"
+        return "youtube"
+
+    def _inferir_canal(rel_path: str) -> str:
+        parts = rel_path.replace("\\", "/").split("/")
+        # Se há ao menos dois segmentos e o segundo é um subdir conhecido,
+        # o primeiro segmento é o canal
+        subdirs_conhecidos = {"youtube", "documentos", "textos"}
+        if len(parts) >= 2 and parts[-2] in subdirs_conhecidos:
+            return parts[0] if len(parts) >= 3 else ""
+        if len(parts) >= 2:
+            return parts[0]
+        return ""
+
+    def _montar_trecho(content: str, pos: int) -> str:
+        start = max(0, pos - 80)
+        end = min(len(content), pos + 120)
+        trecho = content[start:end]
+        trecho = trecho.replace("\n", " ").replace("\r", " ")
+        prefix = "..." if start > 0 else ""
+        suffix = "..." if end < len(content) else ""
+        return prefix + trecho + suffix
+
+    # Percorre recursivamente todos os .txt exceto os que começam com '_'
+    for dirpath, _dirnames, filenames in os.walk(search_root):
+        for fname in sorted(filenames):
+            if not fname.endswith(".txt"):
+                continue
+            if fname.startswith("_"):
+                continue
+
+            fpath = os.path.join(dirpath, fname)
+            rel_path = os.path.relpath(fpath, cerebro_dir)
+
+            try:
+                with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+            pos = content.lower().find(query_lower)
+            if pos == -1:
+                continue
+
+            trecho = _montar_trecho(content, pos)
+            canal_inferido = _inferir_canal(rel_path)
+            tipo = _inferir_tipo(rel_path)
+
+            resultados.append({
+                "arquivo": fname,
+                "caminho": rel_path.replace("\\", "/"),
+                "trecho": trecho,
+                "canal": canal_inferido,
+                "tipo": tipo,
+            })
+
+            if len(resultados) >= 20:
+                break
+
+        if len(resultados) >= 20:
+            break
+
+    return {"resultados": resultados, "total": len(resultados), "query": query}

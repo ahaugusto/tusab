@@ -115,6 +115,18 @@ def cancel_drive_auth():
     return {"message": "Autenticação cancelada"}
 
 
+@router.post("/drive-disconnect")
+def disconnect_drive():
+    from tusab_engine.storage import TOKEN_PATH
+    try:
+        if os.path.exists(TOKEN_PATH):
+            os.remove(TOKEN_PATH)
+        state.drive_auth_error = None
+        return {"ok": True}
+    except Exception as e:
+        return {"error": True, "message": str(e)}
+
+
 @router.get("/history")
 def get_history():
     """Retorna resumo de todas as extrações anteriores a partir dos CSVs de gestão."""

@@ -30,7 +30,8 @@ import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig, loadAgentConfig,
   testAgentKey, startIndexing, cancelIndexing, fetchCanalMeta, sendChatStream, clearChatHistory,
-  fetchOllamaStatus, deleteCanalIndex, openFolder, exportBase, exportHistorico,
+  fetchOllamaStatus, deleteCanalIndex, openFolder, exportBase, exportHistorico, disconnectDrive,
+  exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -530,6 +531,11 @@ function App() {
 
   /** Cancels in-progress Drive authentication */
   const handleDriveCancel = () => cancelDriveAuth();
+
+  /** Disconnects Google Drive by removing the stored token */
+  const handleDriveDisconnect = async () => {
+    await disconnectDrive().catch(() => {});
+  };
 
   /** Sends the current chat message using server-sent streaming */
   const handleChatSend = async () => {
@@ -1250,48 +1256,16 @@ function App() {
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 space-y-4 custom-scrollbar">
 
                 {/* ── Drive toggle — topo ── */}
-                <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                  <div className="px-5 py-3.5 flex items-center gap-3">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className={`shrink-0 ${driveStatus === 'autenticado' ? 'text-secondary' : 'text-primary'}`} aria-hidden="true">
-                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09A16 16 0 0014.09 14"/><path d="M22 16.92v3"/>
-                    </svg>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('drive.title')}</p>
-                      <p className={`text-[10px] ${driveStatus === 'autenticado' ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {driveStatus === 'autenticado' ? t('drive.connected') : t('drive.not_authenticated')}
-                      </p>
-                    </div>
-                    {/* Toggle switch */}
-                    <button
-                      role="switch"
-                      aria-checked={driveStatus === 'autenticado'}
-                      title={driveStatus === 'autenticado' ? 'Drive conectado' : 'Conectar Google Drive'}
-                      onClick={() => {
-                        const willOpen = !driveOpen;
-                        setDriveOpen(willOpen);
-                        if (willOpen && driveStatus !== 'autenticado') handleDriveAuth();
-                      }}
-                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${BTN_FOCUS}
-                        ${driveStatus === 'autenticado' ? 'bg-secondary' : driveOpen ? 'bg-primary/60' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
-                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200
-                        ${driveStatus === 'autenticado' || driveOpen ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
-                  {/* Expandable content */}
-                  {(driveOpen || driveStatus === 'autenticado') && (
-                    <div className={`px-5 pb-4 pt-0 border-t space-y-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Sincronize os arquivos extraídos com o Drive para usar no{' '}
-                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
-                      </p>
-                      <DriveToggle
-                        driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
-                        onAuth={handleDriveAuth} onCancel={() => { handleDriveCancel(); setDriveOpen(false); }}
-                        isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
-                      />
-                    </div>
-                  )}
+                <div className={`rounded-2xl border overflow-hidden px-4 py-3 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <p className={`text-[11px] mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Sincronize os arquivos extraídos com o Drive para usar no{' '}
+                    <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
+                  </p>
+                  <DriveToggle
+                    driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
+                    onAuth={handleDriveAuth} onCancel={handleDriveCancel} onDisconnect={handleDriveDisconnect}
+                    isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
+                  />
                 </div>
 
                 {/* ── Onboarding hint ── */}
@@ -1312,6 +1286,10 @@ function App() {
                   onSetCanal={(url) => { setCanalInput(url); }}
                   showAdd={repoAddOpen} setShowAdd={setRepoAddOpen}
                   canalAtivo={canalConfigurado}
+                  onInjetarContexto={(trecho, arquivo) => {
+                    setChatInput(prev => prev ? `${prev}\n\n[Trecho de "${arquivo}"]:\n${trecho}` : `[Trecho de "${arquivo}"]:\n${trecho}`);
+                    setChatOpen(true);
+                  }}
                 />
               </div>
             )}
@@ -1637,6 +1615,37 @@ function App() {
                       <FileText size={13} />
                       Exportar histórico de chat (MD)
                     </button>
+
+                    <div className={`border-t pt-2 mt-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                      <p className={`text-[10px] mb-2 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Documentos formatados</p>
+                      {[
+                        { label: 'Resumo de canal (.docx)', icon: '📝', fn: exportResumoCanalDocx, fallback: 'tusab_resumo.docx', feature: 'Resumo em Word' },
+                        { label: 'Tabela de vídeos (.xlsx)', icon: '📊', fn: exportTabelaVideosXlsx, fallback: 'tusab_videos.xlsx', feature: 'Tabela em Excel', usesCanal: true },
+                        { label: 'Relatório de pesquisa (.pdf)', icon: '📋', fn: exportRelatorioPdf, fallback: 'tusab_relatorio.pdf', feature: 'Relatório em PDF' },
+                      ].map(({ label, icon, fn, fallback, feature, usesCanal }) => (
+                        <button key={label}
+                          onClick={async () => {
+                            showProSnackbar(feature);
+                            try {
+                              const canal = agentStatus.canal_indexado || canalConfigurado;
+                              const r = await fn(usesCanal ? canal : canal);
+                              if (!r.ok) { showError('Erro ao gerar documento. Verifique se há histórico de chat.'); return; }
+                              const blob = await r.blob();
+                              if (blob.type === 'application/json') { showError('Sem histórico disponível para exportar.'); return; }
+                              const a = document.createElement('a');
+                              a.href = URL.createObjectURL(blob);
+                              const cd = r.headers.get('content-disposition') || '';
+                              a.download = cd.match(/filename=(.+)/)?.[1] || fallback;
+                              a.click();
+                            } catch { showError(`Erro ao gerar ${label}. Tente novamente.`); }
+                          }}
+                          className={`w-full flex items-center gap-2 py-2 px-3 rounded-xl text-xs font-bold border transition-colors mb-1
+                            ${darkMode ? 'border-white/10 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-50'} ${BTN_FOCUS}`}>
+                          <span>{icon}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </section>
 

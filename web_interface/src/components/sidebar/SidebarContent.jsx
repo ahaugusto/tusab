@@ -26,23 +26,25 @@ import { queueAdd, queueClear } from '../../services/api';
  * @param {string}   props.driveAuthError   - error message from last auth attempt
  * @param {Function} props.onAuth           - callback to start Drive OAuth
  * @param {Function} props.onCancel         - callback to cancel ongoing auth
+ * @param {Function} [props.onDisconnect]   - callback to disconnect Drive (delete token)
  * @param {boolean}  props.isRunning        - whether extraction is currently running
  * @param {boolean}  props.darkMode         - dark/light theme flag
  * @param {string}   props.btnFocus         - Tailwind focus-visible ring classes
  * @returns {JSX.Element}
  */
-export function DriveToggle({ driveStatus, driveAuthError, onAuth, onCancel, isRunning, darkMode, btnFocus }) {
+export function DriveToggle({ driveStatus, driveAuthError, onAuth, onCancel, onDisconnect, isRunning, darkMode, btnFocus }) {
   const { t } = useTranslation();
 
   const isOn           = driveStatus === 'autenticado' || driveStatus === 'em_progresso';
   const isLoading      = driveStatus === 'em_progresso';
   const noCredentials  = driveStatus === 'sem_credenciais';
-  const toggleDisabled = noCredentials || isRunning || driveStatus === 'autenticado';
+  const toggleDisabled = noCredentials || isRunning;
 
-  /** Handles the toggle switch click — either starts auth or cancels loading */
+  /** Handles the toggle switch click */
   const handleToggle = () => {
     if (isLoading) { onCancel(); return; }
-    if (!isOn)     { onAuth(); }
+    if (driveStatus === 'autenticado') { onDisconnect?.(); return; }
+    if (!isOn) { onAuth(); }
   };
 
   const statusColor = driveStatus === 'autenticado'
