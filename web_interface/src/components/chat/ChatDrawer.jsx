@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown } from 'lucide-react';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -31,6 +31,8 @@ import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, 
  * @param {React.RefObject} props.chatEndRef   - ref to scroll anchor at end of messages
  * @param {boolean}  props.buscaAmpla          - enables broader LLM knowledge beyond indexed base
  * @param {Function} props.setBuscaAmpla       - toggles broad search mode
+ * @param {Array}    props.canaisExtraidos     - extraction history (canal_nome items)
+ * @param {Function} props.onIndexar          - callback(canal_nome) to trigger indexing
  * @returns {JSX.Element}
  */
 function ChatDrawer({
@@ -52,9 +54,13 @@ function ChatDrawer({
   chatEndRef,
   buscaAmpla,
   setBuscaAmpla,
+  canaisExtraidos,
+  onIndexar,
 }) {
   const { t } = useTranslation();
   const [showRepoModal, setShowRepoModal] = useState(false);
+  const [showIndexModal, setShowIndexModal] = useState(false);
+  const [indexSel, setIndexSel] = useState(null);
 
   const canaisIndexados = agentStatus.canais_indexados || [];
   const temBase = agentStatus.indexed || canaisIndexados.length > 0;
@@ -132,6 +138,77 @@ function ChatDrawer({
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                         {t('agent.chat_empty_no_index')}
                       </p>
+                      {onIndexar && (
+                        <button
+                          onClick={() => { setIndexSel(null); setShowIndexModal(true); }}
+                          className={`mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                            bg-accent/20 text-accent hover:bg-accent/30`}>
+                          <Zap size={13} aria-hidden="true" />
+                          Indexar base
+                        </button>
+                      )}
+
+                      {/* Index selection modal */}
+                      <AnimatePresence>
+                        {showIndexModal && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                            transition={{ duration: 0.15 }}
+                            className={`w-full rounded-2xl border p-4 space-y-3 shadow-xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+                            <div className="flex items-center justify-between">
+                              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                                Selecionar base para indexar
+                              </p>
+                              <button onClick={() => setShowIndexModal(false)}
+                                className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-400 hover:bg-slate-100'}`}>
+                                <X size={14} />
+                              </button>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {/* Todos os canais */}
+                              <button
+                                onClick={() => setIndexSel('__todos__')}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
+                                  ${indexSel === '__todos__'
+                                    ? darkMode ? 'bg-accent/15 border-accent/40' : 'bg-cyan-50 border-cyan-300'
+                                    : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                                <Database size={13} className="text-accent shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Todos os canais extraídos</p>
+                                  <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Indexa cada canal em sequência</p>
+                                </div>
+                                {indexSel === '__todos__' && <div className="w-2 h-2 rounded-full bg-accent shrink-0" />}
+                              </button>
+
+                              {/* Canais individuais */}
+                              {(canaisExtraidos || []).map(nome => (
+                                <button key={nome}
+                                  onClick={() => setIndexSel(nome)}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
+                                    ${indexSel === nome
+                                      ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
+                                      : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                                  <Database size={13} className="text-primary shrink-0" />
+                                  <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{nome}</p>
+                                  {indexSel === nome && <div className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </div>
+
+                            <button
+                              disabled={!indexSel || agentStatus.indexing}
+                              onClick={() => { onIndexar(indexSel); setShowIndexModal(false); }}
+                              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                                disabled:opacity-40 disabled:cursor-not-allowed bg-accent/20 text-accent hover:bg-accent/30`}>
+                              <Zap size={13} />
+                              {agentStatus.indexing ? 'Indexando…' : 'Confirmar e Indexar'}
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </>
                   ) : !canalAtivo || showRepoModal ? (
                     <>
