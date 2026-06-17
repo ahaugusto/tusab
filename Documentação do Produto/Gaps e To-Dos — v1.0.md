@@ -59,7 +59,7 @@ Documento vivo. Cada item tem status, pilar e classificação:
 | M1 | ~~**Definir a parede do free**~~ — **✅ DECIDIDO** (Junho 2026) | — | — |
 | M2 | **Sistema de licença (Lemon Squeezy)** — tela de ativação no Electron, validação HTTP, hardware fingerprint | [IMPL] | P1 |
 | M3 | **Proteção do código Python** — backend em `.py` puro, compilar com Nuitka ou PyArmor antes de lançar versão paga | [IMPL] | P1 |
-| M4 | **Feature flags Free vs. Pro no código** — implementar verificação de licença nos endpoints/componentes das features Pro | [IMPL] | P1 |
+| M4 | ~~**Feature flags Free vs. Pro no código**~~ — **✅ IMPLEMENTADO** (Junho 2026): limite de 2 canais no indexar(), ProSnackbar informativo em fila/multi-canal/exports, endpoints /export/base e /export/historico | — | — |
 
 **FREE inclui:** extração de até 2 canais, chat ilimitado, Ollama + providers externos,
 upload de docs/imagens/áudio, Drive sync, busca BM25 básica, relatório resumido.
@@ -120,8 +120,8 @@ Ver spec completa: `Documentação do Produto/Modelo de negócio.txt`
 
 | # | To-Do | Tipo | Prioridade |
 |---|---|---|---|
-| E1 | **Export do histórico de chat** — salvar conversa como `.txt` ou `.md` com fontes. Candidato para tier Pro | [DEF] | P1 |
-| E2 | **Export da base de conhecimento** — ZIP de `cerebro/` com estrutura preservada, reimportável em outra instalação | [DEF] | P1 |
+| E1 | ~~**Export do histórico de chat**~~ — **✅ IMPLEMENTADO** (Junho 2026): `POST /export/historico` + botão na UI | — | — |
+| E2 | ~~**Export da base de conhecimento**~~ — **✅ IMPLEMENTADO** (Junho 2026): `POST /export/base` + botão na UI | — | — |
 | E3 | **Política de portabilidade de dados documentada** — para contratos B2B: "seus dados ficam em X, você pode exportar fazendo Y, deletar fazendo Z" | [DEF] | P2 |
 
 ---
