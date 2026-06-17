@@ -448,6 +448,19 @@ function App() {
   /** Cancels ongoing indexing */
   const handleAgentIndexCancel = () => cancelIndexing();
 
+  /** Triggered from the chat drawer — indexes a specific canal or all extracted canals */
+  const handleIndexarDoChat = async (canalNome) => {
+    setAgentIndexError('');
+    if (canalNome === '__todos__') {
+      const canais = history.filter(h => h.canal_nome).map(h => h.canal_nome);
+      for (const nome of canais) {
+        await startIndexing(nome).catch(() => {});
+      }
+    } else {
+      await startIndexing(canalNome).catch(() => {});
+    }
+  };
+
   /** Removes an indexed canal and updates the extras list */
   const handleDeleteCanal = async (nome) => {
     const ok = await deleteCanalIndex(nome).then(() => true).catch(() => false);
@@ -1727,6 +1740,8 @@ function App() {
               onSelectCanal={setCanalConfigurado}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
+              canaisExtraidos={history.filter(h => h.canal_nome).map(h => h.canal_nome)}
+              onIndexar={handleIndexarDoChat}
               buscaAmpla={buscaAmpla}
               setBuscaAmpla={(updater) => {
                 const next = typeof updater === 'function' ? updater(buscaAmpla) : updater;
