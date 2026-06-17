@@ -25,6 +25,15 @@ function _emojiTipo(item) {
   return '📄';
 }
 
+// Tipos aceitos para input e drag-drop
+const ACCEPT_TYPES = '.pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac';
+
+function _fileIsAccepted(file) {
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const accepted = ['pdf','docx','txt','md','png','jpg','jpeg','webp','bmp','tiff','mp3','wav','m4a','ogg','flac','opus','aac'];
+  return accepted.includes(ext);
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -32,11 +41,12 @@ function _emojiTipo(item) {
  *
  * @param {Object}   props
  * @param {boolean}  props.darkMode       - dark/light theme flag
- * @param {Object}   props.repositorio    - { youtube, documentos, textos }
+ * @param {Object}   props.repositorio    - { youtube, documentos, textos, canais }
  * @param {Function} props.setRepositorio - state setter for repositorio
  * @param {Array}    props.history        - extraction history array
  * @param {string}   props.btnFocus       - Tailwind focus-visible ring classes
  * @param {Function} props.onSetCanal     - callback(url) to propagate a canal URL to the main form
+ * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
 function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo }) {
@@ -49,11 +59,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [text, setText]       = React.useState('');
   const [saving, setSaving]   = React.useState(false);
   const [file, setFile]       = React.useState(null);
+  const [uploadAviso, setUploadAviso] = React.useState('');
   const [expandedCanais, setExpandedCanais] = React.useState({});
   const [showLimpar, setShowLimpar]         = React.useState(false);
   const [limparSel, setLimparSel]           = React.useState({ youtube: false, documentos: false, textos: false });
   const [limpando, setLimpando]             = React.useState(false);
-  const fileRef = React.useRef(null);
+  const [dragging, setDragging]             = React.useState(false);
+  const fileRef  = React.useRef(null);
+  const dropRef  = React.useRef(null);
 
   const reload = () =>
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
@@ -66,15 +79,76 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload(); setShowAdd(false); setTitle(''); setText(''); setSaving(false);
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleUpload = async (fileToUpload = file) => {
+    if (!fileToUpload) return;
     setSaving(true);
+    setUploadAviso('');
     const form = new FormData();
-    form.append('arquivo', file);
+    form.append('arquivo', fileToUpload);
     form.append('canal', canalAtivo || '');
-    const ok = await uploadDocument(form).then(() => true).catch(() => false);
-    if (ok) Analytics.documentoAdicionado(file.name.split('.').pop()?.toLowerCase() || 'arquivo');
-    reload(); setShowAdd(false); setFile(null); setSaving(false);
+    try {
+      const res = await uploadDocument(form);
+      const data = res.data;
+      if (data?.error) {
+        setUploadAviso(data.message || 'Erro ao processar arquivo.');
+      } else {
+        Analytics.documentoAdicionado(fileToUpload.name.split('.').pop()?.toLowerCase() || 'arquivo');
+        if (data?.aviso) {
+          // Imagem registrada mas sem extração de texto — mostra aviso informativo
+          setUploadAviso('⚠️ Imagem registrada no repositório. Para extrair o texto, instale Ollama com modelo multimodal (llava) ou Tesseract OCR.');
+        }
+        reload();
+        setFile(null);
+        setShowAdd(false);
+      }
+    } catch {
+      setUploadAviso('Erro de conexão com o servidor.');
+    }
+    setSaving(false);
+  };
+
+  // ─── Drag and drop ────────────────────────────────────────────────────────
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dropRef.current?.contains(e.relatedTarget)) setDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    const dropped = e.dataTransfer.files[0];
+    if (!dropped) return;
+    if (!_fileIsAccepted(dropped)) {
+      setUploadAviso('Tipo de arquivo não suportado. Use PDF, DOCX, TXT, MD, imagem ou áudio.');
+      return;
+    }
+    setFile(dropped);
+    // Se já estiver em modo arquivo, faz upload automaticamente
+    if (mode === 'arquivo') {
+      await handleUpload(dropped);
+    } else {
+      // Muda para modo arquivo e deixa o usuário confirmar
+      setMode('arquivo');
+    }
+  };
+
+  // Drop na zona fora do painel (sobre o repositório inteiro)
+  const handleGlobalDragOver = (e) => {
+    e.preventDefault();
+    if (!showAdd_) {
+      setShowAdd(true);
+      setMode('arquivo');
+    }
+    setDragging(true);
   };
 
   const toggleCanal = (nome) =>
@@ -90,7 +164,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
-  /** Deletes a repositório item by type and id */
   const handleDelete = async (tipo, id) => {
     await deleteRepositorioItem(tipo, id).catch(() => {});
     reload();
@@ -102,11 +175,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const flatTexts = repositorio.textos     || [];
   const total     = flatYT.length + flatDocs.length + flatTexts.length;
 
-  // Items already shown inside canal accordions — don't duplicate them
   const coveredYT  = new Set(canais.flatMap(c => c.youtube.map(f => f.nome)));
   const coveredIds = new Set(canais.flatMap(c => [...c.documentos, ...c.textos].map(d => d.id)));
 
-  // Orphan items (legacy flat structure or items without an active canal)
   const orphanYT    = flatYT.filter(f => !coveredYT.has(f.nome));
   const orphanDocs  = flatDocs.filter(d => !coveredIds.has(d.id));
   const orphanTexts = flatTexts.filter(t => !coveredIds.has(t.id));
@@ -118,7 +189,12 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   ].filter(g => g.items.length > 0);
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      onDragOver={handleGlobalDragOver}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false); }}
+      onDrop={handleDrop}>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -137,14 +213,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               {t('repo.clear')}
             </button>
           )}
-          <button onClick={() => setShowAdd(!showAdd_)}
+          <button onClick={() => { setShowAdd(!showAdd_); setUploadAviso(''); }}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
             + Adicionar
           </button>
         </div>
       </div>
 
-      {/* Modal — limpar base (portal para evitar clipping por transform de pai) */}
+      {/* Modal — limpar base */}
       {showLimpar && ReactDOM.createPortal(
         <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('repo.clear_title')}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
@@ -199,7 +275,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
       {/* Add panel */}
       {showAdd_ && (
-        <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`rounded-2xl border p-4 space-y-3 transition-colors
+          ${dragging
+            ? darkMode ? 'border-primary bg-primary/8' : 'border-violet-400 bg-violet-50'
+            : darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+
           <div className="flex gap-2">
             {['texto', 'arquivo'].map(m => (
               <button key={m} onClick={() => setMode(m)}
@@ -222,27 +302,61 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             </>
           ) : (
             <>
-              <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors
-                ${darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}
-                onClick={() => fileRef.current?.click()}>
-                <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {file ? file.name : 'Clique para selecionar arquivo'}
-                </p>
-                <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  📄 .pdf .docx .txt .md
-                </p>
-                <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  🖼️ .png .jpg .jpeg .webp .bmp .tiff
-                </p>
-                <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  🎵 .mp3 .wav .m4a .ogg .flac .opus .aac
-                </p>
+              {/* Drop zone */}
+              <div
+                ref={dropRef}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none
+                  ${dragging
+                    ? darkMode ? 'border-primary bg-primary/12 scale-[1.01]' : 'border-violet-400 bg-violet-50 scale-[1.01]'
+                    : file
+                      ? darkMode ? 'border-secondary/50 bg-secondary/8' : 'border-emerald-300 bg-emerald-50'
+                      : darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}>
+
+                {file ? (
+                  <>
+                    <p className="text-lg mb-1">
+                      {_EXTS_IMAGEM.has(file.name.split('.').pop()?.toLowerCase()) ? '🖼️'
+                        : _EXTS_AUDIO.has(file.name.split('.').pop()?.toLowerCase()) ? '🎵' : '📄'}
+                    </p>
+                    <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</p>
+                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {(file.size / 1024).toFixed(0)} KB · Clique para trocar
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-xs font-medium ${dragging ? 'text-primary' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {dragging ? 'Solte aqui para fazer upload' : 'Arraste e solte ou clique para selecionar'}
+                    </p>
+                    <div className={`mt-2 space-y-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <p className="text-[10px]">📄 PDF · DOCX · TXT · MD</p>
+                      <p className="text-[10px]">🖼️ PNG · JPG · JPEG · WEBP · BMP · TIFF</p>
+                      <p className="text-[10px]">🎵 MP3 · WAV · M4A · OGG · FLAC · OPUS · AAC</p>
+                    </div>
+                  </>
+                )}
               </div>
+
               <input ref={fileRef} type="file"
-                accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac"
+                accept={ACCEPT_TYPES}
                 className="hidden"
-                onChange={e => setFile(e.target.files[0] || null)} />
-              <button onClick={handleUpload} disabled={saving || !file}
+                onChange={e => { setFile(e.target.files[0] || null); setUploadAviso(''); }} />
+
+              {/* Aviso de extração parcial (imagem sem OCR) */}
+              {uploadAviso && (
+                <p className={`text-[11px] rounded-xl px-3 py-2 leading-relaxed
+                  ${uploadAviso.startsWith('⚠️')
+                    ? darkMode ? 'bg-warning/10 text-warning' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : darkMode ? 'bg-danger/10 text-danger' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                  {uploadAviso}
+                </p>
+              )}
+
+              <button onClick={() => handleUpload(file)} disabled={saving || !file}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30 ${btnFocus}`}>
                 {saving ? 'Processando...' : 'Fazer upload'}
               </button>
@@ -254,7 +368,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       {/* Canal groups */}
       {canais.map(canal => {
         const cTotal = canal.youtube.length + canal.documentos.length + canal.textos.length;
-        const isOpen = expandedCanais[canal.nome] !== false; // default open
+        const isOpen = expandedCanais[canal.nome] !== false;
         const isAvulso = canal.nome === '_avulso';
         return (
           <div key={canal.nome} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -305,7 +419,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         );
       })}
 
-      {/* Orphan groups — legacy flat files not covered by any canal accordion */}
+      {/* Orphan groups */}
       {orphanGroups.map(group => {
         const isOpen = expandedCanais[group.key] !== false;
         return (

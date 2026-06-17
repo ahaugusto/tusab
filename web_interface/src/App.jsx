@@ -1300,7 +1300,7 @@ function App() {
                     <span className="text-base shrink-0">💡</span>
                     <div className="flex-1">
                       <p className={`text-xs font-bold mb-0.5 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
-                      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Aqui ficam os arquivos do YouTube. Use <strong>+ Adicionar</strong> para incluir PDFs, Word, Markdown ou colar texto.</p>
+                      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Aqui ficam os arquivos do YouTube. Use <strong>+ Adicionar</strong> ou <strong>arraste e solte</strong> para incluir PDFs, Word, Markdown, imagens (PNG, JPG, WEBP) ou áudios (MP3, WAV).</p>
                     </div>
                     <button onClick={() => markSeen(KEYS.repositorio)} className={`p-1 rounded text-xs shrink-0 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
                   </div>
