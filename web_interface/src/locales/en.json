@@ -39,6 +39,7 @@
   "channel.error_server": "Error configuring channel. Server offline?",
   "ops.title": "Operations",
   "ops.start": "Start Extraction",
+  "ops.queue_add": "Add to Queue",
   "ops.pause": "Pause Engine",
   "ops.resume": "Resume Engine",
   "ops.cancel": "Cancel",
