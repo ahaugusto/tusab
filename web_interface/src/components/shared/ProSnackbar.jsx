@@ -55,7 +55,7 @@ function ProSnackbar({ visible, onClose, feature, darkMode, autoClose = 6000 }) 
               Disponível no plano Pro. Fique de olho no lançamento!
             </p>
             <a
-              href="mailto:augusto.brasil@criaugu.com.br?subject=Interesse%20no%20Tusab%20Pro"
+              href="mailto:criaugu.tec.design@gmail.com?subject=Interesse%20no%20Tusab%20Pro"
               className={`inline-flex items-center gap-1 mt-2 text-[11px] font-bold transition-colors
                 ${darkMode ? 'text-primary hover:text-primary/80' : 'text-violet-600 hover:text-violet-800'}`}>
               Quero ser avisado →
