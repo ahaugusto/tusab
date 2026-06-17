@@ -1,4 +1,4 @@
-# Sebayt smoke driver
+# Tusab smoke driver
 # Versionamento semantico: -Suite full|patch|minor|major
 # full   = todos os 15 checks (pre-commit padrao)
 # patch  = apenas engine + yt-dlp (correcoes pontuais, sem tocar em features)
@@ -52,7 +52,7 @@ function Fetch($method, $path, $body = $null) {
 }
 
 Write-Host ""
-Write-Host "Sebayt smoke driver  [suite: $Suite]" -ForegroundColor White
+Write-Host "Tusab smoke driver  [suite: $Suite]" -ForegroundColor White
 Write-Host "Root: $ROOT"
 Write-Host ""
 
@@ -66,7 +66,7 @@ try {
 if (-not $already) {
     info "Starting FastAPI backend..."
     $PROC = Start-Process -FilePath $VENV `
-        -ArgumentList "-m","uvicorn","api_sebayt:app","--host","127.0.0.1","--port","8001","--log-level","warning" `
+        -ArgumentList "-m","uvicorn","api_tusab:app","--host","127.0.0.1","--port","8001","--log-level","warning" `
         -WorkingDirectory $ROOT -PassThru -WindowStyle Hidden
 
     $waited = 0

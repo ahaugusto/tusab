@@ -62,7 +62,7 @@ function App() {
   const { t } = useTranslation();
 
   // ─── UI state ──────────────────────────────────────────────────────────────
-  const [showOnboarding,   setShowOnboarding]   = useState(() => !localStorage.getItem('sebayt_onboarded'));
+  const [showOnboarding,   setShowOnboarding]   = useState(() => !localStorage.getItem('tusab_onboarded'));
   const [showGuide,        setShowGuide]        = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
@@ -72,7 +72,7 @@ function App() {
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
   const [darkMode,         setDarkMode]         = useState(() => {
-    const saved = localStorage.getItem('Sebayt_theme');
+    const saved = localStorage.getItem('tusab_theme');
     if (saved !== null) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
@@ -212,7 +212,7 @@ function App() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e) => {
-      if (localStorage.getItem('Sebayt_theme') === null) setDarkMode(e.matches);
+      if (localStorage.getItem('tusab_theme') === null) setDarkMode(e.matches);
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -671,7 +671,7 @@ function App() {
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button onClick={() => setShowHome(true)} aria-label={t('nav.home')} title={t('nav.home')}
               className={`w-14 h-14 rounded-xl flex items-center justify-center mb-2 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
-              <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
+              <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Tusab"
                 style={{ width: 52, height: 52, objectFit: 'contain' }}
                 onError={e => { e.target.style.display = 'none'; }} />
             </button>
@@ -685,9 +685,9 @@ function App() {
                 <button key={id}
                   onClick={() => {
                     setActiveTab(id);
-                    if (id === 'agente' && !localStorage.getItem('Sebayt_agent_visited')) {
+                    if (id === 'agente' && !localStorage.getItem('tusab_agent_visited')) {
                       setShowAgentHint(true);
-                      localStorage.setItem('Sebayt_agent_visited', '1');
+                      localStorage.setItem('tusab_agent_visited', '1');
                     }
                   }}
                   aria-label={label}
@@ -711,7 +711,7 @@ function App() {
                 <span className="text-[9px] font-semibold leading-none">Ajuda</span>
               </button>
               <button
-                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
+                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
                 aria-label={darkMode ? t('footer.light') : t('footer.dark')}
                 className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
@@ -734,7 +734,7 @@ function App() {
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => { setShowHome(true); setSidebarOpen(false); }}
                   className="rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-none">
-                  <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Sebayt"
+                  <img src={darkMode ? '/logo_dark_compact.svg' : '/logo_light_compact.svg'} alt="Tusab"
                     style={{ width: 44, height: 44, objectFit: 'contain' }}
                     onError={e => { e.target.style.display = 'none'; }} />
                 </button>
@@ -753,9 +753,9 @@ function App() {
                   <button key={id}
                     onClick={() => {
                       setActiveTab(id); setSidebarOpen(false);
-                      if (id === 'agente' && !localStorage.getItem('Sebayt_agent_visited')) {
+                      if (id === 'agente' && !localStorage.getItem('tusab_agent_visited')) {
                         setShowAgentHint(true);
-                        localStorage.setItem('Sebayt_agent_visited', '1');
+                        localStorage.setItem('tusab_agent_visited', '1');
                       }
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors text-left ${BTN_FOCUS}
@@ -774,7 +774,7 @@ function App() {
                 {t('guide.title')}
               </button>
               <button
-                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
+                onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 {darkMode ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
@@ -794,7 +794,7 @@ function App() {
               agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
-              onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('Sebayt_theme', next ? 'dark' : 'light'); }}
+              onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
               onChangeLang={changeLang}
             />
           )}
@@ -880,18 +880,9 @@ function App() {
 
               {/* ── Canal + Drive + Iniciar ── */}
               <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                <div className={`px-5 py-3 border-b flex items-center justify-between gap-3 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-                  <div className="flex items-center gap-2">
-                    <Zap size={14} className="text-primary" aria-hidden="true" />
-                    <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
-                  </div>
-                  <button onClick={handleStart} disabled={isRunning || !canalConfigurado}
-                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20 ${BTN_FOCUS}`}>
-                    <Zap size={12} aria-hidden="true" />
-                    {t('ops.start')}
-                  </button>
+                <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                  <Zap size={14} className="text-primary" aria-hidden="true" />
+                  <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
                 </div>
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Canal section */}
@@ -979,6 +970,15 @@ function App() {
                       </p>
                     )}
                   </div>
+                </div>
+                <div className={`px-4 pb-4 pt-3 border-t flex justify-end ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                  <button onClick={handleStart} disabled={isRunning || !canalConfigurado || extractionTypes.length === 0}
+                    className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20 ${BTN_FOCUS}`}>
+                    <Zap size={13} aria-hidden="true" />
+                    {t('ops.start')}
+                  </button>
                 </div>
               </div>
 
@@ -1734,9 +1734,13 @@ function App() {
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
                 onClick={() => setChatOpen(true)}
-                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 transition-transform"
+                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
                 aria-label="Abrir chat com o agente">
-                <Bot size={24} className="text-white" />
+                <img
+                  src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
                 {agentStatus.indexed && (
                   <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-secondary border-2 border-white" />
                 )}

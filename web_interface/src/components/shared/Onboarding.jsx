@@ -41,12 +41,12 @@ function Onboarding({ onDone }) {
 
   /** Marks onboarding complete in localStorage and calls onDone */
   const finish = () => {
-    localStorage.setItem('sebayt_onboarded', '1');
+    localStorage.setItem('tusab_onboarded', '1');
     onDone();
   };
 
   return (
-    <ModalWrapper onClose={finish} disableBackdrop label="Introdução ao Sebayt">
+    <ModalWrapper onClose={finish} disableBackdrop label="Introdução ao Tusab">
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 12 }}

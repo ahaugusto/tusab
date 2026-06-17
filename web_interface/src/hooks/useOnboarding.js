@@ -12,11 +12,11 @@ import { useState, useCallback } from 'react';
 // ─── Feature keys ────────────────────────────────────────────────────────────
 
 const KEYS = {
-  repositorio:     'Sebayt_onb_repositorio',
-  relatorio:       'Sebayt_onb_relatorio',
-  chatFirstSend:   'Sebayt_onb_chat_first',
-  indexDone:       'Sebayt_onb_index_done',
-  docAdded:        'Sebayt_onb_doc_added',
+  repositorio:     'tusab_onb_repositorio',
+  relatorio:       'tusab_onb_relatorio',
+  chatFirstSend:   'tusab_onb_chat_first',
+  indexDone:       'tusab_onb_index_done',
+  docAdded:        'tusab_onb_doc_added',
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

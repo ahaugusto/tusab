@@ -8,9 +8,9 @@ import os
 import re
 import json
 
-from sebayt_engine.storage import INDEX_DIR
-from sebayt_engine.agent.config import carregar_config
-from sebayt_engine.agent.index import (
+from tusab_engine.storage import INDEX_DIR
+from tusab_engine.agent.config import carregar_config
+from tusab_engine.agent.index import (
     _bm25_cache, _bm25_lock,
     _enriquecer_documento, _index_path,
     _carregar_meta_canal, _STOPWORDS,
@@ -272,7 +272,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
 
     if busca_ampla:
         instrucoes = (
-            f"Você é o Sebayt em modo de Busca Ampla.\n\n"
+            f"Você é o Tusab em modo de Busca Ampla.\n\n"
             f"TAREFA: responda à pergunta usando as fontes abaixo como referência principal.\n"
             f"Quando as fontes contiverem a informação, cite-as. "
             f"Quando forem insuficientes, você pode complementar com conhecimento geral "
@@ -281,7 +281,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
         )
     else:
         instrucoes = (
-            f"Você é o Sebayt, um assistente que responde EXCLUSIVAMENTE com base nas fontes abaixo.\n\n"
+            f"Você é o Tusab, um assistente que responde EXCLUSIVAMENTE com base nas fontes abaixo.\n\n"
             f"TAREFA: leia as fontes e extraia as informações que respondam à pergunta.\n"
             f"NÃO use nenhum conhecimento próprio, externo ou de treinamento.\n"
             f"CADA afirmação deve poder ser rastreada a uma das fontes.\n"

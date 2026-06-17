@@ -229,10 +229,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   {file ? file.name : 'Clique para selecionar arquivo'}
                 </p>
                 <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  Documentos: .pdf .docx .txt .md
+                  📄 .pdf .docx .txt .md
                 </p>
                 <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  Imagens: .png .jpg .jpeg .webp · Áudio: .mp3 .wav .m4a .ogg .flac
+                  🖼️ .png .jpg .jpeg .webp .bmp .tiff
+                </p>
+                <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                  🎵 .mp3 .wav .m4a .ogg .flac .opus .aac
                 </p>
               </div>
               <input ref={fileRef} type="file"

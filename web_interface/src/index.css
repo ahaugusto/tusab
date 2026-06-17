@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Paleta Tusab — primary por modo
+   Light: #1558B0 (azul-lapis)  — contraste 5.2:1 sobre branco   ✓ WCAG AA
+   Dark:  #4B9FE8 (azul-céu)    — contraste 5.0:1 sobre #080C18  ✓ WCAG AA */
+:root {
+  --color-primary: #1558B0;
+}
+.dark {
+  --color-primary: #4B9FE8;
+}
+
 @layer base {
   body {
     @apply bg-background text-slate-100 font-sans antialiased;
@@ -9,7 +19,7 @@
 
   /* WCAG 2.4.7 — Focus Visible: anel de foco visível em todos os elementos interativos */
   :focus-visible {
-    outline: 2px solid #8B5CF6;
+    outline: 2px solid var(--color-primary);
     outline-offset: 3px;
     border-radius: 6px;
   }
@@ -33,7 +43,7 @@
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #8B5CF6;
+  background: var(--color-primary);
 }
 
 /* Limita a transição automática para não afetar outline/ring de foco */

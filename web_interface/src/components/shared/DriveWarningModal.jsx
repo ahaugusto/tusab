@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, FolderOpen, FolderX, ArrowRight, X } from 'lucide-react';
 import ModalWrapper from './ModalWrapper';
 
-const STORAGE_KEY = 'sebayt_drive_security_warned';
+const STORAGE_KEY = 'tusab_drive_security_warned';
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
 
             {/* Body */}
             <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              A pasta de dados do Sebayt contém arquivos sensíveis.
+              A pasta de dados do Tusab contém arquivos sensíveis.
               Se você sincronizar a pasta errada com o Drive, suas
               chaves de API podem ser expostas.
             </p>
@@ -101,7 +101,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
             </div>
 
             <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              O Sebayt usa o Drive apenas para salvar a pasta{' '}
+              O Tusab usa o Drive apenas para salvar a pasta{' '}
               <span className="font-mono">cerebro/</span>.
               Este aviso é exibido uma única vez.
             </p>

@@ -6,35 +6,35 @@
 import sys
 import os
 
-import motor_sebayt
-import agent_sebayt
+import motor_tusab
+import agent_tusab
 
 import logging
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 # AppState singleton + LogRedirector (redirects sys.stdout/stderr on import)
-from sebayt_engine.state import state, _real_stderr  # noqa: E402
+from tusab_engine.state import state, _real_stderr  # noqa: E402
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from sebayt_engine.api import router_status, router_extraction, router_agent, router_repositorio
+from tusab_engine.api import router_status, router_extraction, router_agent, router_repositorio
 
 
 def _criar_aviso_seguranca():
     """Cria LEIA-ME-SEGURANCA.txt na pasta de dados na primeira execução."""
-    aviso_path = os.path.join(motor_sebayt.DATA_DIR, 'LEIA-ME-SEGURANCA.txt')
+    aviso_path = os.path.join(motor_tusab.DATA_DIR, 'LEIA-ME-SEGURANCA.txt')
     if os.path.exists(aviso_path):
         return
-    os.makedirs(motor_sebayt.DATA_DIR, exist_ok=True)
+    os.makedirs(motor_tusab.DATA_DIR, exist_ok=True)
     conteudo = """\
-AVISO DE SEGURANÇA — Sebayt
+AVISO DE SEGURANÇA — Tusab
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 ═══════════════════════════════════════════════════════════
 
-Esta pasta contém dados sensíveis do Sebayt.
+Esta pasta contém dados sensíveis do Tusab.
 
 O QUE TEM AQUI
 ───────────────
@@ -94,13 +94,13 @@ if os.path.exists(frontend_dist):
 
 # Migra cerebro_txt → cerebro/youtube na primeira execução
 try:
-    motor_sebayt.migrar_cerebro_txt()
+    motor_tusab.migrar_cerebro_txt()
 except Exception:
     pass
 
-# Cria base de conhecimento embutida do Sebayt na primeira execução
+# Cria base de conhecimento embutida do Tusab na primeira execução
 try:
-    _ajuda_path = os.path.join(motor_sebayt.CEREBRO_DIR, 'textos', '_sebayt_ajuda.txt')
+    _ajuda_path = os.path.join(motor_tusab.CEREBRO_DIR, 'textos', '_tusab_ajuda.txt')
     if not os.path.exists(_ajuda_path):
         import subprocess as _sp
         _sp.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts', 'create_help_base.py')],
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         uvicorn.run(app, host="127.0.0.1", port=8001, log_level="warning")
     except Exception as _e:
         import traceback
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sebayt_crash.log'), 'w') as _f:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tusab_crash.log'), 'w') as _f:
             traceback.print_exc(file=_f)
             _f.write(f"\nError: {_e}\n")
         raise

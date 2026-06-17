@@ -10,8 +10,8 @@ import threading
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 
-import motor_sebayt
-from sebayt_engine.state import state
+import motor_tusab
+from tusab_engine.state import state
 
 router = APIRouter()
 
@@ -40,7 +40,7 @@ def run_motor():
             state.stats["status"] = "Mapeando YouTube"
             _reset_stats()
 
-            motor_sebayt.sebayt_engine(
+            motor_tusab.tusab_engine(
                 canal_url=state.canal_url,
                 evento_pausa=state.evento_pausa,
                 evento_cancelar=state.evento_cancelar,
