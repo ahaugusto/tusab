@@ -27,7 +27,7 @@ import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
 import {
-  fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction,
+  fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig, loadAgentConfig,
   testAgentKey, startIndexing, cancelIndexing, fetchCanalMeta, sendChatStream, clearChatHistory,
   fetchOllamaStatus, deleteCanalIndex, openFolder,
@@ -462,10 +462,15 @@ function App() {
     handleStartConfirm(extractionTypes);
   };
 
-  /** Confirms extraction with selected content types */
+  /** Confirms extraction with selected content types, or enqueues if already running */
   const handleStartConfirm = (fontes) => {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
+    if (isRunning) {
+      queueAdd(canalInput.trim() || status.canal_url, fontes)
+        .catch(() => {});
+      return;
+    }
     Analytics.extracaoIniciada(fontes);
     startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); });
   };
@@ -972,12 +977,14 @@ function App() {
                   </div>
                 </div>
                 <div className={`px-4 pb-4 pt-3 border-t flex justify-end ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                  <button onClick={handleStart} disabled={isRunning || !canalConfigurado || extractionTypes.length === 0}
+                  <button onClick={handleStart} disabled={!canalConfigurado || extractionTypes.length === 0}
                     className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                       disabled:opacity-40 disabled:cursor-not-allowed
-                      bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20 ${BTN_FOCUS}`}>
+                      ${isRunning
+                        ? 'bg-secondary/20 text-secondary hover:bg-secondary/30 shadow shadow-secondary/20'
+                        : 'bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20'} ${BTN_FOCUS}`}>
                     <Zap size={13} aria-hidden="true" />
-                    {t('ops.start')}
+                    {isRunning ? t('ops.queue_add') : t('ops.start')}
                   </button>
                 </div>
               </div>
@@ -1734,7 +1741,10 @@ function App() {
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
                 onClick={() => setChatOpen(true)}
-                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
+                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
+                style={{ boxShadow: darkMode
+                  ? '0 8px 24px 0 rgba(0,0,0,0.55), 0 2px 8px 0 rgba(0,0,0,0.35)'
+                  : '0 8px 24px 0 rgba(0,0,0,0.22), 0 2px 8px 0 rgba(0,0,0,0.12)' }}
                 aria-label="Abrir chat com o agente">
                 <img
                   src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
