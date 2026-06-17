@@ -70,6 +70,10 @@ export const disconnectDrive = () => axios.post(`${API_BASE}/drive-disconnect`);
 export const buscarBase = (query, canal = '') =>
   axios.post(`${API_BASE}/cerebro/buscar`, { query, canal });
 
+/** Reads the full content of a TXT file by relative path (from CEREBRO_DIR) */
+export const lerArquivo = (caminho) =>
+  axios.post(`${API_BASE}/cerebro/ler-arquivo`, { caminho });
+
 // ─── Agent ───────────────────────────────────────────────────────────────────
 
 /** Saves agent provider configuration */

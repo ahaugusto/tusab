@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase } from '../../services/api';
+import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -285,12 +285,29 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       )}
                     </div>
                     {onInjetarContexto && (
-                      <button
-                        onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
-                        className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
-                          ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                        + Usar no chat
-                      </button>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
+                          title="Injeta apenas o trecho encontrado — mais preciso"
+                          className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
+                            ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          + Trecho
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await lerArquivo(r.caminho);
+                              if (res.data?.ok) {
+                                onInjetarContexto(res.data.conteudo, r.arquivo);
+                              }
+                            } catch { /* silently ignore */ }
+                          }}
+                          title="Injeta o arquivo completo — mais contexto, consome mais da janela do LLM"
+                          className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
+                            ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
+                          + Arquivo
+                        </button>
+                      </div>
                     )}
                   </div>
                   <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>

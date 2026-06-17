@@ -586,3 +586,29 @@ def cerebro_buscar(req: BuscarPayload):
             break
 
     return {"resultados": resultados, "total": len(resultados), "query": query}
+
+
+class LerArquivoPayload(BaseModel):
+    caminho: str
+
+
+@router.post("/cerebro/ler-arquivo")
+def cerebro_ler_arquivo(req: LerArquivoPayload):
+    """Lê o conteúdo completo de um arquivo .txt do cerebro pelo caminho relativo."""
+    cerebro_dir = motor_tusab.CEREBRO_DIR
+    # Sanitiza para evitar path traversal
+    caminho_limpo = req.caminho.replace("\\", "/").lstrip("/")
+    caminho_abs = os.path.normpath(os.path.join(cerebro_dir, caminho_limpo))
+    # Garante que o arquivo está dentro do cerebro_dir
+    if not caminho_abs.startswith(os.path.normpath(cerebro_dir)):
+        return {"error": True, "message": "Acesso negado"}
+    if not caminho_abs.endswith(".txt"):
+        return {"error": True, "message": "Apenas arquivos .txt são suportados"}
+    if not os.path.isfile(caminho_abs):
+        return {"error": True, "message": "Arquivo não encontrado"}
+    try:
+        with open(caminho_abs, "r", encoding="utf-8", errors="replace") as f:
+            conteudo = f.read()
+        return {"ok": True, "conteudo": conteudo, "arquivo": os.path.basename(caminho_abs)}
+    except Exception as e:
+        return {"error": True, "message": str(e)}
