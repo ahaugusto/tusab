@@ -51,16 +51,27 @@ Documento vivo. Cada item tem status, pilar e classificação:
 
 ## PILAR 4 — Modelo de Negócio & Freemium Wall
 
-> O free não tem parede que motive upgrade. O Pro não pode ser vendido sem sistema de licença.
+> Decisão tomada em Junho 2026: free generoso. O loop completo funciona no free.
+> A parede separa casual de power user sem frustrar quem está descobrindo.
 
 | # | To-Do | Tipo | Prioridade |
 |---|---|---|---|
-| M1 | **Definir a parede do free** — qual ação o usuário free vai querer fazer e não conseguir? Candidatos: (a) máximo de 2 canais indexados simultâneos, (b) sem exportação de histórico de chat, (c) sem busca multi-canal no Pro | [DEF] | P1 |
-| M2 | **Sistema de licença (Lemon Squeezy)** — tela de ativação no Electron, validação HTTP, hardware fingerprint. Pré-requisito: decisão sobre parede do free (M1) | [DEF] | P1 |
-| M3 | **Proteção do código Python** — backend distribuído como `.py` puro hoje, qualquer usuário lê e copia. Compilar com Nuitka ou PyArmor antes de lançar versão paga | [IMPL] | P1 |
-| M4 | **Spec do tier Pro** — detalhar exatamente quais features são Pro vs. Free em nível de código (flags, verificação de licença por endpoint) | [DEF] | P1 |
+| M1 | ~~**Definir a parede do free**~~ — **✅ DECIDIDO** (Junho 2026) | — | — |
+| M2 | **Sistema de licença (Lemon Squeezy)** — tela de ativação no Electron, validação HTTP, hardware fingerprint | [IMPL] | P1 |
+| M3 | **Proteção do código Python** — backend em `.py` puro, compilar com Nuitka ou PyArmor antes de lançar versão paga | [IMPL] | P1 |
+| M4 | **Feature flags Free vs. Pro no código** — implementar verificação de licença nos endpoints/componentes das features Pro | [IMPL] | P1 |
 
-**Discussão M1:** a decisão mais importante do modelo. Sem ela, M2, M3 e M4 não têm direção. Sugestão de pauta: definir em qual sprint atacamos isso.
+**FREE inclui:** extração de até 2 canais, chat ilimitado, Ollama + providers externos,
+upload de docs/imagens/áudio, Drive sync, busca BM25 básica, relatório resumido.
+
+**PRO adiciona:** canais ilimitados, fila de extração, busca multi-canal, query expansion,
+configuração avançada do agente, export da base (ZIP), export do histórico de chat,
+relatório detalhado, suporte por email, acesso antecipado.
+
+**Princípio:** o free entrega valor real e gera boca-a-boca. A parede existe onde
+o usuário já é dependente do produto — não na descoberta.
+
+Ver spec completa: `Documentação do Produto/Modelo de negócio.txt`
 
 ---
 

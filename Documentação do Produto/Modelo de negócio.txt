@@ -33,24 +33,46 @@ TIERS DE PRODUTO
 
 FREE — Gratuito
   Público: qualquer usuário individual
+  Filosofia: free generoso — entrega o loop completo de valor.
+    O usuário extrai, indexa e conversa de verdade. A parede separa
+    casual de power user, sem frustrar quem está descobrindo o produto.
+
   Inclui:
-    · Extração ilimitada de qualquer canal YouTube
-    · Agente RAG local com Ollama (llama3.2:1b)
+    · Extração de até 2 canais YouTube (base indexada simultânea)
+    · Agente RAG local com Ollama (llama3.2:1b) e qualquer provider externo
     · Indexação e chat sem limite de perguntas
+    · Upload de documentos, imagens e áudio no repositório
     · Google Drive sync opcional
-  Não inclui:
-    · Suporte prioritário
-    · Recursos avançados dos tiers pagos
-  Monetização indireta: usuário livre vira case → venda B2B
+    · Busca básica (BM25 sem query expansion)
+    · Relatório de extração (resumo de cobertura)
+
+  Não inclui (reservado ao Pro):
+    · Fila de extração sequencial (multi-canal agendado)
+    · Mais de 2 canais indexados simultaneamente
+    · Busca multi-canal cruzada no chat (canais extras)
+    · Query expansion no BM25 (variações de pergunta via LLM)
+    · Configuração avançada do agente (temperatura, modelo custom, params BM25)
+    · Export da base de conhecimento (ZIP do cerebro/)
+    · Export do histórico de chat (PDF/TXT/MD)
+    · Relatório detalhado (tabela de vídeos + stats de cobertura por seção)
+    · Suporte por email
+
+  Monetização indireta: usuário free vira case → venda B2B
 
 
 PRO — Licença Perpétua (1 seat)
   Público: profissional, pesquisador, criador individual
   Modelo: compra única (sugestão: R$97–R$197)
   Inclui tudo do Free +:
+    · Canais indexados simultâneos ilimitados
+    · Fila de extração sequencial
+    · Busca multi-canal cruzada no chat
+    · Query expansion no BM25
+    · Configuração avançada do agente
+    · Export da base de conhecimento (ZIP)
+    · Export do histórico de chat (PDF/TXT/MD)
+    · Relatório detalhado de extração
     · Suporte por email
-    · Multi-canal simultâneo ilimitado
-    · Exportação do histórico de chat (PDF/TXT)
     · Acesso antecipado a novas features
 
 
