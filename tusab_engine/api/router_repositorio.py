@@ -268,6 +268,7 @@ async def cerebro_upload(
         return {"error": True, "message": f"Arquivo excede o limite de {limite // 1024 // 1024} MB"}
 
     texto = ""
+    aviso_extracao = None  # mensagem opcional quando extração parcial/indisponível
     try:
         if ext == ".pdf":
             import pdfplumber, io
@@ -280,7 +281,19 @@ async def cerebro_upload(
         elif ext in (".txt", ".md"):
             texto = conteudo_bytes.decode("utf-8", errors="replace")
         elif eh_imagem:
-            texto = _extrair_imagem(conteudo_bytes, arquivo.filename)
+            try:
+                texto = _extrair_imagem(conteudo_bytes, arquivo.filename)
+            except RuntimeError as e:
+                # Salva a imagem no repositório sem texto extraído.
+                # O usuário pode reindexar após instalar Ollama/Tesseract.
+                aviso_extracao = str(e)
+                texto = (
+                    f"[Imagem registrada sem extração de texto]\n"
+                    f"Arquivo: {arquivo.filename}\n"
+                    f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                    f"Para extrair o conteúdo desta imagem, instale Ollama com modelo "
+                    f"multimodal (llava ou gemma3) ou Tesseract OCR e reindexe a base."
+                )
         elif eh_audio:
             texto = _extrair_audio(conteudo_bytes, arquivo.filename)
         else:
@@ -317,7 +330,10 @@ async def cerebro_upload(
     manifest.append(entry)
     motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 
-    return {"ok": True, "id": fid, "nome": arquivo.filename, "chars": len(texto)}
+    resp = {"ok": True, "id": fid, "nome": arquivo.filename, "chars": len(texto)}
+    if aviso_extracao:
+        resp["aviso"] = aviso_extracao
+    return resp
 
 
 @router.post("/cerebro/texto")
