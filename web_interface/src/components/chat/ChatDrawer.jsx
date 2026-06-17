@@ -63,11 +63,18 @@ function ChatDrawer({
   const [indexSel, setIndexSel] = useState(null);
   const textareaRef = useRef(null);
 
+  const prevChatInputRef = useRef(chatInput);
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+    // Foca quando o input foi alterado externamente (injeção de contexto)
+    if (chatInput !== prevChatInputRef.current && chatInput.length > prevChatInputRef.current.length) {
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+    prevChatInputRef.current = chatInput;
   }, [chatInput]);
 
   const canaisIndexados = agentStatus.canais_indexados || [];
