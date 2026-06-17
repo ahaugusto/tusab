@@ -274,8 +274,38 @@ def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keyword
 
 # ── Indexação ─────────────────────────────────────────────────────────────────
 
+FREE_MAX_CANAIS = 2
+
+
+def _contar_canais_indexados() -> list:
+    """Retorna lista de nomes de canais com índice existente."""
+    if not os.path.exists(INDEX_DIR):
+        return []
+    canais = []
+    for fname in os.listdir(INDEX_DIR):
+        if fname.endswith('_index.json'):
+            try:
+                with open(os.path.join(INDEX_DIR, fname), 'r', encoding='utf-8') as f:
+                    data = __import__('json').load(f)
+                canais.append(data.get('canal_nome', fname.replace('_index.json', '')))
+            except Exception:
+                pass
+    return canais
+
+
 def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None) -> int:
     config = carregar_config()
+
+    # Limite Free: máximo FREE_MAX_CANAIS canais indexados simultaneamente
+    if not config.get('pro', False):
+        existentes = _contar_canais_indexados()
+        canal_ja_indexado = canal_nome in existentes
+        if not canal_ja_indexado and len(existentes) >= FREE_MAX_CANAIS:
+            raise ValueError(
+                f"PRO_LIMIT:Você já tem {len(existentes)} canais indexados. "
+                f"O plano Free permite até {FREE_MAX_CANAIS}. "
+                f"Remova um canal ou faça upgrade para o Pro."
+            )
 
     if callback: callback("🔍 Lendo arquivos do corpus...")
 

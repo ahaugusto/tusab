@@ -125,3 +125,17 @@ export const limparHistorico = (prefixos = []) => axios.delete(`${API_BASE}/hist
 /** Opens a local folder in Windows Explorer */
 export const openFolder = (name, prefixo = '') =>
   axios.get(`${API_BASE}/open-folder?name=${name}${prefixo ? `&prefixo=${prefixo}` : ''}`);
+
+// ─── Exports (Pro) ────────────────────────────────────────────────────────────
+
+/** Downloads the full knowledge base as a ZIP file */
+export const exportBase = () =>
+  fetch(`${API_BASE}/export/base`, { method: 'POST' });
+
+/** Downloads chat history for a canal as Markdown */
+export const exportHistorico = (canal_nome = '') =>
+  fetch(`${API_BASE}/export/historico`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ canal_nome }),
+  });

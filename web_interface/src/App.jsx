@@ -30,11 +30,12 @@ import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig, loadAgentConfig,
   testAgentKey, startIndexing, cancelIndexing, fetchCanalMeta, sendChatStream, clearChatHistory,
-  fetchOllamaStatus, deleteCanalIndex, openFolder,
+  fetchOllamaStatus, deleteCanalIndex, openFolder, exportBase, exportHistorico,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
 import Onboarding               from './components/shared/Onboarding';
+import ProSnackbar              from './components/shared/ProSnackbar';
 import GuideModal               from './components/shared/GuideModal';
 import StatCard                 from './components/shared/StatCard';
 import LogLine                  from './components/shared/LogLine';
@@ -137,6 +138,10 @@ function App() {
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState('');
   const [chatLoading,      setChatLoading]      = useState(false);
+
+  // ─── Pro Snackbar ──────────────────────────────────────────────────────────
+  const [proSnackbar,      setProSnackbar]      = useState({ visible: false, feature: '' });
+  const showProSnackbar = (feature) => setProSnackbar({ visible: true, feature });
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const chatEndRef      = useRef(null);
@@ -441,7 +446,13 @@ function App() {
     setAgentIndexError('');
     try {
       const res = await startIndexing(canalConfigurado);
-      if (res.data.error) setAgentIndexError(res.data.message);
+      if (res.data.error) {
+        if (String(res.data.message).startsWith('PRO_LIMIT:')) {
+          showProSnackbar('Canais ilimitados');
+        } else {
+          setAgentIndexError(res.data.message);
+        }
+      }
     } catch { setAgentIndexError('Erro ao conectar com o servidor.'); }
   };
 
@@ -451,13 +462,19 @@ function App() {
   /** Triggered from the chat drawer — indexes a specific canal or all extracted canals */
   const handleIndexarDoChat = async (canalNome) => {
     setAgentIndexError('');
+    const _tryIndex = async (nome) => {
+      try {
+        const res = await startIndexing(nome);
+        if (res.data?.error && String(res.data.message).startsWith('PRO_LIMIT:')) {
+          showProSnackbar('Canais ilimitados');
+        }
+      } catch {}
+    };
     if (canalNome === '__todos__') {
       const canais = history.filter(h => h.canal_nome).map(h => h.canal_nome);
-      for (const nome of canais) {
-        await startIndexing(nome).catch(() => {});
-      }
+      for (const nome of canais) await _tryIndex(nome);
     } else {
-      await startIndexing(canalNome).catch(() => {});
+      await _tryIndex(canalNome);
     }
   };
 
@@ -480,6 +497,7 @@ function App() {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
     if (isRunning) {
+      showProSnackbar('Fila de Extração');
       queueAdd(canalInput.trim() || status.canal_url, fontes)
         .catch(() => {});
       return;
@@ -651,6 +669,14 @@ function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Pro feature snackbar — informativo, sem bloqueio na v1.0 */}
+      <ProSnackbar
+        visible={proSnackbar.visible}
+        feature={proSnackbar.feature}
+        darkMode={darkMode}
+        onClose={() => setProSnackbar({ visible: false, feature: '' })}
+      />
 
       <AnimatePresence>
         {showOnboarding && <Onboarding key="onboarding" onDone={() => setShowOnboarding(false)} />}
@@ -1558,6 +1584,62 @@ function App() {
                   </AnimatePresence>
                 </section>
 
+                {/* Export section (Pro) */}
+                <section aria-labelledby="agent-export-heading"
+                  className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-primary/20' : 'bg-white border-violet-100 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+                    <Sparkles size={14} className="text-primary shrink-0" aria-hidden="true" />
+                    <h3 id="agent-export-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+                      Export da Base
+                    </h3>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-600'}`}>Pro</span>
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Exporte sua base de conhecimento ou o histórico de chat para uso externo.
+                    </p>
+                    <button
+                      onClick={async () => {
+                        showProSnackbar('Export da Base');
+                        try {
+                          const r = await exportBase();
+                          if (!r.ok) return;
+                          const blob = await r.blob();
+                          const a = document.createElement('a');
+                          a.href = URL.createObjectURL(blob);
+                          const cd = r.headers.get('content-disposition') || '';
+                          a.download = cd.match(/filename=(.+)/)?.[1] || 'tusab_base.zip';
+                          a.click();
+                        } catch { showError('Erro ao exportar base. Tente novamente.'); }
+                      }}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-colors
+                        ${darkMode ? 'border-primary/30 text-primary hover:bg-primary/10' : 'border-violet-200 text-violet-600 hover:bg-violet-50'} ${BTN_FOCUS}`}>
+                      <Database size={13} />
+                      Exportar base (ZIP)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        showProSnackbar('Export do Histórico');
+                        try {
+                          const canal = agentStatus.canal_indexado || canalConfigurado;
+                          const r = await exportHistorico(canal);
+                          if (!r.ok) { showError('Nenhum histórico para exportar.'); return; }
+                          const blob = await r.blob();
+                          const a = document.createElement('a');
+                          a.href = URL.createObjectURL(blob);
+                          const cd = r.headers.get('content-disposition') || '';
+                          a.download = cd.match(/filename=(.+)/)?.[1] || 'tusab_historico.md';
+                          a.click();
+                        } catch { showError('Erro ao exportar histórico. Tente novamente.'); }
+                      }}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-colors
+                        ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-50'} ${BTN_FOCUS}`}>
+                      <FileText size={13} />
+                      Exportar histórico de chat (MD)
+                    </button>
+                  </div>
+                </section>
+
                 {/* Indexing section */}
                 <section aria-labelledby="agent-index-heading"
                   className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -1629,7 +1711,7 @@ function App() {
                                     {isActive
                                       ? <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>Ativo</span>
                                       : (
-                                        <button onClick={() => setCanaisExtras(prev => isExtra ? prev.filter(c => c !== canal.nome) : [...prev, canal.nome])}
+                                        <button onClick={() => { setCanaisExtras(prev => isExtra ? prev.filter(c => c !== canal.nome) : [...prev, canal.nome]); if (!isExtra) showProSnackbar('Busca Multi-canal'); }}
                                           className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border transition-colors ${BTN_FOCUS}
                                             ${isExtra ? darkMode ? 'bg-primary/20 text-primary border-primary/30' : 'bg-violet-100 text-violet-700 border-violet-200' : darkMode ? 'border-white/20 text-slate-400 hover:border-primary/40 hover:text-primary' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600'}`}>
                                           {isExtra ? '✓ incluso' : '+ incluir'}
