@@ -8,7 +8,7 @@ apenas essas duas funções mudam.
 import os
 import json
 
-from sebayt_engine.storage import CONFIG_PATH, salvar_json_atomico
+from tusab_engine.storage import CONFIG_PATH, salvar_json_atomico
 
 
 def carregar_config() -> dict:

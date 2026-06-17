@@ -15,12 +15,12 @@ import re
 import json
 import threading
 
-from sebayt_engine.storage import (
+from tusab_engine.storage import (
     DATA_DIR, CEREBRO_DIR, INDEX_DIR,
     TXT_DIR, DOC_DIR, TEXT_DIR,
     salvar_json_atomico,
 )
-from sebayt_engine.agent.config import carregar_config, salvar_config
+from tusab_engine.agent.config import carregar_config, salvar_config
 
 
 # ── Helpers de path ───────────────────────────────────────────────────────────

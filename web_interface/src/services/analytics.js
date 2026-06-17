@@ -10,7 +10,7 @@
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CONSENT_KEY  = 'Sebayt_analytics_consent'; // 'yes' | 'no' | null
+const CONSENT_KEY  = 'tusab_analytics_consent'; // 'yes' | 'no' | null
 const POSTHOG_KEY  = import.meta.env.VITE_POSTHOG_KEY || '';
 const POSTHOG_HOST = 'https://app.posthog.com';
 

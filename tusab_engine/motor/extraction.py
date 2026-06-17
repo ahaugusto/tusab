@@ -12,12 +12,12 @@ import json
 import pandas as pd
 from datetime import datetime
 
-from sebayt_engine.storage import (
+from tusab_engine.storage import (
     DATA_DIR, CEREBRO_DIR, LOCAL_TXT_DIR,
     GESTAO_DIR, TEMP_DIR,
     salvar_csv_atomico, salvar_json_atomico,
 )
-from sebayt_engine.motor.drive import (
+from tusab_engine.motor.drive import (
     get_drive_status, get_drive_service,
     garantir_pasta_drive,
     upload_txt_como_gdoc_seguro, upload_arquivo_drive,
@@ -251,7 +251,7 @@ def gerar_relatorio_checkup(canal_nome_safe, db_file):
 
     with open(caminho_relatorio, 'w', encoding='utf-8') as f:
         f.write("-" * 55 + "\n")
-        f.write("🧠 RELATÓRIO DE COBERTURA — Sebayt\n")
+        f.write("🧠 RELATÓRIO DE COBERTURA — Tusab\n")
         f.write(f"Canal: @{canal_nome_safe}\n")
         f.write("-" * 55 + "\n")
         f.write(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n")
@@ -264,7 +264,7 @@ def gerar_relatorio_checkup(canal_nome_safe, db_file):
         f.write("DETALHAMENTO POR SEÇÃO:\n")
         f.write(stats.to_string() + "\n")
         f.write("-" * 55 + "\n")
-        f.write("Gerado por Sebayt — Index.Augment.Converse\n")
+        f.write("Gerado por Tusab — Index.Augment.Converse\n")
 
     print(f"      ✅ Relatório gerado: {caminho_relatorio}")
     return caminho_relatorio
@@ -275,7 +275,7 @@ def gerar_readme(canal_nome_raw, canal_nome_safe):
     caminho_readme = os.path.join(GESTAO_DIR, f'{canal_nome_safe}_README.md')
 
     conteudo = f"""# 🧠 Base de Conhecimento — @{canal_nome_raw}
-*Gerada automaticamente pelo Sebayt — Index.Augment.Converse*
+*Gerada automaticamente pelo Tusab — Index.Augment.Converse*
 
 ## O que é este ativo?
 Este repositório contém as transcrições limpas e organizadas de todo o conteúdo
@@ -295,13 +295,13 @@ Faça upload manual de 2 a 3 arquivos da pasta local `cerebro_txt` e use prompts
 
 ## Estrutura
 ```
-Sebayt — {canal_nome_raw}/
+Tusab — {canal_nome_raw}/
 ├── Cerebro_Docs/          # Documentos Google (prontos para NotebookLM)
 └── Gestao_Metadados/      # CSV com índice completo + relatório de cobertura
 ```
 
 ---
-*Ativo mantido automaticamente pelo Sebayt · CriAugu*
+*Ativo mantido automaticamente pelo Tusab · CriAugu*
 """
     with open(caminho_readme, 'w', encoding='utf-8') as f:
         f.write(conteudo)
@@ -366,18 +366,18 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
 
 # ── Engine principal ──────────────────────────────────────────────────────────
 
-def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None):
+def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None):
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
     prefixo = canal_nome_safe
     canal_youtube_dir = get_canal_youtube_dir(prefixo)
-    drive_folder_name = f"Sebayt — {canal_nome_raw}"
+    drive_folder_name = f"Tusab — {canal_nome_raw}"
     db_file = os.path.join(GESTAO_DIR, f'{prefixo}_base.csv')
 
     _ytdlp_update()
 
     print("\n" + "=" * 70)
-    print("🧠 Sebayt — Intelligence Engine")
+    print("🧠 Tusab — Intelligence Engine")
     print(f"   Canal: {canal_url}")
     print(f"   Prefixo: {prefixo}")
     print("=" * 70 + "\n")
@@ -684,7 +684,7 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
                             handle = meta_canal.get('canal_handle', f'@{canal_nome_raw}')
                             inscritos = meta_canal.get('inscritos', '')
                             f.write(
-                                f"# Sebayt — Base de Conhecimento\n"
+                                f"# Tusab — Base de Conhecimento\n"
                                 f"# Canal: {meta_canal.get('canal_nome', canal_nome_raw)} ({handle})\n"
                                 f"# URL: {canal_url}\n"
                                 + (f"# Inscritos: {inscritos}\n" if inscritos else "")
@@ -777,7 +777,7 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
         else:
             print("\n⚠️ [DRIVE PULADO] Google Drive não autenticado.")
         print("   Autentique o Drive e re-execute para sincronizar na nuvem.")
-        print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
+        print("\n🚀 PROCESSO Tusab FINALIZADO COM SUCESSO!")
         return
 
     try:
@@ -804,9 +804,9 @@ def sebayt_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_fil
             upload_arquivo_drive(service, caminho_readme, id_meta_drive)
 
         print("\n🏆 MISSÃO CUMPRIDA! Base de conhecimento atualizada no Drive.")
-        print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
+        print("\n🚀 PROCESSO Tusab FINALIZADO COM SUCESSO!")
 
     except Exception as e:
         print(f"\n⚠️ Sync com Drive falhou: {e}")
         print("   Dados estão salvos localmente. Re-execute para tentar sincronizar.")
-        print("\n🚀 PROCESSO Sebayt FINALIZADO COM SUCESSO!")
+        print("\n🚀 PROCESSO Tusab FINALIZADO COM SUCESSO!")

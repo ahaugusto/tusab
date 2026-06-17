@@ -12,7 +12,7 @@ export default {
         sidebar: "#0C1122",
         card: "#111827",
         border: "#1E2A40",
-        primary: "#8B5CF6",
+        primary: "var(--color-primary)",
         secondary: "#10B981",
         accent: "#06B6D4",
         warning: "#F59E0B",
