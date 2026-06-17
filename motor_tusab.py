@@ -3,7 +3,7 @@
 # Shim de compatibilidade — todo o código migrou para tusab_engine/motor/.
 # Este arquivo permanece na raiz porque:
 #   (a) electron/package.json o lista em extraResources.filter;
-#   (b) api_brainiac.py usa `motor_tusab.*` por todo o código.
+#   (b) api_tusab.py usa `motor_tusab.*` por todo o código.
 
 from tusab_engine.motor.drive import (                        # noqa: F401
     get_drive_status, is_authenticated, get_drive_service,

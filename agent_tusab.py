@@ -4,7 +4,7 @@
 # Este arquivo permanece na raiz porque:
 #   (a) electron/package.json o lista em extraResources.filter;
 #   (b) os testes o importam diretamente;
-#   (c) api_brainiac.py usa `agent_tusab.*` por todo o código.
+#   (c) api_tusab.py usa `agent_tusab.*` por todo o código.
 
 from tusab_engine.agent.config import carregar_config, salvar_config           # noqa: F401
 from tusab_engine.agent.index import (                                          # noqa: F401
