@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase } from '../../services/api';
+import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ function _fileIsAccepted(file) {
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -65,6 +65,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [limparSel, setLimparSel]           = React.useState({ youtube: false, documentos: false, textos: false });
   const [limpando, setLimpando]             = React.useState(false);
   const [dragging, setDragging]             = React.useState(false);
+  const [buscaQuery,     setBuscaQuery]     = React.useState('');
+  const [buscaResultados, setBuscaResultados] = React.useState(null);
+  const [buscando,       setBuscando]       = React.useState(false);
+  const [showBusca,      setShowBusca]      = React.useState(false);
   const fileRef  = React.useRef(null);
   const dropRef  = React.useRef(null);
 
@@ -169,6 +173,21 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
+  const handleBuscar = async (e) => {
+    e?.preventDefault();
+    const q = buscaQuery.trim();
+    if (!q) return;
+    setBuscando(true);
+    setBuscaResultados(null);
+    try {
+      const res = await buscarBase(q, canalAtivo || '');
+      setBuscaResultados(res.data);
+    } catch {
+      setBuscaResultados({ resultados: [], total: 0, query: q });
+    }
+    setBuscando(false);
+  };
+
   const canais    = repositorio.canais      || [];
   const flatYT    = repositorio.youtube    || [];
   const flatDocs  = repositorio.documentos || [];
@@ -213,12 +232,76 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               {t('repo.clear')}
             </button>
           )}
+          {total > 0 && (
+            <button onClick={() => { setShowBusca(b => !b); setBuscaQuery(''); setBuscaResultados(null); }}
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
+                ${showBusca
+                  ? 'bg-primary/20 text-primary border-primary/30'
+                  : darkMode ? 'text-slate-400 hover:bg-white/8 border-white/15' : 'text-slate-500 hover:bg-slate-100 border-slate-200'}`}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Buscar
+            </button>
+          )}
           <button onClick={() => { setShowAdd(!showAdd_); setUploadAviso(''); }}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
             + Adicionar
           </button>
         </div>
       </div>
+
+      {/* ── Busca avançada ── */}
+      {showBusca && (
+        <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <form onSubmit={handleBuscar} className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input
+              type="text"
+              placeholder="Buscar termo nos arquivos do repositório…"
+              value={buscaQuery}
+              onChange={e => setBuscaQuery(e.target.value)}
+              className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+            {buscando
+              ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+              : <button type="submit" className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors shrink-0 ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>Buscar</button>
+            }
+          </form>
+
+          {buscaResultados && (
+            <div className="space-y-2">
+              <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                {buscaResultados.total === 0
+                  ? `Nenhum resultado para "${buscaResultados.query}"`
+                  : `${buscaResultados.total} resultado${buscaResultados.total !== 1 ? 's' : ''} para "${buscaResultados.query}"`}
+              </p>
+              {buscaResultados.resultados.map((r, i) => (
+                <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className={`text-[11px] font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                        {r.tipo === 'youtube' ? '🎬' : r.tipo === 'documento' ? '📄' : '📝'} {r.arquivo}
+                      </p>
+                      {r.canal && (
+                        <span className={`text-[9px] px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-500' : 'bg-slate-200 text-slate-500'}`}>@{r.canal}</span>
+                      )}
+                    </div>
+                    {onInjetarContexto && (
+                      <button
+                        onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
+                        className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
+                          ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                        + Usar no chat
+                      </button>
+                    )}
+                  </div>
+                  <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    …{r.trecho}…
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal — limpar base */}
       {showLimpar && ReactDOM.createPortal(
