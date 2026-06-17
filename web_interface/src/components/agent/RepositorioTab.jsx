@@ -71,7 +71,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     setSaving(true);
     const form = new FormData();
     form.append('arquivo', file);
-    if (canalAtivo) form.append('canal', canalAtivo);
+    form.append('canal', canalAtivo || '');
     const ok = await uploadDocument(form).then(() => true).catch(() => false);
     if (ok) Analytics.documentoAdicionado(file.name.split('.').pop()?.toLowerCase() || 'arquivo');
     reload(); setShowAdd(false); setFile(null); setSaving(false);

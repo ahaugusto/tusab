@@ -39,6 +39,7 @@
   "channel.error_server": "Erro ao configurar canal. Servidor offline?",
   "ops.title": "Operações",
   "ops.start": "Iniciar Extração",
+  "ops.queue_add": "Adicionar à Fila",
   "ops.pause": "Pausar Motor",
   "ops.resume": "Retomar Motor",
   "ops.cancel": "Cancelar",
