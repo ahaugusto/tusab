@@ -1,4 +1,4 @@
-﻿Sebayt — PRÓXIMOS PASSOS
+﻿Tusab — PRÓXIMOS PASSOS
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────
@@ -20,7 +20,7 @@ A distinção:
 O problema central que resolve: você salva muito, mas não acessa quando
 precisa. A busca é ruim. Você não lembra onde está. Acaba relendo tudo.
 
-O Sebayt resolve isso: em vez de procurar, você consulta um mentor
+O Tusab resolve isso: em vez de procurar, você consulta um mentor
 que conhece exatamente o conteúdo que você escolheu — e só esse.
 Resposta sempre com citação verificável da fonte original.
 
@@ -30,7 +30,7 @@ Nenhum concorrente combina: YouTube em escala + local + custo zero.
 ONDE ESTAMOS (v0.4.0)
 ─────────────────────────────────────────
 
-O Sebayt evoluiu de "ferramenta de YouTube" para
+O Tusab evoluiu de "ferramenta de YouTube" para
 sistema de gestão de conhecimento pessoal multi-fonte:
 
 • Base de conhecimento: YouTube + PDF + DOCX + MD + TXT + texto colado
@@ -49,7 +49,7 @@ SPRINT IMEDIATO — PRODUTO (em execução)
 
 ✅ Badge "base desatualizada" na aba Configurar Agente
 ✅ Tooltip no toggle Busca Ampla/Restrita do chat
-✅ Sebayt_crash.log no .gitignore
+✅ Tusab_crash.log no .gitignore
 ✅ Telemetria Posthog opt-in (ConsentModal + analytics.js)
 ✅ Onboarding contextual (ProgressToast + hints por aba)
 
@@ -109,7 +109,7 @@ E. Primeira venda B2B formal
    → Demo com criador educacional (50k–500k inscritos)
    → Contrato simples, nota fiscal, feedback documentado
    Nota: a AUVP é uma proposta separada (chatbot embarcado na plataforma
-   deles) — não é canal de venda do Sebayt. Prospecção própria necessária.
+   deles) — não é canal de venda do Tusab. Prospecção própria necessária.
 
 ─────────────────────────────────────────
 PRÓXIMO SPRINT — PRODUTO
@@ -143,8 +143,8 @@ PRÓXIMO SPRINT — PRODUTO
 
 #5  Servidor MCP
     → Expõe a base RAG como ferramenta para agentes externos
-    → Usuário conecta Sebayt ao Claude Code, Cursor, etc.
-    → O Sebayt vira uma "ferramenta de busca" para qualquer agente
+    → Usuário conecta Tusab ao Claude Code, Cursor, etc.
+    → O Tusab vira uma "ferramenta de busca" para qualquer agente
 
 ─────────────────────────────────────────
 EVOLUÇÃO DO PRODUTO
@@ -202,7 +202,7 @@ Em Junho 2026, o Google lançou o Gemma 4 12B:
 · Roda em 8GB de RAM via Ollama
 · Apache-2.0 — livre para uso comercial
 
-Convergências diretas com o Sebayt:
+Convergências diretas com o Tusab:
 
 1. Valida a aposta local-first
    O maior player em IA está construindo na mesma direção.
@@ -210,7 +210,7 @@ Convergências diretas com o Sebayt:
    não nicho técnico.
 
 2. Roda via Ollama — nosso provedor padrão
-   Usuários com Gemma 4 instalado já usam via Sebayt sem alteração.
+   Usuários com Gemma 4 instalado já usam via Tusab sem alteração.
    O seletor de modelos (item #2 do próximo sprint) libera isso.
 
 3. 256K de contexto muda a equação do RAG
@@ -223,7 +223,7 @@ Convergências diretas com o Sebayt:
    Imagens e áudio (Fases 2–3) podem usar Gemma 4 diretamente,
    sem construir pipelines separados de OCR ou ASR.
 
-O que não muda: o Sebayt não é o modelo.
+O que não muda: o Tusab não é o modelo.
 É a infraestrutura de conhecimento. Gemma 4 é um motor melhor
 que podemos usar. Nossa proposta de valor — extrair YouTube,
 indexar documentos, citar fontes — é o que o modelo por si só não faz.
@@ -234,6 +234,6 @@ PRINCÍPIO QUE NÃO MUDA
 
 A extração via yt-dlp tem que continuar local.
 A execução distribuída na máquina de cada usuário é a proteção natural
-contra bloqueios do YouTube — e o diferencial competitivo real do Sebayt.
+contra bloqueios do YouTube — e o diferencial competitivo real do Tusab.
 
 Tudo mais pode evoluir. Esse princípio não.

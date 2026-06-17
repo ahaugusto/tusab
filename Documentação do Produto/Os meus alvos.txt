@@ -1,4 +1,4 @@
-﻿OS MEUS ALVOS — Sebayt
+﻿OS MEUS ALVOS — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────
@@ -11,7 +11,7 @@ PDFs que ficam em pastas sem serem lidos,
 notas que se perdem,
 documentos que ninguém consulta depois da reunião.
 
-O Sebayt agrega tudo isso em uma base consultável.
+O Tusab agrega tudo isso em uma base consultável.
 Você pergunta. Ele responde com a fonte exata.
 
 ─────────────────────────────────────────
@@ -70,7 +70,7 @@ CAMADA 3 — "O arquivo institucional vivo" (B2B Enterprise)
 Instituições têm acervos imensos em múltiplos formatos:
 lives e webinars no YouTube, relatórios em PDF, atas em DOCX,
 regulamentos em TXT, materiais de treinamento espalhados.
-O Sebayt une tudo em uma única base consultável,
+O Tusab une tudo em uma única base consultável,
 rodando na rede interna, sem depender de servidor externo.
 
 Perfis:
@@ -90,7 +90,7 @@ Valor diferencial: nenhum dado sai da rede interna
 POR QUE AS CAMADAS SE ALIMENTAM
 ─────────────────────────────────────────
 
-O aluno B2C que usa Sebayt com conteúdo da FGV
+O aluno B2C que usa Tusab com conteúdo da FGV
 → é case study para a FGV contratar a Camada 3
 
 O criador que vê fãs usando sua base
@@ -133,7 +133,7 @@ Expansão natural:
   → Instituições veem o caso dos criadores e entram (Camada 3)
 
 ─────────────────────────────────────────
-O QUE O Sebayt NÃO É
+O QUE O Tusab NÃO É
 ─────────────────────────────────────────
 
 · Não é uma IA genérica (ChatGPT, Gemini, Copilot, Perplexity)

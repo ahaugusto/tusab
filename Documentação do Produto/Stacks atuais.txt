@@ -1,4 +1,4 @@
-﻿Sebayt — STACKS E ARQUITETURA
+﻿Tusab — STACKS E ARQUITETURA
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 Atualizado: Junho 2026
 
@@ -115,7 +115,7 @@ Ollama — baixado e instalado automaticamente na primeira execução (Win/macOS
 ESTRUTURA DE DADOS EM PRODUÇÃO
 ─────────────────────────────────────────
 
-Dados do usuário → %AppData%\Sebayt\data\
+Dados do usuário → %AppData%\Tusab\data\
   cerebro/
     youtube/       — extrações .txt do YouTube por canal
     documentos/    — uploads do usuário (PDF, DOCX, TXT, MD) + _manifest.json
@@ -137,7 +137,7 @@ Modular — componentes isolados, hooks customizados, serviço de API centraliza
 DevOps comments — JSDoc padronizado em todos os arquivos
 Streaming SSE — respostas do agente via ReadableStream para UX em tempo real
 Anti-alucinação — threshold BM25 (score ≥ 0.5) + verificação pós-geração
-ELECTRON_RUN / SEBAYT_DATA_DIR — vars de ambiente para dev/produção
+ELECTRON_RUN / TUSAB_DATA_DIR — vars de ambiente para dev/produção
 
 ─────────────────────────────────────────
 PROTEÇÃO INTELECTUAL
@@ -145,7 +145,7 @@ PROTEÇÃO INTELECTUAL
 
 Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 Lei nº 9.609/1998 (Lei do Software) + Lei nº 9.610/1998
-Registro INPI pendente — Programa de Computador "Sebayt"
+Registro INPI pendente — Programa de Computador "Tusab"
 
 ─────────────────────────────────────────
 PRINCÍPIO DA STACK

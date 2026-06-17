@@ -11,9 +11,9 @@ import glob
 import pandas as pd
 from fastapi import APIRouter, BackgroundTasks
 
-import motor_sebayt
-import agent_sebayt
-from sebayt_engine.state import state
+import motor_tusab
+import agent_tusab
+from tusab_engine.state import state
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ router = APIRouter()
 def run_drive_auth():
     try:
         state.drive_cancel_event.clear()
-        motor_sebayt.get_drive_service(stop_event=state.drive_cancel_event)
+        motor_tusab.get_drive_service(stop_event=state.drive_cancel_event)
 
         if state.drive_cancel_event.is_set():
             print("⚠️ Autenticação do Drive cancelada pelo usuário.")
@@ -44,7 +44,7 @@ def run_drive_auth():
 
 def _count_files_on_disk() -> int:
     """Conta arquivos .txt extraídos que realmente existem no disco."""
-    from sebayt_engine.storage import CEREBRO_DIR
+    from tusab_engine.storage import CEREBRO_DIR
     count = 0
     if os.path.isdir(CEREBRO_DIR):
         for canal_dir in os.scandir(CEREBRO_DIR):
@@ -73,7 +73,7 @@ def get_status():
     elif state.drive_auth_error:
         drive_status = "erro"
     else:
-        drive_status = motor_sebayt.get_drive_status()
+        drive_status = motor_tusab.get_drive_status()
 
     with state.state_lock:
         stats_snapshot = dict(state.stats)
@@ -119,7 +119,7 @@ def cancel_drive_auth():
 def get_history():
     """Retorna resumo de todas as extrações anteriores a partir dos CSVs de gestão."""
     history = []
-    pattern = os.path.join(motor_sebayt.GESTAO_DIR, "*_base.csv")
+    pattern = os.path.join(motor_tusab.GESTAO_DIR, "*_base.csv")
     for csv_path in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         try:
             df = pd.read_csv(csv_path, encoding="utf-8-sig")
@@ -163,12 +163,12 @@ def get_history():
 @router.get("/open-folder")
 def open_folder(name: str, prefixo: str = ""):
     import subprocess
-    from sebayt_engine.storage import CEREBRO_DIR
+    from tusab_engine.storage import CEREBRO_DIR
     folders = {
-        "data":          motor_sebayt.DATA_DIR,
-        "gestao":        motor_sebayt.GESTAO_DIR,
-        "agent_index":   agent_sebayt.INDEX_DIR,
-        "canal_youtube": os.path.join(CEREBRO_DIR, prefixo, "youtube") if prefixo else motor_sebayt.CEREBRO_DIR,
+        "data":          motor_tusab.DATA_DIR,
+        "gestao":        motor_tusab.GESTAO_DIR,
+        "agent_index":   agent_tusab.INDEX_DIR,
+        "canal_youtube": os.path.join(CEREBRO_DIR, prefixo, "youtube") if prefixo else motor_tusab.CEREBRO_DIR,
     }
     target = folders.get(name)
     if not target:

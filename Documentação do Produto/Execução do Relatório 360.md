@@ -93,10 +93,10 @@ momento errado corrompia o histórico ou o índice — inaceitável na máquina 
 cliente pagante.
 
 **O que foi feito:**
-- [x] `state_lock` (RLock) protegendo `state.stats` e `state.logs` em `api_sebayt.py`
+- [x] `state_lock` (RLock) protegendo `state.stats` e `state.logs` em `api_tusab.py`
 - [x] `hist_lock` protegendo `state.chat_histories` nos 3 pontos de acesso (chat, stream, clear)
-- [x] `_bm25_lock` protegendo o cache de índices em `agent_sebayt.py` (canal principal + canais extras)
-- [x] Helpers `salvar_csv_atomico()` e `salvar_json_atomico()` em `motor_sebayt.py`
+- [x] `_bm25_lock` protegendo o cache de índices em `agent_tusab.py` (canal principal + canais extras)
+- [x] Helpers `salvar_csv_atomico()` e `salvar_json_atomico()` em `motor_tusab.py`
 - [x] Substituídas as 6 escritas de CSV do motor de extração
 - [x] Substituídas as escritas de JSON: índice BM25, agent_config.json, summaries, meta do canal e os 3 manifests do repositório
 
@@ -166,7 +166,7 @@ seria operar no escuro exatamente no código mais delicado. A suíte foi criada 
 com os fixes para validá-los.
 
 **O que foi feito:**
-- [x] `tests/conftest.py` — isolamento total: `SEBAYT_DATA_DIR` aponta para diretório temporário antes de importar a app; testes nunca tocam dados reais
+- [x] `tests/conftest.py` — isolamento total: `TUSAB_DATA_DIR` aponta para diretório temporário antes de importar a app; testes nunca tocam dados reais
 - [x] `tests/test_api.py` — 17 testes de integração espelhando o smoke.ps1: status, history, repositório, validação de URL (incluindo flag de yt-dlp maliciosa), test-key inline, chat sem índice, histórico forjado ignorado, texto colado (criar/listar/deletar), serve estático e path traversal
 - [x] `tests/test_confiabilidade.py` — 6 testes do sprint: escrita atômica de CSV/JSON/config, índice corrompido, índice vazio, e concorrência real (8 threads no LogRedirector + 8 threads no chat_histories)
 - [x] `.github/workflows/ci.yml` — dois jobs paralelos a cada push/PR na main: pytest (Python 3.12, Ubuntu, com dist mínimo fabricado para os testes de serve estático) e build do frontend (Node 20, `npm ci` + `vite build`)
@@ -174,11 +174,11 @@ com os fixes para validá-los.
 
 **Explicação técnica:**
 O `TestClient` do FastAPI executa os endpoints in-process, sem subir servidor — os
-testes rodam em ~5s. O ponto não óbvio é o conftest: `api_brainiac` redireciona
+testes rodam em ~5s. O ponto não óbvio é o conftest: `api_tusab` redireciona
 `sys.stdout/stderr` para o `LogRedirector` no import (design do app), então a fixture
 restaura os streams para o pytest reportar normalmente. O isolamento via variável de
-ambiente funciona porque `motor_brainiac.obter_caminho_dados()` prioriza
-`SEBAYT_DATA_DIR` — o mesmo mecanismo que o Electron usa em produção, reutilizado
+ambiente funciona porque `motor_tusab.obter_caminho_dados()` prioriza
+`TUSAB_DATA_DIR` — o mesmo mecanismo que o Electron usa em produção, reutilizado
 para teste. No CI, em vez de compilar o frontend inteiro no job de backend, um
 `index.html` mínimo é fabricado — suficiente para exercer o code path real do
 `serve_static` e do fallback de path traversal.
@@ -239,44 +239,44 @@ investimento em testes já se pagou.
 
 ---
 
-### 2.6 ✅ Modularização do monólito Python → `sebayt_engine/` (P3) — 12/06/2026
+### 2.6 ✅ Modularização do monólito Python → `tusab_engine/` (P3) — 12/06/2026
 
 **Por que era P3:** os três arquivos raiz somavam ~3 000 linhas e cresciam sem
 separação de responsabilidades — cada bugfix exigia entender o arquivo inteiro.
-O `api_sebayt.py` acumulava estado global, roteamento, lógica de negócio,
+O `api_tusab.py` acumulava estado global, roteamento, lógica de negócio,
 autenticação OAuth e dois sistemas de chat. Qualquer nova feature amplificava
 a entropia.
 
 **O que foi feito:**
-- [x] Criado pacote `sebayt_engine/` com 3 subpacotes e 9 módulos
-- [x] `sebayt_engine/storage.py` — caminhos de dados, constantes e helpers atômicos (elimina duplicata idêntica que existia em `motor_sebayt.py` e `agent_sebayt.py`)
-- [x] `sebayt_engine/state.py` — `AppState` singleton, `LogRedirector` e `_debug_excepthook` (extraídos do `api_sebayt.py`)
-- [x] `sebayt_engine/agent/` — 3 módulos: `config.py`, `index.py` (BM25), `chat.py` (RAG); `agent_sebayt.py` vira shim de re-exports
-- [x] `sebayt_engine/motor/` — 2 módulos: `drive.py` (OAuth + upload Drive) e `extraction.py` (engine principal); `motor_sebayt.py` vira shim de re-exports
-- [x] `sebayt_engine/api/` — 4 roteadores FastAPI (`router_status`, `router_extraction`, `router_agent`, `router_repositorio`); `api_sebayt.py` cai de 1 189 → 165 linhas
-- [x] `electron/package.json` — `extraResources.filter` atualizado com `"sebayt_engine/**"` para o build do instalador
-- [x] `tests/test_confiabilidade.py` — import de `LogRedirector` corrigido para `sebayt_engine.state`
+- [x] Criado pacote `tusab_engine/` com 3 subpacotes e 9 módulos
+- [x] `tusab_engine/storage.py` — caminhos de dados, constantes e helpers atômicos (elimina duplicata idêntica que existia em `motor_tusab.py` e `agent_tusab.py`)
+- [x] `tusab_engine/state.py` — `AppState` singleton, `LogRedirector` e `_debug_excepthook` (extraídos do `api_tusab.py`)
+- [x] `tusab_engine/agent/` — 3 módulos: `config.py`, `index.py` (BM25), `chat.py` (RAG); `agent_tusab.py` vira shim de re-exports
+- [x] `tusab_engine/motor/` — 2 módulos: `drive.py` (OAuth + upload Drive) e `extraction.py` (engine principal); `motor_tusab.py` vira shim de re-exports
+- [x] `tusab_engine/api/` — 4 roteadores FastAPI (`router_status`, `router_extraction`, `router_agent`, `router_repositorio`); `api_tusab.py` cai de 1 189 → 165 linhas
+- [x] `electron/package.json` — `extraResources.filter` atualizado com `"tusab_engine/**"` para o build do instalador
+- [x] `tests/test_confiabilidade.py` — import de `LogRedirector` corrigido para `tusab_engine.state`
 - [x] Suíte pytest: **23/23 verde** em todos os 5 passos da migração
 
 **Explicação técnica:**
 O maior risco da migração era o `LogRedirector` (intercepta `sys.stdout` no import)
 e o `AppState` singleton — ambos precisam existir antes dos outros módulos e não
-podem ser importados duas vezes. Resolvido com import order: `motor_brainiac` e
-`agent_brainiac` carregam primeiro, só então `from sebayt_engine.state import state`
-dispara o redirect (ordem idêntica ao original). O nome do pacote é `sebayt_engine/`
-e não `brainiac/` para evitar colisão com `brainiac.spec` (spec do PyInstaller) na
-raiz. O shim pattern nos três arquivos raiz preserva todos os `motor_brainiac.X` e
-`agent_brainiac.X` do `api_sebayt.py` sem modificar o código chamador — zero risco
+podem ser importados duas vezes. Resolvido com import order: `motor_tusab` e
+`agent_tusab` carregam primeiro, só então `from tusab_engine.state import state`
+dispara o redirect (ordem idêntica ao original). O nome do pacote é `tusab_engine/`
+e não `tusab/` para evitar colisão com `tusab.spec` (spec do PyInstaller) na
+raiz. O shim pattern nos três arquivos raiz preserva todos os `motor_tusab.X` e
+`agent_tusab.X` do `api_tusab.py` sem modificar o código chamador — zero risco
 de regressão nos endpoints. A hierarquia de dependências é acíclica:
 `api → agent/motor → storage`, sem nenhum import circular. O bug latente
-`threading` não importado no `run_motor` do `api_sebayt.py` foi corrigido
+`threading` não importado no `run_motor` do `api_tusab.py` foi corrigido
 ao mover a função para `router_extraction.py` com import explícito.
 
 **Explicação simples:**
 Os três arquivos eram como uma cozinha onde a receita, o fogão, a geladeira e o
 livro de contabilidade ficavam todos na mesma gaveta. Agora cada coisa está no
 armário certo: armazenamento, estado do app, motor de extração, agente de IA e
-rotas da API — cada um no seu lugar, com uma etiqueta clara. O `api_sebayt.py`
+rotas da API — cada um no seu lugar, com uma etiqueta clara. O `api_tusab.py`
 virou apenas a recepção: recebe a visita e manda para o departamento certo, sem
 tentar resolver tudo sozinho. Sem mudar nenhuma funcionalidade, o código ficou 7×
 menor no arquivo principal e muito mais fácil de manter.
@@ -299,7 +299,7 @@ menor no arquivo principal e muito mais fácil de manter.
 - [x] App.jsx: check Ollama offline em `handleChatSend` — se `agentProvider === 'ollama'` e `!ollamaStatus.running`, insere mensagem de erro local sem chamar o backend
 - [x] App.jsx: prop `onRecriarIndice={handleAgentIndex}` passada ao ChatDrawer
 - [x] ChatDrawer.jsx: todos os 7 strings hardcoded substituídos por `t()` · ícone `RefreshCw` adicionado · botão "Recriar índice" + prop `onRecriarIndice` na bolha de erro
-- [x] `build.ps1` criado: parâmetros `-SkipFrontend`/`-SkipElectron`; executa `npm run build` no frontend, copia `.py` + `sebayt_engine/` + `scripts/` para `electron/resources/python/`, executa `npm run dist` no Electron
+- [x] `build.ps1` criado: parâmetros `-SkipFrontend`/`-SkipElectron`; executa `npm run build` no frontend, copia `.py` + `tusab_engine/` + `scripts/` para `electron/resources/python/`, executa `npm run dist` no Electron
 - [x] `Documentação do Produto/Política de Privacidade.md` criada: LGPD/GDPR completa (transferência internacional, direitos, bases legais, retenção, segurança, menores)
 - [x] **23/23 pytest verde** após todas as mudanças
 
@@ -337,14 +337,14 @@ O VS Code (o editor onde desenvolvemos) usa o próprio Electron internamente e d
 - [x] `electron/bin/yt-dlp.exe` baixado: versão 2026.03.17 (17,6 MB); `yt-dlp.exe --version` confirmado
 - [x] `build.ps1` corrigido: encoding reescrito de UTF-8 para UTF-16 LE (encoding nativo do PowerShell 5.1) — scripts UTF-8 com chars especiais eram lidos incorretamente, gerando `TerminatorExpectedAtEndOfString`
 - [x] `build.ps1 -Dir` executado com sucesso: Vite build (2 244 módulos, 3,1s) + electron-builder `--dir` (win-unpacked)
-- [x] Smoke test do app empacotado: `dist_electron/win-unpacked/brainiac.exe` lançado, backend FastAPI respondeu `HTTP 200 /status` em 2s; `python_env/`, `bin/yt-dlp.exe` e `app.asar` confirmados na estrutura correta
+- [x] Smoke test do app empacotado: `dist_electron/win-unpacked/tusab.exe` lançado, backend FastAPI respondeu `HTTP 200 /status` em 2s; `python_env/`, `bin/yt-dlp.exe` e `app.asar` confirmados na estrutura correta
 - [x] Aviso documentado: `FutureWarning google.generativeai` — SDK Gemini clássico deprecado, não impacta funcionamento; pendente migração para `google-genai` em versão futura
 
 **Explicação técnica:**
 O Python 3.14.0 embeddable foi descartado por bug conhecido no Windows (stdlib zip não carregado corretamente, mesmo com `.pth` correto). Python 3.12.10 resolveu. O `python312._pth` foi escrito sem BOM (`[System.Text.UTF8Encoding]::new($false)`) — o `Set-Content -Encoding UTF8` do PowerShell 5.1 escreve UTF-8 WITH BOM (`﻿`), que corromperia o caminho `python312.zip` adicionando `﻿python312.zip`. O `build.ps1` acumulava erro de parser (`TerminatorExpectedAtEndOfString`) mesmo após edição porque o `Edit` tool salvava UTF-8, que o PowerShell 5.1 lê como ANSI/Windows-1252; caracteres multi-byte de PT-BR no código (hífens especiais, acentos) viravam sequências inválidas dentro de strings, quebrando o parser. A solução definitiva foi `[System.IO.File]::WriteAllText(..., [System.Text.Encoding]::Unicode)` — UTF-16 LE com BOM, que PowerShell 5.1 lê nativamente.
 
 **Explicação simples:**
-Para entregar o app num computador novo (sem Python instalado), precisamos empacotar o Python junto — como incluir a cozinha na caixa de entrega. Isso requer montar o ambiente Python corretamente (versão 3.12, todos os ingredientes) e colocar o `yt-dlp.exe` (ferramenta de download do YouTube) na pasta certa. Com tudo no lugar, o `build.ps1 -Dir` montou o app completo e o `brainiac.exe` empacotado iniciou corretamente, com o servidor respondendo em 2 segundos — o mesmo que o app de desenvolvimento. O produto está funcionalmente empacotável para Windows.
+Para entregar o app num computador novo (sem Python instalado), precisamos empacotar o Python junto — como incluir a cozinha na caixa de entrega. Isso requer montar o ambiente Python corretamente (versão 3.12, todos os ingredientes) e colocar o `yt-dlp.exe` (ferramenta de download do YouTube) na pasta certa. Com tudo no lugar, o `build.ps1 -Dir` montou o app completo e o `tusab.exe` empacotado iniciou corretamente, com o servidor respondendo em 2 segundos — o mesmo que o app de desenvolvimento. O produto está funcionalmente empacotável para Windows.
 
 ---
 
@@ -376,11 +376,11 @@ Antes, fechar um modal pela tecla Esc dependia de cada tela ter implementado iss
 | Data | Sessão | Itens |
 |------|--------|-------|
 | 11/06/2026 | Sprint de confiabilidade | P0: locks + escrita atômica ✅ · telemetria ✅ · P1: pytest + CI ✅ · recovery de índice ◐ · bônus requirements ✅ |
-| 12/06/2026 | Modularização do monólito | P3: sebayt_engine/ completo (storage · state · agent · motor · api) · api_sebayt.py 1 189 → 165 linhas · electron-builder atualizado · 23/23 pytest ✅ |
+| 12/06/2026 | Modularização do monólito | P3: tusab_engine/ completo (storage · state · agent · motor · api) · api_tusab.py 1 189 → 165 linhas · electron-builder atualizado · 23/23 pytest ✅ |
 | 12/06/2026 | P0 completo + UX P1 | P0: requirements-lock ✅ · build.ps1 ✅ · i18n 11 chaves ✅ · rate-limit/Pydantic/mascaramento ✅ · política de privacidade ✅ · P1: Ollama offline ✅ · recriar-índice UI ✅ · visibilitychange polling ✅ · 23/23 pytest ✅ |
 | 12/06/2026 | Smoke test Electron dev mode | Diagnóstico ELECTRON_RUN_AS_NODE=1 (VS Code define esta var que faz Electron rodar como Node.js puro, sem browser process) · fix em build.ps1 · smoke test dev mode ✅ (Electron vivo 8s+) |
-| 12/06/2026 | Setup empacotamento + smoke test packaged | python_env/ (Python 3.12.10 + 76 pacotes) ✅ · bin/yt-dlp.exe ✅ · build.ps1 encoding fix (UTF-8→UTF-16 LE) ✅ · build completo --dir ✅ · brainiac.exe packaged smoke test HTTP 200 em 2s ✅ |
-| 13/06/2026 | P1: ModalWrapper + NSIS + toast erros | ModalWrapper (focus trap + Escape + backdrop, 7 modais + 2 portals) ✅ · Toast de erro (4 ações silenciosas) ✅ · NSIS installer (brainiac Setup 2.0.0.exe) ✅ · logo dark mode corrigida ✅ · onboarding tela 1 refinada ✅ |
+| 12/06/2026 | Setup empacotamento + smoke test packaged | python_env/ (Python 3.12.10 + 76 pacotes) ✅ · bin/yt-dlp.exe ✅ · build.ps1 encoding fix (UTF-8→UTF-16 LE) ✅ · build completo --dir ✅ · tusab.exe packaged smoke test HTTP 200 em 2s ✅ |
+| 13/06/2026 | P1: ModalWrapper + NSIS + toast erros | ModalWrapper (focus trap + Escape + backdrop, 7 modais + 2 portals) ✅ · Toast de erro (4 ações silenciosas) ✅ · NSIS installer (tusab Setup 2.0.0.exe) ✅ · logo dark mode corrigida ✅ · onboarding tela 1 refinada ✅ |
 
 ---
 
@@ -392,6 +392,6 @@ Próximos passos são P2 (go-to-market, sem código):
 1. **Post no LinkedIn** — divulgação inicial, coleta de interesse
 2. **Landing page mínima** — página de produto para leads
 3. **OAuth em produção** — liberado pela política de privacidade já aprovada
-4. **GitHub Releases** — disponibilizar o `brainiac Setup 2.0.0.exe` publicamente
+4. **GitHub Releases** — disponibilizar o `tusab Setup 2.0.0.exe` publicamente
 5. **INPI** — registro de marca (em andamento com contadora)
 6. **Lemon Squeezy** — pagamentos após validação de preço com primeiros clientes

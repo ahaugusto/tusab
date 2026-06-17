@@ -27,7 +27,7 @@ const FLOWS = [
     color: 'text-amber-500',
     bg:    'bg-amber-500/10',
     title: 'APIs externas (só se configurar)',
-    desc:  "Se você configurar Gemini, OpenAI, Claude ou Groq, as mensagens do chat e trechos da base saem da máquina para servidores fora do Brasil. O Sebayt não acessa esses dados — eles vão direto ao provedor escolhido.",
+    desc:  "Se você configurar Gemini, OpenAI, Claude ou Groq, as mensagens do chat e trechos da base saem da máquina para servidores fora do Brasil. O Tusab não acessa esses dados — eles vão direto ao provedor escolhido.",
   },
   {
     icon: HardDrive,
@@ -77,7 +77,7 @@ function ConsentModal({ darkMode, onDone }) {
             <div>
               <p className="text-sm font-bold">Antes de começar — seus dados</p>
               <p className={`text-[11px] mt-0.5 leading-relaxed ${muted}`}>
-                O Sebayt é local-first: sua base de conhecimento fica na sua máquina.
+                O Tusab é local-first: sua base de conhecimento fica na sua máquina.
                 Três fluxos de dados existem, todos opcionais ou condicionais.
               </p>
             </div>
@@ -125,7 +125,7 @@ function ConsentModal({ darkMode, onDone }) {
         {/* Analytics consent question */}
         <div className={`px-5 pt-0 pb-5 border-t ${darkMode ? 'border-white/8' : 'border-slate-100'} mt-1`}>
           <p className={`text-[11px] font-semibold mt-3 mb-2.5 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-            Permitir telemetria anônima para ajudar a melhorar o Sebayt?
+            Permitir telemetria anônima para ajudar a melhorar o Tusab?
           </p>
           <div className="flex gap-2">
             <button

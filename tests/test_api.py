@@ -1,6 +1,6 @@
 ﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
-Testes de integração dos endpoints críticos da API Sebayt.
+Testes de integração dos endpoints críticos da API Tusab.
 Espelha os 10 checks do smoke test (.claude/skills/run-brainiac/smoke.ps1)
 em formato pytest, sem dependência de Ollama nem de rede.
 """

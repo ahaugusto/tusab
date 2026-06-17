@@ -1,4 +1,4 @@
-﻿MODELO DE NEGÓCIO — Sebayt
+﻿MODELO DE NEGÓCIO — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────
@@ -8,7 +8,7 @@ CATEGORIA
 ISV — Independent Software Vendor
 Modelo: Freemium + Perpetual Seat License + Subscription (B2B)
 
-O Sebayt é um software desktop vendido por licença.
+O Tusab é um software desktop vendido por licença.
 Não há servidor central. Não há assinatura obrigatória.
 O valor está no software instalado na máquina do cliente.
 
@@ -86,7 +86,7 @@ Plataforma escolhida: Lemon Squeezy
 
 Fluxo de ativação:
   1. Usuário compra no Lemon Squeezy → recebe chave por email
-  2. Abre o Sebayt → tela de ativação na primeira abertura
+  2. Abre o Tusab → tela de ativação na primeira abertura
   3. Cola a chave → app valida com API do Lemon Squeezy
   4. Licença vinculada ao hardware (fingerprint) → ativa
 

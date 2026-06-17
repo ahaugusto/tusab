@@ -12,8 +12,8 @@ from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Form
 from pydantic import BaseModel
 
-import motor_sebayt
-from sebayt_engine.state import state
+import motor_tusab
+from tusab_engine.state import state
 
 router = APIRouter()
 
@@ -49,7 +49,7 @@ class LimparHistoricoRequest(BaseModel):
 @router.get("/repositorio")
 def get_repositorio():
     """Lista arquivos do cerebro agrupados por canal + listas planas para compatibilidade."""
-    cerebro_dir = motor_sebayt.CEREBRO_DIR
+    cerebro_dir = motor_tusab.CEREBRO_DIR
     result = {"youtube": [], "documentos": [], "textos": [], "canais": []}
 
     def _read_manifest(path):
@@ -108,7 +108,7 @@ def get_repositorio():
                 result["textos"]     += textos
 
     # Legado: cerebro/youtube/ flat
-    legacy_yt = motor_sebayt.LOCAL_TXT_DIR
+    legacy_yt = motor_tusab.LOCAL_TXT_DIR
     if os.path.exists(legacy_yt):
         for fname in sorted(os.listdir(legacy_yt)):
             if fname.endswith('.txt') and not fname.startswith('_') and fname not in seen_yt:
@@ -131,7 +131,7 @@ def get_relatorio(canal: str):
     """Retorna dados do CSV de gestão para o canal especificado."""
     import re as _re
     canal_safe = _re.sub(r'[<>:"/\\|?*\s]', '_', canal).strip('_')
-    csv_path = os.path.join(motor_sebayt.GESTAO_DIR, f"{canal_safe}_base.csv")
+    csv_path = os.path.join(motor_tusab.GESTAO_DIR, f"{canal_safe}_base.csv")
     if not os.path.exists(csv_path):
         return {"error": True, "message": "Relatório não encontrado"}
     try:
@@ -250,7 +250,7 @@ async def cerebro_upload(
     """Recebe arquivo (PDF, DOCX, MD, TXT, imagem ou áudio) e converte para .txt no cerebro/{canal}/documentos/."""
     import uuid as _uuid
 
-    cerebro_dir = motor_sebayt.CEREBRO_DIR
+    cerebro_dir = motor_tusab.CEREBRO_DIR
     canal_prefixo = _get_canal_prefixo_ativo(canal)
     doc_dir = os.path.join(cerebro_dir, canal_prefixo, "documentos")
     os.makedirs(doc_dir, exist_ok=True)
@@ -315,7 +315,7 @@ async def cerebro_upload(
         "chars": len(texto),
     }
     manifest.append(entry)
-    motor_sebayt.salvar_json_atomico(manifest, manifest_path, indent=2)
+    motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 
     return {"ok": True, "id": fid, "nome": arquivo.filename, "chars": len(texto)}
 
@@ -325,7 +325,7 @@ def cerebro_texto(req: TextoRequest):
     """Salva texto colado pelo usuário no cerebro/{canal}/textos/."""
     import uuid as _uuid
 
-    cerebro_dir = motor_sebayt.CEREBRO_DIR
+    cerebro_dir = motor_tusab.CEREBRO_DIR
     canal_prefixo = _get_canal_prefixo_ativo(req.canal)
     txt_dir2 = os.path.join(cerebro_dir, canal_prefixo, "textos")
     os.makedirs(txt_dir2, exist_ok=True)
@@ -357,7 +357,7 @@ def cerebro_texto(req: TextoRequest):
         "data": datetime.now().strftime("%d/%m/%Y"),
     }
     manifest.append(entry)
-    motor_sebayt.salvar_json_atomico(manifest, manifest_path, indent=2)
+    motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 
     return {"ok": True, "id": fid, "titulo": req.titulo}
 
@@ -365,7 +365,7 @@ def cerebro_texto(req: TextoRequest):
 @router.delete("/cerebro/arquivo/{tipo}/{fid}")
 def cerebro_delete(tipo: str, fid: str):
     """Remove arquivo do cerebro — busca em todos os subdirs de canal."""
-    cerebro_dir = motor_sebayt.CEREBRO_DIR
+    cerebro_dir = motor_tusab.CEREBRO_DIR
 
     if tipo not in ("documentos", "textos"):
         return {"error": True, "message": "Tipo inválido"}
@@ -400,7 +400,7 @@ def cerebro_delete(tipo: str, fid: str):
             os.remove(txt_path)
 
         manifest = [e for e in manifest if e["id"] != fid]
-        motor_sebayt.salvar_json_atomico(manifest, manifest_path, indent=2)
+        motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
         return {"ok": True}
 
     return {"error": True, "message": "Arquivo não encontrado"}
@@ -409,7 +409,7 @@ def cerebro_delete(tipo: str, fid: str):
 @router.delete("/historico/limpar")
 def historico_limpar(req: LimparHistoricoRequest):
     """Remove CSVs e summaries de canais selecionados (ou todos se prefixos vazio)."""
-    gestao_dir = motor_sebayt.GESTAO_DIR
+    gestao_dir = motor_tusab.GESTAO_DIR
     pattern    = os.path.join(gestao_dir, "*_base.csv")
     todos      = sorted(glob.glob(pattern))
     removidos  = 0
@@ -433,7 +433,7 @@ def historico_limpar(req: LimparHistoricoRequest):
 @router.delete("/cerebro/limpar")
 def cerebro_limpar(req: LimparRequest):
     """Remove arquivos selecionados de todas as pastas do cerebro."""
-    cerebro_dir = motor_sebayt.CEREBRO_DIR
+    cerebro_dir = motor_tusab.CEREBRO_DIR
     deletados   = {'youtube': 0, 'documentos': 0, 'textos': 0}
 
     def _limpar_dir(path: str) -> int:
@@ -464,7 +464,7 @@ def cerebro_limpar(req: LimparRequest):
             deletados['textos']     += _limpar_dir(os.path.join(canal_path, 'textos'))
 
     if req.youtube:
-        deletados['youtube']    += _limpar_dir(motor_sebayt.LOCAL_TXT_DIR)
+        deletados['youtube']    += _limpar_dir(motor_tusab.LOCAL_TXT_DIR)
     if req.documentos:
         deletados['documentos'] += _limpar_dir(os.path.join(cerebro_dir, 'documentos'))
     if req.textos:

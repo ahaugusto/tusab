@@ -1,4 +1,4 @@
-Sebayt — BM25 E QUERY EXPANSION
+﻿Tusab — BM25 E QUERY EXPANSION
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────
@@ -10,7 +10,7 @@ uma família de funções de ranqueamento desenvolvida nos anos 90
 por pesquisadores de Robertson, Jones et al. (Universidade de
 Okla / City University London).
 
-É o algoritmo que o Sebayt usa para decidir quais trechos da
+É o algoritmo que o Tusab usa para decidir quais trechos da
 base de conhecimento são mais relevantes para uma pergunta.
 
 ─────────────────────────────────────────
@@ -78,7 +78,7 @@ Mais alto = mais relevante.
 POR QUE O BM25 É O MELHOR QUE TEMOS
 ─────────────────────────────────────────
 
-No Sebayt, o BM25 roda 100% local, sem GPU, em milissegundos,
+No Tusab, o BM25 roda 100% local, sem GPU, em milissegundos,
 sobre toda a base indexada.
 
 A alternativa mais sofisticada são os embeddings vetoriais
@@ -93,7 +93,7 @@ Embeddings são mais poderosos semanticamente, mas:
 
 Para a maioria das perguntas reais sobre um canal do YouTube
 ou um documento, o BM25 é competitivo — especialmente com o
-enriquecimento que o Sebayt aplica:
+enriquecimento que o Tusab aplica:
 
   · Tags do YouTube amplificadas 3x no corpus
   · Keywords TF-IDF do texto amplificadas 2x
@@ -118,7 +118,7 @@ Exemplos práticos onde o BM25 falha:
   · "barato"     vs  "custo-benefício", "acessível"
 
 É aí que embeddings ganham. Mas para a maioria dos casos
-de uso do Sebayt — perguntas sobre conteúdo técnico e educacional
+de uso do Tusab — perguntas sobre conteúdo técnico e educacional
 com vocabulário específico — o BM25 funciona muito bem.
 
 ─────────────────────────────────────────
@@ -181,7 +181,7 @@ O chat nunca é bloqueado por falha na expansão.
 COMO ESTÁ IMPLEMENTADO
 ─────────────────────────────────────────
 
-Arquivo: sebayt_engine/agent/chat.py
+Arquivo: tusab_engine/agent/chat.py
 
 Constante de controle:
   PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google'}

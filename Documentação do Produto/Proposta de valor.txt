@@ -1,19 +1,19 @@
-﻿PROPOSTA DE VALOR — Sebayt
+﻿PROPOSTA DE VALOR — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────
-O NOME: SEBAYT
+O NOME: TUSAB
 ─────────────────────────────────────────
 
 RAIZ
 
-Sebayt (egípcio antigo: *s-bȝ-yt*) é o nome de um gênero literário
+Tusab (egípcio antigo: *s-bȝ-yt*) é o nome de um gênero literário
 que surgiu no Egito há mais de 4.000 anos.
 
 A palavra significa, literalmente, "instrução" ou "ensinamento" —
 do verbo egípcio *sba*, ensinar, instruir, transmitir sabedoria.
 
-Os textos do gênero Sebayt seguiam uma estrutura invariável:
+Os textos do gênero Tusab seguiam uma estrutura invariável:
 um ancião de grande experiência — um visir, um faraó, um escriba —
 reunia por escrito tudo que havia aprendido ao longo de décadas,
 e endereçava ao filho ou sucessor.
@@ -21,7 +21,7 @@ e endereçava ao filho ou sucessor.
 Não eram tratados filosóficos abstratos. Eram instruções práticas
 e verificáveis: como agir na corte, como julgar um conflito, como
 falar com sabedoria, como distinguir o essencial do irrelevante.
-O conhecimento já estava lá — vivido e observado. O Sebayt
+O conhecimento já estava lá — vivido e observado. O Tusab
 o tornava consultável para quem viesse depois.
 
 O exemplo mais antigo e mais célebre: as Máximas de Ptahhotep
@@ -35,17 +35,17 @@ A METÁFORA DO PRODUTO
 O produto faz o que o gênero fez por milênios:
 
   Você acumula conhecimento — vídeos, documentos, anotações.
-  O Sebayt absorve esse conhecimento, organiza e indexa.
-  Quando você tem uma pergunta, o Sebayt não inventa —
+  O Tusab absorve esse conhecimento, organiza e indexa.
+  Quando você tem uma pergunta, o Tusab não inventa —
   ele instrui de volta a partir do que você escolheu aprender,
   sempre citando a fonte de onde veio.
 
 A diferença entre buscar e perguntar para um instrutor:
   Busca → você filtra, compara, decide o que é relevante
-  Sebayt → já sabe o que é relevante para você, e instrui
+  Tusab → já sabe o que é relevante para você, e instrui
 
-O Sebayt antigo só sabia o que o mestre havia vivido e escrito.
-O Sebayt do produto só sabe o que você escolheu indexar.
+O Tusab antigo só sabia o que o mestre havia vivido e escrito.
+O Tusab do produto só sabe o que você escolheu indexar.
 Isso não é limitação — é a garantia de que ele não inventa.
 
 ─────────────────────────────────────────
@@ -64,7 +64,7 @@ tudo com o mesmo princípio: não substituir o pensamento humano,
 mas expandir o que ele consegue alcançar.
 O computador como extensão da mente.
 
-O Sebayt é um produto de IA no sentido de Engelbart:
+O Tusab é um produto de IA no sentido de Engelbart:
 o usuário ainda decide o que aprender, o que questionar, o que concluir.
 O produto amplifica o acesso ao conhecimento que o próprio usuário
 escolheu acumular. Assim como o gênero egípcio amplificava a sabedoria
@@ -75,7 +75,7 @@ A CONVERGÊNCIA
 
 O nome captura a posição filosófica do produto em uma palavra:
 
-  Sebayt = ensinamento construído sobre conhecimento deliberadamente
+  Tusab = ensinamento construído sobre conhecimento deliberadamente
            escolhido, entregue de volta ao próprio dono, com fonte.
 
 O pipeline permanece:
@@ -107,7 +107,7 @@ IAC é o acrônimo do pipeline central do produto:
       questionar, pedir exemplos. É o ponto de entrega do valor.
 
 A leitura completa do nome:
-  Sebayt = o seu cérebro, amplificado por um pipeline de
+  Tusab = o seu cérebro, amplificado por um pipeline de
               Index → Augment → Converse.
 
 Por que "Augment" e não "Artificial Intelligence":
@@ -137,7 +137,7 @@ Concorrentes que vivem nessa categoria: Notion, Obsidian, NotebookLM.
 POSICIONAMENTO CENTRAL
 ─────────────────────────────────────────
 
-Sebayt é o seu mentor digital.
+Tusab é o seu mentor digital.
 
 Não é uma busca. Não é um chatbot genérico.
 É um mentor que conhece exatamente o que você escolheu aprender —
@@ -147,7 +147,7 @@ A diferença entre buscar e perguntar para um mentor:
   Busca → você filtra, compara, decide o que é relevante
   Mentor → ele já sabe o que é relevante para você, e explica
 
-O mentor do Sebayt só sabe o que você ensinou a ele.
+O mentor do Tusab só sabe o que você ensinou a ele.
 Isso não é limitação — é a garantia de que ele não inventa.
 
 ─────────────────────────────────────────
@@ -208,16 +208,16 @@ DIFERENCIAIS REAIS
 POSIÇÃO NO MERCADO
 ─────────────────────────────────────────
 
-Sebayt NÃO compete com assistentes de IA generativa.
+Tusab NÃO compete com assistentes de IA generativa.
 São produtos diferentes com jobs to be done diferentes:
 
   IA generativa → "me explique qualquer coisa do mundo"
-  Sebayt → "me ajude a acessar o conhecimento que eu já coletei"
+  Tusab → "me ajude a acessar o conhecimento que eu já coletei"
 
 Não são substitutos — são complementares.
-O usuário do Sebayt provavelmente usa algum LLM generativo também, para coisas diferentes. Posicionar contra IA generativa seria inaccurado e uma batalha que não faz sentido travar.
+O usuário do Tusab provavelmente usa algum LLM generativo também, para coisas diferentes. Posicionar contra IA generativa seria inaccurado e uma batalha que não faz sentido travar.
 
-Sebayt compete (e se diferencia) de sistemas PKM com IA:
+Tusab compete (e se diferencia) de sistemas PKM com IA:
 NotebookLM, Notion AI, Obsidian AI, Mem, Roam Research AI.
 
 O diferencial que nenhum deles tem:
@@ -245,31 +245,31 @@ Onde o NotebookLM é melhor:
 · Audio Overview — resumo em formato podcast
 · Gratuito sem configuração
 
-Onde o Sebayt se diferencia de verdade:
+Onde o Tusab se diferencia de verdade:
 
 1. Escala de extração do YouTube
    NotebookLM aceita vídeos individuais.
-   Sebayt extrai canais inteiros — centenas de vídeos — automaticamente.
+   Tusab extrai canais inteiros — centenas de vídeos — automaticamente.
    Não é uma feature diferente. É uma magnitude diferente.
 
 2. Local-first — dados nunca saem da máquina
    NotebookLM processa nos servidores do Google.
    Para uso institucional (documentos internos, atas, dados sensíveis),
-   isso é bloqueador. Para o Sebayt, é o design padrão.
+   isso é bloqueador. Para o Tusab, é o design padrão.
 
 3. Sem dependência de conta Google ou nuvem
    Funciona offline com Ollama.
    Sem risco de descontinuação ou mudança de política de privacidade.
 
 Conclusão de posicionamento:
-A diferenciação real do Sebayt não é "chat com documentos" —
+A diferenciação real do Tusab não é "chat com documentos" —
 o NotebookLM já faz isso bem. É:
 
   Extração de canais YouTube em escala
   + processamento 100% local
   para quem não pode ou não quer mandar dados para nuvem.
 
-O NotebookLM valida o mercado. O Sebayt ocupa o nicho que o
+O NotebookLM valida o mercado. O Tusab ocupa o nicho que o
 NotebookLM deliberadamente não quer: local, privado, sem Google.
 
 ─────────────────────────────────────────
@@ -277,21 +277,21 @@ RELAÇÃO COM O ECOSSISTEMA LOCAL (Google, Ollama, Gemma)
 ─────────────────────────────────────────
 
 O Google lançar modelos cada vez melhores rodando localmente
-não é uma ameaça ao Sebayt — é uma validação e um combustível.
+não é uma ameaça ao Tusab — é uma validação e um combustível.
 
-O Google entrega o motor. O Sebayt entrega a camada de conhecimento.
+O Google entrega o motor. O Tusab entrega a camada de conhecimento.
 São complementares, não concorrentes.
 
   Motor (Gemma 4, Ollama) → processa linguagem
-  Sebayt → extrai, indexa, cita fontes, entrega interface
+  Tusab → extrai, indexa, cita fontes, entrega interface
 
-Quanto melhor o motor disponível, mais capaz fica o mentor do Sebayt.
+Quanto melhor o motor disponível, mais capaz fica o mentor do Tusab.
 O usuário não precisa saber que existe um Gemma 4 por baixo.
 Ele só sabe que o mentor ficou mais inteligente.
 
 O NotebookLM (Google) faz algo parecido, mas nunca vai querer
 o nicho local/privado — é um produto de nuvem por design.
-Esse espaço fica estruturalmente aberto. O Sebayt ocupa.
+Esse espaço fica estruturalmente aberto. O Tusab ocupa.
 
 ─────────────────────────────────────────
 ARQUITETURA NARRATIVA
@@ -307,7 +307,7 @@ Segunda camada (construção de confiança):
   Diferencia de IA genérica sem precisar atacar ninguém.
 
 Braço estratégico (para B2B e perfis avançados):
-  "Num mundo de conteúdo sem autoria, Sebayt é
+  "Num mundo de conteúdo sem autoria, Tusab é
    o assistente que você pode auditar."
   Argumento de governança para instituições. Não é linha de frente.
 
@@ -316,13 +316,13 @@ Braço estratégico (para B2B e perfis avançados):
 VALIDAÇÃO
 ─────────────────────────────────────────
 
-O Sebayt nasceu de uma necessidade real: acompanhar o volume de conteúdo
+O Tusab nasceu de uma necessidade real: acompanhar o volume de conteúdo
 do canal AUVP (Raul Sena / Investidor Sardinha). A dor era genuína —
 e a solução funcionou antes de existir como produto.
 
 A AUVP evoluiu para uma proposta separada: um chatbot embarcado na
 plataforma de educação deles. Produto diferente, público diferente.
-O Sebayt é o PKM desktop para o usuário final — distribuição direta B2C
+O Tusab é o PKM desktop para o usuário final — distribuição direta B2C
 e B2B com criadores e instituições.
 
 O produto está funcional com todas as fontes implementadas.
@@ -332,7 +332,7 @@ O próximo passo é a primeira venda com prospecção própria.
 PITCH DE UM PARÁGRAFO
 ─────────────────────────────────────────
 
-"Sebayt é o seu mentor digital. Você extrai canais do YouTube,
+"Tusab é o seu mentor digital. Você extrai canais do YouTube,
 adiciona seus PDFs, documentos e anotações — tudo vira um mentor
 que responde suas perguntas citando a fonte exata de onde veio.
 Roda na sua máquina, funciona offline, zero custo com Ollama.

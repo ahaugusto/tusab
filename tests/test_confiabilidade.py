@@ -14,10 +14,10 @@ import pytest
 # ─── Escrita atômica ──────────────────────────────────────────────────────────
 
 def test_salvar_csv_atomico_escreve_e_nao_deixa_tmp(client, data_dir, tmp_path):
-    import motor_sebayt
+    import motor_tusab
     df = pd.DataFrame([{"ID": "abc123", "Status": "Sucesso"}])
     alvo = str(tmp_path / "base.csv")
-    motor_sebayt.salvar_csv_atomico(df, alvo)
+    motor_tusab.salvar_csv_atomico(df, alvo)
     assert os.path.exists(alvo)
     assert not os.path.exists(alvo + ".tmp")
     relido = pd.read_csv(alvo)
@@ -25,65 +25,65 @@ def test_salvar_csv_atomico_escreve_e_nao_deixa_tmp(client, data_dir, tmp_path):
 
 
 def test_salvar_json_atomico_sobrescreve_sem_corromper(client, tmp_path):
-    import motor_sebayt
+    import motor_tusab
     alvo = str(tmp_path / "meta.json")
-    motor_sebayt.salvar_json_atomico({"v": 1}, alvo)
-    motor_sebayt.salvar_json_atomico({"v": 2}, alvo, indent=2)
+    motor_tusab.salvar_json_atomico({"v": 1}, alvo)
+    motor_tusab.salvar_json_atomico({"v": 2}, alvo, indent=2)
     with open(alvo, encoding="utf-8") as f:
         assert json.load(f)["v"] == 2
     assert not os.path.exists(alvo + ".tmp")
 
 
 def test_salvar_config_atomico(client):
-    import agent_sebayt
-    agent_sebayt.salvar_config({"provider": "ollama", "api_key": ""})
-    assert os.path.exists(agent_sebayt.CONFIG_PATH)
-    assert not os.path.exists(agent_sebayt.CONFIG_PATH + ".tmp")
-    assert agent_sebayt.carregar_config()["provider"] == "ollama"
+    import agent_tusab
+    agent_tusab.salvar_config({"provider": "ollama", "api_key": ""})
+    assert os.path.exists(agent_tusab.CONFIG_PATH)
+    assert not os.path.exists(agent_tusab.CONFIG_PATH + ".tmp")
+    assert agent_tusab.carregar_config()["provider"] == "ollama"
 
 
 # ─── Índice corrompido → erro claro, não crash ────────────────────────────────
 
 def test_indice_corrompido_gera_erro_orientando_reindexacao(client):
-    import agent_sebayt
+    import agent_tusab
     canal = "canal_corrompido_teste"
     prefixo = "canal_corrompido_teste"
-    os.makedirs(agent_sebayt.INDEX_DIR, exist_ok=True)
-    idx = agent_sebayt._index_path(prefixo)
+    os.makedirs(agent_tusab.INDEX_DIR, exist_ok=True)
+    idx = agent_tusab._index_path(prefixo)
     with open(idx, "w", encoding="utf-8") as f:
         f.write('{"canal_nome": "x", "chunks": [TRUNCADO')  # JSON inválido
 
     try:
         with pytest.raises(ValueError, match="corrompido"):
-            agent_sebayt._recuperar_contexto("pergunta", canal)
+            agent_tusab._recuperar_contexto("pergunta", canal)
     finally:
         os.remove(idx)
-        agent_sebayt._invalidar_cache(prefixo)
+        agent_tusab._invalidar_cache(prefixo)
 
 
 def test_indice_vazio_gera_erro_claro(client):
-    import agent_sebayt
+    import agent_tusab
     canal = "canal_vazio_teste"
     prefixo = "canal_vazio_teste"
-    os.makedirs(agent_sebayt.INDEX_DIR, exist_ok=True)
-    idx = agent_sebayt._index_path(prefixo)
+    os.makedirs(agent_tusab.INDEX_DIR, exist_ok=True)
+    idx = agent_tusab._index_path(prefixo)
     with open(idx, "w", encoding="utf-8") as f:
         json.dump({"canal_nome": "x", "chunks": []}, f)
 
     try:
         with pytest.raises(ValueError, match="corrompido ou vazio"):
-            agent_sebayt._recuperar_contexto("pergunta", canal)
+            agent_tusab._recuperar_contexto("pergunta", canal)
     finally:
         os.remove(idx)
-        agent_sebayt._invalidar_cache(prefixo)
+        agent_tusab._invalidar_cache(prefixo)
 
 
 # ─── Locks: escrita concorrente não perde incrementos ─────────────────────────
 
 def test_log_redirector_concorrente_nao_perde_incrementos(client):
-    import api_sebayt
-    from sebayt_engine.state import LogRedirector
-    state = api_sebayt.state
+    import api_tusab
+    from tusab_engine.state import LogRedirector
+    state = api_tusab.state
 
     with state.state_lock:
         state.stats["videos_processed"] = 0
@@ -109,8 +109,8 @@ def test_log_redirector_concorrente_nao_perde_incrementos(client):
 
 def test_chat_histories_concorrente_sem_excecao(client):
     """Leitura/escrita/limpeza simultâneas do histórico não podem lançar exceção."""
-    import api_sebayt
-    state = api_sebayt.state
+    import api_tusab
+    state = api_tusab.state
     erros = []
 
     def escreve(i):

@@ -1,4 +1,4 @@
-﻿# Relatório de Produto 360° — Sebayt
+﻿# Relatório de Produto 360° — Tusab
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
 **Data da análise:** 11 de junho de 2026
@@ -13,7 +13,7 @@
 
 ## 0. Sumário Executivo
 
-O Sebayt está **estrategicamente maduro e tecnicamente funcional, mas operacionalmente frágil**. O produto tem posicionamento raro de se encontrar em estágio early (categoria clara, diferencial defensável, case validado), UX acima da média para um MVP e uma postura de segurança que já passou por duas rodadas de hardening. Os três déficits estruturais são: **confiabilidade** (estado compartilhado sem proteção, persistência sem atomicidade, zero recovery), **qualidade** (zero testes automatizados) e **dados** (telemetria instalada mas 7 de 11 eventos nunca disparam — o produto está voando sem instrumentos).
+O Tusab está **estrategicamente maduro e tecnicamente funcional, mas operacionalmente frágil**. O produto tem posicionamento raro de se encontrar em estágio early (categoria clara, diferencial defensável, case validado), UX acima da média para um MVP e uma postura de segurança que já passou por duas rodadas de hardening. Os três déficits estruturais são: **confiabilidade** (estado compartilhado sem proteção, persistência sem atomicidade, zero recovery), **qualidade** (zero testes automatizados) e **dados** (telemetria instalada mas 7 de 11 eventos nunca disparam — o produto está voando sem instrumentos).
 
 A conclusão da Avaliação Estratégica de junho/2026 permanece válida e este relatório a reforça: **o gargalo não é técnico, é de go-to-market**. Porém, a análise de código revela que existe um conjunto de correções de confiabilidade de baixo esforço (1–2 dias) que deve ser feito ANTES da primeira distribuição ampla — porque bug de corrupção de dados na máquina de um cliente B2B destrói a credibilidade que o pitch local-first constrói.
 
@@ -48,7 +48,7 @@ A conclusão da Avaliação Estratégica de junho/2026 permanece válida e este 
 - **Diferencial defensável e verificado no código:** extração de canais inteiros (não vídeos individuais como NotebookLM) + processamento 100% local + custo zero com Ollama. A extração via yt-dlp no IP residencial do usuário é inimitável por SaaS — princípio corretamente tratado como intocável.
 - **Validação real:** AUVP comprou a ideia antes do produto existir. Três camadas de monetização (B2C / B2B Creator / B2B Enterprise) com flywheel descrito entre elas.
 - **Modelo de negócio documentado:** Free / Pro (R$97–197 perpétua) / Studio (R$97–297/mês) / Enterprise (sob consulta), com Lemon Squeezy escolhido como infraestrutura de licença.
-- **Leitura correta do ecossistema:** Gemma 4 e o avanço dos modelos locais são combustível, não ameaça — o Sebayt é camada de infraestrutura de conhecimento, não motor.
+- **Leitura correta do ecossistema:** Gemma 4 e o avanço dos modelos locais são combustível, não ameaça — o Tusab é camada de infraestrutura de conhecimento, não motor.
 
 ### Preocupa
 - **Os três pilares de receita não existem ainda:** sem landing page (sem pipeline de aquisição), sem sistema de licença (sem cobrança), sem primeira venda formal (sem validação de preço). Documentados como pendentes há mais de um ciclo.
@@ -123,7 +123,7 @@ A conclusão da Avaliação Estratégica de junho/2026 permanece válida e este 
 
 ## 5. Engenharia — Backend (Python/FastAPI)
 
-**Dimensão:** api_sebayt.py 1.281 linhas (31 endpoints) · motor_sebayt.py 923 linhas · agent_sebayt.py 809 linhas.
+**Dimensão:** api_tusab.py 1.281 linhas (31 endpoints) · motor_tusab.py 923 linhas · agent_tusab.py 809 linhas.
 
 ### Sólido
 - Separação conceitual correta em três domínios: API / motor de extração / agente RAG.
@@ -134,12 +134,12 @@ A conclusão da Avaliação Estratégica de junho/2026 permanece válida e este 
 ### Preocupa — em ordem de severidade
 
 **CRÍTICO — Race conditions em estado compartilhado.** Três estruturas globais são lidas/escritas por múltiplas threads sem proteção:
-- `state.stats` — atualizado pelo LogRedirector (thread do motor) e lido pela API (api_sebayt.py:170–195);
-- `_bm25_cache` — dois chats simultâneos no mesmo canal disparam dupla reconstrução do índice (agent_sebayt.py:70–74);
+- `state.stats` — atualizado pelo LogRedirector (thread do motor) e lido pela API (api_tusab.py:170–195);
+- `_bm25_cache` — dois chats simultâneos no mesmo canal disparam dupla reconstrução do índice (agent_tusab.py:70–74);
 - `state.chat_histories` — dict sem lock (o único lock existente é `agent_chat_lock`).
 Consequência prática: stats inconsistentes na UI e trabalho duplicado. Fix: um `threading.Lock` por estrutura — esforço de minutos.
 
-**CRÍTICO — Persistência sem atomicidade.** O motor faz `pd.concat` + `df.to_csv()` a cada vídeo processado (motor_sebayt.py:830–831) — centenas de reescritas completas do CSV por extração, sem write-to-temp+rename, sem lock de arquivo. Processo morto no meio da escrita = CSV truncado = histórico corrompido. O índice BM25 (JSON) tem o mesmo padrão e **nenhuma validação ao carregar** — JSON corrompido = crash do chat sem mensagem.
+**CRÍTICO — Persistência sem atomicidade.** O motor faz `pd.concat` + `df.to_csv()` a cada vídeo processado (motor_tusab.py:830–831) — centenas de reescritas completas do CSV por extração, sem write-to-temp+rename, sem lock de arquivo. Processo morto no meio da escrita = CSV truncado = histórico corrompido. O índice BM25 (JSON) tem o mesmo padrão e **nenhuma validação ao carregar** — JSON corrompido = crash do chat sem mensagem.
 
 **ALTO — 37 blocos `except Exception` genéricos, 9 deles com `pass` silencioso.** Falha de sync do Drive, falha de query expansion e falha de migração somem sem rastro. Logging é todo via `print()` redirecionado — sem níveis, sem estrutura, stack traces descartados (só a mensagem final vai para o crash log).
 
@@ -277,7 +277,7 @@ Consequência prática: stats inconsistentes na UI e trabalho duplicado. Fix: um
 ## 12. Qualidade & Testes
 
 ### Sólido
-- Smoke test manual de 10 checks (`.claude/skills/run-brainiac/smoke.ps1`) cobrindo endpoints críticos, incluindo path traversal e test-key — é um embrião real de suíte de regressão.
+- Smoke test manual de 10 checks (`.claude/skills/run-tusab/smoke.ps1`) cobrindo endpoints críticos, incluindo path traversal e test-key — é um embrião real de suíte de regressão.
 - CHANGELOG disciplinado, versionamento semântico com tags, convenção de commits.
 
 ### Preocupa
@@ -311,7 +311,7 @@ Consequência prática: stats inconsistentes na UI e trabalho duplicado. Fix: um
 
 ### Sólido
 - O roadmap documentado é coerente e em camadas: curto (busca ampla v2, imagens via Gemma 4 multimodal), médio (MCP server, atualização automática da base, voz), longo (modo institucional, API pública, fontes RSS/web).
-- **Servidor MCP é a aposta estratégica mais subestimada do roadmap:** transforma o Sebayt de app destino em infraestrutura que qualquer agente (Claude, Cursor, etc.) consulta — muda a categoria do produto e cria lock-in técnico real.
+- **Servidor MCP é a aposta estratégica mais subestimada do roadmap:** transforma o Tusab de app destino em infraestrutura que qualquer agente (Claude, Cursor, etc.) consulta — muda a categoria do produto e cria lock-in técnico real.
 - Decisões de descarte registradas com racional (ChromaDB, SaaS, exportar base) — disciplina rara.
 
 ### Preocupa
@@ -363,6 +363,6 @@ Consequência prática: stats inconsistentes na UI e trabalho duplicado. Fix: um
 
 ## Conclusão
 
-O Sebayt tem o problema certo, a solução certa e o momento certo — o que falta é **transformar maturidade estratégica em operação confiável e mensurável**. As três frentes que merecem a próxima semana de trabalho são pequenas e desproporcionalmente valiosas: o sprint de confiabilidade P0 (para que o produto aguente um cliente pagante sem corromper dados), a telemetria religada (para que as próximas decisões de produto sejam baseadas em evidência) e a política de privacidade (que destrava OAuth, distribuição e vendas de uma vez).
+O Tusab tem o problema certo, a solução certa e o momento certo — o que falta é **transformar maturidade estratégica em operação confiável e mensurável**. As três frentes que merecem a próxima semana de trabalho são pequenas e desproporcionalmente valiosas: o sprint de confiabilidade P0 (para que o produto aguente um cliente pagante sem corromper dados), a telemetria religada (para que as próximas decisões de produto sejam baseadas em evidência) e a política de privacidade (que destrava OAuth, distribuição e vendas de uma vez).
 
 Feito isso, a recomendação é deliberada: **parar de polir e ir vender.** O código aguenta a primeira dezena de clientes; cada semana adicional de desenvolvimento sem venda é a aposta mais cara do projeto.

@@ -5,9 +5,9 @@ Fonte única de verdade para:
   - constantes de path (DATA_DIR, CEREBRO_DIR, …)
   - escrita atômica de CSV e JSON
 
-Ambos motor_sebayt.py e agent_sebayt.py importavam cópias idênticas
+Ambos motor_tusab.py e agent_tusab.py importavam cópias idênticas
 dessas funções. Centralizando aqui eliminamos a duplicação e garantimos que
-SEBAYT_DATA_DIR (injetado pelo Electron ou pelo conftest de testes) é
+TUSAB_DATA_DIR (injetado pelo Electron ou pelo conftest de testes) é
 respeitado por todos os módulos.
 """
 
@@ -15,16 +15,16 @@ import os
 import sys
 import json
 
-_PACK = os.path.dirname(os.path.abspath(__file__))   # .../sebayt_engine/
+_PACK = os.path.dirname(os.path.abspath(__file__))   # .../tusab_engine/
 _ROOT = os.path.dirname(_PACK)                        # raiz do projeto
 
 
 def obter_caminho_dados() -> str:
     """Pasta raiz dos dados persistentes.
-    Prioridade: SEBAYT_DATA_DIR → PyInstaller frozen → raiz do projeto.
+    Prioridade: TUSAB_DATA_DIR → PyInstaller frozen → raiz do projeto.
     """
-    if os.environ.get('SEBAYT_DATA_DIR'):
-        return os.environ['SEBAYT_DATA_DIR']
+    if os.environ.get('TUSAB_DATA_DIR'):
+        return os.environ['TUSAB_DATA_DIR']
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
     return _ROOT
