@@ -61,6 +61,15 @@ export const startDriveAuth = () => axios.post(`${API_BASE}/drive-auth`);
 /** Cancels ongoing Drive authentication */
 export const cancelDriveAuth = () => axios.post(`${API_BASE}/drive-auth-cancel`);
 
+/** Disconnects Google Drive by removing the stored token */
+export const disconnectDrive = () => axios.post(`${API_BASE}/drive-disconnect`);
+
+// ─── Busca avançada ───────────────────────────────────────────────────────────
+
+/** Full-text search across all TXT files in the knowledge base */
+export const buscarBase = (query, canal = '') =>
+  axios.post(`${API_BASE}/cerebro/buscar`, { query, canal });
+
 // ─── Agent ───────────────────────────────────────────────────────────────────
 
 /** Saves agent provider configuration */
@@ -135,6 +144,30 @@ export const exportBase = () =>
 /** Downloads chat history for a canal as Markdown */
 export const exportHistorico = (canal_nome = '') =>
   fetch(`${API_BASE}/export/historico`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ canal_nome }),
+  });
+
+/** Downloads canal summary as Word .docx */
+export const exportResumoCanalDocx = (canal_nome) =>
+  fetch(`${API_BASE}/export/resumo-canal`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ canal_nome }),
+  });
+
+/** Downloads video table as Excel .xlsx */
+export const exportTabelaVideosXlsx = (canal) =>
+  fetch(`${API_BASE}/export/tabela-videos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ canal }),
+  });
+
+/** Downloads research report as PDF */
+export const exportRelatorioPdf = (canal_nome) =>
+  fetch(`${API_BASE}/export/relatorio-pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ canal_nome }),
