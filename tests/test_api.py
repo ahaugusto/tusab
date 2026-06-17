@@ -1,7 +1,7 @@
 ﻿# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Testes de integração dos endpoints críticos da API Tusab.
-Espelha os 10 checks do smoke test (.claude/skills/run-brainiac/smoke.ps1)
+Espelha os 10 checks do smoke test (.claude/skills/run/smoke.ps1)
 em formato pytest, sem dependência de Ollama nem de rede.
 """
 
@@ -141,7 +141,7 @@ def test_serve_index(client):
 @_sem_dist
 def test_path_traversal_bloqueado(client):
     """Pedir um arquivo fora do dist/ deve cair no fallback SPA, nunca vazar o arquivo."""
-    r = client.get("/..%2f..%2fapi_brainiac.py")
+    r = client.get("/..%2f..%2fapi_tusab.py")
     assert r.status_code == 200
     assert "FastAPI" not in r.text[:2000] or "<!doctype html" in r.text.lower()[:200]
 

@@ -75,7 +75,7 @@ class AppState:
         self.queue_lock = threading.Lock()
 
 
-# Singleton — importado diretamente por api_brainiac e pelos routers
+# Singleton — importado diretamente por api_tusab e pelos routers
 state = AppState()
 
 
