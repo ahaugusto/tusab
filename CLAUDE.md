@@ -192,6 +192,8 @@ web_interface/src/
     useStatus.js            polling GET /status a cada 2s
     useAgentStatus.js       polling GET /agent/status
     useOnboarding.js        lógica de onboarding contextual
+    useAgentConfig.js       config do agente (provider, API key, Ollama poll, canal-meta, keychain)
+    useChatEngine.js        pipeline de chat RAG (streaming, export detection, auto-scroll)
   components/
     home/HomeScreen.jsx     tela inicial (logo + cards)
     chat/ChatDrawer.jsx     drawer lateral de chat RAG
@@ -205,7 +207,7 @@ web_interface/src/
       PostExtractionModal.jsx ações pós-extração
     shared/
       Onboarding.jsx, ConsentModal.jsx, StatCard.jsx, LogLine.jsx, ProgressToast.jsx
-  App.jsx                   orquestrador principal (~1 340 linhas)
+  App.jsx                   orquestrador principal (~1 560 linhas)
   locales/pt.json, en.json, es.json   i18n
 ```
 
@@ -255,6 +257,8 @@ tests/
 | Adicionar rota de extração | `tusab_engine/api/router_extraction.py` |
 | Adicionar rota de agente | `tusab_engine/api/router_agent.py` |
 | Adicionar rota de repositório | `tusab_engine/api/router_repositorio.py` |
+| Mudar config do agente / provider / Ollama | `web_interface/src/hooks/useAgentConfig.js` |
+| Mudar o pipeline de chat RAG / export | `web_interface/src/hooks/useChatEngine.js` |
 | Mudar como o frontend chama o backend | `web_interface/src/services/api.js` |
 | Mudar eventos de telemetria | `web_interface/src/services/analytics.js` + `constants/index.js` |
 | Entender histórico de decisões | `Documentação do Produto/Execução do Relatório 360.md` |
