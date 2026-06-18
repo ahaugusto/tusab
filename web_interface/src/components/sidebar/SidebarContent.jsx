@@ -233,7 +233,7 @@ function SidebarContent({
             aria-label="Selecionar idioma"
             className={`text-[11px] font-bold bg-transparent border-none outline-none cursor-pointer pr-1 ${btnFocus}
               ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}
-            style={{ appearance: 'none', WebkitAppearance: 'none' }}>
+            style={{ appearance: 'none', WebkitAppearance: 'none', ...(darkMode ? { colorScheme: 'dark' } : {}) }}>
             <option value="pt">Português</option>
             <option value="en">English</option>
             <option value="es">Español</option>
