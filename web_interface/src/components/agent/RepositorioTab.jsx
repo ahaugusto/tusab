@@ -422,7 +422,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     setShowNovoProjeto(false);
                   }
                 }}
-                className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                style={darkMode ? { colorScheme: 'dark' } : {}}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-[#1a2035] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
                 <option value="">{canalAtivo ? `@${canalAtivo} (atual)` : 'Avulso (sem projeto)'}</option>
                 {projetos.map(p => (
                   <option key={p.nome} value={p.nome}>

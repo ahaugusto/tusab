@@ -175,7 +175,8 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
                 <select
                   value={modelName}
                   onChange={e => onModelChange && onModelChange(e.target.value)}
-                  className={`w-full text-[11px] rounded-lg px-2 py-1.5 border font-mono outline-none ${darkMode ? 'bg-white/8 border-white/15 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  style={darkMode ? { colorScheme: 'dark' } : {}}
+                  className={`w-full text-[11px] rounded-lg px-2 py-1.5 border font-mono outline-none ${darkMode ? 'bg-[#1a2035] border-white/15 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
                   {ollamaStatus.models.map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}

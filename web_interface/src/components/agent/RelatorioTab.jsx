@@ -119,7 +119,8 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
         <div className="flex items-center gap-2">
           <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Canal:</label>
           <select value={canal} onChange={e => setCanal(e.target.value)}
-            className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+            style={darkMode ? { colorScheme: 'dark' } : {}}
+            className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-[#1a2035] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
             {history.map(h => (
               <option key={h.canal} value={h.canal}>@{h.canal}</option>
             ))}
