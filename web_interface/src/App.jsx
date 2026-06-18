@@ -597,10 +597,62 @@ function App() {
     // se ok, o watchdog emite backend-alive e limpa o estado
   };
 
+  /** Detecta intenção de export na mensagem do usuário */
+  const detectarIntencaoExport = (msg) => {
+    const m = msg.toLowerCase();
+    const isDocx = /word|docx|documento|resumo.*canal|canal.*resumo|summary/.test(m);
+    const isXlsx = /excel|xlsx|planilha|tabela.*v[ií]deo|v[ií]deo.*tabela|spreadsheet/.test(m);
+    const isPdf  = /pdf|relat[oó]rio.*pdf|pdf.*relat[oó]rio/.test(m);
+    const isHist = /hist[oó]rico.*chat|chat.*hist[oó]rico|conversa.*export|export.*conversa|markdown/.test(m);
+    const hasVerb = /ger[ae]|export[ae]|cri[ae]|baixe?|download|salv[ae]/.test(m);
+    if (!hasVerb) return null;
+    if (isDocx) return 'docx';
+    if (isXlsx) return 'xlsx';
+    if (isPdf)  return 'pdf';
+    if (isHist) return 'historico';
+    return null;
+  };
+
+  /** Executa export e injeta mensagem com link de download no chat */
+  const handleExportDoChat = async (tipo, canal, msgUsuario) => {
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: msgUsuario }]);
+    setChatLoading(true);
+    try {
+      const labels = { docx: 'Resumo do canal (.docx)', xlsx: 'Tabela de vídeos (.xlsx)', pdf: 'Relatório (.pdf)', historico: 'Histórico do chat (.md)' };
+      const fns    = { docx: exportResumoCanalDocx, xlsx: exportTabelaVideosXlsx, pdf: exportRelatorioPdf, historico: exportHistorico };
+      const exts   = { docx: 'docx', xlsx: 'xlsx', pdf: 'pdf', historico: 'md' };
+      const res  = await fns[tipo](canal);
+      if (!res.ok) throw new Error('Falha ao gerar arquivo');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      setChatMessages(prev => [...prev, {
+        role: 'export',
+        content: `Aqui está o arquivo gerado para **@${canal}**:`,
+        exportLabel: labels[tipo],
+        exportUrl: url,
+        exportExt: exts[tipo],
+        exportCanal: canal,
+      }]);
+    } catch {
+      setChatMessages(prev => [...prev, { role: 'error', content: 'Não foi possível gerar o arquivo. Verifique se o canal está indexado e com histórico.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   /** Sends the current chat message using server-sent streaming */
   const handleChatSend = async () => {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
+
+    // Detecta intenção de export antes de ir ao LLM
+    const canal = agentStatus.canal_indexado || canalConfigurado;
+    const intencao = detectarIntencaoExport(msg);
+    if (intencao && canal) {
+      handleExportDoChat(intencao, canal, msg);
+      return;
+    }
 
     if (agentProvider === 'ollama' && !ollamaStatus.running) {
       setChatInput('');
