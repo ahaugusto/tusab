@@ -1158,26 +1158,7 @@ function App() {
                 ref={agentScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 space-y-4 custom-scrollbar">
 
-                {/* Canal meta card */}
-                {canalMeta && (
-                  <div className={`rounded-2xl border p-4 flex items-center gap-4 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg font-bold ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'}`}>
-                      {(canalMeta.canal_nome || '?')[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{canalMeta.canal_nome}</p>
-                      <div className={`flex items-center gap-2 text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-                        <span>{canalMeta.canal_handle}</span>
-                        {canalMeta.inscritos && <><span>·</span><span>{canalMeta.inscritos} inscritos</span></>}
-                      </div>
-                    </div>
-                    <a href={canalMeta.canal_url} target="_blank" rel="noreferrer"
-                      className={`shrink-0 p-2 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}
-                      aria-label="Abrir canal no YouTube">
-                      <ExternalLink size={14} />
-                    </a>
-                  </div>
-                )}
+
 
                 {/* First-visit hint */}
                 <AnimatePresence>
@@ -1595,6 +1576,8 @@ function App() {
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
               canaisExtraidos={history.filter(h => h.canal_nome).map(h => h.canal_nome)}
+              canaisExtras={canaisExtras}
+              setCanaisExtras={setCanaisExtras}
               onIndexar={handleIndexarDoChat}
               buscaAmpla={buscaAmpla}
               setBuscaAmpla={(updater) => {
