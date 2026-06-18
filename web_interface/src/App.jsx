@@ -115,6 +115,7 @@ function App() {
   const [showIndexInfo,    setShowIndexInfo]    = useState(false);
   const [lastIndexLogs,    setLastIndexLogs]    = useState([]);
   const [configOpen,       setConfigOpen]       = useState(true);
+  const [queryExpansion,   setQueryExpansion]   = useState(false);
   const [telemetryOpen,    setTelemetryOpen]    = useState(false);
   const [indexOpen,        setIndexOpen]        = useState(true);
   const [showAgentHint,    setShowAgentHint]    = useState(false);
@@ -288,6 +289,7 @@ function App() {
   useEffect(() => {
     loadAgentConfig().then(async r => {
       if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
+      if (r.data.query_expansion !== undefined) setQueryExpansion(!!r.data.query_expansion);
       const hasExternalKey = r.data.provider && r.data.provider !== 'ollama' && r.data.api_key;
       if (hasExternalKey) {
         setAgentProvider(r.data.provider);
@@ -1452,7 +1454,7 @@ function App() {
                         <CheckCircle2 size={11} /> {t('agent.configured_badge')}
                       </span>
                     )}
-                    <motion.div animate={{ rotate: configOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <motion.div animate={{ rotate: configOpen ? 0 : 180 }} transition={{ duration: 0.2 }}>
                       <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
                     </motion.div>
                   </button>
@@ -1587,6 +1589,27 @@ function App() {
                               </motion.div>
                             )}
                           </AnimatePresence>
+                          {/* Query expansion toggle */}
+                          <div className={`flex items-start justify-between gap-4 py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Busca inteligente</p>
+                              <p className={`text-[10px] mt-0.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                Gera variações da sua pergunta para encontrar mais resultados. Melhora a cobertura em perguntas com vocabulário diferente do conteúdo. <span className={`font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Adiciona 1–3s por resposta.</span>
+                              </p>
+                            </div>
+                            <button
+                              role="switch" aria-checked={queryExpansion}
+                              onClick={async () => {
+                                const next = !queryExpansion;
+                                setQueryExpansion(next);
+                                const cfg = await loadAgentConfig().then(r => r.data).catch(() => ({}));
+                                await saveAgentConfig({ ...cfg, query_expansion: next }).catch(() => {});
+                              }}
+                              className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${queryExpansion ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                              <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${queryExpansion ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                          </div>
+
                         </div>
                       </motion.div>
                     )}
@@ -1609,7 +1632,7 @@ function App() {
                         <CheckCircle2 size={11} /> Ativa
                       </span>
                     )}
-                    <motion.div animate={{ rotate: telemetryOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <motion.div animate={{ rotate: telemetryOpen ? 0 : 180 }} transition={{ duration: 0.2 }}>
                       <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
                     </motion.div>
                   </button>
@@ -1772,7 +1795,7 @@ function App() {
                         )}
                       </AnimatePresence>
                     </div>
-                    <motion.div animate={{ rotate: indexOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <motion.div animate={{ rotate: indexOpen ? 0 : 180 }} transition={{ duration: 0.2 }}>
                       <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
                     </motion.div>
                   </button>
@@ -1875,7 +1898,8 @@ function App() {
                                 <select
                                   value={canalParaIndexar}
                                   onChange={e => setCanalParaIndexar(e.target.value)}
-                                  className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                                  style={darkMode ? { colorScheme: 'dark' } : {}}
+                                  className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-[#1a2035] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
                                   <option value="">{canalConfigurado ? `@${canalConfigurado} (extração atual)` : 'Selecionar canal ou projeto…'}</option>
                                   {projetosDisp.map(p => (
                                     <option key={p.nome} value={p.nome}>

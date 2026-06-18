@@ -289,7 +289,10 @@ function ChatDrawer({
                         ) : (
                           <div className="markdown-body">
                             <ReactMarkdown
+                              // Normaliza \n simples entre parágrafos para \n\n (padrão Markdown)
+                              // preservando blocos de código e listas que já têm estrutura própria
                               remarkPlugins={[remarkGfm]}
+                              children={msg.content.replace(/(?<!\n)\n(?!\n)(?![-*+\d])/g, '\n\n')}
                               components={{
                                 p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
@@ -307,9 +310,8 @@ function ChatDrawer({
                                   : <pre className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto mb-2 ${darkMode ? 'bg-black/30' : 'bg-slate-100'}`}><code>{children}</code></pre>,
                                 blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-1 opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
                                 hr:     () => <hr className={`my-2 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
-                              }}>
-                              {msg.content}
-                            </ReactMarkdown>
+                              }}
+                            />
                             {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
                           </div>
                         )}

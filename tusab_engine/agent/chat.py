@@ -162,7 +162,8 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
         cached = _bm25_cache[canal_prefixo]
 
-    queries = _expandir_query(pergunta, config) if config else [pergunta]
+    usar_expansion = config.get('query_expansion', False) if config else False
+    queries = _expandir_query(pergunta, config) if (config and usar_expansion) else [pergunta]
 
     import numpy as np
 
