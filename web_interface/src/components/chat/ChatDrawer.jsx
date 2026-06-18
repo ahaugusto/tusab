@@ -5,12 +5,47 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+// ─── Loading phrases ─────────────────────────────────────────────────────────
+
+const LOADING_PHRASES = [
+  // Thoth / Tusab
+  'Tusab vem de "Thoth" — deus egípcio da sabedoria, escrita e conhecimento…',
+  'Thoth era o escriba dos deuses. O Tusab é o seu escriba pessoal.',
+  'Os egípcios acreditavam que Thoth inventou a escrita para preservar o saber eterno.',
+  'Na mitologia egípcia, Thoth pesava a alma dos mortos com uma pena. Aqui pesamos suas transcrições com BM25.',
+  'Thoth era representado com cabeça de íbis — pássaro conhecido por sua memória e precisão.',
+  'O nome hieroglífico de Thoth é "Djehuti". Tusab é sua reencarnação digital.',
+  'Thoth era o guardião dos Registros Akáshicos — o Tusab guarda os seus.',
+  'Segundo os egípcios, Thoth escreveu 42 livros com todo o conhecimento do universo.',
+  // Processo / divertidas
+  'Consultando os papiros digitais…',
+  'Reorganizando os hieróglifos da sua base…',
+  'O oráculo está processando…',
+  'Vasculhando cada transcrição com olhos de íbis…',
+  'Pesando suas palavras com a pena de Maat…',
+  'Atravessando o rio do conhecimento…',
+  'Decifrando os pergaminhos indexados…',
+  'Os deuses da sabedoria estão deliberando…',
+];
+
+function useLoadingPhrase(active) {
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * LOADING_PHRASES.length));
+  useEffect(() => {
+    if (!active) return;
+    const iv = setInterval(() => {
+      setIdx(i => (i + 1) % LOADING_PHRASES.length);
+    }, 3000);
+    return () => clearInterval(iv);
+  }, [active]);
+  return LOADING_PHRASES[idx];
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -81,6 +116,7 @@ function ChatDrawer({
     prevChatInputRef.current = chatInput;
   }, [chatInput]);
 
+  const loadingPhrase = useLoadingPhrase(chatLoading);
   const canaisIndexados = agentStatus.canais_indexados || [];
   const temBase = agentStatus.indexed || canaisIndexados.length > 0;
   const canalAtivo = canalConfigurado || agentStatus.canal_indexado;
@@ -383,12 +419,25 @@ function ChatDrawer({
                     </div>
                   ))}
                   {chatLoading && (
-                    <div className="flex justify-start">
-                      <div className={`px-4 py-3.5 rounded-2xl rounded-bl-sm border flex items-center gap-1.5 ${darkMode ? 'bg-white/8 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                        {[0, 1, 2].map(n => (
-                          <span key={n} className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
-                            style={{ animationDelay: `${n * 0.15}s`, animationDuration: '0.8s' }} />
-                        ))}
+                    <div className="flex justify-start max-w-[85%]">
+                      <div className={`px-4 py-3 rounded-2xl rounded-bl-sm border space-y-2 ${darkMode ? 'bg-white/8 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="flex items-center gap-1.5">
+                          {[0, 1, 2].map(n => (
+                            <span key={n} className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                              style={{ animationDelay: `${n * 0.15}s`, animationDuration: '0.8s' }} />
+                          ))}
+                        </div>
+                        <AnimatePresence mode="wait">
+                          <motion.p
+                            key={loadingPhrase}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.35 }}
+                            className={`text-[10px] leading-relaxed italic ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                            {loadingPhrase}
+                          </motion.p>
+                        </AnimatePresence>
                       </div>
                     </div>
                   )}
