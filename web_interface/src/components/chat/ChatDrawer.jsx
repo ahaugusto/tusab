@@ -101,6 +101,8 @@ function ChatDrawer({
   buscaAmpla,
   setBuscaAmpla,
   canaisExtraidos,
+  canaisExtras,
+  setCanaisExtras,
   onIndexar,
 }) {
   const { t } = useTranslation();
@@ -110,8 +112,10 @@ function ChatDrawer({
   const [showHistModal,     setShowHistModal]     = useState(false);
   const [historicos,        setHistoricos]        = useState([]);
   const [histLoading,       setHistLoading]       = useState(false);
-  const [histSelecionado,   setHistSelecionado]   = useState(null); // { titulo, conteudo }
+  const [histSelecionado,   setHistSelecionado]   = useState(null);
   const [salvando,          setSalvando]          = useState(false);
+  const [showBaseModal,     setShowBaseModal]     = useState(false);
+  const [indexandoBase,     setIndexandoBase]     = useState(null);
   const textareaRef = useRef(null);
 
   const prevChatInputRef = useRef(chatInput);
@@ -481,30 +485,21 @@ function ChatDrawer({
         </button>
       </div>
 
-      {/* Barra de ações abaixo do input */}
-      <div className="flex items-center gap-2 mt-2 px-0.5">
+      {/* Barra de ações abaixo do input — Base | Histórico | Nova conversa */}
+      <div className="flex items-center mt-2 px-0.5">
+        {/* Base — esquerda */}
         <button
-          onClick={async () => {
-            const canal = agentStatus?.canal_indexado || canalConfigurado;
-            if (!canal || chatMessages.length === 0) return;
-            const msgs = chatMessages.filter(m => m.role === 'user' || m.role === 'assistant');
-            if (msgs.length === 0) return;
-            setSalvando(true);
-            try {
-              await salvarHistoricoChat(canal, msgs);
-              await clearChatHistory(canal);
-              setChatMessages([]);
-            } catch { /* silencioso */ }
-            finally { setSalvando(false); }
-          }}
-          disabled={chatMessages.length === 0 || salvando || chatLoading}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
-            ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-          aria-label="Nova conversa">
-          {salvando ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />}
-          <span>Nova conversa</span>
+          onClick={() => setShowBaseModal(true)}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors
+            ${canaisExtras?.length > 0
+              ? darkMode ? 'text-primary hover:bg-primary/10' : 'text-primary hover:bg-violet-50'
+              : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+          aria-label="Selecionar base de conhecimento">
+          <Database size={12} />
+          <span>Base{canaisExtras?.length > 0 ? ` (${canaisExtras.length + 1})` : ''}</span>
         </button>
 
+        {/* Histórico — centro */}
         <button
           onClick={async () => {
             const canal = agentStatus?.canal_indexado || canalConfigurado;
@@ -525,8 +520,140 @@ function ChatDrawer({
           <History size={12} />
           <span>Histórico</span>
         </button>
+
+        {/* Nova conversa — direita */}
+        <button
+          onClick={async () => {
+            const canal = agentStatus?.canal_indexado || canalConfigurado;
+            if (!canal || chatMessages.length === 0) return;
+            const msgs = chatMessages.filter(m => m.role === 'user' || m.role === 'assistant');
+            if (msgs.length === 0) return;
+            setSalvando(true);
+            try {
+              await salvarHistoricoChat(canal, msgs);
+              await clearChatHistory(canal);
+              setChatMessages([]);
+            } catch { /* silencioso */ }
+            finally { setSalvando(false); }
+          }}
+          disabled={chatMessages.length === 0 || salvando || chatLoading}
+          className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+            ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+          aria-label="Nova conversa">
+          {salvando ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />}
+          <span>Nova conversa</span>
+        </button>
       </div>
     </div>
+
+    {/* Modal de seleção de base de conhecimento */}
+    <AnimatePresence>
+      {showBaseModal && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 z-40 flex flex-col"
+          style={{ background: darkMode ? 'rgba(12,17,34,0.97)' : 'rgba(255,255,255,0.97)' }}>
+
+          <div className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+            <button
+              onClick={() => setShowBaseModal(false)}
+              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
+              <ArrowLeft size={14} />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Base de conhecimento</h3>
+              <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Selecione uma ou mais bases para a conversa</p>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {(agentStatus.canais_indexados || []).length === 0 ? (
+              <div className={`flex flex-col items-center justify-center h-32 gap-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <Database size={24} className="opacity-40" />
+                <p className="text-xs">Nenhuma base indexada ainda.</p>
+              </div>
+            ) : (agentStatus.canais_indexados || []).map(canal => {
+              const isAtivo  = canal.nome === (canalConfigurado || agentStatus.canal_indexado);
+              const isExtra  = (canaisExtras || []).includes(canal.nome);
+              const selecionado = isAtivo || isExtra;
+              return (
+                <div key={canal.nome}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
+                    ${selecionado
+                      ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
+                      : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}
+                  onClick={() => {
+                    if (isAtivo) return; // canal principal não pode ser desmarcado daqui
+                    setCanaisExtras?.(prev =>
+                      isExtra ? prev.filter(c => c !== canal.nome) : [...prev, canal.nome]
+                    );
+                  }}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0
+                    ${selecionado
+                      ? darkMode ? 'bg-primary/30 text-primary' : 'bg-violet-100 text-violet-700'
+                      : darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                    {(canal.nome || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
+                    <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {canal.index_count || 0} chunks indexados
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    {isAtivo && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>Principal</span>
+                    )}
+                    {!isAtivo && (
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors
+                        ${isExtra
+                          ? 'border-primary bg-primary'
+                          : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
+                        {isExtra && <span className="text-white text-[8px] font-bold">✓</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Canais extraídos mas não indexados */}
+            {(canaisExtraidos || [])
+              .filter(nome => !(agentStatus.canais_indexados || []).some(c => c.nome === nome))
+              .map(nome => (
+                <div key={nome}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all
+                    ${darkMode ? 'bg-white/2 border-white/8 opacity-60' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${darkMode ? 'bg-white/8 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
+                    {nome[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>@{nome}</p>
+                    <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Não indexado</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setIndexandoBase(nome);
+                      await onIndexar?.(nome).catch?.(() => {});
+                      setIndexandoBase(null);
+                    }}
+                    disabled={indexandoBase === nome || agentStatus.indexing}
+                    className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-50
+                      ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>
+                    {indexandoBase === nome ? <Loader2 size={10} className="animate-spin" /> : 'Indexar'}
+                  </button>
+                </div>
+              ))}
+          </div>
+
+          {(canaisExtras || []).length > 0 && (
+            <div className={`px-4 py-3 border-t text-[10px] ${darkMode ? 'border-white/10 text-primary/70' : 'border-slate-100 text-violet-500'}`}>
+              Buscando em {(canaisExtras || []).length + 1} bases simultaneamente
+            </div>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* Modal de histórico de conversas */}
     <AnimatePresence>
@@ -626,7 +753,7 @@ function ChatDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t('agent.chat_title')}
-        onKeyDown={e => { if (e.key === 'Escape') { if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
+        onKeyDown={e => { if (e.key === 'Escape') { if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
         className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
         {conteudo(() => setExpandido(false))}
       </div>
@@ -650,7 +777,7 @@ function ChatDrawer({
             role="dialog"
             aria-modal="true"
             aria-label={t('agent.chat_title')}
-            onKeyDown={e => { if (e.key === 'Escape') { if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
+            onKeyDown={e => { if (e.key === 'Escape') { if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
             className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
             {conteudo(() => setChatOpen(false))}
           </motion.div>
