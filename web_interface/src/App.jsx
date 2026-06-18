@@ -360,8 +360,9 @@ function App() {
   /** Starts the knowledge base indexing for the configured canal */
   const handleAgentIndex = async () => {
     setAgentIndexError('');
+    const canal = agentStatus.canal_indexado || canalConfigurado;
     try {
-      const res = await startIndexing(canalConfigurado);
+      const res = await startIndexing(canal || '');
       if (res.data.error) setAgentIndexError(res.data.message);
     } catch { setAgentIndexError('Erro ao conectar com o servidor.'); }
   };

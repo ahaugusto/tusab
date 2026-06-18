@@ -14,6 +14,7 @@ import {
   testAgentKey,
   fetchOllamaStatus,
   fetchCanalMeta,
+  fetchAgentStatus,
 } from '../services/api';
 import { Analytics } from '../services/analytics';
 
@@ -84,6 +85,15 @@ export function useAgentConfig({ activeTab, showError }) {
           .catch(() => {});
       }
     }).catch(() => {});
+  }, []);
+
+  /** Polls agent status every 3 seconds (indexing progress, canal_indexado, etc.) */
+  useEffect(() => {
+    const iv = setInterval(() => {
+      fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
+    }, 3000);
+    fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
+    return () => clearInterval(iv);
   }, []);
 
   /** Polls Ollama status every 5 seconds */
