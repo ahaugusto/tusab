@@ -104,6 +104,10 @@ class AgentChatRequest(BaseModel):
 class AgentIndexRequest(BaseModel):
     canal_nome: str = Field(default="", max_length=120)
 
+class SalvarHistoricoRequest(BaseModel):
+    canal_nome: str  = Field(max_length=120)
+    mensagens:  list = []
+
 class TestKeyRequest(BaseModel):
     provider: str = Field(default='', max_length=30)
     api_key:  str = Field(default='', max_length=300)
@@ -396,6 +400,84 @@ def agent_chat_clear(req: AgentChatRequest):
     with state.hist_lock:
         state.chat_histories.pop(req.canal_nome, None)
     return {"message": "Histórico limpo."}
+
+
+@router.post("/agent/chat/salvar-historico")
+def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
+    """Serializa as mensagens do chat em Markdown e salva no repositório de textos do canal."""
+    import uuid as _uuid
+    import re as _re
+    from datetime import datetime as _dt
+    from tusab_engine.storage import CEREBRO_DIR, salvar_json_atomico
+
+    if not req.mensagens:
+        return {"error": True, "message": "Nenhuma mensagem para salvar"}
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_') or "_avulso"
+    txt_dir = os.path.join(CEREBRO_DIR, canal_prefixo, "textos")
+    os.makedirs(txt_dir, exist_ok=True)
+
+    ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+    fid = str(_uuid.uuid4())[:8]
+    titulo = f"Histórico do chat — {req.canal_nome} — {_dt.now().strftime('%d/%m/%Y %H:%M')}"
+    nome_arquivo = f"{fid}_historico_chat_{ts}.txt"
+    txt_path = os.path.join(txt_dir, nome_arquivo)
+
+    linhas = [f"TITULO: {titulo}", f"FONTE: historico_chat", f"DATA: {_dt.now().strftime('%d/%m/%Y')}", "-" * 70, ""]
+    for msg in req.mensagens:
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        if role == "user":
+            linhas.append(f"**Você:** {content}\n")
+        elif role == "assistant":
+            linhas.append(f"**Tusab:** {content}\n")
+        # ignora role=error, role=export, role=streaming
+
+    conteudo = "\n".join(linhas)
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(conteudo)
+
+    manifest_path = os.path.join(txt_dir, "_manifest.json")
+    manifest = []
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception:
+            pass
+    manifest.append({
+        "id": fid,
+        "titulo": titulo,
+        "nome_txt": nome_arquivo,
+        "tipo": "historico_chat",
+        "chars": len(conteudo),
+        "data": _dt.now().strftime("%d/%m/%Y"),
+    })
+    salvar_json_atomico(manifest, manifest_path, indent=2)
+
+    return {"ok": True, "id": fid, "titulo": titulo}
+
+
+@router.get("/agent/chat/historicos/{canal_nome}")
+def agent_chat_historicos(canal_nome: str):
+    """Lista arquivos de histórico de chat salvos para o canal."""
+    import re as _re
+    from tusab_engine.storage import CEREBRO_DIR
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_') or "_avulso"
+    manifest_path = os.path.join(CEREBRO_DIR, canal_prefixo, "textos", "_manifest.json")
+
+    if not os.path.exists(manifest_path):
+        return {"historicos": []}
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    except Exception:
+        return {"historicos": []}
+
+    historicos = [e for e in manifest if e.get("tipo") == "historico_chat"]
+    historicos.sort(key=lambda e: e.get("data", ""), reverse=True)
+    return {"historicos": historicos}
 
 
 @router.post("/agent/chat")
