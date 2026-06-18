@@ -8,9 +8,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 
@@ -103,9 +104,14 @@ function ChatDrawer({
   onIndexar,
 }) {
   const { t } = useTranslation();
-  const [showRepoModal, setShowRepoModal] = useState(false);
-  const [showIndexModal, setShowIndexModal] = useState(false);
-  const [indexSel, setIndexSel] = useState(null);
+  const [showRepoModal,     setShowRepoModal]     = useState(false);
+  const [showIndexModal,    setShowIndexModal]    = useState(false);
+  const [indexSel,          setIndexSel]          = useState(null);
+  const [showHistModal,     setShowHistModal]     = useState(false);
+  const [historicos,        setHistoricos]        = useState([]);
+  const [histLoading,       setHistLoading]       = useState(false);
+  const [histSelecionado,   setHistSelecionado]   = useState(null); // { titulo, conteudo }
+  const [salvando,          setSalvando]          = useState(false);
   const textareaRef = useRef(null);
 
   const prevChatInputRef = useRef(chatInput);
@@ -474,7 +480,143 @@ function ChatDrawer({
           <Send size={13} />
         </button>
       </div>
+
+      {/* Barra de ações abaixo do input */}
+      <div className="flex items-center gap-2 mt-2 px-0.5">
+        <button
+          onClick={async () => {
+            const canal = agentStatus?.canal_indexado || canalConfigurado;
+            if (!canal || chatMessages.length === 0) return;
+            const msgs = chatMessages.filter(m => m.role === 'user' || m.role === 'assistant');
+            if (msgs.length === 0) return;
+            setSalvando(true);
+            try {
+              await salvarHistoricoChat(canal, msgs);
+              await clearChatHistory(canal);
+              setChatMessages([]);
+            } catch { /* silencioso */ }
+            finally { setSalvando(false); }
+          }}
+          disabled={chatMessages.length === 0 || salvando || chatLoading}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+            ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+          aria-label="Nova conversa">
+          {salvando ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />}
+          <span>Nova conversa</span>
+        </button>
+
+        <button
+          onClick={async () => {
+            const canal = agentStatus?.canal_indexado || canalConfigurado;
+            if (!canal) return;
+            setShowHistModal(true);
+            setHistSelecionado(null);
+            setHistLoading(true);
+            try {
+              const r = await listarHistoricosChat(canal);
+              setHistoricos(r.data.historicos || []);
+            } catch { setHistoricos([]); }
+            finally { setHistLoading(false); }
+          }}
+          disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+            ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+          aria-label="Histórico de conversas">
+          <History size={12} />
+          <span>Histórico</span>
+        </button>
+      </div>
     </div>
+
+    {/* Modal de histórico de conversas */}
+    <AnimatePresence>
+      {showHistModal && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 z-40 flex flex-col"
+          style={{ background: darkMode ? 'rgba(12,17,34,0.97)' : 'rgba(255,255,255,0.97)' }}>
+
+          {/* Header do modal */}
+          <div className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+            <button
+              onClick={() => { setShowHistModal(false); setHistSelecionado(null); }}
+              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
+              <ArrowLeft size={14} />
+            </button>
+            <h3 className={`text-sm font-semibold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              {histSelecionado ? histSelecionado.titulo : 'Histórico de conversas'}
+            </h3>
+            {histSelecionado && (
+              <button
+                onClick={() => setHistSelecionado(null)}
+                className={`text-[10px] px-2 py-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
+                Voltar à lista
+              </button>
+            )}
+          </div>
+
+          {/* Conteúdo */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {histSelecionado ? (
+              /* Visualização de uma conversa */
+              <div className={`text-xs leading-relaxed markdown-body ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}
+                  components={{
+                    p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                    strong: ({children}) => <strong className="font-bold">{children}</strong>,
+                    em:     ({children}) => <em className="italic">{children}</em>,
+                    hr:     () => <hr className={`my-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
+                    code:   ({inline, children}) => inline
+                      ? <code className={`px-1 py-0.5 rounded text-[10px] font-mono ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}>{children}</code>
+                      : <pre className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto mb-2 ${darkMode ? 'bg-black/30' : 'bg-slate-100'}`}><code>{children}</code></pre>,
+                  }}>
+                  {histSelecionado.conteudo}
+                </ReactMarkdown>
+              </div>
+            ) : histLoading ? (
+              <div className="flex items-center justify-center h-24 gap-2">
+                <Loader2 size={14} className={`animate-spin ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Carregando...</span>
+              </div>
+            ) : historicos.length === 0 ? (
+              <div className={`flex flex-col items-center justify-center h-32 gap-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <History size={24} className="opacity-40" />
+                <p className="text-xs">Nenhuma conversa salva ainda.</p>
+                <p className="text-[10px] opacity-70">Clique em "Nova conversa" para salvar a atual.</p>
+              </div>
+            ) : (
+              /* Lista de conversas */
+              <div className="space-y-2">
+                {historicos.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={async () => {
+                      const canal_prefixo = (agentStatus?.canal_indexado || canalConfigurado || '').replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '') || '_avulso';
+                      setHistLoading(true);
+                      try {
+                        const r = await lerArquivo(`${canal_prefixo}/textos/${h.nome_txt}`);
+                        setHistSelecionado({ titulo: h.titulo, conteudo: r.data.conteudo || '' });
+                      } catch { setHistSelecionado({ titulo: h.titulo, conteudo: '(Erro ao carregar conversa)' }); }
+                      finally { setHistLoading(false); }
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99]
+                      ${darkMode ? 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`}>
+                    <div className="flex items-start gap-2">
+                      <FileText size={12} className={`mt-0.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                      <div className="min-w-0">
+                        <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{h.titulo}</p>
+                        <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.data} · {Math.round((h.chars || 0) / 5)} palavras aprox.</p>
+                      </div>
+                      <ChevronRight size={12} className={`ml-auto shrink-0 mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   </>);
 
   // Modo expandido: overlay sobre as abas, ocupa todo o container pai
@@ -484,7 +626,7 @@ function ChatDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t('agent.chat_title')}
-        onKeyDown={e => { if (e.key === 'Escape') { if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
+        onKeyDown={e => { if (e.key === 'Escape') { if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
         className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
         {conteudo(() => setExpandido(false))}
       </div>

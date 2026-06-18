@@ -110,6 +110,12 @@ export const sendChatStream = (payload) => fetch(`${API_BASE}/agent/chat/stream`
 /** Clears server-side conversation history for a canal */
 export const clearChatHistory = (canal_nome) => axios.post(`${API_BASE}/agent/chat/clear`, { canal_nome, mensagem: '', historico: [], canais_extras: [], busca_ampla: false });
 
+/** Saves current chat messages as a .md file in the canal's text repository */
+export const salvarHistoricoChat = (canal_nome, mensagens) => axios.post(`${API_BASE}/agent/chat/salvar-historico`, { canal_nome, mensagens });
+
+/** Lists saved chat history files for a canal */
+export const listarHistoricosChat = (canal_nome) => axios.get(`${API_BASE}/agent/chat/historicos/${encodeURIComponent(canal_nome)}`);
+
 /** Fetches Ollama service status and installed models */
 export const fetchOllamaStatus = () => axios.get(`${API_BASE}/agent/ollama/status`);
 
