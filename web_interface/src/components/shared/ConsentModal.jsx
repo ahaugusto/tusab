@@ -7,7 +7,7 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, BarChart2, Globe, HardDrive, ShieldCheck } from 'lucide-react';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
@@ -50,9 +50,18 @@ const FLOWS = [
  */
 function ConsentModal({ darkMode, onDone }) {
   const [expanded, setExpanded] = useState(false);
+  const firstBtnRef = useRef(null);
 
   const handleAccept  = () => { acceptAnalytics();  onDone(); };
   const handleDecline = () => { declineAnalytics(); onDone(); };
+
+  // Foca o primeiro botão ao montar e fecha com Escape (decline implícito)
+  useEffect(() => {
+    firstBtnRef.current?.focus();
+    const onKey = (e) => { if (e.key === 'Escape') handleDecline(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   const base   = darkMode ? 'bg-[#0C1122] border-white/15 text-white'    : 'bg-white border-slate-200 text-slate-900';
   const muted  = darkMode ? 'text-slate-400'                              : 'text-slate-500';
@@ -66,7 +75,11 @@ function ConsentModal({ darkMode, onDone }) {
       transition={{ duration: 0.25 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
     >
-      <div className={`rounded-2xl border shadow-2xl overflow-hidden ${base}`}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="consent-title"
+        className={`rounded-2xl border shadow-2xl overflow-hidden ${base}`}>
 
         {/* Header */}
         <div className="p-5 pb-3">
@@ -75,7 +88,7 @@ function ConsentModal({ darkMode, onDone }) {
               <ShieldCheck size={17} className="text-primary" />
             </div>
             <div>
-              <p className="text-sm font-bold">Antes de começar — seus dados</p>
+              <p id="consent-title" className="text-sm font-bold">Antes de começar — seus dados</p>
               <p className={`text-[11px] mt-0.5 leading-relaxed ${muted}`}>
                 O Tusab é local-first: sua base de conhecimento fica na sua máquina.
                 Três fluxos de dados existem, todos opcionais ou condicionais.
@@ -129,6 +142,7 @@ function ConsentModal({ darkMode, onDone }) {
           </p>
           <div className="flex gap-2">
             <button
+              ref={firstBtnRef}
               onClick={handleAccept}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30">
               Aceitar

@@ -32,6 +32,7 @@ import {
   testAgentKey, startIndexing, cancelIndexing, fetchCanalMeta, sendChatStream, clearChatHistory,
   fetchOllamaStatus, deleteCanalIndex, openFolder, exportBase, exportHistorico, disconnectDrive,
   exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf,
+  listarProjetos,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -124,9 +125,12 @@ function App() {
   const [canaisExtras,     setCanaisExtras]     = useState([]);
   const [useExternalProvider, setUseExternalProvider] = useState(false);
   const [agentIndexError,  setAgentIndexError]  = useState('');
+  const [projetosDisp,     setProjetosDisp]     = useState([]);   // for index canal selector
+  const [canalParaIndexar, setCanalParaIndexar] = useState('');   // overrides canalConfigurado for indexing
 
   // ─── Chat state ────────────────────────────────────────────────────────────
   const [chatOpen,         setChatOpen]         = useState(false);
+  const [chatExpandido,    setChatExpandido]    = useState(false);
   const [buscaAmpla,       setBuscaAmpla]       = useState(false);
   const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getConsent() === 'yes');
@@ -139,6 +143,10 @@ function App() {
   const [chatMessages,     setChatMessages]     = useState([]);
   const [chatInput,        setChatInput]        = useState('');
   const [chatLoading,      setChatLoading]      = useState(false);
+
+  // ─── Backend watchdog ──────────────────────────────────────────────────────
+  const [backendMorto,    setBackendMorto]    = useState(false);
+  const [reiniciando,     setReiniciando]     = useState(false);
 
   // ─── Pro Snackbar ──────────────────────────────────────────────────────────
   const [proSnackbar,      setProSnackbar]      = useState({ visible: false, feature: '' });
@@ -192,6 +200,13 @@ function App() {
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); }, [darkMode]);
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
+
+  /** Electron watchdog: listen for backend-dead / backend-alive IPC events */
+  useEffect(() => {
+    if (!window.tusab?.onBackendDead) return;
+    window.tusab.onBackendDead(()  => setBackendMorto(true));
+    window.tusab.onBackendAlive(() => { setBackendMorto(false); setReiniciando(false); });
+  }, []);
 
   /** Requests browser notification permission on first load */
   useEffect(() => {
@@ -271,13 +286,21 @@ function App() {
 
   /** Loads saved agent config on mount and sets Ollama as default if no external key */
   useEffect(() => {
-    loadAgentConfig().then(r => {
+    loadAgentConfig().then(async r => {
       if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
       const hasExternalKey = r.data.provider && r.data.provider !== 'ollama' && r.data.api_key;
       if (hasExternalKey) {
         setAgentProvider(r.data.provider);
-        setAgentApiKey('');
         setUseExternalProvider(true);
+        // Se a chave está criptografada no keychain, recupera para passar ao backend
+        if (r.data.api_key === '__encrypted__' && window.tusab?.getApiKey) {
+          const realKey = await window.tusab.getApiKey(r.data.provider).catch(() => null);
+          if (realKey) {
+            // Reinforma o backend com a chave real (sem exibir na UI)
+            saveAgentConfig({ provider: r.data.provider, api_key: realKey }).catch(() => {});
+          }
+        }
+        setAgentApiKey('');
       } else {
         setAgentProvider('ollama');
         setUseExternalProvider(false);
@@ -312,6 +335,12 @@ function App() {
       .catch(() => {});
   }, [activeTab, agentStatus.canal_indexado]);
 
+  /** Loads available projects for the index canal selector */
+  useEffect(() => {
+    if (activeTab !== 'agente' || !indexOpen) return;
+    listarProjetos().then(r => setProjetosDisp(r.data.projetos || [])).catch(() => {});
+  }, [activeTab, indexOpen]);
+
   /** Scrolls chat to the latest message */
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -329,6 +358,13 @@ function App() {
     const d2 = attach(agentScrollRef.current);
     return () => { d1(); d2(); };
   }, [activeTab]);
+
+  /** T2/A3 — retenção Day 1/7/30: dispara evento quando o backend informa nova marca */
+  useEffect(() => {
+    if (agentStatus.retencao_dia) {
+      Analytics.retencaoDia(agentStatus.retencao_dia, agentStatus.dias_desde_install ?? 0);
+    }
+  }, [agentStatus.retencao_dia]);
 
   /** Snapshots the last set of index logs for display after indexing completes */
   useEffect(() => {
@@ -403,6 +439,10 @@ function App() {
     setTestKeyResult(null);
     setAgentKeyError('');
     setKeyTested(false);
+    // Remove do keychain também
+    if (agentProvider && window.tusab?.deleteApiKey) {
+      window.tusab.deleteApiKey(agentProvider).catch(() => {});
+    }
     await saveAgentConfig({ provider: 'ollama', api_key: '' }).catch(() => showError('Erro ao remover chave. Tente novamente.'));
     setUseExternalProvider(false);
     setAgentProvider('ollama');
@@ -417,7 +457,13 @@ function App() {
     const provider = useExternalProvider ? agentProvider : 'ollama';
     const apiKey   = useExternalProvider ? agentApiKey.trim() : '';
     try {
-      const res = await saveAgentConfig({ provider, api_key: apiKey });
+      // Grava no OS keychain quando disponível; backend recebe sentinel
+      let backendKey = apiKey;
+      if (apiKey && window.tusab?.setApiKey) {
+        const stored = await window.tusab.setApiKey(provider, apiKey).catch(() => false);
+        if (stored) backendKey = '__encrypted__';
+      }
+      const res = await saveAgentConfig({ provider, api_key: backendKey });
       if (res.data.error) setAgentKeyError(res.data.message);
       else {
         setConfigSaved(true);
@@ -445,8 +491,9 @@ function App() {
   /** Starts the knowledge base indexing for the configured canal */
   const handleAgentIndex = async () => {
     setAgentIndexError('');
+    const _canal = canalParaIndexar || canalConfigurado;
     try {
-      const res = await startIndexing(canalConfigurado);
+      const res = await startIndexing(_canal);
       if (res.data.error) {
         if (String(res.data.message).startsWith('PRO_LIMIT:')) {
           showProSnackbar('Canais ilimitados');
@@ -537,6 +584,17 @@ function App() {
     await disconnectDrive().catch(() => {});
   };
 
+  const handleReiniciarBackend = async () => {
+    if (!window.tusab?.restartBackend) return;
+    setReiniciando(true);
+    const res = await window.tusab.restartBackend().catch(() => ({ ok: false }));
+    if (!res.ok) {
+      setReiniciando(false);
+      showError('Não foi possível reiniciar o backend. Feche e reabra o app.');
+    }
+    // se ok, o watchdog emite backend-alive e limpa o estado
+  };
+
   /** Sends the current chat message using server-sent streaming */
   const handleChatSend = async () => {
     const msg = chatInput.trim();
@@ -586,6 +644,11 @@ function App() {
             } else if (parsed.fontes) {
               fontes = parsed.fontes;
               setChatMessages(prev => { const msgs = [...prev]; msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], fontes }; return msgs; });
+              // A2 — KPI: primeira resposta com fontes reais (não erro, não vazia)
+              if (fontes.length > 0 && agentStatus.primeiro_uso) {
+                const minutos = Math.round((Date.now() / 1000 - agentStatus.primeiro_uso) / 60);
+                Analytics.primeiraRespostaUtil(minutos, useExternalProvider ? agentProvider : 'ollama');
+              }
             } else if (parsed.done) {
               setChatMessages(prev => { const msgs = [...prev]; msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], streaming: false }; return msgs; });
             }
@@ -676,6 +739,22 @@ function App() {
         )}
       </AnimatePresence>
 
+      {/* Backend watchdog banner */}
+      {backendMorto && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 py-3 bg-danger text-white text-xs font-medium shadow-lg">
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            O backend parou de responder. As funções do app estão indisponíveis.
+          </div>
+          <button
+            onClick={handleReiniciarBackend}
+            disabled={reiniciando}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 font-bold disabled:opacity-60 transition-colors">
+            {reiniciando ? 'Reiniciando…' : 'Reiniciar backend'}
+          </button>
+        </div>
+      )}
+
       {/* Pro feature snackbar — informativo, sem bloqueio na v1.0 */}
       <ProSnackbar
         visible={proSnackbar.visible}
@@ -725,7 +804,7 @@ function App() {
                 style={{ width: 52, height: 52, objectFit: 'contain' }}
                 onError={e => { e.target.style.display = 'none'; }} />
             </button>
-            <div className="flex flex-col items-center gap-0.5 flex-1 w-full px-1.5">
+            <div role="tablist" aria-label={t('nav.main')} className="flex flex-col items-center gap-0.5 flex-1 w-full px-1.5">
               {[
                 { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
                 { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
@@ -733,6 +812,10 @@ function App() {
                 { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
               ].map(({ id, icon: Icon, label }) => (
                 <button key={id}
+                  id={`tab-${id}`}
+                  role="tab"
+                  aria-selected={activeTab === id}
+                  aria-controls={`panel-${id}`}
                   onClick={() => {
                     setActiveTab(id);
                     if (id === 'agente' && !localStorage.getItem('tusab_agent_visited')) {
@@ -769,7 +852,7 @@ function App() {
                 <span className="text-[9px] font-semibold leading-none">{darkMode ? 'Claro' : 'Escuro'}</span>
               </button>
             </div>
-            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v0.4</p>
+            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v{__APP_VERSION__}</p>
           </nav>
         )}
 
@@ -850,7 +933,7 @@ function App() {
           )}
 
           {/* ── Tabbed app shell ── */}
-          <div className={showHome ? 'hidden' : 'flex flex-col flex-1 overflow-hidden'}>
+          <div className={showHome ? 'hidden' : 'flex flex-col flex-1 overflow-hidden relative'}>
             <div className={`absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-primary/8' : 'bg-primary/4'}`} aria-hidden="true" />
             <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-accent/5' : 'bg-accent/3'}`} aria-hidden="true" />
 
@@ -1787,7 +1870,31 @@ function App() {
                               <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
                                 {agentStatus.indexed ? t('agent.index_note_update') : t('agent.index_note_new')}
                               </p>
-                              {!temConteudo && (
+                              {/* Canal / project selector */}
+                              {projetosDisp.length > 0 && (
+                                <select
+                                  value={canalParaIndexar}
+                                  onChange={e => setCanalParaIndexar(e.target.value)}
+                                  className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                                  <option value="">{canalConfigurado ? `@${canalConfigurado} (extração atual)` : 'Selecionar canal ou projeto…'}</option>
+                                  {projetosDisp.map(p => (
+                                    <option key={p.nome} value={p.nome}>
+                                      {p.tipo === 'youtube' ? `📺 @${p.nome}` : `📁 ${p.nome}`}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              {agentStatus.indices_corrompidos?.length > 0 && (
+                                <div className={`rounded-xl px-3 py-2.5 text-[11px] leading-relaxed flex items-start gap-2 ${darkMode ? 'bg-warning/10 text-warning' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                                  <AlertTriangle size={12} className="shrink-0 mt-0.5" aria-hidden="true" />
+                                  <span>
+                                    Índice corrompido detectado e removido automaticamente:&nbsp;
+                                    <strong>{agentStatus.indices_corrompidos.map(c => `@${c}`).join(', ')}</strong>.
+                                    &nbsp;Clique em Reindexar para reconstruir.
+                                  </span>
+                                </div>
+                              )}
+                              {!temConteudo && !canalParaIndexar && (
                                 <p className={`text-[11px] flex items-center gap-1 ${darkMode ? 'text-warning/80' : 'text-amber-600'}`}>
                                   <AlertTriangle size={11} aria-hidden="true" /> {t('agent.index_prereq_content')}
                                 </p>
@@ -1797,7 +1904,7 @@ function App() {
                                   <AlertTriangle size={11} aria-hidden="true" /> {agentIndexError}
                                 </p>
                               )}
-                              <button onClick={handleAgentIndex} disabled={!temConteudo}
+                              <button onClick={handleAgentIndex} disabled={!temConteudo && !canalParaIndexar}
                                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                                   ${agentStatus.indexed ? `${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}` : 'bg-accent/20 text-accent hover:bg-accent/30'} ${BTN_FOCUS}`}>
                                 <RefreshCw size={13} />
@@ -1816,7 +1923,8 @@ function App() {
             {/* ── Chat Drawer ── */}
             <ChatDrawer
               darkMode={darkMode}
-              chatOpen={chatOpen} setChatOpen={setChatOpen}
+              chatOpen={chatOpen && !chatExpandido} setChatOpen={setChatOpen}
+              expandido={false} setExpandido={(v) => { setChatExpandido(v); if (v) setChatOpen(false); }}
               chatMessages={chatMessages} setChatMessages={setChatMessages}
               chatInput={chatInput} setChatInput={setChatInput}
               chatLoading={chatLoading}
@@ -1842,7 +1950,7 @@ function App() {
             />
 
             {/* Floating chat button */}
-            {!chatOpen && (
+            {!chatOpen && !chatExpandido && (
               <motion.button
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
@@ -1885,6 +1993,37 @@ function App() {
                 </motion.button>
               )}
             </AnimatePresence>
+
+            {/* ── Chat expandido (overlay sobre as abas) ── */}
+            {chatExpandido && (
+              <ChatDrawer
+                darkMode={darkMode}
+                chatOpen={true} setChatOpen={(v) => { if (!v) { setChatExpandido(false); setChatOpen(false); } }}
+                expandido={true} setExpandido={(v) => { setChatExpandido(v); if (!v) setChatOpen(true); }}
+                chatMessages={chatMessages} setChatMessages={setChatMessages}
+                chatInput={chatInput} setChatInput={setChatInput}
+                chatLoading={chatLoading}
+                onSend={handleChatSend}
+                onRecriarIndice={handleAgentIndex}
+                onClearHistory={() => {
+                  const canal = agentStatus.canal_indexado || canalConfigurado;
+                  if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
+                }}
+                agentStatus={agentStatus}
+                canalConfigurado={canalConfigurado}
+                onSelectCanal={setCanalConfigurado}
+                canalMeta={canalMeta}
+                chatEndRef={chatEndRef}
+                canaisExtraidos={history.filter(h => h.canal_nome).map(h => h.canal_nome)}
+                onIndexar={handleIndexarDoChat}
+                buscaAmpla={buscaAmpla}
+                setBuscaAmpla={(updater) => {
+                  const next = typeof updater === 'function' ? updater(buscaAmpla) : updater;
+                  Analytics.buscaAmplaToggled(next);
+                  setBuscaAmpla(next);
+                }}
+              />
+            )}
 
           </div>{/* end tabbed shell */}
         </main>

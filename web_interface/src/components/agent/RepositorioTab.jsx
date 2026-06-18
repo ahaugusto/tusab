@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo } from '../../services/api';
+import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -69,16 +69,44 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [buscaResultados, setBuscaResultados] = React.useState(null);
   const [buscando,       setBuscando]       = React.useState(false);
   const [showBusca,      setShowBusca]      = React.useState(false);
+  // ─── Project selector ────────────────────────────────────────────────────────
+  const [projetos,       setProjetos]       = React.useState([]);
+  const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
+  const [showNovoProjeto, setShowNovoProjeto] = React.useState(false);
+  const [novoProjNome,   setNovoProjNome]   = React.useState('');
+  const [criandoProj,    setCriandoProj]    = React.useState(false);
   const fileRef  = React.useRef(null);
   const dropRef  = React.useRef(null);
 
   const reload = () =>
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
 
+  const reloadProjetos = () =>
+    listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
+
+  // Resolve which canal/project name to use for uploads
+  const _canalEfetivo = () => projetoSel || canalAtivo || '';
+
+  const handleCriarProjeto = async () => {
+    const nome = novoProjNome.trim();
+    if (!nome) return;
+    setCriandoProj(true);
+    try {
+      const res = await criarProjeto(nome);
+      if (res.data?.ok) {
+        await reloadProjetos();
+        setProjetoSel(res.data.nome);
+        setShowNovoProjeto(false);
+        setNovoProjNome('');
+      }
+    } catch { /* ignore */ }
+    setCriandoProj(false);
+  };
+
   const handleSaveText = async () => {
     if (!title.trim() || !text.trim()) return;
     setSaving(true);
-    const ok = await saveText(title.trim(), text.trim(), canalAtivo || '').then(() => true).catch(() => false);
+    const ok = await saveText(title.trim(), text.trim(), _canalEfetivo()).then(() => true).catch(() => false);
     if (ok) Analytics.documentoAdicionado('texto');
     reload(); setShowAdd(false); setTitle(''); setText(''); setSaving(false);
   };
@@ -89,7 +117,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     setUploadAviso('');
     const form = new FormData();
     form.append('arquivo', fileToUpload);
-    form.append('canal', canalAtivo || '');
+    form.append('canal', _canalEfetivo());
     try {
       const res = await uploadDocument(form);
       const data = res.data;
@@ -242,7 +270,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               Buscar
             </button>
           )}
-          <button onClick={() => { setShowAdd(!showAdd_); setUploadAviso(''); }}
+          <button onClick={() => { const next = !showAdd_; setShowAdd(next); setUploadAviso(''); if (next) reloadProjetos(); else { setShowNovoProjeto(false); setNovoProjNome(''); } }}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
             + Adicionar
           </button>
@@ -379,6 +407,55 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           ${dragging
             ? darkMode ? 'border-primary bg-primary/8' : 'border-violet-400 bg-violet-50'
             : darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+
+          {/* Project selector */}
+          <div className="space-y-1.5">
+            <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Pasta / Projeto</p>
+            <div className="flex gap-2 items-center">
+              <select
+                value={projetoSel}
+                onChange={e => {
+                  if (e.target.value === '__novo__') {
+                    setShowNovoProjeto(true);
+                  } else {
+                    setProjetoSel(e.target.value);
+                    setShowNovoProjeto(false);
+                  }
+                }}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                <option value="">{canalAtivo ? `@${canalAtivo} (atual)` : 'Avulso (sem projeto)'}</option>
+                {projetos.map(p => (
+                  <option key={p.nome} value={p.nome}>
+                    {p.tipo === 'youtube' ? `📺 @${p.nome}` : `📁 ${p.nome}`}
+                  </option>
+                ))}
+                <option value="__novo__">+ Novo projeto…</option>
+              </select>
+            </div>
+            {showNovoProjeto && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nome do projeto"
+                  value={novoProjNome}
+                  onChange={e => setNovoProjNome(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleCriarProjeto()}
+                  autoFocus
+                  className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
+                <button
+                  onClick={handleCriarProjeto}
+                  disabled={criandoProj || !novoProjNome.trim()}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
+                  {criandoProj ? '…' : 'Criar'}
+                </button>
+                <button
+                  onClick={() => { setShowNovoProjeto(false); setNovoProjNome(''); }}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'} ${btnFocus}`}>
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2">
             {['texto', 'arquivo'].map(m => (

@@ -16,7 +16,7 @@ from datetime import datetime
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
@@ -64,7 +64,7 @@ def export_base():
 # ── Export do histórico de chat ───────────────────────────────────────────────
 
 class ExportHistoricoRequest(BaseModel):
-    canal_nome: str = ""
+    canal_nome: str = Field(default="", max_length=120)
 
 
 @router.post("/export/historico")
@@ -113,7 +113,7 @@ def export_historico(req: ExportHistoricoRequest):
 # ── Export de resumo do canal (DOCX) ─────────────────────────────────────────
 
 class ExportResumoCanalRequest(BaseModel):
-    canal_nome: str = ""
+    canal_nome: str = Field(default="", max_length=120)
 
 
 @router.post("/export/resumo-canal")
@@ -186,7 +186,7 @@ def export_resumo_canal(req: ExportResumoCanalRequest):
 # ── Export de tabela de vídeos (XLSX) ────────────────────────────────────────
 
 class ExportTabelaVideosRequest(BaseModel):
-    canal: str = ""
+    canal: str = Field(default="", max_length=120)
 
 
 @router.post("/export/tabela-videos")
@@ -259,7 +259,7 @@ def export_tabela_videos(req: ExportTabelaVideosRequest):
 # ── Export de relatório de pesquisa (PDF) ─────────────────────────────────────
 
 class ExportRelatorioPdfRequest(BaseModel):
-    canal_nome: str = ""
+    canal_nome: str = Field(default="", max_length=120)
 
 
 @router.post("/export/relatorio-pdf")
