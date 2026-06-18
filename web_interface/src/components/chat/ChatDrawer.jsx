@@ -278,12 +278,35 @@ function ChatDrawer({
                 <>
                   {chatMessages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      {/* Mensagem de export — card especial com botão de download */}
+                      {msg.role === 'export' ? (
+                        <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2.5 rounded-bl-sm
+                          ${darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
+                          <div className="flex items-center gap-2">
+                            <Sparkles size={13} className="text-primary shrink-0" />
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}
+                              children={msg.content}
+                              components={{ p: ({children}) => <span>{children}</span>, strong: ({children}) => <strong className="font-bold">{children}</strong> }}
+                            />
+                          </div>
+                          <a
+                            href={msg.exportUrl}
+                            download={`tusab_${msg.exportCanal}_export.${msg.exportExt}`}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99]
+                              ${darkMode ? 'bg-primary/15 border-primary/30 text-primary hover:bg-primary/25' : 'bg-violet-50 border-violet-200 text-primary hover:bg-violet-100'}`}>
+                            <ExternalLink size={12} className="shrink-0" />
+                            <span className="font-semibold truncate">{msg.exportLabel}</span>
+                          </a>
+                        </div>
+                      ) : (
                       <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2
                         ${msg.role === 'user'
-                          ? 'bg-primary/20 text-primary rounded-br-sm'
+                          ? darkMode
+                            ? 'bg-primary/20 border border-primary/30 text-primary rounded-br-sm'
+                            : 'bg-primary/15 border border-primary/20 text-primary rounded-br-sm'
                           : msg.role === 'error'
-                            ? (darkMode ? 'bg-danger/15 text-danger' : 'bg-red-50 text-red-700 border border-red-200')
-                            : (darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')} rounded-bl-sm`}>
+                            ? (darkMode ? 'bg-danger/15 border border-danger/30 text-danger' : 'bg-red-50 text-red-700 border border-red-200')
+                            : (darkMode ? 'bg-white/8 border border-white/10 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')} rounded-bl-sm`}>
                         {msg.role === 'user' ? (
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         ) : (
@@ -356,12 +379,16 @@ function ChatDrawer({
                           </div>
                         )}
                       </div>
+                      )}
                     </div>
                   ))}
                   {chatLoading && (
                     <div className="flex justify-start">
-                      <div className={`px-4 py-3 rounded-2xl rounded-bl-sm ${darkMode ? 'bg-white/8' : 'bg-white border border-slate-200'}`}>
-                        <Loader2 size={14} className="animate-spin text-primary" />
+                      <div className={`px-4 py-3.5 rounded-2xl rounded-bl-sm border flex items-center gap-1.5 ${darkMode ? 'bg-white/8 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        {[0, 1, 2].map(n => (
+                          <span key={n} className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: `${n * 0.15}s`, animationDuration: '0.8s' }} />
+                        ))}
                       </div>
                     </div>
                   )}
