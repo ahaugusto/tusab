@@ -84,6 +84,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
                   </button>}
               <a href="https://notebooklm.google.com/" target="_blank" rel="noreferrer"
                 aria-disabled={!driveConnected}
+                tabIndex={driveConnected ? 0 : -1}
                 className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border transition-colors
                   ${driveConnected
                     ? darkMode ? 'border-white/20 text-slate-300 hover:bg-white/10' : 'border-slate-300 text-slate-600 hover:bg-slate-100'

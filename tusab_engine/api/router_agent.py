@@ -23,11 +23,51 @@ _test_key_last: float = 0.0  # rate-limit: máx 1 chamada por 5s
 
 # ── Background helper ─────────────────────────────────────────────────────────
 
+def _gerar_perguntas_sugeridas(canal_prefixo: str, n: int = 3) -> list:
+    """Gera até n perguntas sugeridas a partir dos títulos dos chunks indexados."""
+    import random
+    from tusab_engine.agent.index import _index_path
+    from tusab_engine.storage import INDEX_DIR
+
+    idx_path = _index_path(canal_prefixo)
+    if not os.path.exists(idx_path):
+        return []
+    try:
+        with open(idx_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        chunks = data.get('chunks', [])
+        if not chunks:
+            return []
+
+        # Extrai títulos únicos não vazios
+        titulos = list({c['titulo'] for c in chunks if c.get('titulo') and len(c['titulo']) > 10})
+        if not titulos:
+            return []
+
+        # Escolhe n títulos aleatórios e formula perguntas
+        amostra = random.sample(titulos, min(n, len(titulos)))
+        templates = [
+            "O que foi discutido sobre {}?",
+            "Quais são os principais pontos sobre {}?",
+            "Me explique o conteúdo de {}.",
+        ]
+        perguntas = []
+        for i, titulo in enumerate(amostra):
+            tmpl = templates[i % len(templates)]
+            # Limpa o título (remove extensão .txt, underscores, etc.)
+            titulo_limpo = re.sub(r'\.txt$', '', titulo).replace('_', ' ').strip()
+            perguntas.append(tmpl.format(titulo_limpo))
+        return perguntas
+    except Exception:
+        return []
+
+
 def _run_indexacao(canal_nome: str, canal_prefixo: str):
     try:
         state.agent_indexing   = True
         state.agent_index_logs = []
         state.agent_index_stop.clear()
+        state.perguntas_sugeridas = []
 
         def cb(msg):
             state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": msg})
@@ -38,6 +78,7 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
             callback=cb,
             stop_event=state.agent_index_stop,
         )
+        state.perguntas_sugeridas = _gerar_perguntas_sugeridas(canal_prefixo)
     except Exception as e:
         state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": f"❌ Erro na indexação: {e}"})
     finally:
@@ -79,9 +120,15 @@ class AgentChatStreamRequest(BaseModel):
 
 @router.get("/agent/status")
 def agent_status():
+    from tusab_engine.agent.config import registrar_primeiro_uso
     status = agent_tusab.get_agent_status()
-    status["indexing"]    = state.agent_indexing
-    status["index_logs"]  = state.agent_index_logs[-30:]
+    status["indexing"]            = state.agent_indexing
+    status["index_logs"]          = state.agent_index_logs[-30:]
+    status["perguntas_sugeridas"] = state.perguntas_sugeridas if not state.agent_indexing else []
+    retencao = registrar_primeiro_uso()
+    status["primeiro_uso"]       = retencao["primeiro_uso"]
+    status["dias_desde_install"] = retencao["dias_desde_install"]
+    status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     return status
 
 

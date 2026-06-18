@@ -76,6 +76,8 @@ def get_agent_status() -> dict:
     index_count = 0
     canais_indexados = []
 
+    indices_corrompidos = []
+
     if os.path.exists(INDEX_DIR):
         for fname in os.listdir(INDEX_DIR):
             if fname.endswith('_index.json'):
@@ -83,13 +85,23 @@ def get_agent_status() -> dict:
                 try:
                     with open(fpath, 'r', encoding='utf-8') as f:
                         data = json.load(f)
+                    chunks = data.get('chunks', [])
+                    if not isinstance(chunks, list):
+                        raise ValueError("chunks inválidos")
                     nome  = data.get('canal_nome', fname.replace('_index.json', ''))
-                    count = len(data.get('chunks', []))
+                    count = len(chunks)
                     canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname})
                     if nome == canal_nome:
                         index_count = count
                 except Exception:
-                    pass
+                    # Índice corrompido — remove o arquivo e invalida o cache
+                    try:
+                        os.remove(fpath)
+                        canal_corrompido = fname.replace('_index.json', '')
+                        _invalidar_cache(canal_corrompido)
+                        indices_corrompidos.append(canal_corrompido)
+                    except Exception:
+                        pass
 
     if not index_count and canais_indexados:
         index_count = sum(c['chunks'] for c in canais_indexados)
@@ -127,6 +139,7 @@ def get_agent_status() -> dict:
         'canais_indexados':       canais_indexados,
         'base_desatualizada':     base_desatualizada,
         'novos_desde_indexacao':  novos_desde_indexacao,
+        'indices_corrompidos':    indices_corrompidos,
     }
 
 

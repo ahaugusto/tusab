@@ -10,7 +10,7 @@ import glob
 
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Form
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
@@ -31,9 +31,9 @@ def _get_canal_prefixo_ativo(canal_form: str = "") -> str:
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class TextoRequest(BaseModel):
-    titulo: str
-    conteudo: str
-    canal: str = ""
+    titulo:   str = Field(max_length=200)
+    conteudo: str = Field(max_length=500_000)
+    canal:    str = Field(default="", max_length=120)
 
 class LimparRequest(BaseModel):
     youtube:    bool = False
@@ -44,8 +44,8 @@ class LimparHistoricoRequest(BaseModel):
     prefixos: list = []
 
 class BuscarPayload(BaseModel):
-    query: str
-    canal: str = ''
+    query: str = Field(max_length=500)
+    canal: str = Field(default='', max_length=120)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -589,7 +589,48 @@ def cerebro_buscar(req: BuscarPayload):
 
 
 class LerArquivoPayload(BaseModel):
-    caminho: str
+    caminho: str = Field(max_length=500)
+
+class CriarProjetoPayload(BaseModel):
+    nome: str = Field(max_length=120)
+
+
+@router.get("/cerebro/projetos")
+def cerebro_listar_projetos():
+    """Lista todos os projetos (subdirs) no cerebro_dir, classificando por tipo."""
+    cerebro_dir = motor_tusab.CEREBRO_DIR
+    projetos = []
+    if not os.path.exists(cerebro_dir):
+        return {"projetos": projetos}
+    for entry in sorted(os.scandir(cerebro_dir), key=lambda e: e.name):
+        if not entry.is_dir():
+            continue
+        # Tipo: youtube = tem subdir youtube/; projeto = criado manualmente
+        has_youtube = os.path.isdir(os.path.join(entry.path, "youtube"))
+        tipo = "youtube" if has_youtube else "projeto"
+        projetos.append({"nome": entry.name, "tipo": tipo})
+    return {"projetos": projetos}
+
+
+@router.post("/cerebro/projeto")
+def cerebro_criar_projeto(req: CriarProjetoPayload):
+    """Cria um novo subdiretório de projeto no cerebro_dir."""
+    cerebro_dir = motor_tusab.CEREBRO_DIR
+    nome_raw = req.nome.strip()
+    if not nome_raw:
+        return {"error": True, "message": "Nome não pode ser vazio"}
+    nome_safe = re.sub(r'[<>:"/\\|?*\s]', '_', nome_raw).strip('_')
+    if not nome_safe:
+        return {"error": True, "message": "Nome inválido"}
+    projeto_dir = os.path.join(cerebro_dir, nome_safe)
+    # Proteção contra path traversal
+    if not os.path.normpath(projeto_dir).startswith(os.path.normpath(cerebro_dir) + os.sep):
+        return {"error": True, "message": "Caminho inválido"}
+    if os.path.exists(projeto_dir):
+        return {"ok": True, "nome": nome_safe, "criado": False, "message": "Já existe"}
+    os.makedirs(os.path.join(projeto_dir, "documentos"), exist_ok=True)
+    os.makedirs(os.path.join(projeto_dir, "textos"), exist_ok=True)
+    return {"ok": True, "nome": nome_safe, "criado": True}
 
 
 @router.post("/cerebro/ler-arquivo")

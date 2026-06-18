@@ -9,7 +9,7 @@ import re
 import json
 
 from tusab_engine.storage import INDEX_DIR
-from tusab_engine.agent.config import carregar_config
+from tusab_engine.agent.config import carregar_config, SENTINEL_KEY
 from tusab_engine.agent.index import (
     _bm25_cache, _bm25_lock,
     _enriquecer_documento, _index_path,
@@ -35,6 +35,12 @@ from tusab_engine.agent.index import (
 
 # Provedores rápidos o suficiente para query expansion sem degradar UX
 PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google'}
+
+
+def _api_key_valida(config: dict) -> bool:
+    """Retorna True se há chave de API real configurada (não sentinel, não vazia)."""
+    key = config.get('api_key', '')
+    return bool(key) and key != SENTINEL_KEY
 
 
 def _expandir_query(pergunta: str, config: dict) -> list:
@@ -302,7 +308,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
 def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False) -> dict:
     config   = carregar_config()
     provider = config.get('provider', '')
-    if not provider or (not config.get('api_key') and provider != 'ollama'):
+    if not provider or (not _api_key_valida(config) and provider != 'ollama'):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
     n_chunks = 4 if config.get('provider') == 'ollama' else 6
@@ -401,7 +407,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False):
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
     config = carregar_config()
-    if not config.get('provider') or (not config.get('api_key') and config.get('provider') != 'ollama'):
+    if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') != 'ollama'):
         yield json.dumps({'error': 'Configure a chave de API antes de usar o chat.'})
         return
 

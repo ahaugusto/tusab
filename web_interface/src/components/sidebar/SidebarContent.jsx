@@ -469,7 +469,7 @@ function SidebarContent({
 
       {/* Footer */}
       <div className={`mt-auto pt-2 border-t flex flex-col items-center gap-0.5 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
-        <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('footer.version')}</p>
+        <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>v{__APP_VERSION__}</p>
         <p className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>© 2026 CriAugu · {t('footer.by')}</p>
       </div>
     </>

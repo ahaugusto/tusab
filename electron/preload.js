@@ -1,9 +1,20 @@
 'use strict'
-// Preload minimalista — o app usa a API HTTP diretamente, sem IPC.
-// Mantido aqui para extensões futuras (ex: notificações nativas, menus).
-const { contextBridge } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('tusab', {
   platform: process.platform,
-  version:  process.env.npm_package_version || '2.0.0',
+  version:  process.env.npm_package_version || '1.0.0',
+
+  // Watchdog: recebe eventos do main process quando o backend cai ou volta
+  onBackendDead:  (cb) => ipcRenderer.on('backend-dead',  () => cb()),
+  onBackendAlive: (cb) => ipcRenderer.on('backend-alive', () => cb()),
+
+  // Reinicia o processo Python via main process
+  restartBackend: () => ipcRenderer.invoke('restart-backend'),
+
+  // safeStorage: API keys no OS keychain (Windows DPAPI / macOS Keychain)
+  // Retornam null/false quando rodando fora do Electron (dev server puro)
+  getApiKey:    (provider)           => ipcRenderer.invoke('get-api-key',    provider),
+  setApiKey:    (provider, key)      => ipcRenderer.invoke('set-api-key',    provider, key),
+  deleteApiKey: (provider)           => ipcRenderer.invoke('delete-api-key', provider),
 })

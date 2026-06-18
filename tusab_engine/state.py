@@ -60,10 +60,11 @@ class AppState:
         self.drive_cancel_event  = threading.Event()
 
         # Agente RAG
-        self.agent_indexing      = False
-        self.agent_index_logs    = []
-        self.agent_index_stop    = threading.Event()
-        self.agent_chat_lock     = threading.Lock()
+        self.agent_indexing       = False
+        self.agent_index_logs     = []
+        self.agent_index_stop     = threading.Event()
+        self.agent_chat_lock      = threading.Lock()
+        self.perguntas_sugeridas: list = []
         # Histórico server-side: canal_nome -> list[{role, content}]
         self.chat_histories: dict = {}
 

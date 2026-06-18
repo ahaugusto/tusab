@@ -78,15 +78,19 @@ export function track(event, props = {}) {
 // ─── Named events (keeps event names consistent across the codebase) ─────────
 
 export const Analytics = {
-  appOpened:           ()           => track('app_opened'),
-  canalConfigurado:    ()           => track('canal_configurado'),
-  extracaoIniciada:    (tipos)      => track('extracao_iniciada', { tipos }),
-  extracaoConcluida:   (stats)      => track('extracao_concluida', stats),
-  documentoAdicionado: (tipo)       => track('documento_adicionado', { tipo }),
-  baseIndexada:        (chunks)     => track('base_indexada', { chunks }),
-  chatPergunta:        (modo, prov) => track('chat_pergunta', { modo, provider: prov }),
-  provedorConfigurado: (prov)       => track('provedor_configurado', { provider: prov }),
-  repositorioAcessado: ()           => track('repositorio_acessado'),
-  relatorioAcessado:   ()           => track('relatorio_acessado'),
-  buscaAmplaToggled:   (ativo)      => track('busca_ampla_toggled', { ativo }),
+  appOpened:            ()                    => track('app_opened'),
+  canalConfigurado:     ()                    => track('canal_configurado'),
+  extracaoIniciada:     (tipos)               => track('extracao_iniciada', { tipos }),
+  extracaoConcluida:    (stats)               => track('extracao_concluida', stats),
+  documentoAdicionado:  (tipo)                => track('documento_adicionado', { tipo }),
+  baseIndexada:         (chunks)              => track('base_indexada', { chunks }),
+  chatPergunta:         (modo, prov)          => track('chat_pergunta', { modo, provider: prov }),
+  provedorConfigurado:  (prov)                => track('provedor_configurado', { provider: prov }),
+  repositorioAcessado:  ()                    => track('repositorio_acessado'),
+  relatorioAcessado:    ()                    => track('relatorio_acessado'),
+  buscaAmplaToggled:    (ativo)               => track('busca_ampla_toggled', { ativo }),
+  // A2 — KPI de ativação real: resposta com fontes (não erro, não "não encontrei")
+  primeiraRespostaUtil: (minutos, provider)   => track('primeira_resposta_util', { minutos_desde_install: minutos, provider }),
+  // A3 — retenção: disparado quando o usuário cruza 1, 7 ou 30 dias
+  retencaoDia:          (dia, dias_total)     => track(`retencao_dia${dia}`, { dias_desde_install: dias_total }),
 };

@@ -4,7 +4,7 @@
 
 'use strict'
 
-const { app, BrowserWindow, shell, dialog } = require('electron')
+const { app, BrowserWindow, shell, dialog, ipcMain, safeStorage } = require('electron')
 const { spawn }  = require('child_process')
 const path       = require('path')
 const http       = require('http')
@@ -28,6 +28,8 @@ const PORT = 8001
 let mainWindow    = null
 let pythonProcess = null
 let ollamaProcess = null
+let watchdogTimer = null
+let backendDead   = false
 
 // ─── Ollama ────────────────────────────────────────────────────────────────
 function findOllamaExe () {
@@ -232,6 +234,98 @@ function waitForBackend (maxMs = 20000) {
   })
 }
 
+// ─── Watchdog pós-inicialização ────────────────────────────────────────────
+function pingBackend () {
+  return new Promise(resolve => {
+    const req = http.get(`http://127.0.0.1:${PORT}/status`, res => {
+      res.resume()
+      resolve(res.statusCode === 200)
+    })
+    req.on('error', () => resolve(false))
+    req.setTimeout(3000, () => { req.destroy(); resolve(false) })
+  })
+}
+
+function startWatchdog () {
+  if (watchdogTimer) return
+  watchdogTimer = setInterval(async () => {
+    const alive = await pingBackend()
+    if (!alive && !backendDead) {
+      backendDead = true
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('backend-dead')
+      }
+    } else if (alive && backendDead) {
+      backendDead = false
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('backend-alive')
+      }
+    }
+  }, 5000)
+}
+
+function stopWatchdog () {
+  if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = null }
+}
+
+// IPC: frontend pede reinício do backend
+ipcMain.handle('restart-backend', async () => {
+  stopWatchdog()
+  if (pythonProcess) { try { pythonProcess.kill('SIGTERM') } catch {} pythonProcess = null }
+  await new Promise(r => setTimeout(r, 1000))
+  spawnBackend()
+  try {
+    await waitForBackend(15000)
+    backendDead = false
+    startWatchdog()
+    return { ok: true }
+  } catch {
+    return { ok: false }
+  }
+})
+
+// ─── safeStorage: API keys ────────────────────────────────────────────────
+// Keys ficam no OS keychain (Windows DPAPI / macOS Keychain).
+// Fora do Electron (dev server puro) safeStorage.isEncryptionAvailable() = false
+// — os handlers retornam null graciosamente, o frontend cai no fallback.
+
+const KEYSTORE_PATH = () => path.join(app.getPath('userData'), 'config', 'keystore.json')
+
+function readKeystore () {
+  try { return JSON.parse(fs.readFileSync(KEYSTORE_PATH(), 'utf-8')) } catch { return {} }
+}
+
+function writeKeystore (store) {
+  const p = KEYSTORE_PATH()
+  fs.mkdirSync(path.dirname(p), { recursive: true })
+  fs.writeFileSync(p, JSON.stringify(store), 'utf-8')
+}
+
+ipcMain.handle('get-api-key', (_e, provider) => {
+  if (!safeStorage.isEncryptionAvailable()) return null
+  const store = readKeystore()
+  const enc   = store[`apikey_${provider}`]
+  if (!enc) return null
+  try { return safeStorage.decryptString(Buffer.from(enc, 'base64')) } catch { return null }
+})
+
+ipcMain.handle('set-api-key', (_e, provider, plaintext) => {
+  if (!safeStorage.isEncryptionAvailable()) return false
+  const enc   = safeStorage.encryptString(plaintext).toString('base64')
+  const store = readKeystore()
+  store[`apikey_${provider}`] = enc
+  writeKeystore(store)
+  return true
+})
+
+ipcMain.handle('delete-api-key', (_e, provider) => {
+  if (!safeStorage.isEncryptionAvailable()) return false
+  const store = readKeystore()
+  delete store[`apikey_${provider}`]
+  writeKeystore(store)
+  return true
+})
+
 // ─── Janela principal ──────────────────────────────────────────────────────
 async function createWindow () {
   mainWindow = new BrowserWindow({
@@ -265,6 +359,7 @@ async function createWindow () {
   try {
     await waitForBackend()
     mainWindow.loadURL(`http://127.0.0.1:${PORT}`)
+    startWatchdog()
   } catch (err) {
     dialog.showErrorBox(
       "Tusab — Erro de inicialização",
@@ -324,6 +419,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', killBackend)
 
 function killBackend () {
+  stopWatchdog()
   if (pythonProcess) {
     pythonProcess.kill('SIGTERM')
     pythonProcess = null
