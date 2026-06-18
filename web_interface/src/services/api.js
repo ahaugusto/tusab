@@ -74,6 +74,12 @@ export const buscarBase = (query, canal = '') =>
 export const lerArquivo = (caminho) =>
   axios.post(`${API_BASE}/cerebro/ler-arquivo`, { caminho });
 
+/** Lists all project subdirectories in the cerebro */
+export const listarProjetos = () => axios.get(`${API_BASE}/cerebro/projetos`);
+
+/** Creates a new named project subdirectory in the cerebro */
+export const criarProjeto = (nome) => axios.post(`${API_BASE}/cerebro/projeto`, { nome });
+
 // ─── Agent ───────────────────────────────────────────────────────────────────
 
 /** Saves agent provider configuration */

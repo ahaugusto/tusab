@@ -8,7 +8,7 @@ import time
 import threading
 
 from fastapi import APIRouter, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
@@ -95,13 +95,13 @@ def run_motor():
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class ChannelRequest(BaseModel):
-    canal_url: str
+    canal_url: str = Field(max_length=300)
 
 class StartRequest(BaseModel):
     fontes: list = []
 
 class QueueAddRequest(BaseModel):
-    canal_url: str
+    canal_url: str = Field(max_length=300)
     fontes: list = []
 
 

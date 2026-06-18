@@ -151,3 +151,35 @@ def test_path_traversal_bloqueado(client):
 def test_limpar_historico_responde(client):
     r = client.request("DELETE", "/historico/limpar", json={"prefixos": ["prefixo_inexistente"]})
     assert r.status_code == 200
+
+
+# ─── Projetos ────────────────────────────────────────────────────────────────
+
+def test_listar_projetos_retorna_lista(client):
+    r = client.get("/cerebro/projetos")
+    assert r.status_code == 200
+    body = r.json()
+    assert "projetos" in body
+    assert isinstance(body["projetos"], list)
+
+
+def test_criar_projeto_valido(client):
+    r = client.post("/cerebro/projeto", json={"nome": "projeto_teste_pytest"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("ok") is True
+    assert body.get("nome") == "projeto_teste_pytest"
+
+
+def test_criar_projeto_nome_vazio_rejeita(client):
+    r = client.post("/cerebro/projeto", json={"nome": "   "})
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
+def test_criar_projeto_aparece_na_listagem(client):
+    nome = "projeto_listagem_test"
+    client.post("/cerebro/projeto", json={"nome": nome})
+    r = client.get("/cerebro/projetos")
+    nomes = [p["nome"] for p in r.json()["projetos"]]
+    assert nome in nomes

@@ -8,7 +8,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -39,6 +41,8 @@ function ChatDrawer({
   darkMode,
   chatOpen,
   setChatOpen,
+  expandido,
+  setExpandido,
   chatMessages,
   setChatMessages,
   chatInput,
@@ -82,69 +86,61 @@ function ChatDrawer({
   const canalAtivo = canalConfigurado || agentStatus.canal_indexado;
   const chatHabilitado = temBase && !!canalAtivo;
 
-  return (
-    <AnimatePresence>
-      {chatOpen && (
-        <>
-          {/* Mobile backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-            onClick={() => setChatOpen(false)} />
-
-          {/* Drawer panel */}
-          <motion.div
-            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.25 }}
-            className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
-
-            {/* Header */}
-            <div className={`px-4 py-3.5 border-b flex items-center gap-3 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-              <Sparkles size={15} className="text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
-                {agentStatus.indexed && (
-                  <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{canalConfigurado || agentStatus.canal_indexado}</p>
-                )}
-              </div>
-              {/* Busca Ampla toggle com tooltip descritivo */}
-              <div className="relative flex items-center gap-1.5 shrink-0 group">
-                <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
-                  {buscaAmpla ? 'Ampla' : 'Restrita'}
-                </span>
-                <button
-                  role="switch"
-                  aria-checked={buscaAmpla}
-                  onClick={() => setBuscaAmpla(v => !v)}
-                  className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
-                  <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-                {/* Tooltip */}
-                <div className={`absolute top-full mt-2 right-0 w-56 p-2.5 rounded-xl border text-[10px] leading-relaxed shadow-xl
-                  opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10
-                  ${darkMode ? 'bg-[#0C1122] border-white/20 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/60'}`}>
-                  {buscaAmpla
-                    ? <><strong className={darkMode ? 'text-accent' : 'text-cyan-600'}>Busca Ampla ativada</strong><br/>Usa sua base como referência principal e complementa com o conhecimento geral do modelo quando necessário.</>
-                    : <><strong className={darkMode ? 'text-white' : 'text-slate-800'}>Busca Restrita</strong><br/>Responde exclusivamente com o conteúdo da sua base. Se não encontrar, diz que não encontrou.</>
-                  }
-                </div>
-              </div>
-              {chatMessages.length > 0 && (
-                <button onClick={() => { setChatMessages([]); onClearHistory?.(); }}
-                  className={`text-[10px] px-2 py-1 rounded-lg border transition-colors ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
-                  {t('chat.clear')}
-                </button>
-              )}
-              <button onClick={() => setChatOpen(false)}
-                className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-                aria-label={t('chat.close')}>
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Messages area */}
-            <div className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
-              role="log" aria-label={t('agent.chat_title')} aria-live="polite">
+  // Conteúdo interno compartilhado entre drawer e modo expandido
+  const conteudo = (onFechar) => (<>
+    {/* Header */}
+    <div className={`px-4 py-3.5 border-b flex items-center gap-3 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+      <Sparkles size={15} className="text-primary shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
+        {agentStatus.indexed && (
+          <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{canalConfigurado || agentStatus.canal_indexado}</p>
+        )}
+      </div>
+      {/* Busca Ampla toggle */}
+      <div className="relative flex items-center gap-1.5 shrink-0 group">
+        <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
+          {buscaAmpla ? 'Ampla' : 'Restrita'}
+        </span>
+        <button
+          role="switch"
+          aria-checked={buscaAmpla}
+          onClick={() => setBuscaAmpla(v => !v)}
+          className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+          <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
+        </button>
+        <div className={`absolute top-full mt-2 right-0 w-56 p-2.5 rounded-xl border text-[10px] leading-relaxed shadow-xl
+          opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10
+          ${darkMode ? 'bg-[#0C1122] border-white/20 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/60'}`}>
+          {buscaAmpla
+            ? <><strong className={darkMode ? 'text-accent' : 'text-cyan-600'}>Busca Ampla ativada</strong><br/>Usa sua base como referência principal e complementa com o conhecimento geral do modelo quando necessário.</>
+            : <><strong className={darkMode ? 'text-white' : 'text-slate-800'}>Busca Restrita</strong><br/>Responde exclusivamente com o conteúdo da sua base. Se não encontrar, diz que não encontrou.</>}
+        </div>
+      </div>
+      {chatMessages.length > 0 && (
+        <button onClick={() => { setChatMessages([]); onClearHistory?.(); }}
+          className={`text-[10px] px-2 py-1 rounded-lg border transition-colors ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+          {t('chat.clear')}
+        </button>
+      )}
+      {/* Botão expandir/recolher */}
+      {setExpandido && (
+        <button
+          onClick={() => expandido ? setExpandido(false) : setExpandido(true)}
+          className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+          aria-label={expandido ? 'Recolher chat' : 'Expandir chat'}>
+          {expandido ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
+      )}
+      <button onClick={onFechar}
+        className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+        aria-label={t('chat.close')}>
+        <X size={16} />
+      </button>
+    </div>
+    {/* Messages area */}
+    <div className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
+      role="log" aria-label={t('agent.chat_title')} aria-live="polite">
               {chatMessages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 px-4">
                   {!temBase ? (
@@ -260,6 +256,21 @@ function ChatDrawer({
                           {t('chat.switch_base')}
                         </button>
                       )}
+                      {agentStatus?.perguntas_sugeridas?.length > 0 && (
+                        <div className="w-full mt-3 space-y-1.5">
+                          <p className={`text-[10px] font-semibold text-center uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                            Pergunte sobre
+                          </p>
+                          {agentStatus.perguntas_sugeridas.map((q, i) => (
+                            <button key={i}
+                              onClick={() => { setChatInput(q); setTimeout(() => onSend?.(q), 0); }}
+                              className={`w-full text-left text-[11px] px-3 py-2 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99]
+                                ${darkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-primary/15 hover:border-primary/30 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-violet-50 hover:border-violet-200 hover:text-slate-800'}`}>
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -273,10 +284,35 @@ function ChatDrawer({
                           : msg.role === 'error'
                             ? (darkMode ? 'bg-danger/15 text-danger' : 'bg-red-50 text-red-700 border border-red-200')
                             : (darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')} rounded-bl-sm`}>
-                        <p className="whitespace-pre-wrap">
-                          {msg.content}
-                          {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
-                        </p>
+                        {msg.role === 'user' ? (
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        ) : (
+                          <div className="markdown-body">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                                strong: ({children}) => <strong className="font-bold">{children}</strong>,
+                                em:     ({children}) => <em className="italic">{children}</em>,
+                                del:    ({children}) => <del className="line-through opacity-70">{children}</del>,
+                                a:      ({href, children}) => <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-2 opacity-80 hover:opacity-100 break-all">{children}</a>,
+                                ul:     ({children}) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
+                                ol:     ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
+                                li:     ({children}) => <li className="leading-relaxed">{children}</li>,
+                                h1:     ({children}) => <p className="font-bold text-sm mb-1 mt-2">{children}</p>,
+                                h2:     ({children}) => <p className="font-bold text-xs mb-1 mt-2">{children}</p>,
+                                h3:     ({children}) => <p className="font-semibold text-xs mb-1 mt-1.5">{children}</p>,
+                                code:   ({inline, children}) => inline
+                                  ? <code className={`px-1 py-0.5 rounded text-[10px] font-mono ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}>{children}</code>
+                                  : <pre className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto mb-2 ${darkMode ? 'bg-black/30' : 'bg-slate-100'}`}><code>{children}</code></pre>,
+                                blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-1 opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
+                                hr:     () => <hr className={`my-2 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
+                              }}>
+                              {msg.content}
+                            </ReactMarkdown>
+                            {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
+                          </div>
+                        )}
                         {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && (
                           <button
                             onClick={onRecriarIndice}
@@ -330,31 +366,67 @@ function ChatDrawer({
                   <div ref={chatEndRef} />
                 </>
               )}
-            </div>
+    </div>
 
-            {/* Input bar */}
-            <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-              <div className={`flex items-end gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  placeholder={!chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), onSend())}
-                  disabled={!chatHabilitado || chatLoading}
-                  autoFocus
-                  style={{ resize: 'none', overflow: 'hidden' }}
-                  className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed leading-relaxed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-                <button
-                  onClick={onSend}
-                  disabled={!chatHabilitado || !chatInput.trim() || chatLoading}
-                  className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-                  aria-label={t('agent.send')}>
-                  <Send size={13} />
-                </button>
-              </div>
-            </div>
+    {/* Input bar */}
+    <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+      <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          placeholder={!chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
+          value={chatInput}
+          onChange={e => setChatInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), onSend())}
+          disabled={!chatHabilitado || chatLoading}
+          autoFocus
+          style={{ resize: 'none', overflow: 'hidden' }}
+          className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed leading-relaxed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+        <button
+          onClick={onSend}
+          disabled={!chatHabilitado || !chatInput.trim() || chatLoading}
+          className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+          aria-label={t('agent.send')}>
+          <Send size={13} />
+        </button>
+      </div>
+    </div>
+  </>);
+
+  // Modo expandido: overlay sobre as abas, ocupa todo o container pai
+  if (expandido) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('agent.chat_title')}
+        onKeyDown={e => { if (e.key === 'Escape') { if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
+        className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
+        {conteudo(() => setExpandido(false))}
+      </div>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      {chatOpen && (
+        <>
+          {/* Mobile backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={() => setChatOpen(false)} />
+
+          {/* Drawer panel */}
+          <motion.div
+            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.25 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('agent.chat_title')}
+            onKeyDown={e => { if (e.key === 'Escape') { if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
+            className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
+            {conteudo(() => setChatOpen(false))}
           </motion.div>
         </>
       )}
