@@ -8,6 +8,20 @@
 import axios from 'axios';
 import { API_BASE } from '../constants';
 
+// Timeout padrão de 15s para todas as chamadas (evita hang silencioso)
+axios.defaults.timeout = 15000;
+
+// Interceptor: extrai mensagem legível de qualquer erro axios
+export function extrairMensagemErro(err) {
+  if (err?.response?.data?.message) return err.response.data.message;
+  if (err?.response?.data?.detail)  return err.response.data.detail;
+  if (err?.response?.status === 422) return 'Dados inválidos enviados ao servidor.';
+  if (err?.response?.status >= 500)  return 'Erro interno do servidor. Verifique os logs.';
+  if (err?.code === 'ECONNREFUSED' || err?.code === 'ERR_NETWORK') return 'Backend offline. Reinicie o Tusab.';
+  if (err?.code === 'ECONNABORTED') return 'Servidor demorou demais para responder. Tente novamente.';
+  return err?.message || 'Erro desconhecido. Tente novamente.';
+}
+
 // ─── Status ──────────────────────────────────────────────────────────────────
 
 /** Fetches current extraction engine status */

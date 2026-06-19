@@ -377,7 +377,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     _ytdlp_update()
 
     print("\n" + "=" * 70)
-    print("🧠 TUSAB — Intelligence Solution")
+    print("🧠 Tusab — Indexe. Aprenda. Consulte.")
     print(f"   Canal: {canal_url}")
     print(f"   Prefixo: {prefixo}")
     print("=" * 70 + "\n")
