@@ -421,23 +421,24 @@ function App() {
 
   /** Opens the extraction-type modal, or shows canal error if none configured */
   const handleStart = () => {
-    if (!canalConfigurado) { setCanalError(t('channel.error_required')); return; }
-    if (extractionTypes.length === 0) return;
+    if (!canalConfigurado && !isRunning) { setCanalError(t('channel.error_required')); return; }
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
     setShowExtractionModal(true);
   };
 
   /** Confirms extraction with selected content types and project, or enqueues if already running */
-  const handleStartConfirm = (fontes, projetoNome = '') => {
+  const handleStartConfirm = (fontes, projetoNome = '', novaUrl) => {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
+    const urlEfetiva = novaUrl || canalInput.trim() || status.canal_url;
+    if (novaUrl) { setCanalInput(novaUrl); setCanalConfigurado(''); }
     if (isRunning) {
-      queueAdd(canalInput.trim() || status.canal_url, fontes, projetoNome)
-        .catch(() => {});
+      queueAdd(urlEfetiva, fontes, projetoNome).catch(() => {});
       return;
     }
     Analytics.extracaoIniciada(fontes);
-    setChannel(canalInput.trim() || status.canal_url, projetoNome)
+    setChannel(urlEfetiva, projetoNome)
+      .then(r => { if (!r.data.error) setCanalConfigurado(r.data.canal_nome || ''); })
       .then(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }))
       .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
@@ -551,7 +552,7 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} projetos={projetos} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || (status.canal_url ? 'https://www.youtube.com/' + status.canal_url : '')} projetos={projetos} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -870,7 +871,7 @@ function App() {
                   <Zap size={14} className="text-primary" aria-hidden="true" />
                   <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
                 </div>
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4">
                   {/* Canal section */}
                   <div className="space-y-2">
                     <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.title')}</p>
@@ -915,50 +916,9 @@ function App() {
                       </div>
                     )}
                   </div>
-                  {/* Extraction types — inline */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('ops.types_label')}</p>
-                      <button
-                        onClick={() => setExtractionTypes(extractionTypes.length === ALL_TYPES.length ? [] : ALL_TYPES)}
-                        className={`text-[10px] font-semibold transition-colors ${darkMode ? 'text-slate-500 hover:text-primary' : 'text-slate-400 hover:text-primary'} ${BTN_FOCUS}`}>
-                        {extractionTypes.length === ALL_TYPES.length ? t('ops.deselect_all') : t('ops.types_select_all')}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { key: 'Videos',    label: t('ops.type_videos')    },
-                        { key: 'Shorts',    label: t('ops.type_shorts')    },
-                        { key: 'Ao_Vivo',   label: t('ops.type_lives')     },
-                        { key: 'Podcasts',  label: t('ops.type_podcasts')  },
-                        { key: 'Cursos',    label: t('ops.type_courses')   },
-                        { key: 'Playlists', label: t('ops.type_playlists') },
-                      ].map(({ key, label }) => {
-                        const active = extractionTypes.includes(key);
-                        return (
-                          <button key={key}
-                            onClick={() => setExtractionTypes(prev =>
-                              active ? prev.filter(k => k !== key) : [...prev, key]
-                            )}
-                            disabled={isRunning}
-                            className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${BTN_FOCUS}
-                              ${active
-                                ? darkMode ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-primary/10 border-primary/30 text-primary'
-                                : darkMode ? 'bg-white/4 border-white/10 text-slate-500 hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'}`}>
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {extractionTypes.length === 0 && (
-                      <p className="text-[10px] text-warning flex items-center gap-1">
-                        <AlertTriangle size={10} aria-hidden="true" /> Selecione ao menos um tipo.
-                      </p>
-                    )}
                   </div>
-                </div>
                 <div className={`px-4 pb-4 pt-3 border-t flex justify-end ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                  <button onClick={handleStart} disabled={!canalConfigurado || extractionTypes.length === 0}
+                  <button onClick={handleStart} disabled={!canalConfigurado && !isRunning}
                     className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                       disabled:opacity-40 disabled:cursor-not-allowed
                       ${isRunning
@@ -1336,6 +1296,10 @@ function App() {
                   onSetCanal={(url) => { setCanalInput(url); }}
                   showAdd={repoAddOpen} setShowAdd={setRepoAddOpen}
                   canalAtivo={canalConfigurado}
+                  onInjetarContexto={(trecho, arquivo) => {
+                    setChatInput(prev => (prev ? prev + '\n\n' : '') + `[${arquivo}]\n${trecho}`);
+                    setChatOpen(true);
+                  }}
                 />
               </div>
             )}

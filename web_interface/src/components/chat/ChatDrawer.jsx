@@ -121,7 +121,7 @@ function useLoadingPhrase(active) {
     if (!active) return;
     const iv = setInterval(() => {
       setIdx(i => (i + 1) % LOADING_PHRASES.length);
-    }, 3000);
+    }, 15000);
     return () => clearInterval(iv);
   }, [active]);
   return LOADING_PHRASES[idx];
@@ -408,7 +408,7 @@ function ChatDrawer({
                         )}
                       </AnimatePresence>
                     </>
-                  ) : !canalAtivo || showRepoModal ? (
+                  ) : ((!canalAtivo || showRepoModal) && canaisIndexados.length > 0) ? (
                     <>
                       <Database size={28} className="text-primary" aria-hidden="true" />
                       <p className={`text-xs font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.select_base_title')}</p>
@@ -430,6 +430,22 @@ function ChatDrawer({
                           </button>
                         ))}
                       </div>
+                    </>
+                  ) : canaisIndexados.length === 0 && !canalAtivo ? (
+                    <>
+                      <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {t('agent.chat_empty_no_index')}
+                      </p>
+                      {onIndexar && (
+                        <button
+                          onClick={() => { setIndexSel(null); setShowIndexModal(true); }}
+                          className={`mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                            bg-accent/20 text-accent hover:bg-accent/30`}>
+                          <Zap size={13} aria-hidden="true" />
+                          Indexar base
+                        </button>
+                      )}
                     </>
                   ) : (
                     <>
@@ -489,8 +505,8 @@ function ChatDrawer({
                       <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2
                         ${msg.role === 'user'
                           ? darkMode
-                            ? 'bg-primary/20 border border-primary/30 text-primary rounded-br-sm'
-                            : 'bg-primary/15 border border-primary/20 text-primary rounded-br-sm'
+                            ? 'bg-primary/25 border border-primary/35 text-white rounded-br-sm'
+                            : 'bg-primary/10 border border-primary/25 text-slate-800 rounded-br-sm'
                           : msg.role === 'error'
                             ? (darkMode ? 'bg-danger/15 border border-danger/30 text-danger' : 'bg-red-50 text-red-700 border border-red-200')
                             : (darkMode ? 'bg-white/8 border border-white/10 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')} rounded-bl-sm`}>

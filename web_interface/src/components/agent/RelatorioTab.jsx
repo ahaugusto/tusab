@@ -16,15 +16,16 @@ import { fetchRelatorio, limparHistorico } from '../../services/api';
 
 function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
   const { t } = useTranslation();
-  const [canal,        setCanal]        = React.useState('');
-  const [data,         setData]         = React.useState(null);
-  const [loading,      setLoading]      = React.useState(false);
-  const [filtroStatus, setFiltroStatus] = React.useState('todos');
-  const [filtroAba,    setFiltroAba]    = React.useState('todas');
-  const [busca,        setBusca]        = React.useState('');
-  const [showLimpar,   setShowLimpar]   = React.useState(false);
-  const [limparSel,    setLimparSel]    = React.useState({});
-  const [limpando,     setLimpando]     = React.useState(false);
+  const [canal,             setCanal]             = React.useState('');
+  const [data,              setData]              = React.useState(null);
+  const [loading,           setLoading]           = React.useState(false);
+  const [filtroStatus,      setFiltroStatus]      = React.useState('todos');
+  const [filtroAba,         setFiltroAba]         = React.useState('todas');
+  const [busca,             setBusca]             = React.useState('');
+  const [showLimpar,        setShowLimpar]        = React.useState(false);
+  const [limparSel,         setLimparSel]         = React.useState({});
+  const [limpando,          setLimpando]          = React.useState(false);
+  const [showCoberturaInfo, setShowCoberturaInfo] = React.useState(true);
 
   const toggleSel = (prefixo) =>
     setLimparSel(s => ({ ...s, [prefixo]: !s[prefixo] }));
@@ -58,6 +59,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
     setFiltroStatus('todos');
     setFiltroAba('todas');
     setBusca('');
+    setShowCoberturaInfo(true);
     fetchRelatorio(canal)
       .then(r => { setData(r.data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -190,6 +192,24 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
           </div>
         </ModalWrapper>,
         document.body
+      )}
+
+      {/* Banner informativo de cobertura */}
+      {data && showCoberturaInfo && (
+        <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${darkMode ? 'bg-amber-500/8 border-amber-500/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5 opacity-80" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>
+            A <strong>cobertura (%)</strong> mostra os vídeos extraídos com legenda em relação ao total mapeado. Vídeos sem legenda ou com legenda muito curta não integram a base de conhecimento.
+          </p>
+          <button
+            onClick={() => setShowCoberturaInfo(false)}
+            className={`p-0.5 rounded transition-opacity opacity-60 hover:opacity-100 shrink-0`}
+            aria-label="Fechar aviso">
+            <X size={13} />
+          </button>
+        </div>
       )}
 
       {loading && (
