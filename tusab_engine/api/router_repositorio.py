@@ -527,6 +527,69 @@ def cerebro_limpar(req: LimparRequest):
     return {'ok': True, 'deletados': deletados}
 
 
+@router.delete("/reset-total")
+def reset_total():
+    """Apaga todo o cérebro, histórico de gestão e índices BM25 — reset completo."""
+    import shutil
+    import agent_tusab
+
+    cerebro_dir = motor_tusab.CEREBRO_DIR
+    gestao_dir  = motor_tusab.GESTAO_DIR
+    index_dir   = os.path.join(motor_tusab.DADOS_DIR, "agent_index")
+
+    removidos = {"cerebro": 0, "gestao": 0, "indices": 0}
+
+    # 1. Cérebro — apaga todo o conteúdo mas mantém a pasta raiz
+    if os.path.exists(cerebro_dir):
+        for entry in os.scandir(cerebro_dir):
+            try:
+                if entry.is_dir():
+                    shutil.rmtree(entry.path)
+                else:
+                    os.remove(entry.path)
+                removidos["cerebro"] += 1
+            except Exception:
+                pass
+
+    # 2. Gestão — CSVs e summaries
+    if os.path.exists(gestao_dir):
+        for fname in os.listdir(gestao_dir):
+            fpath = os.path.join(gestao_dir, fname)
+            try:
+                os.remove(fpath)
+                removidos["gestao"] += 1
+            except Exception:
+                pass
+
+    # 3. Índices BM25
+    if os.path.exists(index_dir):
+        for fname in os.listdir(index_dir):
+            fpath = os.path.join(index_dir, fname)
+            try:
+                os.remove(fpath)
+                removidos["indices"] += 1
+            except Exception:
+                pass
+
+    # 4. Invalida cache BM25 em memória e limpa config de canal indexado
+    try:
+        agent_tusab._bm25_cache.clear()
+    except Exception:
+        pass
+    try:
+        cfg = agent_tusab.carregar_config()
+        cfg["canal_indexado"] = ""
+        agent_tusab.salvar_config(cfg)
+    except Exception:
+        pass
+
+    # 5. Limpa histórico de chat em memória
+    with state.hist_lock:
+        state.chat_histories.clear()
+
+    return {"ok": True, "removidos": removidos}
+
+
 @router.post("/cerebro/buscar")
 def cerebro_buscar(req: BuscarPayload):
     """Busca por texto nos arquivos .txt do cerebro, retornando até 20 resultados com trecho."""
