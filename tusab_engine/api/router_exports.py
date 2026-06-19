@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
-from tusab_engine.storage import CEREBRO_DIR, GESTAO_DIR
+from tusab_engine.storage import CEREBRO_DIR, GESTAO_DIR, gestao_canal_dir
 
 router = APIRouter()
 
@@ -41,14 +41,7 @@ def export_base():
                     arcname = os.path.relpath(fpath, os.path.dirname(CEREBRO_DIR))
                     zf.write(fpath, arcname)
 
-        # gestao/ (CSVs de extração)
-        if os.path.exists(GESTAO_DIR):
-            for root, _, files in os.walk(GESTAO_DIR):
-                for fname in files:
-                    if fname.endswith('.csv') or fname.endswith('.json'):
-                        fpath = os.path.join(root, fname)
-                        arcname = os.path.relpath(fpath, os.path.dirname(GESTAO_DIR))
-                        zf.write(fpath, arcname)
+        # gestao/ já está dentro de cerebro/{prefixo}/gestao/ — incluído no walk acima
 
     buf.seek(0)
     ts = datetime.now().strftime('%Y%m%d_%H%M')
@@ -205,7 +198,7 @@ def export_tabela_videos(req: ExportTabelaVideosRequest):
     if not canal:
         return JSONResponse({"error": True, "message": "Nome do canal não informado."})
 
-    csv_path = os.path.join(GESTAO_DIR, f"{canal}_base.csv")
+    csv_path = os.path.join(gestao_canal_dir(canal), f"{canal}_base.csv")
     if not os.path.exists(csv_path):
         return JSONResponse({"error": True, "message": f"CSV não encontrado para o canal '{canal}'."})
 
