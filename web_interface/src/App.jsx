@@ -555,7 +555,7 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || (status.canal_url ? 'https://www.youtube.com/' + status.canal_url : '')} projetos={projetos} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || (status.canal_url ? 'https://www.youtube.com/' + status.canal_url : '')} projetos={projetos} modoFila={isRunning} />
         )}
       </AnimatePresence>
       <AnimatePresence>

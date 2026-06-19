@@ -871,7 +871,13 @@ class CriarProjetoPayload(BaseModel):
 
 @router.get("/neural/projetos")
 def cerebro_listar_projetos():
-    """Lista todos os projetos (subdirs) no neural_dir, classificando por tipo."""
+    """Lista todos os projetos (subdirs) no neural_dir, classificando por tipo.
+
+    Exclui pastas internas que não representam projetos criados pelo usuário:
+    - 'youtube': pasta legada de migração, não é um canal extraído válido.
+    Um projeto válido deve ter pelo menos um arquivo em youtube/, documents/ ou texts/.
+    """
+    _PASTAS_INTERNAS = {"youtube"}
     neural_dir = motor_tusab.NEURAL_DIR
     projetos = []
     if not os.path.exists(neural_dir):
@@ -879,8 +885,13 @@ def cerebro_listar_projetos():
     for entry in sorted(os.scandir(neural_dir), key=lambda e: e.name):
         if not entry.is_dir():
             continue
-        # Tipo: youtube = tem subdir youtube/; projeto = criado manualmente
-        has_youtube = os.path.isdir(os.path.join(entry.path, "youtube"))
+        if entry.name in _PASTAS_INTERNAS:
+            continue
+        # Tipo: youtube = tem subdir youtube/ com arquivos; projeto = criado manualmente
+        yt_dir = os.path.join(entry.path, "youtube")
+        has_youtube = os.path.isdir(yt_dir) and any(
+            f.is_file() for f in os.scandir(yt_dir)
+        ) if os.path.isdir(yt_dir) else False
         tipo = "youtube" if has_youtube else "projeto"
         projetos.append({"nome": entry.name, "tipo": tipo})
     return {"projetos": projetos}
