@@ -4,45 +4,42 @@
   "description": "Tusab — Index.Augment.Converse",
   "main": "main.js",
   "author": {
-    "name":  "CriAugu",
+    "name": "CriAugu",
     "email": "augusto.brasil@saude.gov.br",
-    "url":   "https://linkedin.com/in/augustoalvesbrasil"
+    "url": "https://linkedin.com/in/augustoalvesbrasil"
   },
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "dev":        "electron .",
-    "build":      "electron-builder --win",
-    "build:dir":  "electron-builder --win --dir",
+    "dev": "electron .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "electron-updater": "^6.3.0"
   },
   "devDependencies": {
-    "electron":         "^34.0.0",
+    "electron": "^34.5.8",
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId":       "com.criaugu.tusab",
+    "appId": "com.criaugu.tusab",
     "productName": "Tusab",
-    "copyright":   "© 2026 CriAugu — CNPJ 65.131.075/0001-57",
-
+    "copyright": "© 2026 CriAugu — CNPJ 65.131.075/0001-57",
     "directories": {
       "output": "../dist_electron",
       "buildResources": "build_resources"
     },
-
     "files": [
       "main.js",
       "preload.js",
       "loading.html"
     ],
-
     "extraResources": [
       {
         "from": "../",
-        "to":   "app",
+        "to": "app",
         "filter": [
           "api_tusab.py",
           "motor_tusab.py",
@@ -55,34 +52,38 @@
       },
       {
         "from": "python_env",
-        "to":   "python_env"
+        "to": "python_env"
       },
       {
         "from": "bin",
-        "to":   "bin"
+        "to": "bin"
       }
     ],
-
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "icon":   "../assets/logo.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../assets/logo.ico"
     },
-
     "nsis": {
-      "oneClick":                      false,
+      "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon":                 "../assets/logo.ico",
-      "uninstallerIcon":               "../assets/logo.ico",
-      "createDesktopShortcut":         true,
-      "createStartMenuShortcut":       true,
-      "shortcutName":                  "Tusab",
-      "license":                       "build_resources/license.txt"
+      "installerIcon": "../assets/logo.ico",
+      "uninstallerIcon": "../assets/logo.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tusab",
+      "license": "build_resources/license.txt"
     },
-
     "publish": {
       "provider": "github",
-      "owner":    "criaugu",
-      "repo":     "tusab"
+      "owner": "criaugu",
+      "repo": "tusab"
     }
   }
 }
