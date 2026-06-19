@@ -44,8 +44,38 @@ DADOS_DIR        = obter_caminho_dados()
 ASSETS_DIR       = obter_caminho_assets()
 DATA_DIR         = os.path.join(DADOS_DIR, 'data')
 CEREBRO_DIR      = os.path.join(DATA_DIR, 'cerebro')
-GESTAO_DIR       = os.path.join(DATA_DIR, 'gestao')
+GESTAO_DIR       = os.path.join(DATA_DIR, 'gestao')   # legado — preferir gestao_canal_dir()
 TEMP_DIR         = os.path.join(DATA_DIR, 'temp')
+
+
+def gestao_canal_dir(prefixo: str) -> str:
+    """Retorna (e cria) data/cerebro/{prefixo}/gestao/ — novo local canônico."""
+    path = os.path.join(CEREBRO_DIR, prefixo, 'gestao')
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def migrar_gestao_para_cerebro():
+    """Move arquivos de data/gestao/{prefixo}_* para data/cerebro/{prefixo}/gestao/.
+    Executada uma vez na inicialização; idempotente.
+    """
+    import glob
+    import shutil
+    if not os.path.exists(GESTAO_DIR):
+        return
+    padrao = os.path.join(GESTAO_DIR, '*_base.csv')
+    for csv_path in glob.glob(padrao):
+        prefixo = os.path.basename(csv_path).replace('_base.csv', '')
+        destino = gestao_canal_dir(prefixo)
+        for fname in os.listdir(GESTAO_DIR):
+            if fname.startswith(prefixo + '_') or fname.startswith(prefixo + '.'):
+                src = os.path.join(GESTAO_DIR, fname)
+                dst = os.path.join(destino, fname)
+                if not os.path.exists(dst):
+                    try:
+                        shutil.move(src, dst)
+                    except Exception:
+                        pass
 
 # Nomes usados pelo motor
 LOCAL_TXT_DIR    = os.path.join(CEREBRO_DIR, 'youtube')   # legado flat
