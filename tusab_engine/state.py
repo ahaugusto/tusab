@@ -48,7 +48,8 @@ class AppState:
             "status":              "Ocioso",
             "progress":            0,
             "canal_nome":          "",
-            "idioma_detectado":    ""
+            "idioma_detectado":    "",
+            "eta_segundos":        0
         }
         self.evento_pausa        = threading.Event()
         self.evento_pausa.set()
@@ -70,6 +71,9 @@ class AppState:
 
         # Filtro de fontes de extração
         self.fontes_filtro: list = []
+
+        # ETA de extração
+        self.extraction_start_time: float = 0.0   # timestamp unix quando extração começou
 
         # Fila de extração sequencial: lista de {"url": str, "fontes": list}
         self.extraction_queue: list = []
@@ -104,6 +108,16 @@ class LogRedirector:
                 if state.stats["videos_total"] > 0:
                     pct = int(state.stats["videos_processed"] / state.stats["videos_total"] * 100)
                     state.stats["progress"] = min(pct, 99)
+
+                elapsed = time.time() - state.extraction_start_time
+                processed = state.stats["videos_processed"]
+                total = state.stats["videos_total"]
+                if processed > 0 and total > 0 and elapsed > 0 and state.extraction_start_time > 0:
+                    rate = processed / elapsed  # videos por segundo
+                    remaining = total - processed
+                    state.stats["eta_segundos"] = int(remaining / rate) if rate > 0 else 0
+                else:
+                    state.stats["eta_segundos"] = 0
 
             if "📂" in text or "NOVO ARQUIVO" in text:
                 state.stats["files_generated"] += 1
