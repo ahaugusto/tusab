@@ -25,6 +25,7 @@ brainiac_mgmt/
 
 # --- Backup local (não vai pro git, mas mantém no disco) ---
 _backup_local/
+backup/
 
 # --- Build / Distribuição (PyInstaller) ---
 build/
