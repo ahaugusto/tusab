@@ -15,18 +15,20 @@ import ModalWrapper from '../shared/ModalWrapper';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
- * ExtractionModal — three-step modal: (1) channel URL, (2) project selection, (3) content-type selection
+ * ExtractionModal — adaptive modal: 2 steps (URL → Fontes) for normal extraction,
+ * 3 steps (URL → Projeto → Fontes) when queuing or changing channel.
  *
  * @param {Object}   props
  * @param {Function} props.onClose           - callback to dismiss the modal without confirming
  * @param {Function} props.onConfirm         - callback(fontes: string[], projetoNome: string, canalUrl?: string)
  * @param {boolean}  props.darkMode          - dark/light theme flag
- * @param {string}   props.canalNome         - name of the configured channel (pre-fills new project input)
+ * @param {string}   props.canalNome         - name of the configured channel (pre-fills project)
  * @param {string}   props.canalUrlInicial   - URL already configured (pre-fills step 1 input)
  * @param {Array}    props.projetos          - existing projects array [{ nome, tipo }]
+ * @param {boolean}  props.modoFila          - true = enqueue mode, shows project step
  * @returns {JSX.Element}
  */
-function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUrlInicial = '', projetos = [] }) {
+function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false }) {
   const { t } = useTranslation();
 
   const ALL_TYPES = [
@@ -38,41 +40,56 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
     { id: 'Playlists', label: t('ops.type_playlists'), icon: '▶️' },
   ];
 
-  const [step, setStep]         = React.useState(1);
+  // Steps: 1=URL, 2=Projeto (só no modoFila), 3=Fontes
+  // No modoFila: 1→2→3. Sem fila: 1→3 diretamente (step visual 2 = fontes).
+  const totalSteps = modoFila ? 3 : 2;
+  const [step, setStep] = React.useState(1);
 
   // Step 1: channel URL
   const [canalUrl, setCanalUrl] = React.useState(canalUrlInicial || '');
 
-  // Step 2: project selection
-  const [projetoSel,   setProjetoSel]   = React.useState(canalNome || '');
-  const [novoNome,     setNovoNome]     = React.useState(canalNome || '');
-  const [criandoNovo,  setCriandoNovo]  = React.useState(projetos.length === 0);
+  // Step 2 (modoFila): project selection
+  // Pré-seleciona o projeto do canal atual se existir na lista
+  const projetoExistente = projetos.find(p => p.nome === canalNome);
+  const [projetoSel,  setProjetoSel]  = React.useState(projetoExistente ? canalNome : '');
+  const [novoNome,    setNovoNome]    = React.useState(canalNome || '');
+  const [criandoNovo, setCriandoNovo] = React.useState(!projetoExistente);
 
-  // Step 3: content types
+  // Step fontes
   const [selected, setSelected] = React.useState(ALL_TYPES.map(t => t.id));
   const allSelected = selected.length === ALL_TYPES.length;
 
-  /** Toggles a content-type id in/out of the selection (keeps at least one) */
   const toggle = (id) => setSelected(prev =>
     prev.includes(id)
       ? (prev.length > 1 ? prev.filter(x => x !== id) : prev)
       : [...prev, id]
   );
 
+  // Avança para a próxima etapa (pula projeto se não for modoFila)
+  const avancar = () => {
+    if (step === 1) { setStep(modoFila ? 2 : 3); }
+    else if (step === 2) { setStep(3); }
+  };
+  const voltar = () => {
+    if (step === 3) { setStep(modoFila ? 2 : 1); }
+    else if (step === 2) { setStep(1); }
+  };
+
   const handleConfirm = () => {
-    const nome = criandoNovo ? novoNome.trim() : projetoSel.trim();
-    // Only pass canalUrl back if it differs from the initial configured URL
+    const nome = modoFila
+      ? (criandoNovo ? novoNome.trim() : projetoSel.trim())
+      : canalNome; // sem fila: usa o canal configurado como projeto
     const urlChanged = canalUrl.trim() && canalUrl.trim() !== canalUrlInicial.trim();
     onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined);
   };
 
-  // Step labels
+  // Labels adaptativos
+  const stepVisual = step === 1 ? 1 : step === 2 ? 2 : totalSteps;
   const stepLabel = step === 1
     ? 'Canal do YouTube'
     : step === 2
     ? 'Salvar em qual projeto?'
     : t('ops.types_modal_title');
-
   const stepSub = step === 1
     ? 'Informe a URL do canal que deseja extrair.'
     : step === 2
@@ -106,8 +123,8 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
 
         {/* Step indicator */}
         <div className="flex items-center gap-1.5 mb-5">
-          {[1, 2, 3].map(n => (
-            <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= step ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`} />
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map(n => (
+            <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= stepVisual ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`} />
           ))}
         </div>
 
@@ -133,7 +150,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
               )}
             </div>
             <button
-              onClick={() => setStep(2)}
+              onClick={avancar}
               disabled={!canalUrl.trim()}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
               Próximo
@@ -195,13 +212,13 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
 
             {/* Navigation */}
             <div className="flex gap-2">
-              <button onClick={() => setStep(1)}
+              <button onClick={voltar}
                 className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                 Voltar
               </button>
               <button
-                onClick={() => setStep(3)}
+                onClick={avancar}
                 disabled={criandoNovo && !novoNome.trim()}
                 className={`flex-2 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                 Próximo
@@ -249,7 +266,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
 
             {/* Navigation */}
             <div className="flex gap-2">
-              <button onClick={() => setStep(2)}
+              <button onClick={voltar}
                 className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                 Voltar
