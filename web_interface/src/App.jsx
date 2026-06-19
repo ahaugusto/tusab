@@ -1165,9 +1165,10 @@ function App() {
               <div className={`px-4 lg:px-8 pt-4 shrink-0 border-b ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
                 <div className="flex items-center gap-1">
                   {[
-                    { id: 'extrair',   label: t('tabs.extraction'), icon: Zap },
-                    { id: 'relatorio', label: t('tabs.relatorio'),  icon: BarChart3 },
-                  ].map(({ id, label, icon: Icon }) => (
+                    { id: 'extrair',      label: t('tabs.extraction'), icon: Zap },
+                    { id: 'relatorio',    label: t('tabs.relatorio'),  icon: BarChart3 },
+                    { id: 'periodicidade', label: 'Periodicidade',     icon: Clock, pro: true },
+                  ].map(({ id, label, icon: Icon, pro }) => (
                     <button key={id}
                       onClick={() => setExtracaoSubTab(id)}
                       className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors -mb-px ${BTN_FOCUS}
@@ -1176,6 +1177,9 @@ function App() {
                           : darkMode ? 'border-transparent text-slate-500 hover:text-slate-300' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
                       <Icon size={12} />
                       {label}
+                      {pro && (
+                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>PRO</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1558,6 +1562,73 @@ function App() {
                   <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
                     canalAtivo={canalConfigurado}
                     onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
+                </div>
+              )}
+
+              {/* ── Sub-aba: Periodicidade (Pro) ── */}
+              {extracaoSubTab === 'periodicidade' && (
+                <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
+
+                  {/* Hero Pro */}
+                  <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                      <Clock size={14} className="text-amber-500" />
+                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Periodicidade de Atualização</span>
+                      <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>PRO</span>
+                    </div>
+                    <div className="px-5 py-10 flex flex-col items-center text-center gap-4">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${darkMode ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
+                        <Clock size={28} className="text-amber-500" />
+                      </div>
+                      <div>
+                        <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Mantenha suas bases sempre atualizadas</p>
+                        <p className={`text-xs mt-1.5 max-w-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Configure alertas automáticos por canal — diário, semanal ou mensal. O Tusab verifica se há novos vídeos e notifica quando sua base precisar de reindexação.
+                        </p>
+                      </div>
+                      <div className={`flex flex-wrap justify-center gap-2 mt-1`}>
+                        {['Verificação automática', 'Por canal', 'Notificação na área de trabalho', 'Diário · Semanal · Mensal'].map(f => (
+                          <span key={f} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${darkMode ? 'border-white/10 text-slate-400 bg-white/4' : 'border-slate-200 text-slate-500 bg-slate-50'}`}>{f}</span>
+                        ))}
+                      </div>
+                      <a href="https://tusab.solutions" target="_blank" rel="noreferrer"
+                        className="mt-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-white transition-colors">
+                        Conheça o plano Pro
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Preview — tabela de canais com periodicidade (mockup somente-leitura) */}
+                  <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                      <BarChart3 size={14} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
+                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Seus canais extraídos</span>
+                      <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Preview — disponível no Pro</span>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {history.length === 0 ? (
+                        <p className={`px-5 py-6 text-xs text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                          Nenhum canal extraído ainda. Extraia um canal para vê-lo aqui.
+                        </p>
+                      ) : history.slice(0, 8).map((h, i) => (
+                        <div key={i} className={`px-5 py-3 flex items-center gap-3 ${darkMode ? 'opacity-50' : 'opacity-40'}`}>
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${darkMode ? 'bg-white/8 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
+                            {(h.canal || '?')[0].toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>@{h.canal}</p>
+                            <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{h.videos_count ?? 0} vídeos</p>
+                          </div>
+                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${darkMode ? 'border-white/8 text-slate-600 bg-white/4' : 'border-slate-200 text-slate-400 bg-slate-50'}`}>
+                            <Clock size={9} />
+                            {i % 3 === 0 ? 'Semanal' : i % 3 === 1 ? 'Mensal' : 'Diário'}
+                          </div>
+                          <div className={`w-6 h-3 rounded-full ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
               )}
             </div>
@@ -1970,21 +2041,7 @@ function App() {
                   </div>
                 </section>
 
-                {/* Periodicidade */}
-                <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
-                    <Clock size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
-                    <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Periodicidade de atualização</h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>Em breve</span>
-                  </div>
-                  <div className="p-5">
-                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                      Configure alertas automáticos de atualização das bases — diário, semanal ou mensal. Você será notificado quando novos vídeos ou documentos estiverem disponíveis para indexação.
-                    </p>
-                  </div>
-                </section>
-
-                {/* Notificações */}
+{/* Notificações */}
                 <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                   <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
                     <Bell size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
