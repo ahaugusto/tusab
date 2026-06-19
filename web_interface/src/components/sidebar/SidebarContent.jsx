@@ -447,7 +447,7 @@ function SidebarContent({
             Adicione documentos ao repositório para conversar com eles via IA — sem canal YouTube, sem extração.
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {['PDF', 'DOCX', 'TXT', 'MD'].map(ext => (
+            {['PDF', 'DOCX', 'XLSX', 'CSV', 'TXT', 'MD'].map(ext => (
               <span key={ext} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
                 ${darkMode ? 'bg-white/5 border-white/15 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
                 .{ext.toLowerCase()}
