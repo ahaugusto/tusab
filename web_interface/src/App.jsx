@@ -15,7 +15,7 @@ import {
   CheckCircle2, AlertTriangle, Loader2, BarChart3, Menu, X,
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
-  Sun, Moon, Link2, XCircle,
+  Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -30,9 +30,10 @@ import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
 import {
   fetchHistory, fetchRepositorio, fetchQueue, setChannel, startExtraction, pauseExtraction, queueAdd, queueClear,
+  queueRemoveItem, queueMoveItem, saveAutoUpdateConfig, runAutoUpdate,
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
-  deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos,
+  deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, resetTotal,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ import PostExtractionModal      from './components/extraction/PostExtractionModa
 import OllamaSetup              from './components/agent/OllamaSetup';
 import RepositorioTab           from './components/agent/RepositorioTab';
 import RelatorioTab             from './components/agent/RelatorioTab';
+import VisaoGeralTab            from './components/agent/VisaoGeralTab';
 import MonitorTab               from './components/agent/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
 import ChatDrawer               from './components/chat/ChatDrawer';
@@ -67,16 +69,22 @@ function App() {
   // ─── UI state ──────────────────────────────────────────────────────────────
   const [showOnboarding,   setShowOnboarding]   = useState(false);
   const [showGuide,        setShowGuide]        = useState(false);
+  const [showResetModal,   setShowResetModal]   = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [resetando,        setResetando]        = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
   const [activeTab,        setActiveTab]        = useState('extracao');
   const [repoAddOpen,      setRepoAddOpen]      = useState(false);
+  const [extracaoSubTab,   setExtracaoSubTab]   = useState('extrair'); // 'extrair' | 'relatorio'
   const [repoIndexarOpen,  setRepoIndexarOpen]  = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [projetos,             setProjetos]             = useState([]);
   const [extractionQueue,      setExtractionQueue]      = useState([]);
   const [showQueueModal,       setShowQueueModal]       = useState(false);
+  const [cancelFlash,          setCancelFlash]          = useState(false);
+  const [showCancelQueueModal, setShowCancelQueueModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
   const [darkMode,         setDarkMode]         = useState(() => {
     const saved = localStorage.getItem('tusab_theme');
@@ -104,6 +112,8 @@ function App() {
   const [canalConfigurado, setCanalConfigurado] = useState('');
   const [canalError,       setCanalError]       = useState('');
   const [configurando,     setConfigurando]     = useState(false);
+  // Bloqueia restauração automática pelo polling quando o usuário remove manualmente
+  const canalRemovidoRef = useRef(false);
 
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
@@ -111,8 +121,6 @@ function App() {
   // ─── Agent state (via hook) ────────────────────────────────────────────────
   const [showIndexInfo,    setShowIndexInfo]    = useState(false);
   const [lastIndexLogs,    setLastIndexLogs]    = useState([]);
-  const [telemetryOpen,    setTelemetryOpen]    = useState(false);
-  const [indexOpen,        setIndexOpen]        = useState(true);
   const [showAgentHint,    setShowAgentHint]    = useState(false);
   const [canaisExtras,     setCanaisExtras]     = useState([]);
   const [agentIndexError,  setAgentIndexError]  = useState('');
@@ -184,6 +192,7 @@ function App() {
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const logContainerRef = useRef(null);
+  const logSectionRef   = useRef(null);
   const mainScrollRef   = useRef(null);
   const agentScrollRef  = useRef(null);
   const isVisibleRef    = useRef(true);
@@ -227,6 +236,27 @@ function App() {
 
   /** Syncs dark class on html element */
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); }, [darkMode]);
+
+  /** Keyboard shortcuts: Esc closes chat; Shift+key navigates tabs / opens chat */
+  useEffect(() => {
+    const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral' };
+    const onKey = (e) => {
+      if (e.key === 'Escape' && chatOpen) {
+        setChatOpen(false);
+        return;
+      }
+      if (!e.shiftKey) return;
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      const editable = document.activeElement?.isContentEditable;
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
+      if (e.key === 'C' && !chatOpen) { setChatOpen(true); return; }
+      if (e.key === 'R') { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
+      const tab = NAV_KEYS[e.key];
+      if (tab) { setActiveTab(tab); setShowHome(false); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [chatOpen, setChatOpen]);
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
@@ -293,7 +323,7 @@ function App() {
         _backendFailCount.current = 0;
         setBackendOnline(true);
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
-        if (res.data.stats?.canal_nome && !canalConfigurado) setCanalConfigurado(res.data.stats.canal_nome);
+        if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current) setCanalConfigurado(res.data.stats.canal_nome);
       } catch {
         _backendFailCount.current += 1;
         if (_backendFailCount.current >= 2) setBackendOnline(false);
@@ -364,8 +394,11 @@ function App() {
   /** Tracks tab visits for the activation funnel (repositório / relatório) */
   useEffect(() => {
     if (activeTab === 'repositorio') Analytics.repositorioAcessado();
-    if (activeTab === 'relatorio')   Analytics.relatorioAcessado();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (extracaoSubTab === 'relatorio') Analytics.relatorioAcessado();
+  }, [extracaoSubTab]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -383,7 +416,7 @@ function App() {
     try {
       const res = await setChannel(canalInput.trim());
       if (res.data.error) { setCanalError(res.data.message); }
-      else { setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
+      else { canalRemovidoRef.current = false; setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
     } catch (err) { setCanalError(extrairMensagemErro(err)); }
     Analytics.canalConfigurado();
     setConfigurando(false);
@@ -392,11 +425,15 @@ function App() {
   /** Starts the knowledge base indexing for the configured canal */
   const handleAgentIndex = async () => {
     setAgentIndexError('');
+    setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
     const canal = agentStatus.canal_indexado || canalConfigurado;
     try {
       const res = await startIndexing(canal || '');
-      if (res.data.error) setAgentIndexError(res.data.message);
-    } catch (err) { setAgentIndexError(extrairMensagemErro(err)); }
+      if (res.data?.error) setAgentIndexError(res.data.message);
+    } catch (err) {
+      setAgentIndexError(extrairMensagemErro(err));
+      setAgentStatus(prev => ({ ...prev, indexing: false }));
+    }
   };
 
   /** Cancels ongoing indexing */
@@ -405,13 +442,23 @@ function App() {
   /** Triggered from the chat drawer — indexes a specific canal or all extracted canals */
   const handleIndexarDoChat = async (canalNome) => {
     setAgentIndexError('');
-    if (canalNome === '__todos__') {
-      const canais = history.filter(h => h.canal_nome).map(h => h.canal_nome);
-      for (const nome of canais) {
-        await startIndexing(nome).catch(() => {});
+    // Sinaliza loading imediatamente sem esperar o próximo ciclo de polling (3s)
+    setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
+    try {
+      if (canalNome === '__todos__') {
+        const canaisRepo = (repositorio.canais || []).map(c => c.nome);
+        const canaisHist = history.filter(h => h.canal_nome).map(h => h.canal_nome);
+        const todos = [...new Set([...canaisRepo, ...canaisHist])];
+        for (const nome of todos) {
+          await startIndexing(nome).catch(() => {});
+        }
+      } else {
+        await startIndexing(canalNome).catch((err) => {
+          setAgentIndexError(extrairMensagemErro(err));
+        });
       }
-    } else {
-      await startIndexing(canalNome).catch(() => {});
+    } catch (err) {
+      setAgentIndexError(extrairMensagemErro(err));
     }
   };
 
@@ -430,11 +477,22 @@ function App() {
   };
 
   /** Confirms extraction with selected content types and project, or enqueues if already running */
-  const handleStartConfirm = (fontes, projetoNome = '', novaUrl) => {
+  const handleStartConfirm = (fontes, projetoNome = '', novaUrl, autoUpdateConfig) => {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
     const urlEfetiva = novaUrl || canalInput.trim() || status.canal_url;
-    if (novaUrl) { setCanalInput(novaUrl); setCanalConfigurado(''); }
+    if (novaUrl) { canalRemovidoRef.current = false; setCanalInput(novaUrl); setCanalConfigurado(''); }
+    // Persist auto-update preference per canal
+    const prefixo = projetoNome || canalConfigurado;
+    if (prefixo && autoUpdateConfig !== undefined) {
+      saveAutoUpdateConfig(
+        prefixo,
+        autoUpdateConfig?.enabled ?? false,
+        autoUpdateConfig?.frequencia ?? 'semanal',
+        fontes,
+        urlEfetiva,
+      ).catch(() => {});
+    }
     if (isRunning) {
       queueAdd(urlEfetiva, fontes, projetoNome).catch(() => {});
       return;
@@ -446,11 +504,45 @@ function App() {
       .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
 
-  /** Pauses or resumes the running extraction */
-  const handlePause = () => pauseExtraction();
+  /** Pauses or resumes the running extraction, then scrolls to the log card */
+  const handlePause = () => {
+    pauseExtraction();
+    setTimeout(() => {
+      logSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
 
-  /** Cancels the running extraction */
-  const handleCancel = () => cancelExtraction();
+  /** Cancels the running extraction — if queue has items, asks what to do first */
+  const handleCancel = () => {
+    if (extractionQueue.length > 0) {
+      setShowCancelQueueModal(true);
+      return;
+    }
+    cancelExtraction();
+    setCancelFlash(true);
+    setTimeout(() => setCancelFlash(false), 1200);
+    setTimeout(() => {
+      logSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
+  /** Cancels extraction and also discards the queue */
+  const handleCancelAndClearQueue = () => {
+    setShowCancelQueueModal(false);
+    cancelExtraction();
+    queueClear();
+    setExtractionQueue([]);
+    setCancelFlash(true);
+    setTimeout(() => setCancelFlash(false), 1200);
+  };
+
+  /** Cancels current extraction but keeps the queue — next item starts automatically */
+  const handleCancelAndKeepQueue = () => {
+    setShowCancelQueueModal(false);
+    cancelExtraction();
+    setCancelFlash(true);
+    setTimeout(() => setCancelFlash(false), 1200);
+  };
 
   /** Initiates Drive OAuth flow — shows one-time security warning first */
   const handleDriveAuth = () => {
@@ -553,9 +645,167 @@ function App() {
       <AnimatePresence>
         {showGuide && <GuideModal key="guide-modal" onClose={() => setShowGuide(false)} darkMode={darkMode} />}
       </AnimatePresence>
+
+      {/* Modal: cancelar extração com fila pendente */}
+      <AnimatePresence>
+        {showCancelQueueModal && (
+          <motion.div key="cancel-queue-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowCancelQueueModal(false)}>
+            <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+              className={`rounded-2xl border p-6 max-w-sm w-full shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+              onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
+                    <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Cancelar extração</h3>
+                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {extractionQueue.length} canal{extractionQueue.length !== 1 ? 'is' : ''} na fila
+                  </p>
+                </div>
+              </div>
+
+              <p className={`text-xs mb-5 leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                O que deve acontecer com os canais que ainda estão na fila de extração?
+              </p>
+
+              {/* Opções */}
+              <div className="space-y-2 mb-5">
+                <button onClick={handleCancelAndKeepQueue}
+                  className={`w-full flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'border-primary/30 bg-primary/10 hover:bg-primary/15 text-white' : 'border-violet-200 bg-violet-50 hover:bg-violet-100 text-slate-800'}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary mt-0.5 shrink-0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <div>
+                    <p className="text-xs font-bold">Cancelar e continuar fila</p>
+                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Para este canal e inicia o próximo automaticamente
+                    </p>
+                  </div>
+                </button>
+
+                <button onClick={handleCancelAndClearQueue}
+                  className={`w-full flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'border-danger/30 bg-danger/10 hover:bg-danger/15 text-white' : 'border-red-200 bg-red-50 hover:bg-red-100 text-slate-800'}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger mt-0.5 shrink-0"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  <div>
+                    <p className="text-xs font-bold">Cancelar e limpar fila</p>
+                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Para este canal e descarta todos os {extractionQueue.length} da fila
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              <button onClick={() => setShowCancelQueueModal(false)}
+                className={`w-full py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'bg-white/6 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                Voltar — não cancelar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Reset total da base */}
+      <AnimatePresence>
+        {showResetModal && (
+          <motion.div key="reset-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.55)' }}
+            onClick={e => { if (e.target === e.currentTarget && !resetando) setShowResetModal(false); }}>
+            <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+              className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
+                  <Trash2 size={18} className="text-danger" />
+                </div>
+                <div>
+                  <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Limpar toda a base</h3>
+                  <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Essa ação não pode ser desfeita</p>
+                </div>
+              </div>
+              <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                Remove todos os vídeos, documentos, textos e índices de conhecimento. Os arquivos extraídos do YouTube e os uploads serão apagados permanentemente.
+              </p>
+              <div>
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Digite <span className="font-mono text-danger">RESETAR</span> para confirmar
+                </label>
+                <input
+                  type="text" value={resetConfirmText} onChange={e => setResetConfirmText(e.target.value)}
+                  placeholder="RESETAR" autoFocus
+                  className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-danger transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-600' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setShowResetModal(false)} disabled={resetando}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  Cancelar
+                </button>
+                <button
+                  disabled={resetConfirmText !== 'RESETAR' || resetando}
+                  onClick={async () => {
+                    setResetando(true);
+                    await resetTotal().catch(() => {});
+                    setResetando(false);
+                    setShowResetModal(false);
+                    setResetConfirmText('');
+
+                    // Limpa refs de estado anterior para evitar que effects reativem painel antigo
+                    prevExtractionStatus.current = '';
+                    prevIsRunningRef.current = false;
+
+                    // Canal e extração
+                    setCanalConfigurado('');
+                    setCanalInput('');
+                    canalRemovidoRef.current = true;
+                    setExtractionQueue([]);
+                    setStatus(s => ({
+                      ...s,
+                      is_running: false, is_paused: false, canal_url: '',
+                      stats: { videos_processed: 0, videos_total: 0, videos_sem_legenda: 0,
+                               videos_legenda_curta: 0, files_generated: 0, status: 'Ocioso',
+                               progress: 0, canal_nome: '', idioma_detectado: '' },
+                      logs: [],
+                    }));
+
+                    // Chat
+                    setChatMessages([]);
+                    setChatOpen(false);
+                    setCanaisExtras([]);
+
+                    // Agente
+                    setAgentStatus(a => ({
+                      ...a,
+                      canal_indexado: '', canais_indexados: [], indexed: false,
+                      index_logs: [], perguntas_sugeridas: [],
+                    }));
+
+                    // Navega para home e notifica
+                    setActiveTab('extracao');
+                    setShowHome(true);
+                    setProgressToast({ type: 'success', message: 'Todos os dados foram apagados com sucesso.' });
+
+                    // Recarrega dados do backend
+                    fetchHistory().then(r => setHistory(r.data)).catch(() => {});
+                    fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+                  }}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-danger/20 text-danger hover:bg-danger/30">
+                  {resetando ? 'Limpando…' : 'Limpar tudo'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || (status.canal_url ? 'https://www.youtube.com/' + status.canal_url : '')} projetos={projetos} modoFila={isRunning} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || status.canal_url || ''} projetos={projetos} modoFila={isRunning} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -598,13 +848,39 @@ function App() {
                 <div className="space-y-1 mb-4 max-h-72 overflow-y-auto custom-scrollbar">
                   {extractionQueue.map((item, i) => {
                     const m = item.url?.match(/@([^/?]+)/);
+                    const nome = item.projeto_nome || (m ? `@${m[1]}` : item.url?.split('/').pop() || '—');
+                    const handleMover = async (fromIdx, toIdx) => {
+                      await queueMoveItem(fromIdx, toIdx).catch(() => {});
+                      const res = await fetchQueue().catch(() => null);
+                      if (res) setExtractionQueue(res.data.queue || []);
+                    };
+                    const handleRemover = async (idx) => {
+                      await queueRemoveItem(idx).catch(() => {});
+                      const res = await fetchQueue().catch(() => null);
+                      if (res) setExtractionQueue(res.data.queue || []);
+                    };
                     return (
-                      <div key={i} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${darkMode ? 'border-white/8 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+                      <div key={i} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border ${darkMode ? 'border-white/8 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+                        {/* Reorder arrows */}
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <button
+                            onClick={() => handleMover(i, i - 1)}
+                            disabled={i === 0}
+                            aria-label="Mover para cima"
+                            className={`p-0.5 rounded transition-colors disabled:opacity-20 ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'} ${BTN_FOCUS}`}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+                          </button>
+                          <button
+                            onClick={() => handleMover(i, i + 1)}
+                            disabled={i === extractionQueue.length - 1}
+                            aria-label="Mover para baixo"
+                            className={`p-0.5 rounded transition-colors disabled:opacity-20 ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'} ${BTN_FOCUS}`}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                          </button>
+                        </div>
                         <span className={`text-[10px] font-mono w-4 text-center shrink-0 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{i + 1}</span>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                            {item.projeto_nome || `@${m?.[1] || '—'}`}
-                          </p>
+                          <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{nome}</p>
                           {item.projeto_nome && m && (
                             <p className={`text-[10px] truncate ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{m[1]}</p>
                           )}
@@ -612,6 +888,13 @@ function App() {
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
                           {(item.fontes || []).length > 0 ? (item.fontes || []).length + ' tipos' : 'todos'}
                         </span>
+                        {/* Remove individual */}
+                        <button
+                          onClick={() => handleRemover(i)}
+                          aria-label="Remover da fila"
+                          className={`p-1 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-600 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'} ${BTN_FOCUS}`}>
+                          <X size={12} />
+                        </button>
                       </div>
                     );
                   })}
@@ -654,35 +937,45 @@ function App() {
             </button>
             <div className="flex flex-col items-center gap-0.5 flex-1 w-full px-1.5">
               {[
-                { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
-                { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
-                { id: 'relatorio',   icon: BarChart3, label: t('tabs.relatorio')   },
-                { id: 'monitor',     icon: Activity,  label: 'Monitor'             },
-                { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
+                { id: 'extracao',    icon: Zap,             label: t('tabs.extraction')  },
+                { id: 'repositorio', icon: BookOpen,         label: t('tabs.repositorio') },
+                { id: 'visao-geral', icon: LayoutDashboard,  label: 'Visão Geral'         },
+                { id: 'monitor',     icon: Activity,         label: 'Monitor'             },
+                { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
+                { id: 'admin',       icon: Settings,         label: 'Admin'               },
               ].map(({ id, icon: Icon, label }) => (
                 <button key={id}
                   onClick={() => {
                     setActiveTab(id);
+                    setShowHome(false);
                     if (id === 'agente' && !localStorage.getItem('tusab_agent_visited')) {
                       setShowAgentHint(true);
                       localStorage.setItem('tusab_agent_visited', '1');
                     }
                   }}
                   aria-label={label}
-                  className={`relative w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
-                    ${activeTab === id
+                  className={`group relative w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
+                    ${activeTab === id && !showHome
                       ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
-                  {id === 'agente' && agentStatus.indexed && (
-                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true" />
+                  {id === 'agente' && (agentStatus.configured || ollamaStatus?.running) && (
+                    <>
+                      <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${agentStatus.configured ? 'bg-secondary' : 'bg-warning'}`} aria-hidden="true" />
+                      <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
+                        ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-white text-slate-700 border border-slate-200 shadow-slate-200/60'}`}>
+                        {agentStatus.configured
+                          ? `Agente pronto · ${agentStatus.provider || 'configurado'}`
+                          : ollamaStatus?.running ? `Ollama ativo · ${ollamaStatus.models?.[0] || 'modelo carregado'}` : ''}
+                      </div>
+                    </>
                   )}
                 </button>
               ))}
             </div>
             <div className="flex flex-col items-center gap-0.5 w-full px-1.5 mb-1">
-              <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
+<button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
                 className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 <HelpCircle size={15} aria-hidden="true" />
@@ -725,20 +1018,20 @@ function App() {
                 {[
                   { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
                   { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
-                  { id: 'relatorio',   icon: BarChart3, label: t('tabs.relatorio')   },
                   { id: 'monitor',     icon: Activity,  label: 'Monitor'             },
-                  { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
+                  { id: 'agente',      icon: Wrench,    label: t('tabs.agent')       },
+                  { id: 'admin',       icon: Settings,  label: 'Admin'               },
                 ].map(({ id, icon: Icon, label }) => (
                   <button key={id}
                     onClick={() => {
-                      setActiveTab(id); setSidebarOpen(false);
+                      setActiveTab(id); setSidebarOpen(false); setShowHome(false);
                       if (id === 'agente' && !localStorage.getItem('tusab_agent_visited')) {
                         setShowAgentHint(true);
                         localStorage.setItem('tusab_agent_visited', '1');
                       }
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors text-left ${BTN_FOCUS}
-                      ${activeTab === id
+                      ${activeTab === id && !showHome
                         ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
                         : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
                     <Icon size={16} aria-hidden="true" />
@@ -800,7 +1093,7 @@ function App() {
                       {status.stats.status}
                     </h2>
                     {isRunning && !isPaused && status.stats.eta_segundos > 0 && (
-                      <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
                         <Loader2 size={9} className="animate-spin" aria-hidden="true" />
                         {(() => {
                           const s = status.stats.eta_segundos;
@@ -811,7 +1104,7 @@ function App() {
                       </p>
                     )}
                     {canalConfigurado && (
-                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
                         @{cleanCanalName(canalConfigurado)}
                       </p>
                     )}
@@ -822,7 +1115,7 @@ function App() {
                       {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
-                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
+                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
                     )}
                   </div>
                 )}
@@ -865,8 +1158,31 @@ function App() {
             {/* ── TAB: EXTRAÇÃO ── */}
             <div id="panel-extracao" role="tabpanel" aria-labelledby="tab-extracao"
               ref={mainScrollRef}
-              className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 space-y-4 custom-scrollbar"
+              className="flex-1 overflow-y-auto custom-scrollbar flex flex-col"
               style={{ display: activeTab === 'extracao' ? undefined : 'none' }}>
+
+              {/* ── Sub-tab switcher ── */}
+              <div className={`px-4 lg:px-8 pt-4 shrink-0 border-b ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+                <div className="flex items-center gap-1">
+                  {[
+                    { id: 'extrair',   label: t('tabs.extraction'), icon: Zap },
+                    { id: 'relatorio', label: t('tabs.relatorio'),  icon: BarChart3 },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button key={id}
+                      onClick={() => setExtracaoSubTab(id)}
+                      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors -mb-px ${BTN_FOCUS}
+                        ${extracaoSubTab === id
+                          ? 'border-primary text-primary'
+                          : darkMode ? 'border-transparent text-slate-500 hover:text-slate-300' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                      <Icon size={12} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Sub-aba: Extrair ── */}
+              <div className={`flex-1 px-4 lg:px-8 pt-5 pb-6 space-y-4 overflow-y-auto custom-scrollbar ${extracaoSubTab !== 'extrair' ? 'hidden' : ''}`}>
 
               {/* ── Canal + Drive + Iniciar ── */}
               <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -887,7 +1203,7 @@ function App() {
                           <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canalConfigurado.split('?')[0]}</p>
                         </div>
                         {!isRunning && (
-                          <button onClick={() => { setCanalConfigurado(''); setCanalInput(''); }} aria-label={t('channel.remove')}
+                          <button onClick={() => { canalRemovidoRef.current = true; setCanalConfigurado(''); setCanalInput(''); }} aria-label={t('channel.remove')}
                             className={`rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-400'} ${BTN_FOCUS}`}>
                             <XCircle size={14} aria-hidden="true" />
                           </button>
@@ -920,9 +1236,17 @@ function App() {
                     )}
                   </div>
                   </div>
-                <div className={`px-4 pb-4 pt-3 border-t flex justify-end ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                <div className={`px-4 pb-4 pt-3 border-t flex items-center gap-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                  {extractionQueue.length > 0 && (
+                    <button onClick={() => setShowQueueModal(true)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors border ${BTN_FOCUS}
+                        ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8 hover:text-slate-200' : 'border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                      Fila ({extractionQueue.length})
+                    </button>
+                  )}
                   <button onClick={handleStart} disabled={!canalConfigurado && !isRunning}
-                    className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                    className={`ml-auto flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                       disabled:opacity-40 disabled:cursor-not-allowed
                       ${isRunning
                         ? 'bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30'
@@ -997,10 +1321,10 @@ function App() {
                       </div>
                       <div className="flex items-center gap-3">
                         {totalVideos > 0 && (
-                          <span className={`text-xs font-mono ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{processedVideos} / {totalVideos}</span>
+                          <span className={`text-xs font-mono ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{processedVideos} / {totalVideos}</span>
                         )}
                         {totalVideos === 0 && status.stats.videos_mapeados > 0 && (
-                          <span className={`text-xs font-mono ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{status.stats.videos_mapeados} mapeados</span>
+                          <span className={`text-xs font-mono ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{status.stats.videos_mapeados} mapeados</span>
                         )}
                         <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{progress}%</span>
                       </div>
@@ -1025,7 +1349,7 @@ function App() {
                     )}
 
                     {isRunning && !isPaused && (
-                      <p aria-live="polite" className={`text-[11px] mt-2 flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+                      <p aria-live="polite" className={`text-[11px] mt-2 flex items-center gap-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                         <Loader2 size={10} className="animate-spin" aria-hidden="true" />
                         {totalVideos === 0 ? t('progress.mapping') : t('progress.processing')}
                       </p>
@@ -1069,17 +1393,17 @@ function App() {
                         <div key={label} className={`rounded-xl p-3 flex flex-col items-center gap-1 ${bg}`} role="status" aria-label={`${label}: ${value}`}>
                           <Icon size={16} className={color} aria-hidden="true" />
                           <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{value}</span>
-                          <span className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{label}</span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
                         </div>
                       ))}
                     </div>
                     {status.stats.videos_total > 0 && (
                       <div className="px-5 pb-4">
                         <div className={`rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-bold ${darkMode ? 'bg-black/20' : 'bg-white border border-slate-200'}`}>
-                          <span className={darkMode ? 'text-slate-500' : 'text-slate-600'}>{t('summary.coverage')}</span>
+                          <span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>{t('summary.coverage')}</span>
                           <span className={status.stats.videos_processed / status.stats.videos_total >= 0.8 ? 'text-secondary' : 'text-warning'}>
                             {Math.round(status.stats.videos_processed / status.stats.videos_total * 100)}%
-                            <span className={`ml-1 font-normal text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+                            <span className={`ml-1 font-normal text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                               {t('summary.coverage_detail', { processed: status.stats.videos_processed, total: status.stats.videos_total })}
                             </span>
                           </span>
@@ -1124,10 +1448,19 @@ function App() {
               {/* Canal history */}
               {history.length > 0 && !isRunning && (
                 <section aria-label="Histórico de extrações">
-                  <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className={`px-4 lg:px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
+                  <div className={`rounded-2xl border ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`px-4 lg:px-5 py-3 border-b flex items-center gap-2 rounded-t-2xl ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
                       <Globe size={14} className="text-primary" aria-hidden="true" />
                       <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Canais Extraídos</h3>
+                      <div className="relative group/hint ml-1">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className={`cursor-default ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
+                        <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
+                          opacity-0 group-hover/hint:opacity-100 transition-opacity duration-150 z-50 shadow-xl
+                          ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-slate-900 text-white'}`}>
+                          Use <strong>Usar</strong> para carregar um canal como ativo e extrair novos vídeos sem redigitar a URL. Os ícones de pasta nos cards passam a abrir as pastas desse canal.
+                          <div className={`absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 rotate-45 -translate-y-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-900'}`} />
+                        </div>
+                      </div>
                       <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} {history.length !== 1 ? 'canais' : 'canal'}</span>
                     </div>
                     <div className="divide-y divide-white/5">
@@ -1163,8 +1496,10 @@ function App() {
               )}
 
               {/* Activity log */}
-              <section aria-labelledby="log-heading"
-                className={`rounded-2xl overflow-hidden flex flex-col border ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <section ref={logSectionRef} aria-labelledby="log-heading"
+                className={`rounded-2xl overflow-hidden flex flex-col border transition-all duration-300
+                  ${cancelFlash ? 'border-danger shadow-lg shadow-danger/20 ring-2 ring-danger/40' : darkMode ? 'border-white/10' : 'border-slate-200 shadow-sm'}
+                  ${darkMode ? 'bg-white/4' : 'bg-white'}`}>
                 <div className={`px-4 lg:px-5 py-3 border-b flex items-center gap-3 shrink-0 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Terminal size={15} className="text-primary shrink-0" aria-hidden="true" />
@@ -1215,6 +1550,16 @@ function App() {
                   )}
                 </div>
               </section>
+              </div>{/* end sub-aba extrair */}
+
+              {/* ── Sub-aba: Relatório ── */}
+              {extracaoSubTab === 'relatorio' && (
+                <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 custom-scrollbar">
+                  <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
+                    canalAtivo={canalConfigurado}
+                    onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
+                </div>
+              )}
             </div>
 
             {/* ── TAB: REPOSITÓRIO ── */}
@@ -1254,9 +1599,9 @@ function App() {
                   {/* Expandable content */}
                   {(driveOpen || driveStatus === 'autenticado') && (
                     <div className={`px-5 pb-4 pt-0 border-t space-y-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                         Sincronize os arquivos extraídos com o Drive para usar no{' '}
-                        <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
+                        <strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>NotebookLM</strong>.
                       </p>
                       {status.drive_auth_error && (
                         <p className={`text-[11px] text-danger flex items-center gap-1`}>
@@ -1287,7 +1632,7 @@ function App() {
                     <span className="text-base shrink-0">💡</span>
                     <div className="flex-1">
                       <p className={`text-xs font-bold mb-0.5 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
-                      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Aqui ficam os arquivos do YouTube. Use <strong>+ Adicionar</strong> para incluir PDFs, Word, Markdown ou colar texto.</p>
+                      <p className={`text-[11px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Aqui ficam os arquivos do YouTube. Use <strong>+ Adicionar</strong> para incluir PDFs, Word, Markdown ou colar texto.</p>
                     </div>
                     <button onClick={() => markSeen(KEYS.repositorio)} className={`p-1 rounded text-xs shrink-0 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
                   </div>
@@ -1304,18 +1649,19 @@ function App() {
                     setChatOpen(true);
                   }}
                   onIndexar={handleIndexarDoChat}
+                  agentStatus={agentStatus}
                   openIndexar={repoIndexarOpen}
                   onOpenIndexarHandled={() => setRepoIndexarOpen(false)}
                 />
               </div>
             )}
 
-            {/* ── TAB: RELATÓRIO ── */}
-            {activeTab === 'relatorio' && (
-              <div id="panel-relatorio" role="tabpanel" aria-labelledby="tab-relatorio"
+
+            {/* ── TAB: VISÃO GERAL ── */}
+            {activeTab === 'visao-geral' && (
+              <div id="panel-visao-geral" role="tabpanel" aria-labelledby="tab-visao-geral"
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 custom-scrollbar">
-                <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
-                  onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
+                <VisaoGeralTab darkMode={darkMode} btnFocus={BTN_FOCUS} />
               </div>
             )}
 
@@ -1391,7 +1737,7 @@ function App() {
                           <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                             <div>
                               <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Usar minha chave de API</p>
-                              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Gemini, OpenAI, Claude ou Groq</p>
+                              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Gemini, OpenAI, Claude ou Groq</p>
                             </div>
                             <button
                               role="switch" aria-checked={useExternalProvider}
@@ -1432,7 +1778,7 @@ function App() {
                                     </button>
                                   ))}
                                 </div>
-                                <div className={`text-[11px] flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
+                                <div className={`text-[11px] flex items-center gap-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                                   <Info size={11} />
                                   {agentProvider === 'gemini'    && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_gemini')} <ExternalLink size={9} /></a>}
                                   {agentProvider === 'openai'    && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_openai')} <ExternalLink size={9} /></a>}
@@ -1533,7 +1879,7 @@ function App() {
                     )}
                   </div>
                   <div className="p-4 space-y-2">
-                    <p className={`text-[11px] mb-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className={`text-[11px] mb-3 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
                       Define como o assistente comunica as respostas — sem alterar o que ele busca.
                     </p>
                     {[
@@ -1556,225 +1902,122 @@ function App() {
                         <span className="text-base leading-none shrink-0" aria-hidden="true">{p.emoji}</span>
                         <div className="min-w-0">
                           <p className={`text-xs font-semibold ${persona === p.id ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{p.label}</p>
-                          <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{p.desc}</p>
+                          <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{p.desc}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 </section>
 
-                {/* Telemetry section */}
-                <section aria-labelledby="agent-telemetry-heading"
-                  className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                  <button
-                    aria-expanded={telemetryOpen} aria-controls="agent-telemetry-body"
-                    onClick={() => setTelemetryOpen(v => !v)}
-                    className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${telemetryOpen && (darkMode ? 'border-b border-white/10' : 'border-b border-slate-100')} ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+              </div>
+            )}
+
+            {/* ── Admin tab ── */}
+            {activeTab === 'admin' && !showHome && (
+              <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
+                <h2 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Administração</h2>
+
+                {/* Telemetria */}
+                <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={analyticsEnabled ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    <h3 id="agent-telemetry-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                      Telemetria
-                    </h3>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria</h3>
                     {analyticsEnabled && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold text-secondary mr-2">
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-secondary">
                         <CheckCircle2 size={11} /> Ativa
                       </span>
                     )}
-                    <motion.div animate={{ rotate: telemetryOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                      <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {telemetryOpen && (
-                      <motion.div id="agent-telemetry-body"
-                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
-                        style={{ overflow: 'hidden' }}>
-                        <div className="p-5">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
-                              <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                                Registra eventos de uso — quais abas foram abertas, extrações iniciadas, indexações e perguntas no chat.
-                                <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> Nenhum conteúdo pessoal é coletado</strong>: sem texto de mensagens, nomes de arquivos, URLs de canais ou chaves de API.
-                                Os dados são enviados ao <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> (servidores na UE/EUA) e usados exclusivamente para melhorar o produto.
-                              </p>
-                            </div>
-                            <button
-                              role="switch" aria-checked={analyticsEnabled}
-                              onClick={() => {
-                                if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
-                                else { acceptAnalytics(); setAnalyticsEnabled(true); }
-                              }}
-                              className={`relative shrink-0 mt-0.5 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
-                              <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
+                        <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                          Registra eventos de uso — quais abas foram abertas, extrações iniciadas, indexações e perguntas no chat.
+                          <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> Nenhum conteúdo pessoal é coletado</strong>: sem texto de mensagens, nomes de arquivos, URLs de canais ou chaves de API.
+                          Os dados são enviados ao <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> (servidores na UE/EUA) e usados exclusivamente para melhorar o produto.
+                        </p>
+                      </div>
+                      <button
+                        role="switch" aria-checked={analyticsEnabled}
+                        onClick={() => {
+                          if (analyticsEnabled) { declineAnalytics(); setAnalyticsEnabled(false); }
+                          else { acceptAnalytics(); setAnalyticsEnabled(true); }
+                        }}
+                        className={`relative shrink-0 mt-0.5 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${analyticsEnabled ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                        <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${analyticsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  </div>
                 </section>
 
-                {/* Indexing section */}
-                <section aria-labelledby="agent-index-heading"
-                  className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                  <button
-                    aria-expanded={indexOpen} aria-controls="agent-index-body"
-                    onClick={() => setIndexOpen(v => !v)}
-                    className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${indexOpen && (darkMode ? 'border-b border-white/10' : 'border-b border-slate-100')} ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
-                    <BookOpen size={14} className="text-accent shrink-0" aria-hidden="true" />
-                    <h3 id="agent-index-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                      {t('agent.index_title')}
-                    </h3>
-                    {agentStatus.indexed && !agentStatus.indexing && (
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full mr-2 ${darkMode ? 'bg-secondary/15 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {agentStatus.index_count} chunks
-                      </span>
-                    )}
-                    {agentStatus.base_desatualizada && !agentStatus.indexing && (
-                      <span
-                        title={`${agentStatus.novos_desde_indexacao} arquivo(s) novo(s) — reindexe para atualizar`}
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full mr-2 animate-pulse cursor-help ${darkMode ? 'bg-warning/20 text-warning' : 'bg-amber-100 text-amber-700'}`}>
-                        {agentStatus.novos_desde_indexacao} novo{agentStatus.novos_desde_indexacao !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                    <div className="relative" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setShowIndexInfo(v => !v)}
-                        aria-expanded={showIndexInfo} aria-label="O que é indexação?"
-                        className={`p-1 rounded-md transition-colors mr-1 ${showIndexInfo ? 'text-primary' : darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'} ${BTN_FOCUS}`}>
-                        <Info size={13} />
-                      </button>
-                      <AnimatePresence>
-                        {showIndexInfo && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -4 }} transition={{ duration: 0.15 }}
-                            className={`absolute right-0 top-7 z-10 w-72 p-3 rounded-xl border text-[11px] leading-relaxed shadow-xl ${darkMode ? 'bg-[#0C1122] border-white/20 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/60'}`}>
-                            {t('agent.index_what')}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <motion.div animate={{ rotate: indexOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                      <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {indexOpen && (
-                      <motion.div id="agent-index-body"
-                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
-                        style={{ overflow: 'hidden' }}>
-                        <div className="p-5 space-y-3">
+                {/* Limpeza de bases */}
+                <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+                    <Trash2 size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
+                    <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Limpeza de bases</h3>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Remove permanentemente todos os dados extraídos, índices BM25 e configurações do sistema. Esta ação não pode ser desfeita.
+                    </p>
+                    <button
+                      onClick={() => { setResetConfirmText(''); setShowResetModal(true); }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                        ${darkMode ? 'border-danger/30 text-danger hover:bg-danger/10' : 'border-red-200 text-red-600 hover:bg-red-50'}`}>
+                      <Trash2 size={13} /> Limpar toda a base de conhecimento
+                    </button>
+                  </div>
+                </section>
 
-                          {/* Indexed canals list */}
-                          {agentStatus.canais_indexados && agentStatus.canais_indexados.length > 0 && !agentStatus.indexing && (
-                            <div className="space-y-1.5">
-                              {agentStatus.canais_indexados.map(canal => {
-                                const isActive = canal.nome === agentStatus.canal_indexado;
-                                const isExtra  = canaisExtras.includes(canal.nome);
-                                return (
-                                  <div key={canal.nome} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all
-                                    ${isActive
-                                      ? darkMode ? 'bg-secondary/10 border-secondary/30' : 'bg-emerald-50 border-emerald-200'
-                                      : isExtra
-                                        ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-violet-50 border-violet-200'
-                                        : darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                                    <CheckCircle2 size={11} className={isActive ? 'text-secondary' : isExtra ? 'text-primary' : darkMode ? 'text-slate-600' : 'text-slate-300'} />
-                                    <span className={`flex-1 font-medium truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</span>
-                                    <span className={`text-[10px] font-mono ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{canal.chunks} chunks</span>
-                                    {isActive
-                                      ? <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>Ativo</span>
-                                      : (
-                                        <button onClick={() => setCanaisExtras(prev => isExtra ? prev.filter(c => c !== canal.nome) : [...prev, canal.nome])}
-                                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border transition-colors ${BTN_FOCUS}
-                                            ${isExtra ? darkMode ? 'bg-primary/20 text-primary border-primary/30' : 'bg-violet-100 text-violet-700 border-violet-200' : darkMode ? 'border-white/20 text-slate-400 hover:border-primary/40 hover:text-primary' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600'}`}>
-                                          {isExtra ? '✓ incluso' : '+ incluir'}
-                                        </button>
-                                      )
-                                    }
-                                    <button onClick={() => handleDeleteCanal(canal.nome)}
-                                      className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-600 hover:text-danger' : 'text-slate-300 hover:text-danger'} ${BTN_FOCUS}`}
-                                      aria-label={`Remover índice de @${canal.nome}`}>
-                                      <X size={11} />
-                                    </button>
-                                  </div>
-                                );
-                              })}
-                              {canaisExtras.length > 0 && (
-                                <p className={`text-[10px] ${darkMode ? 'text-primary/70' : 'text-violet-500'}`}>
-                                  Buscando em {canaisExtras.length + 1} canais simultaneamente
-                                </p>
-                              )}
-                            </div>
-                          )}
+                {/* Periodicidade */}
+                <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+                    <Clock size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
+                    <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Periodicidade de atualização</h3>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>Em breve</span>
+                  </div>
+                  <div className="p-5">
+                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Configure alertas automáticos de atualização das bases — diário, semanal ou mensal. Você será notificado quando novos vídeos ou documentos estiverem disponíveis para indexação.
+                    </p>
+                  </div>
+                </section>
 
-                          {/* Indexing in progress */}
-                          {agentStatus.indexing && (
-                            <div className="space-y-2">
-                              <div className={`p-3 rounded-xl flex items-center gap-2 text-xs ${darkMode ? 'bg-primary/8 border border-primary/20 text-primary' : 'bg-violet-50 border border-violet-200 text-violet-700'}`}>
-                                <Loader2 size={14} className="animate-spin" /> {t('agent.indexing')}
-                              </div>
-                              <div className={`rounded-xl p-3 max-h-32 overflow-y-auto custom-scrollbar text-[11px] font-mono space-y-1 ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-200'}`}>
-                                <div className="flex justify-end mb-1">
-                                  <a href="http://localhost:8001/log" target="_blank" rel="noreferrer"
-                                    className={`text-[10px] flex items-center gap-0.5 hover:underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
-                                    <ExternalLink size={9} /> abrir log
-                                  </a>
-                                </div>
-                                {agentStatus.index_logs.map((l, i) => (
-                                  <div key={i} className={darkMode ? 'text-slate-300' : 'text-slate-600'}>[{l.timestamp}] {l.message}</div>
-                                ))}
-                              </div>
-                              <button onClick={handleAgentIndexCancel}
-                                className={`w-full py-2 rounded-xl text-xs font-bold border transition-colors ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'} ${BTN_FOCUS}`}>
-                                {t('agent.cancel_index')}
-                              </button>
-                            </div>
-                          )}
+                {/* Notificações */}
+                <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+                    <Bell size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
+                    <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Notificações do sistema</h3>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>Em breve</span>
+                  </div>
+                  <div className="p-5">
+                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Alertas de erros de extração, índice desatualizado, espaço em disco e novas versões do Tusab.
+                    </p>
+                  </div>
+                </section>
 
-                          {/* Last index logs */}
-                          {!agentStatus.indexing && lastIndexLogs.length > 0 && (
-                            <div className={`rounded-xl p-3 max-h-28 overflow-y-auto custom-scrollbar text-[11px] font-mono space-y-0.5 ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-200'}`}>
-                              {lastIndexLogs.slice(-6).map((l, i) => {
-                                const isErr = l.message.includes('❌') || l.message.includes('Nenhum');
-                                return (
-                                  <div key={i} className={isErr ? 'text-danger' : darkMode ? 'text-slate-300' : 'text-slate-600'}>
-                                    [{l.timestamp}] {l.message}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {/* Index action */}
-                          {!agentStatus.indexing && (
-                            <div className="space-y-2">
-                              <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-                                {agentStatus.indexed ? t('agent.index_note_update') : t('agent.index_note_new')}
-                              </p>
-                              {!temConteudo && (
-                                <p className={`text-[11px] flex items-center gap-1 ${darkMode ? 'text-warning/80' : 'text-amber-600'}`}>
-                                  <AlertTriangle size={11} aria-hidden="true" /> {t('agent.index_prereq_content')}
-                                </p>
-                              )}
-                              {agentIndexError && (
-                                <p role="alert" className="text-[11px] flex items-center gap-1 text-danger font-medium">
-                                  <AlertTriangle size={11} aria-hidden="true" /> {agentIndexError}
-                                </p>
-                              )}
-                              <button onClick={handleAgentIndex} disabled={!temConteudo}
-                                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
-                                  ${agentStatus.indexed ? `${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}` : 'bg-accent/20 text-accent hover:bg-accent/30'} ${BTN_FOCUS}`}>
-                                <RefreshCw size={13} />
-                                {agentStatus.indexed ? t('agent.reindex') : t('agent.index_now')}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                {/* Suporte */}
+                <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+                    <Mail size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
+                    <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Suporte</h3>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Encontrou um problema ou tem uma sugestão? Entre em contato com a equipe do Tusab.
+                    </p>
+                    <a
+                      href="mailto:tusab@tusab.sollution"
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors
+                        ${darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
+                      <Mail size={13} /> tusab@tusab.sollution
+                    </a>
+                    <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                      Tusab v1.0.0 · © 2026 CriAugu — CNPJ 65.131.075/0001-57
+                    </p>
+                  </div>
                 </section>
               </div>
             )}
@@ -1812,7 +2055,12 @@ function App() {
               onSelectCanal={setCanalConfigurado}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
-              canaisExtraidos={history.filter(h => h.canal_nome).map(h => h.canal_nome)}
+              canaisExtraidos={[
+                ...new Set([
+                  ...(repositorio.canais || []).map(c => c.nome),
+                  ...history.filter(h => h.canal_nome).map(h => h.canal_nome),
+                ])
+              ]}
               canaisExtras={canaisExtras}
               setCanaisExtras={setCanaisExtras}
               onIndexar={handleIndexarDoChat}
@@ -1864,7 +2112,8 @@ function App() {
                     agentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   aria-label="Voltar ao topo"
-                  className={`fixed bottom-6 right-6 z-30 p-3 rounded-full shadow-lg transition-colors ${BTN_FOCUS}
+                  className={`fixed z-30 p-3 rounded-full shadow-lg transition-colors ${BTN_FOCUS}
+                    ${!chatOpen ? 'bottom-24 right-6' : 'bottom-6 right-6'}
                     ${darkMode ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/35' : 'bg-primary text-white hover:bg-primary/85 shadow-primary/30'}`}>
                   <ArrowUp size={18} aria-hidden="true" />
                 </motion.button>

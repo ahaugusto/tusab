@@ -14,7 +14,7 @@ import { fetchRelatorio, limparHistorico } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
+function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtivo }) {
   const { t } = useTranslation();
   const [canal,             setCanal]             = React.useState('');
   const [data,              setData]              = React.useState(null);
@@ -50,7 +50,12 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
   };
 
   React.useEffect(() => {
-    if (history.length > 0 && !canal) setCanal(history[0].canal);
+    if (history.length === 0) return;
+    // Pré-seleciona canal ativo se existir no histórico, senão o primeiro
+    if (!canal) {
+      const match = canalAtivo && history.find(h => h.canal === canalAtivo);
+      setCanal(match ? match.canal : history[0].canal);
+    }
   }, [history]);
 
   React.useEffect(() => {
