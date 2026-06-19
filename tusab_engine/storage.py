@@ -43,20 +43,21 @@ def obter_caminho_assets() -> str:
 DADOS_DIR        = obter_caminho_dados()
 ASSETS_DIR       = obter_caminho_assets()
 DATA_DIR         = os.path.join(DADOS_DIR, 'data')
-CEREBRO_DIR      = os.path.join(DATA_DIR, 'cerebro')
+NEURAL_DIR       = os.path.join(DATA_DIR, 'neural')
+CEREBRO_DIR      = NEURAL_DIR  # alias legado — remover após migração completa
 GESTAO_DIR       = os.path.join(DATA_DIR, 'gestao')   # legado — preferir gestao_canal_dir()
 TEMP_DIR         = os.path.join(DATA_DIR, 'temp')
 
 
 def gestao_canal_dir(prefixo: str) -> str:
-    """Retorna (e cria) data/cerebro/{prefixo}/gestao/ — novo local canônico."""
-    path = os.path.join(CEREBRO_DIR, prefixo, 'gestao')
+    """Retorna (e cria) data/neural/{prefixo}/management/ — novo local canônico."""
+    path = os.path.join(NEURAL_DIR, prefixo, 'management')
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def migrar_gestao_para_cerebro():
-    """Move arquivos de data/gestao/{prefixo}_* para data/cerebro/{prefixo}/gestao/.
+    """Move arquivos de data/gestao/{prefixo}_* para data/cerebro/{prefixo}/management/.
     Executada uma vez na inicialização; idempotente.
     """
     import glob
@@ -77,10 +78,37 @@ def migrar_gestao_para_cerebro():
                     except Exception:
                         pass
 
+
+def migrar_pastas_para_ingles():
+    """Renomeia subpastas legadas em data/cerebro/{canal}/ para os nomes em inglês.
+
+    Mapeamento: documentos → documents, textos → texts, gestao → management.
+    Executada uma vez na inicialização; idempotente.
+    """
+    import shutil
+    _RENAMES = {
+        'documentos': 'documents',
+        'textos':      'texts',
+        'gestao':      'management',
+    }
+    if not os.path.exists(NEURAL_DIR):
+        return
+    for canal_entry in os.scandir(NEURAL_DIR):
+        if not canal_entry.is_dir():
+            continue
+        for old_name, new_name in _RENAMES.items():
+            old_path = os.path.join(canal_entry.path, old_name)
+            new_path = os.path.join(canal_entry.path, new_name)
+            if os.path.exists(old_path) and not os.path.exists(new_path):
+                try:
+                    shutil.move(old_path, new_path)
+                except Exception:
+                    pass
+
 # Nomes usados pelo motor
-LOCAL_TXT_DIR    = os.path.join(CEREBRO_DIR, 'youtube')   # legado flat
-DOCUMENTOS_DIR   = os.path.join(CEREBRO_DIR, 'documentos')
-TEXTOS_DIR       = os.path.join(CEREBRO_DIR, 'textos')
+LOCAL_TXT_DIR    = os.path.join(NEURAL_DIR, 'youtube')   # legado flat
+DOCUMENTOS_DIR   = os.path.join(NEURAL_DIR, 'documents')
+TEXTOS_DIR       = os.path.join(NEURAL_DIR, 'texts')
 
 # Aliases usados pelo agente (mesmos paths, nomes históricos)
 TXT_DIR          = LOCAL_TXT_DIR

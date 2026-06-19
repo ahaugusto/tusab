@@ -13,7 +13,7 @@ import pandas as pd
 from datetime import datetime
 
 from tusab_engine.storage import (
-    DATA_DIR, CEREBRO_DIR, LOCAL_TXT_DIR,
+    DATA_DIR, NEURAL_DIR, LOCAL_TXT_DIR,
     GESTAO_DIR, TEMP_DIR,
     salvar_csv_atomico, salvar_json_atomico,
     gestao_canal_dir,
@@ -30,8 +30,8 @@ MAX_WORDS_PER_FILE = 40000
 # ── Helpers de path ───────────────────────────────────────────────────────────
 
 def get_canal_youtube_dir(prefixo: str) -> str:
-    """Diretório de transcrições YouTube por canal: data/cerebro/{prefixo}/youtube/"""
-    return os.path.join(CEREBRO_DIR, prefixo, 'youtube')
+    """Diretório de transcrições YouTube por canal: data/neural/{prefixo}/youtube/"""
+    return os.path.join(NEURAL_DIR, prefixo, 'youtube')
 
 
 def migrar_canal_para_subdir(prefixo: str):
@@ -367,10 +367,13 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
 
 # ── Engine principal ──────────────────────────────────────────────────────────
 
-def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None):
+def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None, projeto_nome: str = ""):
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
-    prefixo = canal_nome_safe
+    if projeto_nome:
+        prefixo = sanitizar_nome(projeto_nome)
+    else:
+        prefixo = canal_nome_safe
     canal_youtube_dir = get_canal_youtube_dir(prefixo)
     drive_folder_name = f"Tusab — {canal_nome_raw}"
     db_file = os.path.join(gestao_canal_dir(prefixo), f'{prefixo}_base.csv')

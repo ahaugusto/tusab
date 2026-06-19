@@ -21,7 +21,7 @@ function _emojiTipo(item) {
   const ext = (item.tipo || '').toLowerCase();
   if (_EXTS_IMAGEM.has(ext)) return '🖼️';
   if (_EXTS_AUDIO.has(ext))  return '🎵';
-  if (item._tipo === 'textos') return '📝';
+  if (item._tipo === 'texts' || item._tipo === 'textos') return '📝';
   return '📄';
 }
 
@@ -255,8 +255,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
   const orphanGroups = [
     { key: 'orp-youtube',    label: 'YouTube',    emoji: '🎬', items: orphanYT,    tipo: null },
-    { key: 'orp-documentos', label: 'Documentos', emoji: '📄', items: orphanDocs,  tipo: 'documentos' },
-    { key: 'orp-textos',     label: 'Textos',     emoji: '📝', items: orphanTexts, tipo: 'textos' },
+    { key: 'orp-documentos', label: 'Documentos', emoji: '📄', items: orphanDocs,  tipo: 'documents' },
+    { key: 'orp-textos',     label: 'Textos',     emoji: '📝', items: orphanTexts, tipo: 'texts' },
   ].filter(g => g.items.length > 0);
 
   return (
@@ -612,8 +612,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     </div>
                   </div>
                 ))}
-                {[...canal.documentos.map(d => ({...d, _tipo: 'documentos'})),
-                  ...canal.textos.map(d => ({...d, _tipo: 'textos'}))
+                {[...canal.documentos.map(d => ({...d, _tipo: 'documents'})),
+                  ...canal.textos.map(d => ({...d, _tipo: 'texts'}))
                 ].map((item, i) => (
                   <div key={`doc-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
                     <span className="text-sm shrink-0">{_emojiTipo(item)}</span>
