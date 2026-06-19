@@ -44,10 +44,10 @@ def run_drive_auth():
 
 def _count_files_on_disk() -> int:
     """Conta arquivos .txt extraídos que realmente existem no disco."""
-    from tusab_engine.storage import CEREBRO_DIR
+    from tusab_engine.storage import NEURAL_DIR
     count = 0
-    if os.path.isdir(CEREBRO_DIR):
-        for canal_dir in os.scandir(CEREBRO_DIR):
+    if os.path.isdir(NEURAL_DIR):
+        for canal_dir in os.scandir(NEURAL_DIR):
             if not canal_dir.is_dir():
                 continue
             yt_dir = os.path.join(canal_dir.path, "youtube")
@@ -56,8 +56,8 @@ def _count_files_on_disk() -> int:
                     1 for f in os.listdir(yt_dir)
                     if f.endswith(".txt") and not f.startswith("_")
                 )
-    # Legado: cerebro/youtube/ flat
-    legacy = os.path.join(CEREBRO_DIR, "youtube")
+    # Legado: neural/youtube/ flat
+    legacy = os.path.join(NEURAL_DIR, "youtube")
     if os.path.isdir(legacy):
         count += sum(
             1 for f in os.listdir(legacy)
@@ -131,7 +131,7 @@ def disconnect_drive():
 def get_history():
     """Retorna resumo de todas as extrações anteriores a partir dos CSVs de gestão."""
     history = []
-    pattern = os.path.join(motor_tusab.CEREBRO_DIR, "*", "gestao", "*_base.csv")
+    pattern = os.path.join(motor_tusab.NEURAL_DIR, "*", "management", "*_base.csv")
     for csv_path in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         try:
             df = pd.read_csv(csv_path, encoding="utf-8-sig")
@@ -175,12 +175,12 @@ def get_history():
 @router.get("/open-folder")
 def open_folder(name: str, prefixo: str = ""):
     import subprocess
-    from tusab_engine.storage import CEREBRO_DIR
+    from tusab_engine.storage import NEURAL_DIR
     folders = {
         "data":          motor_tusab.DATA_DIR,
         "gestao":        motor_tusab.gestao_canal_dir(prefixo) if prefixo else motor_tusab.GESTAO_DIR,
         "agent_index":   agent_tusab.INDEX_DIR,
-        "canal_youtube": os.path.join(CEREBRO_DIR, prefixo, "youtube") if prefixo else motor_tusab.CEREBRO_DIR,
+        "canal_youtube": os.path.join(NEURAL_DIR, prefixo, "youtube") if prefixo else motor_tusab.NEURAL_DIR,
     }
     target = folders.get(name)
     if not target:

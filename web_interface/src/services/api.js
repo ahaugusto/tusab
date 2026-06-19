@@ -45,7 +45,7 @@ export const fetchRelatorio = (canal) => axios.get(`${API_BASE}/relatorio/${enco
 // ─── Canal ───────────────────────────────────────────────────────────────────
 
 /** Sets the active YouTube channel URL */
-export const setChannel = (canal_url) => axios.post(`${API_BASE}/set-channel`, { canal_url });
+export const setChannel = (canal_url, projeto_nome = '') => axios.post(`${API_BASE}/set-channel`, { canal_url, projeto_nome });
 
 /** Removes the currently configured channel */
 export const removeChannel = () => axios.post(`${API_BASE}/set-channel`, { canal_url: '' });
@@ -62,7 +62,7 @@ export const pauseExtraction = () => axios.post(`${API_BASE}/pause`);
 export const cancelExtraction = () => axios.post(`${API_BASE}/cancel`);
 
 /** Adds a channel URL to the extraction queue */
-export const queueAdd = (canal_url, fontes = []) => axios.post(`${API_BASE}/queue/add`, { canal_url, fontes });
+export const queueAdd = (canal_url, fontes = [], projeto_nome = '') => axios.post(`${API_BASE}/queue/add`, { canal_url, fontes, projeto_nome });
 
 /** Clears all pending items from the extraction queue */
 export const queueClear = () => axios.delete(`${API_BASE}/queue/clear`);
@@ -85,17 +85,17 @@ export const disconnectDrive = () => axios.post(`${API_BASE}/drive-disconnect`);
 
 /** Full-text search across all TXT files in the knowledge base */
 export const buscarBase = (query, canal = '') =>
-  axios.post(`${API_BASE}/cerebro/buscar`, { query, canal });
+  axios.post(`${API_BASE}/neural/buscar`, { query, canal });
 
-/** Reads the full content of a TXT file by relative path (from CEREBRO_DIR) */
+/** Reads the full content of a TXT file by relative path (from NEURAL_DIR) */
 export const lerArquivo = (caminho) =>
-  axios.post(`${API_BASE}/cerebro/ler-arquivo`, { caminho });
+  axios.post(`${API_BASE}/neural/ler-arquivo`, { caminho });
 
-/** Lists all project subdirectories in the cerebro */
-export const listarProjetos = () => axios.get(`${API_BASE}/cerebro/projetos`);
+/** Lists all project subdirectories in the neural */
+export const listarProjetos = () => axios.get(`${API_BASE}/neural/projetos`);
 
-/** Creates a new named project subdirectory in the cerebro */
-export const criarProjeto = (nome) => axios.post(`${API_BASE}/cerebro/projeto`, { nome });
+/** Creates a new named project subdirectory in the neural */
+export const criarProjeto = (nome) => axios.post(`${API_BASE}/neural/projeto`, { nome });
 
 // ─── Agent ───────────────────────────────────────────────────────────────────
 
@@ -150,17 +150,17 @@ export const deleteCanalIndex = (canal_nome) => axios.delete(`${API_BASE}/agent/
 
 // ─── Repositório ─────────────────────────────────────────────────────────────
 
-/** Uploads a document file to cerebro/documentos/ */
-export const uploadDocument = (formData) => axios.post(`${API_BASE}/cerebro/upload`, formData);
+/** Uploads a document file to neural/documentos/ */
+export const uploadDocument = (formData) => axios.post(`${API_BASE}/neural/upload`, formData);
 
-/** Saves pasted text to cerebro/textos/ */
-export const saveText = (titulo, conteudo, canal = '') => axios.post(`${API_BASE}/cerebro/texto`, { titulo, conteudo, canal });
+/** Saves pasted text to neural/textos/ */
+export const saveText = (titulo, conteudo, canal = '') => axios.post(`${API_BASE}/neural/texto`, { titulo, conteudo, canal });
 
-/** Deletes a document or text from the cerebro */
-export const deleteRepositorioItem = (tipo, id) => axios.delete(`${API_BASE}/cerebro/arquivo/${tipo}/${id}`);
+/** Deletes a document or text from the neural */
+export const deleteRepositorioItem = (tipo, id) => axios.delete(`${API_BASE}/neural/arquivo/${tipo}/${id}`);
 
 /** Clears selected content types from the entire knowledge base */
-export const limparBase = (payload) => axios.delete(`${API_BASE}/cerebro/limpar`, { data: payload });
+export const limparBase = (payload) => axios.delete(`${API_BASE}/neural/limpar`, { data: payload });
 
 /** Removes extraction history for selected canal prefixes (empty = all) */
 export const limparHistorico = (prefixos = []) => axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos } });
@@ -170,7 +170,7 @@ export const resetTotal = () => axios.delete(`${API_BASE}/reset-total`);
 
 /** Deletes cerebro files + BM25 index for a single canal */
 export const limparCanal = (canal_nome) => Promise.all([
-  axios.delete(`${API_BASE}/cerebro/limpar`, { data: { youtube: true, documentos: true, textos: true } }),
+  axios.delete(`${API_BASE}/neural/limpar`, { data: { youtube: true, documentos: true, textos: true, documents: true, texts: true } }),
   axios.delete(`${API_BASE}/agent/canal/${encodeURIComponent(canal_nome)}`),
   axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos: [canal_nome.replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '')] } }),
 ]);

@@ -72,6 +72,9 @@ class AppState:
         # Filtro de fontes de extração
         self.fontes_filtro: list = []
 
+        # Nome do projeto de destino para a extração atual
+        self.projeto_nome: str = ""
+
         # ETA de extração
         self.extraction_start_time: float = 0.0   # timestamp unix quando extração começou
 

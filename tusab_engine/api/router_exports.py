@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
-from tusab_engine.storage import CEREBRO_DIR, GESTAO_DIR, gestao_canal_dir
+from tusab_engine.storage import NEURAL_DIR, GESTAO_DIR, gestao_canal_dir
 
 router = APIRouter()
 
@@ -34,11 +34,11 @@ def export_base():
 
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         # cerebro/
-        if os.path.exists(CEREBRO_DIR):
-            for root, _, files in os.walk(CEREBRO_DIR):
+        if os.path.exists(NEURAL_DIR):
+            for root, _, files in os.walk(NEURAL_DIR):
                 for fname in files:
                     fpath = os.path.join(root, fname)
-                    arcname = os.path.relpath(fpath, os.path.dirname(CEREBRO_DIR))
+                    arcname = os.path.relpath(fpath, os.path.dirname(NEURAL_DIR))
                     zf.write(fpath, arcname)
 
         # gestao/ já está dentro de cerebro/{prefixo}/gestao/ — incluído no walk acima

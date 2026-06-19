@@ -18,6 +18,6 @@ from tusab_engine.agent.chat import (                                           
 )
 from tusab_engine.storage import (                                              # noqa: F401
     DADOS_DIR, DATA_DIR, CONFIG_PATH, INDEX_DIR,
-    CEREBRO_DIR, TXT_DIR, DOC_DIR, TEXT_DIR,
+    NEURAL_DIR, CEREBRO_DIR, TXT_DIR, DOC_DIR, TEXT_DIR,
     salvar_json_atomico, obter_caminho_dados,
 )

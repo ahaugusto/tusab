@@ -16,7 +16,7 @@ import json
 import threading
 
 from tusab_engine.storage import (
-    DATA_DIR, CEREBRO_DIR, INDEX_DIR,
+    DATA_DIR, NEURAL_DIR, INDEX_DIR,
     TXT_DIR, DOC_DIR, TEXT_DIR,
     salvar_json_atomico,
 )
@@ -26,15 +26,15 @@ from tusab_engine.agent.config import carregar_config, salvar_config
 # ── Helpers de path ───────────────────────────────────────────────────────────
 
 def _get_canal_youtube_dir(prefixo: str) -> str:
-    return os.path.join(CEREBRO_DIR, prefixo, 'youtube')
+    return os.path.join(NEURAL_DIR, prefixo, 'youtube')
 
 
 def _get_canal_doc_dirs(prefixo: str) -> list:
     """Retorna dirs de documentos/textos do canal + _avulso + legado."""
     dirs = []
     for canal in [prefixo, '_avulso']:
-        for sub in ['documentos', 'textos']:
-            dirs.append(os.path.join(CEREBRO_DIR, canal, sub))
+        for sub in ['documents', 'texts']:
+            dirs.append(os.path.join(NEURAL_DIR, canal, sub))
     dirs += [DOC_DIR, TEXT_DIR]
     return dirs
 
@@ -118,7 +118,7 @@ def get_agent_status() -> dict:
             if os.path.exists(idx_path):
                 idx_mtime = os.path.getmtime(idx_path)
                 for youtube_dir in [_get_canal_youtube_dir(canal_prefixo),
-                                    os.path.join(CEREBRO_DIR, 'youtube')]:
+                                    os.path.join(NEURAL_DIR, 'youtube')]:
                     if not os.path.exists(youtube_dir):
                         continue
                     for fname in os.listdir(youtube_dir):
@@ -233,7 +233,7 @@ def _parsear_todos_chunks(canal_prefixo: str) -> list:
     for source_dir in _get_canal_doc_dirs(canal_prefixo):
         if not os.path.exists(source_dir):
             continue
-        aba_label  = 'texto' if os.path.basename(source_dir) == 'textos' else 'documento'
+        aba_label  = 'texto' if os.path.basename(source_dir) == 'texts' else 'documento'
         canal_dir  = os.path.basename(os.path.dirname(source_dir))
         for fname in sorted(os.listdir(source_dir)):
             if not fname.endswith('.txt') or fname.startswith('_'):

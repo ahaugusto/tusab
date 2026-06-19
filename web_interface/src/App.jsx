@@ -32,7 +32,7 @@ import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
-  deleteCanalIndex, openFolder, extrairMensagemErro,
+  deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ function App() {
   const { t } = useTranslation();
 
   // ─── UI state ──────────────────────────────────────────────────────────────
-  const [showOnboarding,   setShowOnboarding]   = useState(() => !localStorage.getItem('tusab_onboarded'));
+  const [showOnboarding,   setShowOnboarding]   = useState(false);
   const [showGuide,        setShowGuide]        = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
@@ -73,6 +73,7 @@ function App() {
   const [repoAddOpen,      setRepoAddOpen]      = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
+  const [projetos,             setProjetos]             = useState([]);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
   const [darkMode,         setDarkMode]         = useState(() => {
     const saved = localStorage.getItem('tusab_theme');
@@ -116,6 +117,13 @@ function App() {
   // ─── Consent / analytics ──────────────────────────────────────────────────
   const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getConsent() === 'yes');
+
+  // Se já deu consent mas ainda não fez onboarding, abre onboarding direto
+  useEffect(() => {
+    if (getConsent() !== null && !localStorage.getItem('tusab_onboarded')) {
+      setShowOnboarding(true);
+    }
+  }, []);
   const [progressToast,    setProgressToast]    = useState(null);
   const showError = (message) => setProgressToast({ type: 'error', message });
 
@@ -403,20 +411,23 @@ function App() {
   const handleStart = () => {
     if (!canalConfigurado) { setCanalError(t('channel.error_required')); return; }
     if (extractionTypes.length === 0) return;
-    handleStartConfirm(extractionTypes);
+    listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
+    setShowExtractionModal(true);
   };
 
-  /** Confirms extraction with selected content types, or enqueues if already running */
-  const handleStartConfirm = (fontes) => {
+  /** Confirms extraction with selected content types and project, or enqueues if already running */
+  const handleStartConfirm = (fontes, projetoNome = '') => {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
     if (isRunning) {
-      queueAdd(canalInput.trim() || status.canal_url, fontes)
+      queueAdd(canalInput.trim() || status.canal_url, fontes, projetoNome)
         .catch(() => {});
       return;
     }
     Analytics.extracaoIniciada(fontes);
-    startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); });
+    setChannel(canalInput.trim() || status.canal_url, projetoNome)
+      .then(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }))
+      .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
 
   /** Pauses or resumes the running extraction */
@@ -491,7 +502,10 @@ function App() {
       {/* Analytics consent — shown once on first launch */}
       <AnimatePresence>
         {showConsent && (
-          <ConsentModal key="consent" darkMode={darkMode} onDone={() => setShowConsent(false)} />
+          <ConsentModal key="consent" darkMode={darkMode} onDone={() => {
+            setShowConsent(false);
+            if (!localStorage.getItem('tusab_onboarded')) setShowOnboarding(true);
+          }} />
         )}
       </AnimatePresence>
 
@@ -525,7 +539,7 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} projetos={projetos} />
         )}
       </AnimatePresence>
       <AnimatePresence>

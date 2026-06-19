@@ -102,7 +102,7 @@ def test_chat_ignora_historico_do_cliente(client):
 # ─── Repositório: texto colado ────────────────────────────────────────────────
 
 def test_cerebro_texto_salva_e_lista(client):
-    r = client.post("/cerebro/texto", json={"titulo": "Nota de teste", "conteudo": "Conteúdo de teste do pytest."})
+    r = client.post("/neural/texto", json={"titulo": "Nota de teste", "conteudo": "Conteúdo de teste do pytest."})
     body = r.json()
     assert body.get("ok") is True
     fid = body["id"]
@@ -111,12 +111,12 @@ def test_cerebro_texto_salva_e_lista(client):
     assert any(t.get("id") == fid for t in repo["textos"])
 
     # Limpeza: delete e confirma path traversal mitigado por construção
-    rdel = client.delete(f"/cerebro/arquivo/textos/{fid}")
+    rdel = client.delete(f"/neural/arquivo/textos/{fid}")
     assert rdel.json().get("ok") is True
 
 
 def test_cerebro_texto_rejeita_vazio(client):
-    r = client.post("/cerebro/texto", json={"titulo": "x", "conteudo": "   "})
+    r = client.post("/neural/texto", json={"titulo": "x", "conteudo": "   "})
     assert r.json().get("error") is True
 
 
@@ -156,7 +156,7 @@ def test_limpar_historico_responde(client):
 # ─── Projetos ────────────────────────────────────────────────────────────────
 
 def test_listar_projetos_retorna_lista(client):
-    r = client.get("/cerebro/projetos")
+    r = client.get("/neural/projetos")
     assert r.status_code == 200
     body = r.json()
     assert "projetos" in body
@@ -164,7 +164,7 @@ def test_listar_projetos_retorna_lista(client):
 
 
 def test_criar_projeto_valido(client):
-    r = client.post("/cerebro/projeto", json={"nome": "projeto_teste_pytest"})
+    r = client.post("/neural/projeto", json={"nome": "projeto_teste_pytest"})
     assert r.status_code == 200
     body = r.json()
     assert body.get("ok") is True
@@ -172,14 +172,14 @@ def test_criar_projeto_valido(client):
 
 
 def test_criar_projeto_nome_vazio_rejeita(client):
-    r = client.post("/cerebro/projeto", json={"nome": "   "})
+    r = client.post("/neural/projeto", json={"nome": "   "})
     assert r.status_code == 200
     assert r.json().get("error") is True
 
 
 def test_criar_projeto_aparece_na_listagem(client):
     nome = "projeto_listagem_test"
-    client.post("/cerebro/projeto", json={"nome": nome})
-    r = client.get("/cerebro/projetos")
+    client.post("/neural/projeto", json={"nome": nome})
+    r = client.get("/neural/projetos")
     nomes = [p["nome"] for p in r.json()["projetos"]]
     assert nome in nomes

@@ -141,7 +141,7 @@ def agent_status():
 @router.get("/agent/mencoes/{canal_nome}")
 def agent_mencoes(canal_nome: str):
     """Lista itens mencionáveis via @ no chat: bases indexadas + documentos do canal ativo."""
-    from tusab_engine.storage import CEREBRO_DIR
+    from tusab_engine.storage import NEURAL_DIR
 
     # Bases indexadas (canais com índice BM25)
     bases = []
@@ -158,11 +158,13 @@ def agent_mencoes(canal_nome: str):
     # Documentos do canal ativo
     documentos = []
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    canal_dir = os.path.join(CEREBRO_DIR, canal_prefixo)
+    canal_dir = os.path.join(NEURAL_DIR, canal_prefixo)
 
     _EMOJIS = {
         "youtube":      "🎬",
+        "documents":    "📄",
         "documentos":   "📄",
+        "texts":        "📝",
         "textos":       "📝",
         "conversas":    "💬",
         "transcricoes": "🎙",
@@ -465,13 +467,13 @@ def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
     import uuid as _uuid
     import re as _re
     from datetime import datetime as _dt
-    from tusab_engine.storage import CEREBRO_DIR, salvar_json_atomico
+    from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
     if not req.mensagens:
         return {"error": True, "message": "Nenhuma mensagem para salvar"}
 
     canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_') or "_avulso"
-    txt_dir = os.path.join(CEREBRO_DIR, canal_prefixo, "textos")
+    txt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts")
     os.makedirs(txt_dir, exist_ok=True)
 
     ts = _dt.now().strftime("%Y%m%d_%H%M%S")
@@ -519,10 +521,10 @@ def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
 def agent_chat_historicos(canal_nome: str):
     """Lista arquivos de histórico de chat salvos para o canal."""
     import re as _re
-    from tusab_engine.storage import CEREBRO_DIR
+    from tusab_engine.storage import NEURAL_DIR
 
     canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_') or "_avulso"
-    manifest_path = os.path.join(CEREBRO_DIR, canal_prefixo, "textos", "_manifest.json")
+    manifest_path = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_manifest.json")
 
     if not os.path.exists(manifest_path):
         return {"historicos": []}
