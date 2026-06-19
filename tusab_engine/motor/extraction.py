@@ -16,6 +16,7 @@ from tusab_engine.storage import (
     DATA_DIR, CEREBRO_DIR, LOCAL_TXT_DIR,
     GESTAO_DIR, TEMP_DIR,
     salvar_csv_atomico, salvar_json_atomico,
+    gestao_canal_dir,
 )
 from tusab_engine.motor.drive import (
     get_drive_status, get_drive_service,
@@ -223,7 +224,7 @@ def gerar_fontes(canal_url):
 
 def gerar_relatorio_checkup(canal_nome_safe, db_file):
     print("\n📊 [GERANDO RELATÓRIO DE AUDITORIA]...")
-    caminho_relatorio = os.path.join(GESTAO_DIR, f'{canal_nome_safe}_relatorio.txt')
+    caminho_relatorio = os.path.join(gestao_canal_dir(canal_nome_safe), f'{canal_nome_safe}_relatorio.txt')
 
     if not os.path.exists(db_file):
         print("❌ CSV não encontrado. Impossível gerar relatório.")
@@ -272,7 +273,7 @@ def gerar_relatorio_checkup(canal_nome_safe, db_file):
 
 def gerar_readme(canal_nome_raw, canal_nome_safe):
     print("\n📄 [GERANDO README ESTRATÉGICO]...")
-    caminho_readme = os.path.join(GESTAO_DIR, f'{canal_nome_safe}_README.md')
+    caminho_readme = os.path.join(gestao_canal_dir(canal_nome_safe), f'{canal_nome_safe}_README.md')
 
     conteudo = f"""# 🧠 Base de Conhecimento — @{canal_nome_raw}
 *Gerada automaticamente pelo Tusab — Index.Augment.Converse*
@@ -372,7 +373,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     prefixo = canal_nome_safe
     canal_youtube_dir = get_canal_youtube_dir(prefixo)
     drive_folder_name = f"Tusab — {canal_nome_raw}"
-    db_file = os.path.join(GESTAO_DIR, f'{prefixo}_base.csv')
+    db_file = os.path.join(gestao_canal_dir(prefixo), f'{prefixo}_base.csv')
 
     _ytdlp_update()
 
@@ -404,7 +405,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
 
     _obs_ram_samples.append(_obs_ram_mb())  # amostra inicial
 
-    for d in [canal_youtube_dir, GESTAO_DIR, TEMP_DIR, os.path.join(DATA_DIR, 'config')]:
+    for d in [canal_youtube_dir, TEMP_DIR, os.path.join(DATA_DIR, 'config')]:
         os.makedirs(d, exist_ok=True)
 
     migrar_cerebro_txt()
@@ -491,8 +492,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     print(f"✅ {total_liquido} vídeos mapeados no canal.\n")
 
     # Persiste total mapeado para cálculo correto de cobertura no relatório
-    summary_path = os.path.join(GESTAO_DIR, f'{prefixo}_summary.json')
-    os.makedirs(GESTAO_DIR, exist_ok=True)
+    summary_path = os.path.join(gestao_canal_dir(prefixo), f'{prefixo}_summary.json')
     existing_summary = {}
     if os.path.exists(summary_path):
         try:
@@ -784,7 +784,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
 
     # --- 4. FINALIZAÇÃO LOCAL ---
     print("      📁 Transcrições salvas localmente.")
-    print("      📊 Banco de dados salvo em: gestao_local/")
+    print("      📊 Banco de dados salvo em: cerebro/{prefixo}/gestao/")
 
     # ── Relatório de observabilidade ─────────────────────────────────────────
     def _salvar_relatorio_obs(status_final):

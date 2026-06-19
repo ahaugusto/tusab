@@ -135,7 +135,7 @@ def get_relatorio(canal: str):
     """Retorna dados do CSV de gestão para o canal especificado."""
     import re as _re
     canal_safe = _re.sub(r'[<>:"/\\|?*\s]', '_', canal).strip('_')
-    csv_path = os.path.join(motor_tusab.GESTAO_DIR, f"{canal_safe}_base.csv")
+    csv_path = os.path.join(motor_tusab.gestao_canal_dir(canal_safe), f"{canal_safe}_base.csv")
     if not os.path.exists(csv_path):
         return {"error": True, "message": "Relatório não encontrado"}
     try:
@@ -463,15 +463,15 @@ def cerebro_delete(tipo: str, fid: str):
 @router.delete("/historico/limpar")
 def historico_limpar(req: LimparHistoricoRequest):
     """Remove CSVs e summaries de canais selecionados (ou todos se prefixos vazio)."""
-    gestao_dir = motor_tusab.GESTAO_DIR
-    pattern    = os.path.join(gestao_dir, "*_base.csv")
-    todos      = sorted(glob.glob(pattern))
-    removidos  = 0
+    pattern = os.path.join(motor_tusab.CEREBRO_DIR, "*", "gestao", "*_base.csv")
+    todos   = sorted(glob.glob(pattern))
+    removidos = 0
 
     for csv_path in todos:
         prefixo = os.path.basename(csv_path).replace("_base.csv", "")
         if req.prefixos and prefixo not in req.prefixos:
             continue
+        gestao_dir = motor_tusab.gestao_canal_dir(prefixo)
         for ext in ("_base.csv", "_summary.json"):
             p = os.path.join(gestao_dir, f"{prefixo}{ext}")
             if os.path.exists(p):
@@ -537,9 +537,9 @@ def reset_total():
     gestao_dir  = motor_tusab.GESTAO_DIR
     index_dir   = os.path.join(motor_tusab.DADOS_DIR, "agent_index")
 
-    removidos = {"cerebro": 0, "gestao": 0, "indices": 0}
+    removidos = {"cerebro": 0, "indices": 0}
 
-    # 1. Cérebro — apaga todo o conteúdo mas mantém a pasta raiz
+    # 1. Cérebro — apaga todo o conteúdo (inclui gestao/ por canal) mas mantém a pasta raiz
     if os.path.exists(cerebro_dir):
         for entry in os.scandir(cerebro_dir):
             try:
@@ -551,17 +551,7 @@ def reset_total():
             except Exception:
                 pass
 
-    # 2. Gestão — CSVs e summaries
-    if os.path.exists(gestao_dir):
-        for fname in os.listdir(gestao_dir):
-            fpath = os.path.join(gestao_dir, fname)
-            try:
-                os.remove(fpath)
-                removidos["gestao"] += 1
-            except Exception:
-                pass
-
-    # 3. Índices BM25
+    # 2. Índices BM25
     if os.path.exists(index_dir):
         for fname in os.listdir(index_dir):
             fpath = os.path.join(index_dir, fname)

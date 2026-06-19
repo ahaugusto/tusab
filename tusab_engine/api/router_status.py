@@ -131,7 +131,7 @@ def disconnect_drive():
 def get_history():
     """Retorna resumo de todas as extrações anteriores a partir dos CSVs de gestão."""
     history = []
-    pattern = os.path.join(motor_tusab.GESTAO_DIR, "*_base.csv")
+    pattern = os.path.join(motor_tusab.CEREBRO_DIR, "*", "gestao", "*_base.csv")
     for csv_path in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         try:
             df = pd.read_csv(csv_path, encoding="utf-8-sig")
@@ -178,7 +178,7 @@ def open_folder(name: str, prefixo: str = ""):
     from tusab_engine.storage import CEREBRO_DIR
     folders = {
         "data":          motor_tusab.DATA_DIR,
-        "gestao":        motor_tusab.GESTAO_DIR,
+        "gestao":        motor_tusab.gestao_canal_dir(prefixo) if prefixo else motor_tusab.GESTAO_DIR,
         "agent_index":   agent_tusab.INDEX_DIR,
         "canal_youtube": os.path.join(CEREBRO_DIR, prefixo, "youtube") if prefixo else motor_tusab.CEREBRO_DIR,
     }

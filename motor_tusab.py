@@ -23,4 +23,5 @@ from tusab_engine.storage import (                            # noqa: F401
     GESTAO_DIR, TEMP_DIR, TOKEN_PATH, CREDENTIALS_PATH,
     salvar_csv_atomico, salvar_json_atomico,
     obter_caminho_dados, obter_caminho_assets,
+    gestao_canal_dir,
 )

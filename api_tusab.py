@@ -99,6 +99,13 @@ try:
 except Exception:
     pass
 
+# Migra data/gestao/{prefixo}_* → data/cerebro/{prefixo}/gestao/
+try:
+    from tusab_engine.storage import migrar_gestao_para_cerebro
+    migrar_gestao_para_cerebro()
+except Exception:
+    pass
+
 # Cria base de conhecimento embutida do Tusab na primeira execução
 try:
     _ajuda_path = os.path.join(motor_tusab.CEREBRO_DIR, 'textos', '_tusab_ajuda.txt')
