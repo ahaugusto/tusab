@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal } from '../../services/api';
+import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -57,9 +57,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [mode, setMode]       = React.useState('texto');
   const [title, setTitle]     = React.useState('');
   const [text, setText]       = React.useState('');
-  const [saving, setSaving]   = React.useState(false);
-  const [file, setFile]       = React.useState(null);
+  const [saving, setSaving]       = React.useState(false);
+  const [files, setFiles]         = React.useState([]);          // multiple files queue
+  const [uploadProgress, setUploadProgress] = React.useState({}); // { fileName: 'ok'|'error'|'loading' }
   const [uploadAviso, setUploadAviso] = React.useState('');
+  const [reindexando, setReindexando] = React.useState(false);
   const [expandedCanais, setExpandedCanais] = React.useState({});
   const [showLimpar, setShowLimpar]         = React.useState(false);
   const [limparSel, setLimparSel]           = React.useState({ youtube: false, documentos: false, textos: false });
@@ -111,37 +113,93 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const handleSaveText = async () => {
     if (!title.trim() || !text.trim()) return;
     setSaving(true);
-    const ok = await saveText(title.trim(), text.trim(), _canalEfetivo()).then(() => true).catch(() => false);
-    if (ok) Analytics.documentoAdicionado('texto');
-    reload(); setShowAdd(false); setTitle(''); setText(''); setSaving(false);
-  };
-
-  const handleUpload = async (fileToUpload = file) => {
-    if (!fileToUpload) return;
-    setSaving(true);
-    setUploadAviso('');
-    const form = new FormData();
-    form.append('arquivo', fileToUpload);
-    form.append('canal', _canalEfetivo());
-    try {
-      const res = await uploadDocument(form);
-      const data = res.data;
-      if (data?.error) {
-        setUploadAviso(data.message || 'Erro ao processar arquivo.');
-      } else {
-        Analytics.documentoAdicionado(fileToUpload.name.split('.').pop()?.toLowerCase() || 'arquivo');
-        if (data?.aviso) {
-          // Imagem registrada mas sem extração de texto — mostra aviso informativo
-          setUploadAviso('⚠️ Imagem registrada no repositório. Para extrair o texto, instale Ollama com modelo multimodal (llava) ou Tesseract OCR.');
-        }
-        reload();
-        setFile(null);
-        setShowAdd(false);
-      }
-    } catch {
-      setUploadAviso('Erro de conexão com o servidor.');
+    const canal = _canalEfetivo();
+    const ok = await saveText(title.trim(), text.trim(), canal).then(() => true).catch(() => false);
+    if (ok) {
+      Analytics.documentoAdicionado('texto');
+      reload();
+      setShowAdd(false);
+      setTitle('');
+      setText('');
+      _triggerReindex(canal);
     }
     setSaving(false);
+  };
+
+  const _addFiles = (newFiles) => {
+    const accepted = Array.from(newFiles).filter(_fileIsAccepted);
+    const rejected = Array.from(newFiles).filter(f => !_fileIsAccepted(f));
+    if (rejected.length > 0) {
+      setUploadAviso(`Tipo não suportado: ${rejected.map(f => f.name).join(', ')}`);
+    }
+    setFiles(prev => {
+      const existing = new Set(prev.map(f => f.name + f.size));
+      const toAdd = accepted.filter(f => !existing.has(f.name + f.size));
+      return [...prev, ...toAdd];
+    });
+    setUploadProgress({});
+  };
+
+  const handleUploadAll = async () => {
+    if (files.length === 0) return;
+    setSaving(true);
+    setUploadAviso('');
+    const canal = _canalEfetivo();
+    let hasError = false;
+    let avisos = [];
+
+    for (const f of files) {
+      setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'loading' }));
+      const form = new FormData();
+      form.append('arquivo', f);
+      form.append('canal', canal);
+      try {
+        const res = await uploadDocument(form);
+        const data = res.data;
+        if (data?.error) {
+          setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'error' }));
+          avisos.push(`${f.name}: ${data.message}`);
+          hasError = true;
+        } else {
+          setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'ok' }));
+          Analytics.documentoAdicionado(f.name.split('.').pop()?.toLowerCase() || 'arquivo');
+          if (data?.aviso) avisos.push(`⚠️ ${f.name}: imagem sem extração de texto.`);
+        }
+      } catch {
+        setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'error' }));
+        avisos.push(`${f.name}: erro de conexão.`);
+        hasError = true;
+      }
+    }
+
+    reload();
+    setSaving(false);
+
+    if (avisos.length > 0) setUploadAviso(avisos.join('\n'));
+
+    if (!hasError) {
+      setFiles([]);
+      setUploadProgress({});
+      setShowAdd(false);
+    }
+    _triggerReindex(canal);
+  };
+
+  const _triggerReindex = async (canal) => {
+    if (!canal) return;
+    setReindexando(true);
+    try {
+      await startIndexing(canal);
+    } catch { /* ignore */ }
+    // polling até indexação terminar (max 2 min)
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const res = await fetchAgentStatus();
+        if (!res.data?.indexing) break;
+      } catch { break; }
+    }
+    setReindexando(false);
   };
 
   // ─── Drag and drop ────────────────────────────────────────────────────────
@@ -158,24 +216,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     if (!dropRef.current?.contains(e.relatedTarget)) setDragging(false);
   };
 
-  const handleDrop = async (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragging(false);
-    const dropped = e.dataTransfer.files[0];
-    if (!dropped) return;
-    if (!_fileIsAccepted(dropped)) {
-      setUploadAviso('Tipo de arquivo não suportado. Use PDF, DOCX, XLSX, CSV, TXT, MD, imagem ou áudio.');
-      return;
-    }
-    setFile(dropped);
-    // Se já estiver em modo arquivo, faz upload automaticamente
-    if (mode === 'arquivo') {
-      await handleUpload(dropped);
-    } else {
-      // Muda para modo arquivo e deixa o usuário confirmar
-      setMode('arquivo');
-    }
+    if (!e.dataTransfer.files?.length) return;
+    setMode('arquivo');
+    _addFiles(e.dataTransfer.files);
   };
 
   // Drop na zona fora do painel (sobre o repositório inteiro)
@@ -301,7 +348,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l16 16M4 20L20 4"/></svg>
             Reset
           </button>
-          <button onClick={() => { const next = !showAdd_; setShowAdd(next); setUploadAviso(''); if (next) reloadProjetos(); else { setShowNovoProjeto(false); setNovoProjNome(''); } }}
+          <button onClick={() => { const next = !showAdd_; setShowAdd(next); setUploadAviso(''); if (next) reloadProjetos(); else { setShowNovoProjeto(false); setNovoProjNome(''); setFiles([]); setUploadProgress({}); } }}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
             + Adicionar
           </button>
@@ -518,56 +565,91 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none
+                className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all select-none
                   ${dragging
                     ? darkMode ? 'border-primary bg-primary/12 scale-[1.01]' : 'border-violet-400 bg-violet-50 scale-[1.01]'
-                    : file
-                      ? darkMode ? 'border-secondary/50 bg-secondary/8' : 'border-emerald-300 bg-emerald-50'
+                    : files.length > 0
+                      ? darkMode ? 'border-secondary/40 bg-secondary/5' : 'border-emerald-200 bg-emerald-50/50'
                       : darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}>
-
-                {file ? (
-                  <>
-                    <p className="text-lg mb-1">
-                      {_EXTS_IMAGEM.has(file.name.split('.').pop()?.toLowerCase()) ? '🖼️'
-                        : _EXTS_AUDIO.has(file.name.split('.').pop()?.toLowerCase()) ? '🎵' : '📄'}
-                    </p>
-                    <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</p>
-                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {(file.size / 1024).toFixed(0)} KB · Clique para trocar
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className={`text-xs font-medium ${dragging ? 'text-primary' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {dragging ? 'Solte aqui para fazer upload' : 'Arraste e solte ou clique para selecionar'}
-                    </p>
-                    <div className={`mt-2 space-y-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                      <p className="text-[10px]">📄 PDF · DOCX · XLSX · CSV · TXT · MD</p>
-                      <p className="text-[10px]">🖼️ PNG · JPG · JPEG · WEBP · BMP · TIFF</p>
-                      <p className="text-[10px]">🎵 MP3 · WAV · M4A · OGG · FLAC · OPUS · AAC</p>
-                    </div>
-                  </>
+                <p className={`text-xs font-medium ${dragging ? 'text-primary' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {dragging ? 'Solte aqui' : files.length > 0 ? '+ Adicionar mais arquivos' : 'Arraste e solte ou clique para selecionar'}
+                </p>
+                {files.length === 0 && (
+                  <div className={`mt-1.5 space-y-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                    <p className="text-[10px]">📄 PDF · DOCX · XLSX · CSV · TXT · MD</p>
+                    <p className="text-[10px]">🖼️ PNG · JPG · WEBP · BMP · TIFF &nbsp; 🎵 MP3 · WAV · M4A · FLAC</p>
+                  </div>
                 )}
               </div>
 
-              <input ref={fileRef} type="file"
+              <input ref={fileRef} type="file" multiple
                 accept={ACCEPT_TYPES}
                 className="hidden"
-                onChange={e => { setFile(e.target.files[0] || null); setUploadAviso(''); }} />
+                onChange={e => { if (e.target.files?.length) { _addFiles(e.target.files); e.target.value = ''; } }} />
 
-              {/* Aviso de extração parcial (imagem sem OCR) */}
+              {/* File list */}
+              {files.length > 0 && (
+                <div className="space-y-1">
+                  {files.map((f, i) => {
+                    const key = f.name + f.size;
+                    const status = uploadProgress[key];
+                    const ext = f.name.split('.').pop()?.toLowerCase() || '';
+                    const emoji = _EXTS_IMAGEM.has(ext) ? '🖼️' : _EXTS_AUDIO.has(ext) ? '🎵' : '📄';
+                    return (
+                      <div key={key} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs
+                        ${status === 'ok'    ? darkMode ? 'border-secondary/30 bg-secondary/8' : 'border-emerald-200 bg-emerald-50' :
+                          status === 'error' ? darkMode ? 'border-danger/30 bg-danger/8' : 'border-red-200 bg-red-50' :
+                          status === 'loading' ? darkMode ? 'border-primary/30 bg-primary/8' : 'border-violet-200 bg-violet-50' :
+                          darkMode ? 'border-white/10 bg-white/4' : 'border-slate-200 bg-slate-50'}`}>
+                        <span className="shrink-0">{emoji}</span>
+                        <span className={`flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.name}</span>
+                        <span className={`shrink-0 text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {(f.size / 1024).toFixed(0)} KB
+                        </span>
+                        {status === 'loading' && (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                        )}
+                        {status === 'ok' && <span className="text-secondary shrink-0">✓</span>}
+                        {status === 'error' && <span className="text-danger shrink-0">✗</span>}
+                        {!status && (
+                          <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                            className={`p-1 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-500 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'} ${btnFocus}`}
+                            aria-label="Remover arquivo">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Aviso */}
               {uploadAviso && (
-                <p className={`text-[11px] rounded-xl px-3 py-2 leading-relaxed
-                  ${uploadAviso.startsWith('⚠️')
+                <p className={`text-[11px] rounded-xl px-3 py-2 leading-relaxed whitespace-pre-line
+                  ${uploadAviso.startsWith('⚠️') || uploadAviso.includes('⚠️')
                     ? darkMode ? 'bg-warning/10 text-warning' : 'bg-amber-50 text-amber-700 border border-amber-200'
                     : darkMode ? 'bg-danger/10 text-danger' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                   {uploadAviso}
                 </p>
               )}
 
-              <button onClick={() => handleUpload(file)} disabled={saving || !file}
+              {/* Reindexando toast */}
+              {reindexando && (
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-medium
+                  ${darkMode ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-violet-50 text-violet-700 border border-violet-200'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                  Reindexando base de conhecimento…
+                </div>
+              )}
+
+              <button
+                onClick={handleUploadAll}
+                disabled={saving || files.length === 0}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30 ${btnFocus}`}>
-                {saving ? 'Processando...' : 'Fazer upload'}
+                {saving
+                  ? `Processando ${files.length} arquivo${files.length !== 1 ? 's' : ''}…`
+                  : `Confirmar upload${files.length > 1 ? ` (${files.length} arquivos)` : ''}`}
               </button>
             </>
           )}
