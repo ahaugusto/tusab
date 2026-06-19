@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 
@@ -104,6 +104,8 @@ function ChatDrawer({
   canaisExtras,
   setCanaisExtras,
   onIndexar,
+  fontesFixadas,
+  setFontesFixadas,
 }) {
   const { t } = useTranslation();
   const [showRepoModal,     setShowRepoModal]     = useState(false);
@@ -116,6 +118,11 @@ function ChatDrawer({
   const [salvando,          setSalvando]          = useState(false);
   const [showBaseModal,     setShowBaseModal]     = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
+  const [mencaoQuery,       setMencaoQuery]       = useState('');
+  const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
+  const [showMencao,        setShowMencao]        = useState(false);
+  const [mencaoLoading,     setMencaoLoading]     = useState(false);
+  const mencaoStartRef = useRef(-1);
   const textareaRef = useRef(null);
 
   const prevChatInputRef = useRef(chatInput);
@@ -137,6 +144,61 @@ function ChatDrawer({
   const temBase = agentStatus.indexed || canaisIndexados.length > 0;
   const canalAtivo = canalConfigurado || agentStatus.canal_indexado;
   const chatHabilitado = temBase && !!canalAtivo;
+
+  // Handler de @mention: detecta @ no input e busca itens mencionáveis
+  const handleInputChange = async (e) => {
+    const val = e.target.value;
+    setChatInput(val);
+    const cursor = e.target.selectionStart;
+    // Busca @ mais próximo antes do cursor
+    const beforeCursor = val.slice(0, cursor);
+    const atIdx = beforeCursor.lastIndexOf('@');
+    if (atIdx >= 0) {
+      const query = beforeCursor.slice(atIdx + 1);
+      // Só abre dropdown se não tiver espaço após o @
+      if (!query.includes(' ')) {
+        mencaoStartRef.current = atIdx;
+        setMencaoQuery(query);
+        setShowMencao(true);
+        if (canalAtivo && mencaoItens.bases.length === 0 && mencaoItens.documentos.length === 0) {
+          setMencaoLoading(true);
+          try {
+            const r = await fetchMencoes(canalAtivo);
+            setMencaoItens(r.data);
+          } catch { /* silencioso */ }
+          finally { setMencaoLoading(false); }
+        }
+        return;
+      }
+    }
+    setShowMencao(false);
+  };
+
+  const handleSelecionarMencao = (item) => {
+    const start = mencaoStartRef.current;
+    if (start < 0) return;
+    // Já está fixada?
+    const jaFixada = (fontesFixadas || []).some(f => f.id === item.id);
+    if (!jaFixada && setFontesFixadas) {
+      setFontesFixadas(prev => [...prev, item]);
+    }
+    // Remove @query do input
+    const novoTexto = chatInput.slice(0, start) + chatInput.slice(chatInput.indexOf(' ', start + 1) < 0 ? chatInput.length : chatInput.indexOf(' ', start + 1));
+    setChatInput(novoTexto.trim() ? novoTexto : '');
+    setShowMencao(false);
+    mencaoStartRef.current = -1;
+    textareaRef.current?.focus();
+  };
+
+  const itensFiltrados = mencaoQuery
+    ? [
+        ...(mencaoItens.bases || []).filter(b => b.label.toLowerCase().includes(mencaoQuery.toLowerCase())),
+        ...(mencaoItens.documentos || []).filter(d => d.label.toLowerCase().includes(mencaoQuery.toLowerCase())),
+      ]
+    : [
+        ...(mencaoItens.bases || []),
+        ...(mencaoItens.documentos || []),
+      ];
 
   // Conteúdo interno compartilhado entre drawer e modo expandido
   const conteudo = (onFechar) => (<>
@@ -464,14 +526,80 @@ function ChatDrawer({
 
     {/* Input bar */}
     <div className={`p-3 border-t shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+
+      {/* Chips de fontes fixadas */}
+      {fontesFixadas && fontesFixadas.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {fontesFixadas.map(f => (
+            <span key={f.id}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border
+                ${darkMode ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-700'}`}>
+              <span>{f.emoji}</span>
+              <span className="max-w-[100px] truncate">@{f.label}</span>
+              <button
+                onClick={() => setFontesFixadas && setFontesFixadas(prev => prev.filter(x => x.id !== f.id))}
+                className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                <X size={9} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Dropdown de @mention */}
+      <AnimatePresence>
+        {showMencao && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.12 }}
+            className={`mb-1.5 rounded-xl border shadow-lg overflow-hidden max-h-48 overflow-y-auto
+              ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200 shadow-slate-200/60'}`}>
+            {mencaoLoading ? (
+              <div className="flex items-center gap-2 px-3 py-2.5">
+                <Loader2 size={12} className={`animate-spin ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Carregando...</span>
+              </div>
+            ) : itensFiltrados.length === 0 ? (
+              <div className={`px-3 py-2.5 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                Nenhuma base ou documento encontrado.
+              </div>
+            ) : (
+              itensFiltrados.map(item => (
+                <button
+                  key={item.id}
+                  onMouseDown={e => { e.preventDefault(); handleSelecionarMencao(item); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors
+                    ${darkMode ? 'hover:bg-white/8 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>
+                  <span className="text-sm shrink-0">{item.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-medium">@{item.label}</p>
+                    {item.tipo === 'base' && (
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{item.chunks} chunks indexados</p>
+                    )}
+                    {item.tipo === 'documento' && (
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{item.pasta}</p>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
         <textarea
           ref={textareaRef}
           rows={1}
           placeholder={!chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
           value={chatInput}
-          onChange={e => setChatInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), onSend())}
+          onChange={handleInputChange}
+          onKeyDown={e => {
+            if (e.key === 'Escape' && showMencao) { setShowMencao(false); return; }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
+          }}
           disabled={!chatHabilitado || chatLoading}
           autoFocus
           style={{ resize: 'none', overflow: 'hidden' }}
