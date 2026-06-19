@@ -11,7 +11,9 @@ const http       = require('http')
 const fs         = require('fs')
 
 // ─── Resolução de caminhos (dev vs. prod) ──────────────────────────────────
-const IS_PACKED   = app.isPackaged
+// app.isPackaged não está disponível no top-level antes de app.ready;
+// detectamos via process.resourcesPath (só existe em produção empacotada)
+const IS_PACKED   = typeof process.resourcesPath === 'string' && !process.resourcesPath.includes('node_modules')
 const RESOURCES   = IS_PACKED ? process.resourcesPath : path.join(__dirname, '..')
 const BACKEND_DIR = path.join(RESOURCES, IS_PACKED ? 'app'        : '.')
 const PYTHON_EXE  = path.join(RESOURCES, IS_PACKED ? 'python_env' : '..', 'python_env', 'python.exe')
@@ -268,27 +270,7 @@ function stopWatchdog () {
   if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = null }
 }
 
-// IPC: frontend pede reinício do backend
-ipcMain.handle('restart-backend', async () => {
-  stopWatchdog()
-  if (pythonProcess) { try { pythonProcess.kill('SIGTERM') } catch {} pythonProcess = null }
-  await new Promise(r => setTimeout(r, 1000))
-  spawnBackend()
-  try {
-    await waitForBackend(15000)
-    backendDead = false
-    startWatchdog()
-    return { ok: true }
-  } catch {
-    return { ok: false }
-  }
-})
-
 // ─── safeStorage: API keys ────────────────────────────────────────────────
-// Keys ficam no OS keychain (Windows DPAPI / macOS Keychain).
-// Fora do Electron (dev server puro) safeStorage.isEncryptionAvailable() = false
-// — os handlers retornam null graciosamente, o frontend cai no fallback.
-
 const KEYSTORE_PATH = () => path.join(app.getPath('userData'), 'config', 'keystore.json')
 
 function readKeystore () {
@@ -301,30 +283,48 @@ function writeKeystore (store) {
   fs.writeFileSync(p, JSON.stringify(store), 'utf-8')
 }
 
-ipcMain.handle('get-api-key', (_e, provider) => {
-  if (!safeStorage.isEncryptionAvailable()) return null
-  const store = readKeystore()
-  const enc   = store[`apikey_${provider}`]
-  if (!enc) return null
-  try { return safeStorage.decryptString(Buffer.from(enc, 'base64')) } catch { return null }
-})
+function registerIpcHandlers () {
+  // IPC: frontend pede reinício do backend
+  ipcMain.handle('restart-backend', async () => {
+    stopWatchdog()
+    if (pythonProcess) { try { pythonProcess.kill('SIGTERM') } catch {} pythonProcess = null }
+    await new Promise(r => setTimeout(r, 1000))
+    spawnBackend()
+    try {
+      await waitForBackend(15000)
+      backendDead = false
+      startWatchdog()
+      return { ok: true }
+    } catch {
+      return { ok: false }
+    }
+  })
 
-ipcMain.handle('set-api-key', (_e, provider, plaintext) => {
-  if (!safeStorage.isEncryptionAvailable()) return false
-  const enc   = safeStorage.encryptString(plaintext).toString('base64')
-  const store = readKeystore()
-  store[`apikey_${provider}`] = enc
-  writeKeystore(store)
-  return true
-})
+  ipcMain.handle('get-api-key', (_e, provider) => {
+    if (!safeStorage.isEncryptionAvailable()) return null
+    const store = readKeystore()
+    const enc   = store[`apikey_${provider}`]
+    if (!enc) return null
+    try { return safeStorage.decryptString(Buffer.from(enc, 'base64')) } catch { return null }
+  })
 
-ipcMain.handle('delete-api-key', (_e, provider) => {
-  if (!safeStorage.isEncryptionAvailable()) return false
-  const store = readKeystore()
-  delete store[`apikey_${provider}`]
-  writeKeystore(store)
-  return true
-})
+  ipcMain.handle('set-api-key', (_e, provider, plaintext) => {
+    if (!safeStorage.isEncryptionAvailable()) return false
+    const enc   = safeStorage.encryptString(plaintext).toString('base64')
+    const store = readKeystore()
+    store[`apikey_${provider}`] = enc
+    writeKeystore(store)
+    return true
+  })
+
+  ipcMain.handle('delete-api-key', (_e, provider) => {
+    if (!safeStorage.isEncryptionAvailable()) return false
+    const store = readKeystore()
+    delete store[`apikey_${provider}`]
+    writeKeystore(store)
+    return true
+  })
+}
 
 // ─── Janela principal ──────────────────────────────────────────────────────
 async function createWindow () {
@@ -401,6 +401,7 @@ function setupAutoUpdater () {
 
 // ─── Ciclo de vida do app ──────────────────────────────────────────────────
 app.whenReady().then(() => {
+  registerIpcHandlers()
   ensureOllama().catch(e => console.error('[ollama] erro:', e))
   spawnBackend()
   createWindow()
