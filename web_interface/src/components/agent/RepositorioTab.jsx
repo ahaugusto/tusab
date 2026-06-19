@@ -49,7 +49,7 @@ function _fileIsAccepted(file) {
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, openIndexar, onOpenIndexarHandled }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -76,6 +76,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [buscaResultados, setBuscaResultados] = React.useState(null);
   const [buscando,       setBuscando]       = React.useState(false);
   const [showBusca,      setShowBusca]      = React.useState(false);
+  const [showIndexar,    setShowIndexar]    = React.useState(false);
+  const [indexarSel,     setIndexarSel]     = React.useState({});   // { nome: bool }
+  const [indexando,      setIndexando]      = React.useState(false);
   // ─── Project selector ────────────────────────────────────────────────────────
   const [projetos,       setProjetos]       = React.useState([]);
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
@@ -90,6 +93,29 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
   const reloadProjetos = () =>
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
+
+  // Abrir modal de indexação externamente (ex: vindo do chat)
+  React.useEffect(() => {
+    if (openIndexar) {
+      const nomes = (history || []).map(h => h.canal_nome).filter(Boolean);
+      const sel = {};
+      nomes.forEach(n => { sel[n] = true; });
+      setIndexarSel(sel);
+      setShowIndexar(true);
+      onOpenIndexarHandled?.();
+    }
+  }, [openIndexar]);
+
+  const handleIndexarConfirmar = async () => {
+    const selecionados = Object.entries(indexarSel).filter(([, v]) => v).map(([k]) => k);
+    if (selecionados.length === 0 || !onIndexar) return;
+    setIndexando(true);
+    for (const nome of selecionados) {
+      await onIndexar(nome).catch?.(() => {});
+    }
+    setIndexando(false);
+    setShowIndexar(false);
+  };
 
   // Resolve which canal/project name to use for uploads
   const _canalEfetivo = () => projetoSel || canalAtivo || '';
@@ -347,6 +373,19 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               ${darkMode ? 'text-danger/60 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-300 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l16 16M4 20L20 4"/></svg>
             Reset
+          </button>
+          <button
+            onClick={() => {
+              const nomes = (history || []).map(h => h.canal_nome).filter(Boolean);
+              const sel = {};
+              nomes.forEach(n => { sel[n] = true; });
+              setIndexarSel(sel);
+              setShowIndexar(true);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
+              ${darkMode ? 'text-accent border-accent/30 hover:bg-accent/10' : 'text-cyan-700 border-cyan-300 bg-cyan-50 hover:bg-cyan-100'}`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Indexar base
           </button>
           <button onClick={() => { const next = !showAdd_; setShowAdd(next); setUploadAviso(''); if (next) reloadProjetos(); else { setShowNovoProjeto(false); setNovoProjNome(''); setFiles([]); setUploadProgress({}); } }}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
@@ -847,6 +886,76 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
                 {resetando ? 'Resetando…' : 'Resetar tudo'}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>,
+        document.body
+      )}
+
+      {/* Modal: Indexar base */}
+      {showIndexar && ReactDOM.createPortal(
+        <ModalWrapper onClose={() => !indexando && setShowIndexar(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Indexar base de conhecimento">
+          <div className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+            <div>
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Indexar base de conhecimento</h3>
+              <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Selecione os projetos que deseja indexar para o chat</p>
+            </div>
+
+            {/* Selecionar / desmarcar todos */}
+            {(() => {
+              const nomes = (history || []).map(h => h.canal_nome).filter(Boolean);
+              const todos = nomes.length > 0 && nomes.every(n => indexarSel[n]);
+              return (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const sel = {};
+                      nomes.forEach(n => { sel[n] = !todos; });
+                      setIndexarSel(sel);
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
+                      ${todos
+                        ? darkMode ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-violet-50 border-violet-300 text-violet-700'
+                        : darkMode ? 'border-white/10 text-slate-400 hover:border-white/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+                      ${todos ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                      {todos && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </span>
+                    {todos ? 'Desmarcar todos' : 'Selecionar todos'}
+                  </button>
+
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-0.5">
+                    {nomes.length === 0 ? (
+                      <p className={`text-xs text-center py-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum canal extraído ainda.</p>
+                    ) : nomes.map(nome => (
+                      <button key={nome}
+                        onClick={() => setIndexarSel(prev => ({ ...prev, [nome]: !prev[nome] }))}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-all
+                          ${indexarSel[nome]
+                            ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
+                            : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200'}`}>
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+                          ${indexarSel[nome] ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                          {indexarSel[nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </span>
+                        <span className={`text-xs truncate font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>@{nome}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowIndexar(false)} disabled={indexando}
+                className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-40
+                  ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                Cancelar
+              </button>
+              <button onClick={handleIndexarConfirmar} disabled={indexando || Object.values(indexarSel).every(v => !v)}
+                className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30">
+                {indexando ? 'Indexando…' : 'Indexar'}
               </button>
             </div>
           </div>
