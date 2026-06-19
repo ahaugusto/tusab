@@ -30,7 +30,7 @@ import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
 import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
-  cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig,
+  cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
   deleteCanalIndex, openFolder, extrairMensagemErro,
 } from './services/api';
@@ -443,6 +443,9 @@ function App() {
 
   /** Cancels in-progress Drive authentication */
   const handleDriveCancel = () => cancelDriveAuth();
+
+  /** Disconnects Google Drive by removing the stored token */
+  const handleDriveDisconnect = () => disconnectDrive().catch(() => {});
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -1151,11 +1154,25 @@ function App() {
                         Sincronize os arquivos extraídos com o Drive para usar no{' '}
                         <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
                       </p>
-                      <DriveToggle
-                        driveStatus={driveStatus} driveAuthError={status.drive_auth_error}
-                        onAuth={handleDriveAuth} onCancel={() => { handleDriveCancel(); setDriveOpen(false); }}
-                        isRunning={isRunning} darkMode={darkMode} btnFocus={BTN_FOCUS}
-                      />
+                      {status.drive_auth_error && (
+                        <p className={`text-[11px] text-danger flex items-center gap-1`}>
+                          <AlertTriangle size={10} /> {status.drive_auth_error}
+                        </p>
+                      )}
+                      {driveStatus === 'em_progresso' && (
+                        <button onClick={() => { handleDriveCancel(); setDriveOpen(false); }}
+                          className={`text-[11px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${BTN_FOCUS}
+                            ${darkMode ? 'border-white/15 text-slate-400 hover:text-white hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
+                          <XCircle size={11} /> Cancelar autenticação
+                        </button>
+                      )}
+                      {driveStatus === 'autenticado' && (
+                        <button onClick={handleDriveDisconnect}
+                          className={`text-[11px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${BTN_FOCUS}
+                            ${darkMode ? 'border-white/15 text-slate-400 hover:text-danger hover:border-danger/30' : 'border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200'}`}>
+                          <XCircle size={11} /> Desconectar Drive
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
