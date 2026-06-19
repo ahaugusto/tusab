@@ -40,6 +40,9 @@ def run_motor():
             state.stats["status"] = "Mapeando YouTube"
             _reset_stats()
 
+            import time as _time
+            state.extraction_start_time = _time.time()
+
             motor_tusab.tusab_engine(
                 canal_url=state.canal_url,
                 evento_pausa=state.evento_pausa,

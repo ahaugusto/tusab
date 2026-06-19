@@ -382,6 +382,28 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     print(f"   Prefixo: {prefixo}")
     print("=" * 70 + "\n")
 
+    _obs_start_time = time.time()
+    _obs_ram_samples = []
+    _obs_peak_ram_mb = 0.0
+    try:
+        import psutil as _psutil
+        _obs_proc = _psutil.Process(os.getpid())
+        def _obs_ram_mb():
+            try: return _obs_proc.memory_info().rss / 1024 / 1024
+            except: return 0.0
+    except ImportError:
+        _obs_proc = None
+        def _obs_ram_mb(): return 0.0
+
+    def _obs_get_stat(key):
+        try:
+            from tusab_engine.state import state as _s
+            return _s.stats.get(key, 0)
+        except Exception:
+            return 0
+
+    _obs_ram_samples.append(_obs_ram_mb())  # amostra inicial
+
     for d in [canal_youtube_dir, GESTAO_DIR, TEMP_DIR, os.path.join(DATA_DIR, 'config')]:
         os.makedirs(d, exist_ok=True)
 
@@ -764,10 +786,47 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     print("      📁 Transcrições salvas localmente.")
     print("      📊 Banco de dados salvo em: gestao_local/")
 
+    # ── Relatório de observabilidade ─────────────────────────────────────────
+    def _salvar_relatorio_obs(status_final):
+        try:
+            import platform
+            elapsed = time.time() - _obs_start_time
+            ram_final = _obs_ram_mb()
+            peak_ram = max(_obs_ram_samples + [ram_final]) if _obs_ram_samples else ram_final
+            from tusab_engine.storage import GESTAO_DIR as _GDIR
+            obs_path = os.path.join(_GDIR, f"{prefixo}_obs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+            payload = {
+                "tusab_version": "1.0.0",
+                "canal": canal_url,
+                "prefixo": prefixo,
+                "data_inicio": datetime.fromtimestamp(_obs_start_time).isoformat(),
+                "data_fim": datetime.now().isoformat(),
+                "duracao_segundos": round(elapsed, 1),
+                "status_final": status_final,
+                "videos_total": _obs_get_stat("videos_total"),
+                "videos_processados": _obs_get_stat("videos_processed"),
+                "videos_sem_legenda": _obs_get_stat("videos_sem_legenda"),
+                "arquivos_gerados": _obs_get_stat("files_generated"),
+                "ram_inicio_mb": _obs_ram_samples[0] if _obs_ram_samples else 0,
+                "ram_final_mb": round(ram_final, 1),
+                "ram_pico_mb": round(peak_ram, 1),
+                "amostras_ram": len(_obs_ram_samples),
+                "plataforma": platform.platform(),
+                "python": platform.python_version(),
+            }
+            with open(obs_path, 'w', encoding='utf-8') as _f:
+                json.dump(payload, _f, ensure_ascii=False, indent=2)
+            print(f"📈 Relatório de observabilidade salvo: {os.path.basename(obs_path)}")
+        except Exception as _e:
+            print(f"⚠️ Não foi possível salvar relatório de observabilidade: {_e}")
+
     if evento_cancelar and evento_cancelar.is_set():
+        _obs_ram_samples.append(_obs_ram_mb())
+        _salvar_relatorio_obs("interrompido")
         print("\n⚠️ PROCESSO INTERROMPIDO — Dados parciais salvos localmente.")
         return
 
+    _obs_ram_samples.append(_obs_ram_mb())
     print("\n✅ EXTRAÇÃO LOCAL CONCLUÍDA COM SUCESSO!")
 
     # --- 5. SYNC COM DRIVE (opcional, após extração completa) ---
@@ -777,6 +836,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         else:
             print("\n⚠️ [DRIVE PULADO] Google Drive não autenticado.")
         print("   Autentique o Drive e re-execute para sincronizar na nuvem.")
+        _salvar_relatorio_obs("concluido_sem_drive")
         print("\n🚀 PROCESSO Tusab FINALIZADO COM SUCESSO!")
         return
 
@@ -804,9 +864,11 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
             upload_arquivo_drive(service, caminho_readme, id_meta_drive)
 
         print("\n🏆 MISSÃO CUMPRIDA! Base de conhecimento atualizada no Drive.")
+        _salvar_relatorio_obs("concluido_com_drive")
         print("\n🚀 PROCESSO Tusab FINALIZADO COM SUCESSO!")
 
     except Exception as e:
         print(f"\n⚠️ Sync com Drive falhou: {e}")
         print("   Dados estão salvos localmente. Re-execute para tentar sincronizar.")
+        _salvar_relatorio_obs("concluido_drive_falhou")
         print("\n🚀 PROCESSO Tusab FINALIZADO COM SUCESSO!")

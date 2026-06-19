@@ -16,30 +16,16 @@ import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 
 const LOADING_PHRASES = [
-  // Thoth / Tusab
-  'Tusab vem de "Thoth" — deus egípcio da sabedoria, escrita e conhecimento.',
-  'Thoth era o escriba dos deuses. O Tusab é o seu escriba pessoal.',
-  'Os egípcios acreditavam que Thoth inventou a escrita para preservar o saber eterno.',
-  'Thoth era representado com cabeça de íbis — pássaro conhecido por sua memória e precisão.',
-  'O nome hieroglífico de Thoth é "Djehuti". Tusab é sua reencarnação digital.',
-  'Thoth era o guardião dos Registros Akáshicos — o Tusab guarda os seus.',
-  'Segundo os egípcios, Thoth escreveu 42 livros com todo o conhecimento do universo.',
-  'Na mitologia egípcia, Thoth pesava a alma dos mortos com a pena de Maat. Aqui pesamos suas perguntas com BM25.',
-  // Hidratação / pausa
-  'Já se hidratou hoje? Vai lá tomar uma água, eu fico aqui pensando.',
-  'Aproveitando que você vai esperar, levanta e espreguiça. Coluna agradece.',
-  'Que tal respirar fundo três vezes enquanto eu trabalho?',
-  'Este é um bom momento para tomar aquele cafezinho que você estava adiando.',
-  'Dica de produtividade: pausas curtas aumentam o foco. Você está fazendo uma agora.',
-  // IA / RAG
-  'O RAG não alucina achismos — ele só responde com o que está na sua base.',
-  'Com RAG, a IA lê seus documentos antes de responder. Sem chute, sem invenção.',
-  'A diferença entre IA genérica e RAG: um fala sobre o mundo, o outro fala sobre o seu mundo.',
-  'Seu conhecimento privado + poder do LLM = RAG. É exatamente isso que está acontecendo agora.',
-  'RAG significa Retrieval-Augmented Generation — busca primeiro, gera depois.',
-  'Nenhum dado seu sai daqui. A busca é local, a resposta é sua.',
-  'Enquanto modelos genéricos treinam em bilhões de páginas, o Tusab foca só no que você escolheu.',
-  'A IA mais útil não é a que sabe mais — é a que sabe o que é relevante pra você.',
+  'Buscando nos seus documentos…',
+  'Recuperando contexto relevante…',
+  'Consultando a base de conhecimento…',
+  'Ranqueando trechos por relevância…',
+  'Lendo os chunks mais próximos…',
+  'Montando o contexto para o modelo…',
+  'Processando sua pergunta…',
+  'Analisando a base indexada…',
+  'Localizando informações relevantes…',
+  'Preparando a resposta…',
 ];
 
 function useLoadingPhrase(active) {

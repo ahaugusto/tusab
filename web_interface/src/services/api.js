@@ -27,6 +27,9 @@ export function extrairMensagemErro(err) {
 /** Fetches current extraction engine status */
 export const fetchStatus = () => axios.get(`${API_BASE}/status`);
 
+/** Fetches system metrics (RAM, CPU) with history */
+export const fetchMetrics = () => axios.get(`${API_BASE}/metrics`);
+
 /** Fetches agent/RAG status */
 export const fetchAgentStatus = () => axios.get(`${API_BASE}/agent/status`);
 

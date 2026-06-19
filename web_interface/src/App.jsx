@@ -45,6 +45,7 @@ import PostExtractionModal      from './components/extraction/PostExtractionModa
 import OllamaSetup              from './components/agent/OllamaSetup';
 import RepositorioTab           from './components/agent/RepositorioTab';
 import RelatorioTab             from './components/agent/RelatorioTab';
+import MonitorTab               from './components/agent/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
 import ChatDrawer               from './components/chat/ChatDrawer';
 import { DriveToggle }          from './components/sidebar/SidebarContent';
@@ -559,6 +560,7 @@ function App() {
                 { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
                 { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
                 { id: 'relatorio',   icon: BarChart3, label: t('tabs.relatorio')   },
+                { id: 'monitor',     icon: Activity,  label: 'Monitor'             },
                 { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
               ].map(({ id, icon: Icon, label }) => (
                 <button key={id}
@@ -627,6 +629,7 @@ function App() {
                   { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
                   { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
                   { id: 'relatorio',   icon: BarChart3, label: t('tabs.relatorio')   },
+                  { id: 'monitor',     icon: Activity,  label: 'Monitor'             },
                   { id: 'agente',      icon: Settings,  label: t('tabs.agent')       },
                 ].map(({ id, icon: Icon, label }) => (
                   <button key={id}
@@ -684,7 +687,7 @@ function App() {
             <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] -z-10 rounded-full pointer-events-none ${darkMode ? 'bg-accent/5' : 'bg-accent/3'}`} aria-hidden="true" />
 
             {/* Page header */}
-            <header className={`px-4 md:px-6 lg:px-8 py-3 lg:py-4 flex justify-between items-center shrink-0 gap-4 border-b ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
+            <header className={`px-4 md:px-6 lg:px-8 py-3 lg:py-4 flex justify-between items-center shrink-0 gap-4 border-b backdrop-blur-sm ${darkMode ? 'border-white/8 shadow-[0_1px_12px_rgba(0,0,0,0.25)]' : 'border-slate-200 shadow-[0_1px_8px_rgba(0,0,0,0.06)]'}`}>
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu de controle"
                   className={`md:hidden p-2 rounded-xl transition-colors ${darkMode ? 'bg-white/8 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${BTN_FOCUS}`}>
@@ -699,6 +702,17 @@ function App() {
                     <h2 aria-live="polite" aria-atomic="true" className={`text-lg lg:text-2xl font-bold leading-tight ${statusTextColor()}`}>
                       {status.stats.status}
                     </h2>
+                    {isRunning && !isPaused && status.stats.eta_segundos > 0 && (
+                      <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <Loader2 size={9} className="animate-spin" aria-hidden="true" />
+                        {(() => {
+                          const s = status.stats.eta_segundos;
+                          if (s < 60)  return `~${s}s restantes`;
+                          if (s < 3600) return `~${Math.ceil(s/60)}min restantes`;
+                          return `~${(s/3600).toFixed(1)}h restantes`;
+                        })()}
+                      </p>
+                    )}
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                         @{cleanCanalName(canalConfigurado)}
@@ -708,7 +722,7 @@ function App() {
                 ) : (
                   <div>
                     <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), agente: t('tabs.agent') }[activeTab]}
+                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
@@ -754,7 +768,7 @@ function App() {
             {/* ── TAB: EXTRAÇÃO ── */}
             <div id="panel-extracao" role="tabpanel" aria-labelledby="tab-extracao"
               ref={mainScrollRef}
-              className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 space-y-4 custom-scrollbar"
+              className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 space-y-4 custom-scrollbar"
               style={{ display: activeTab === 'extracao' ? undefined : 'none' }}>
 
               {/* ── Canal + Drive + Iniciar ── */}
@@ -969,6 +983,16 @@ function App() {
                 )}
               </AnimatePresence>
 
+              {/* Monitor shortcut — visible during extraction */}
+              {isRunning && (
+                <button onClick={() => setActiveTab('monitor')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'bg-white/4 border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/8' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
+                  <Activity size={12} className="text-sky-400" aria-hidden="true" />
+                  Monitorar consumo de recursos →
+                </button>
+              )}
+
               {/* Stats grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
                 <StatCard icon={Video}    label={t('stats.processed')} value={processedVideos}
@@ -1052,11 +1076,18 @@ function App() {
                         <Pause size={11} aria-hidden="true" />
                         {isPaused ? t('ops.resume') : t('ops.pause')}
                       </button>
-                      <button onClick={handleCancel}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all active:scale-[0.97] border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
-                        <Square size={10} aria-hidden="true" />
-                        {t('ops.cancel')}
-                      </button>
+                      {status.stats.status === 'Cancelando...' ? (
+                        <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-500/30 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          <Loader2 size={10} className="animate-spin" aria-hidden="true" />
+                          Aguardando...
+                        </span>
+                      ) : (
+                        <button onClick={handleCancel}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all active:scale-[0.97] border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
+                          <Square size={10} aria-hidden="true" />
+                          {t('ops.cancel')}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1082,7 +1113,7 @@ function App() {
             {/* ── TAB: REPOSITÓRIO ── */}
             {activeTab === 'repositorio' && (
               <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio"
-                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 space-y-4 custom-scrollbar">
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
 
                 {/* ── Drive toggle — topo ── */}
                 <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -1154,9 +1185,17 @@ function App() {
             {/* ── TAB: RELATÓRIO ── */}
             {activeTab === 'relatorio' && (
               <div id="panel-relatorio" role="tabpanel" aria-labelledby="tab-relatorio"
-                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-4 custom-scrollbar">
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 custom-scrollbar">
                 <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
                   onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
+              </div>
+            )}
+
+            {/* ── TAB: MONITOR ── */}
+            {activeTab === 'monitor' && (
+              <div id="panel-monitor" role="tabpanel" aria-labelledby="tab-monitor"
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
+                <MonitorTab darkMode={darkMode} btnFocus={BTN_FOCUS} />
               </div>
             )}
 
@@ -1164,7 +1203,7 @@ function App() {
             {activeTab === 'agente' && (
               <div id="panel-agente" role="tabpanel" aria-labelledby="tab-agente"
                 ref={agentScrollRef}
-                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 space-y-4 custom-scrollbar">
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 space-y-4 custom-scrollbar">
 
 
 
