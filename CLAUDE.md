@@ -42,13 +42,14 @@ cd electron; npm run dev
 ## Arquitetura em camadas
 
 ```
-api_tusab.py           ← thin entry point (165 linhas); monta app FastAPI + routers
+api_tusab.py           ← thin entry point; monta app FastAPI + routers + migrações on-startup
   │
   ├── tusab_engine/api/          ← routers FastAPI por domínio
   │     router_status.py           GET /status, /drive-auth, /history, /open-folder
-  │     router_extraction.py       POST /set-channel, /start, /pause, /cancel
+  │     router_extraction.py       POST /set-channel, /start, /pause, /cancel, /queue/*
   │     router_agent.py            /agent/* (chat, config, index, ollama, stream)
-  │     router_repositorio.py      /repositorio, /relatorio, /cerebro/*
+  │     router_repositorio.py      /repositorio, /relatorio, /neural/*, /reset-total
+  │     router_exports.py          /export/* (zip, markdown, docx, xlsx, pdf) — Pro
   │
   ├── tusab_engine/motor/        ← extração e Drive
   │     drive.py                   OAuth2 Google Drive + upload (get_drive_service, upload_txt_como_gdoc_seguro)
@@ -63,6 +64,22 @@ api_tusab.py           ← thin entry point (165 linhas); monta app FastAPI + ro
   └── tusab_engine/storage.py    ← paths de dados + IO atômico
 ```
 
+### Estrutura de dados em disco
+
+```
+data/neural/{projeto}/
+  youtube/       ← transcrições .txt extraídas do YouTube
+  documents/     ← PDFs, DOCX e outros docs do repositório
+  texts/         ← textos colados pelo usuário
+  management/    ← CSVs de gestão, summary.json, README, relatório
+data/indexes/    ← índices BM25 serializados por projeto
+data/config/     ← agent_config.json, credentials.json, token.json
+```
+
+**Naming de projetos:** `projeto_nome` é definido pelo usuário no modal de extração.
+Se omitido, deriva do nome do canal YouTube. O nome é sanitizado (`re.sub(r'[<>:"/\\|?*\s]', '_', ...)`).
+Um canal pode ser importado para qualquer projeto — a pasta não fica atrelada ao canal.
+
 **Regra de dependência (acíclica):**
 `api → agent | motor → storage`  — NUNCA importar de `api` dentro de `agent` ou `motor`.
 
@@ -75,10 +92,13 @@ os importam pelo nome antigo, sem breaking change.
 ## Módulos — referência semântica
 
 ### `tusab_engine/storage.py`
-**Tags:** paths, diretórios, dados, IO, atômico, CSV, JSON, cerebro, config, temp, gestao
+**Tags:** paths, diretórios, dados, IO, atômico, CSV, JSON, neural, config, temp, gestao, migração
 **Responsabilidade:** fonte de verdade para todos os caminhos de dados do app.
-**Entrypoints principais:** `obter_caminho_dados()`, `DADOS_DIR`, `CEREBRO_DIR`, `CONFIG_PATH`,
-`salvar_csv_atomico(df, path)`, `salvar_json_atomico(obj, path, indent)`.
+**Entrypoints principais:** `obter_caminho_dados()`, `DADOS_DIR`, `NEURAL_DIR`, `CONFIG_PATH`,
+`salvar_csv_atomico(df, path)`, `salvar_json_atomico(obj, path, indent)`,
+`gestao_canal_dir(prefixo) → str`.
+**Aliases de compatibilidade:** `CEREBRO_DIR = NEURAL_DIR`; `DOCUMENTOS_DIR`, `TEXTOS_DIR` apontam para dentro de `NEURAL_DIR`.
+**Funções de migração (idempotentes):** `migrar_gestao_para_cerebro()`, `migrar_pastas_para_ingles()` — chamadas no startup.
 **Padrão atômico:** write-to-`.tmp` + `os.replace()` — mesmo volume, substituição atômica pelo SO.
 **Override:** `TUSAB_DATA_DIR` env var substitui o root de dados (usado em testes e Electron packaged).
 
@@ -105,13 +125,13 @@ os importam pelo nome antigo, sem breaking change.
 ---
 
 ### `tusab_engine/agent/index.py`
-**Tags:** BM25, indexação, rank_bm25, cache, chunks, corpus, youtube, documentos, textos, canal, prefixo
+**Tags:** BM25, indexação, rank_bm25, cache, chunks, corpus, youtube, documents, texts, canal, prefixo
 **Responsabilidade:** construção e gerenciamento do índice BM25 local.
 **Entrypoints:** `indexar(canal_nome, canal_prefixo, callback, stop_event) → int`, `get_agent_status() → dict`.
 **Cache:** `_bm25_cache: dict` + `_bm25_lock (threading.Lock)` — evita dupla reconstrução quando dois chats usam o mesmo canal simultaneamente.
 **Helpers:** `_index_path(prefixo)`, `_invalidar_cache(prefixo)`, `_carregar_meta_canal(prefixo)`,
 `_get_canal_youtube_dir(prefixo)`, `_get_canal_doc_dirs(prefixo)`, `_enriquecer_documento(texto, tags, desc)`.
-**Corpus:** YouTube (`cerebro/{prefixo}/youtube/`) + documentos + textos + legado (`cerebro/youtube/`).
+**Corpus:** YouTube (`neural/{prefixo}/youtube/`) + docs (`documents/`) + textos (`texts/`) + legado (`neural/youtube/`).
 
 ---
 
@@ -137,13 +157,14 @@ os importam pelo nome antigo, sem breaking change.
 ---
 
 ### `tusab_engine/motor/extraction.py`
-**Tags:** extração, YouTube, yt-dlp, transcrição, VTT, canal, mapeamento, CSV, cerebro, relatório, migração
+**Tags:** extração, YouTube, yt-dlp, transcrição, VTT, canal, mapeamento, CSV, neural, relatório, migração, projeto
 **Responsabilidade:** engine principal de extração de transcrições e geração de base de conhecimento.
-**Entrypoints:** `tusab_engine(canal_url, evento_pausa, evento_cancelar, fontes_filtro)` (função principal),
+**Entrypoints:** `tusab_engine(canal_url, evento_pausa, evento_cancelar, fontes_filtro, projeto_nome)` (função principal),
 `sanitizar_nome(nome)`, `extrair_nome_canal(url)`, `limpar_vtt(path)`, `executar_comando(cmd)`,
 `coletar_meta_canal(url, nome, prefixo)`, `gerar_relatorio_checkup(safe, db_file)`, `gerar_readme(raw, safe)`,
 `migrar_cerebro_txt()`, `migrar_canal_para_subdir(prefixo)`.
 **Controle:** `evento_pausa (threading.Event)` e `evento_cancelar (threading.Event)` — set/clear do router.
+**Projeto:** `projeto_nome` (str, opcional) — se fornecido, usa como prefixo da pasta em vez de derivar do canal.
 **Nota de naming:** a função `tusab_engine()` tem o mesmo nome do pacote — sem conflito porque está em `motor/extraction.py`, não no `__init__.py` do pacote.
 
 ---
@@ -156,10 +177,12 @@ os importam pelo nome antigo, sem breaking change.
 ---
 
 ### `tusab_engine/api/router_extraction.py`
-**Tags:** extração, canal, iniciar, pausar, cancelar, fontes, motor, YouTube
-**Rotas:** `POST /set-channel`, `POST /start`, `POST /pause`, `POST /cancel`.
-**Background:** `run_motor()` — chama `motor_tusab.tusab_engine()` em background task; usa `threading.Thread` para auto-reset de status após 15s.
+**Tags:** extração, canal, iniciar, pausar, cancelar, fontes, motor, YouTube, fila, projeto
+**Rotas:** `POST /set-channel`, `POST /start`, `POST /pause`, `POST /cancel`,
+`POST /queue/add`, `DELETE /queue/clear`, `GET /queue`.
+**Background:** `run_motor()` — loop que processa o canal atual e consome `state.extraction_queue` até esgotá-la; usa `threading.Thread` para auto-reset de status após 15s.
 **Validação:** `_YT_URL_RE` — regex que aceita `/@canal`, `/channel/...`, `/c/...`; rejeita qualquer outra coisa.
+**Projeto:** `ChannelRequest.projeto_nome` e `QueueAddRequest.projeto_nome` — nome do projeto (max 120 chars); sanitizado antes de usar como prefixo de pasta.
 
 ---
 
@@ -174,10 +197,13 @@ os importam pelo nome antigo, sem breaking change.
 ---
 
 ### `tusab_engine/api/router_repositorio.py`
-**Tags:** repositório, cerebro, documentos, textos, upload, PDF, DOCX, XLSX, CSV, manifesto, limpeza, histórico
-**Rotas:** `GET /repositorio`, `GET /relatorio/{canal}`, `POST /cerebro/upload`, `POST /cerebro/texto`,
-`DELETE /cerebro/arquivo/{tipo}/{fid}`, `DELETE /historico/limpar`, `DELETE /cerebro/limpar`.
-**Manifest pattern:** cada subdiretório de docs/textos mantém `_manifest.json` como índice local (atomic write).
+**Tags:** repositório, neural, documents, texts, upload, PDF, DOCX, XLSX, CSV, manifesto, limpeza, histórico, reset
+**Rotas:** `GET /repositorio`, `GET /relatorio/{canal}`,
+`POST /neural/upload`, `POST /neural/texto`,
+`DELETE /neural/arquivo/{tipo}/{fid}`, `DELETE /historico/limpar`,
+`DELETE /neural/limpar` (limpa documentos/textos de um canal), `DELETE /reset-total` (wipe completo).
+**Manifest pattern:** cada subdiretório de docs/texts mantém `_manifest.json` como índice local (atomic write).
+**Aliases:** tipo `"documentos"` → `"documents"`, `"textos"` → `"texts"` no handler DELETE — compatibilidade com clientes legados.
 
 ---
 
@@ -220,11 +246,13 @@ web_interface/src/
 ```
 tests/
   conftest.py               fixture: TUSAB_DATA_DIR → tempdir antes de qualquer import
-  test_api.py               17 testes de integração (TestClient FastAPI)
-  test_confiabilidade.py    6 testes: atômicos + concorrência + índice corrompido/vazio
+  test_api.py               integração (TestClient FastAPI) — rotas /neural/*, /queue/*, /agent/*
+  test_confiabilidade.py    atômicos + concorrência + índice corrompido/vazio
 ```
 
-**23/23 verde.** Para rodar: `.venv\Scripts\python.exe -m pytest tests/ -v`
+**27/27 verde.** Para rodar: `.venv\Scripts\python.exe -m pytest tests/ -v`
+
+**Smoke tests (pre-commit hook):** `python smoke_test.py` — 16 checks contra backend real em porta 8001.
 
 ---
 
@@ -240,6 +268,10 @@ tests/
 | `sub_langs = 'pt'` fixo | Tentativas duplas (pt+en) causavam rate limit 429 no YouTube |
 | Shims na raiz (`motor_tusab.py`, `agent_tusab.py`) | Electron `extraResources.filter` e testes importam pelo nome antigo — zero breaking change |
 | Histórico server-side no chat | Evita payload manipulado pelo cliente injetar contexto falso |
+| `NEURAL_DIR` (não `cerebro/`) | Nomenclatura técnica neutra; `CEREBRO_DIR = NEURAL_DIR` mantém aliases para backward-compat |
+| Subpastas em inglês (`documents/`, `texts/`, `management/`) | Padrão americano independente de idioma da UI; i18n da UI não afeta nomes de pasta |
+| `projeto_nome` desacoplado do canal | Usuário nomeia o repositório; canal pode mudar sem renomear pasta |
+| Aliases de tipo no DELETE `/neural/arquivo` | Clientes antigos passavam `"documentos"`/`"textos"`; backend normaliza antes de deletar |
 
 ---
 
@@ -254,9 +286,11 @@ tests/
 | Mudar como o BM25 indexa | `tusab_engine/agent/index.py` → `indexar()` |
 | Mudar como o chat recupera contexto | `tusab_engine/agent/chat.py` → `_recuperar_contexto()` |
 | Adicionar rota de status/drive | `tusab_engine/api/router_status.py` |
-| Adicionar rota de extração | `tusab_engine/api/router_extraction.py` |
+| Adicionar rota de extração / fila | `tusab_engine/api/router_extraction.py` |
 | Adicionar rota de agente | `tusab_engine/api/router_agent.py` |
-| Adicionar rota de repositório | `tusab_engine/api/router_repositorio.py` |
+| Adicionar rota de repositório / reset | `tusab_engine/api/router_repositorio.py` |
+| Adicionar export Pro (zip/docx/xlsx/pdf) | `tusab_engine/api/router_exports.py` |
+| Mudar nome de projeto na extração | `ExtractionModal.jsx` step 2 → `handleStartConfirm()` em `App.jsx` |
 | Mudar config do agente / provider / Ollama | `web_interface/src/hooks/useAgentConfig.js` |
 | Mudar o pipeline de chat RAG / export | `web_interface/src/hooks/useChatEngine.js` |
 | Mudar como o frontend chama o backend | `web_interface/src/services/api.js` |

@@ -29,7 +29,7 @@ import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
 import {
-  fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
+  fetchHistory, fetchRepositorio, fetchQueue, setChannel, startExtraction, pauseExtraction, queueAdd, queueClear,
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos,
@@ -74,6 +74,8 @@ function App() {
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [projetos,             setProjetos]             = useState([]);
+  const [extractionQueue,      setExtractionQueue]      = useState([]);
+  const [showQueueModal,       setShowQueueModal]       = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
   const [darkMode,         setDarkMode]         = useState(() => {
     const saved = localStorage.getItem('tusab_theme');
@@ -268,6 +270,16 @@ function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  /** Polls /queue every 3s while running to keep the inline queue in sync */
+  useEffect(() => {
+    if (!isRunning) { setExtractionQueue([]); return; }
+    const interval = setInterval(() => {
+      fetchQueue().then(r => setExtractionQueue(r.data.queue || [])).catch(() => {});
+    }, 3000);
+    fetchQueue().then(r => setExtractionQueue(r.data.queue || [])).catch(() => {});
+    return () => clearInterval(interval);
+  }, [isRunning]);
 
   /** Polls /status every 2 seconds (pauses when tab hidden) */
   useEffect(() => {
@@ -547,6 +559,70 @@ function App() {
           <PostExtractionModal key="post-modal" onClose={() => setShowPostModal(false)}
             driveStatus={driveStatus} agentConfigured={agentStatus.configured}
             onGoToAgent={() => setActiveTab('agente')} onDriveAuth={handleDriveAuth} darkMode={darkMode} />
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal de gerência de fila ── */}
+      <AnimatePresence>
+        {showQueueModal && (
+          <motion.div
+            key="queue-modal"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowQueueModal(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={e => e.stopPropagation()}
+              className={`rounded-2xl p-5 max-w-sm w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Fila de extração</h2>
+                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                    {extractionQueue.length === 0 ? 'Fila vazia.' : `${extractionQueue.length} ${extractionQueue.length === 1 ? 'canal aguardando' : 'canais aguardando'}`}
+                  </p>
+                </div>
+                <button onClick={() => setShowQueueModal(false)}
+                  className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'} ${BTN_FOCUS}`}
+                  aria-label="Fechar">
+                  <X size={16} />
+                </button>
+              </div>
+              {extractionQueue.length === 0 ? (
+                <p className={`text-center text-xs py-6 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum canal na fila.</p>
+              ) : (
+                <div className="space-y-1 mb-4 max-h-72 overflow-y-auto custom-scrollbar">
+                  {extractionQueue.map((item, i) => {
+                    const m = item.url?.match(/@([^/?]+)/);
+                    return (
+                      <div key={i} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${darkMode ? 'border-white/8 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+                        <span className={`text-[10px] font-mono w-4 text-center shrink-0 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                            {item.projeto_nome || `@${m?.[1] || '—'}`}
+                          </p>
+                          {item.projeto_nome && m && (
+                            <p className={`text-[10px] truncate ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{m[1]}</p>
+                          )}
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                          {(item.fontes || []).length > 0 ? (item.fontes || []).length + ' tipos' : 'todos'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {extractionQueue.length > 0 && (
+                <button
+                  onClick={() => { queueClear(); setExtractionQueue([]); }}
+                  className={`w-full py-2.5 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'border-danger/30 text-danger hover:bg-danger/10' : 'border-red-200 text-red-600 hover:bg-red-50'}`}>
+                  Limpar fila
+                </button>
+              )}
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -886,13 +962,64 @@ function App() {
                     className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                       disabled:opacity-40 disabled:cursor-not-allowed
                       ${isRunning
-                        ? 'bg-secondary/20 text-secondary hover:bg-secondary/30 shadow shadow-secondary/20'
+                        ? 'bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30'
                         : 'bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20'} ${BTN_FOCUS}`}>
                     <Zap size={13} aria-hidden="true" />
-                    {isRunning ? t('ops.queue_add') : t('ops.start')}
+                    {isRunning ? 'Extrair Outro' : t('ops.start')}
                   </button>
                 </div>
               </div>
+
+              {/* ── Fila de extração inline ── */}
+              <AnimatePresence>
+                {isRunning && extractionQueue.length > 0 && (
+                  <motion.div
+                    key="queue-inline"
+                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                    className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" aria-hidden="true" />
+                      <span className={`text-[11px] font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        Na fila · {extractionQueue.length} {extractionQueue.length === 1 ? 'canal' : 'canais'}
+                      </span>
+                      <button
+                        onClick={() => setShowQueueModal(true)}
+                        className={`text-[10px] font-semibold transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-200' : 'text-slate-400 hover:text-slate-700'} ${BTN_FOCUS}`}>
+                        Gerenciar →
+                      </button>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {extractionQueue.slice(0, 3).map((item, i) => {
+                        const m = item.url?.match(/@([^/?]+)/);
+                        const nome = item.projeto_nome || (m ? m[1] : item.url?.split('/').pop()) || '—';
+                        return (
+                          <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? '' : ''}`}>
+                            <span className={`text-[10px] font-mono w-4 shrink-0 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{i + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                                {item.projeto_nome ? item.projeto_nome : `@${m?.[1] || '—'}`}
+                              </p>
+                              {item.projeto_nome && m && (
+                                <p className={`text-[10px] truncate ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{m[1]}</p>
+                              )}
+                            </div>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                              {(item.fontes || []).length > 0 ? (item.fontes || []).length + ' tipos' : 'todos'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {extractionQueue.length > 3 && (
+                        <button
+                          onClick={() => setShowQueueModal(true)}
+                          className={`w-full px-4 py-2 text-[10px] font-bold text-center transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/4' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'} ${BTN_FOCUS}`}>
+                          + {extractionQueue.length - 3} mais canais na fila →
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Progress bar */}
               <AnimatePresence>
