@@ -163,7 +163,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         } else {
           setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'ok' }));
           Analytics.documentoAdicionado(f.name.split('.').pop()?.toLowerCase() || 'arquivo');
-          if (data?.aviso) avisos.push(`⚠️ ${f.name}: imagem sem extração de texto.`);
+          if (data?.aviso) avisos.push(data.aviso.startsWith('✅') ? data.aviso : `⚠️ ${f.name}: ${data.aviso}`);
         }
       } catch {
         setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'error' }));
@@ -627,9 +627,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               {/* Aviso */}
               {uploadAviso && (
                 <p className={`text-[11px] rounded-xl px-3 py-2 leading-relaxed whitespace-pre-line
-                  ${uploadAviso.startsWith('⚠️') || uploadAviso.includes('⚠️')
-                    ? darkMode ? 'bg-warning/10 text-warning' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : darkMode ? 'bg-danger/10 text-danger' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                  ${uploadAviso.startsWith('✅')
+                    ? darkMode ? 'bg-secondary/10 text-secondary border border-secondary/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : uploadAviso.includes('⚠️')
+                      ? darkMode ? 'bg-warning/10 text-warning' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : darkMode ? 'bg-danger/10 text-danger' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                   {uploadAviso}
                 </p>
               )}

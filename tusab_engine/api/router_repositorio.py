@@ -163,6 +163,180 @@ _MAX_AUDIO   = 100 * 1024 * 1024  # 100 MB
 _MAX_DOC     = 50 * 1024 * 1024   # 50 MB
 
 
+# ── Parsers de formatos especiais ─────────────────────────────────────────────
+
+def _detectar_formato_especial(texto: str, filename: str) -> str | None:
+    """Detecta se o texto é um export de WhatsApp ou transcrição de reunião.
+    Retorna: 'whatsapp_android' | 'whatsapp_ios' | 'otter' | 'zoom' | 'teams' | None
+    """
+    linhas = texto.strip().splitlines()
+    if not linhas:
+        return None
+
+    cabecalho = '\n'.join(linhas[:5]).lower()
+    nome_lower = filename.lower()
+
+    # Zoom — primeira linha típica "Meeting ID:" ou header CSV com colunas Zoom
+    if 'meeting id:' in cabecalho or 'zoom meeting' in cabecalho:
+        return 'zoom'
+    if 'zoom_' in nome_lower or nome_lower.startswith('gmt'):
+        # arquivos Zoom têm padrão GMT20240101_... ou zoom_...
+        if re.search(r'\d{2}:\d{2}:\d{2}', linhas[0] if linhas else ''):
+            return 'zoom'
+
+    # Otter.ai — "Otter.ai" no cabeçalho ou padrão "Speaker X  HH:MM"
+    if 'otter.ai' in cabecalho or 'otter' in nome_lower:
+        return 'otter'
+
+    # Teams — padrão "Nome Sobrenome   HH:MM" ou header com "Microsoft Teams"
+    if 'microsoft teams' in cabecalho or 'teams meeting' in cabecalho:
+        return 'teams'
+
+    # WhatsApp Android: "[DD/MM/AAAA, HH:MM:SS] Nome: mensagem"
+    # ou "DD/MM/AA HH:MM - Nome: mensagem"
+    wapp_android = re.compile(
+        r'^\[?\d{1,2}/\d{1,2}/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\]?\s*[-–]\s*.+?:',
+        re.MULTILINE
+    )
+    if wapp_android.search('\n'.join(linhas[:20])):
+        return 'whatsapp_android'
+
+    # WhatsApp iOS: "DD/MM/AAAA HH:MM - Nome: mensagem"
+    wapp_ios = re.compile(
+        r'^\d{1,2}/\d{1,2}/\d{2,4}\s+\d{1,2}:\d{2}\s*[-–]\s*.+?:',
+        re.MULTILINE
+    )
+    if wapp_ios.search('\n'.join(linhas[:20])):
+        return 'whatsapp_ios'
+
+    return None
+
+
+def _parsear_whatsapp(texto: str, formato: str) -> str:
+    """Estrutura export de WhatsApp por dia e participante."""
+    if formato == 'whatsapp_android':
+        # "[DD/MM/AAAA, HH:MM:SS] Nome: msg"  ou  "DD/MM/AA HH:MM - Nome: msg"
+        padrao = re.compile(
+            r'^\[?(\d{1,2}/\d{1,2}/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*[-–]\s*([^:]+):\s*(.+)',
+            re.MULTILINE
+        )
+    else:
+        # "DD/MM/AAAA HH:MM - Nome: msg"
+        padrao = re.compile(
+            r'^(\d{1,2}/\d{1,2}/\d{2,4})\s+(\d{1,2}:\d{2})\s*[-–]\s*([^:]+):\s*(.+)',
+            re.MULTILINE
+        )
+
+    mensagens = padrao.findall(texto)
+    if not mensagens:
+        return texto  # fallback: retorna original
+
+    por_dia: dict = {}
+    for data, hora, remetente, conteudo in mensagens:
+        remetente = remetente.strip()
+        conteudo  = conteudo.strip()
+        # ignora mensagens de sistema (ex: "Você foi adicionado")
+        if not conteudo or conteudo.startswith('‎'):
+            continue
+        por_dia.setdefault(data, []).append(f"[{hora}] {remetente}: {conteudo}")
+
+    if not por_dia:
+        return texto
+
+    blocos = []
+    participantes = set()
+    for msg in mensagens:
+        participantes.add(msg[2].strip())
+
+    blocos.append(f"Conversa do WhatsApp")
+    blocos.append(f"Participantes: {', '.join(sorted(participantes))}")
+    blocos.append(f"Total de mensagens: {len(mensagens)}")
+    blocos.append("-" * 60)
+
+    for data, msgs in por_dia.items():
+        blocos.append(f"\n--- {data} ---")
+        blocos.extend(msgs)
+
+    return '\n'.join(blocos)
+
+
+def _parsear_reuniao(texto: str, formato: str) -> str:
+    """Estrutura transcrição de reunião (Zoom, Otter, Teams) com falantes."""
+    linhas = texto.splitlines()
+
+    if formato == 'zoom':
+        # Formato Zoom VTT: "Nome Sobrenome\nHH:MM:SS --> HH:MM:SS\nTexto"
+        # Ou formato Zoom TXT simples: "HH:MM:SS Nome Sobrenome: texto"
+        padrao_simples = re.compile(r'^(\d{2}:\d{2}:\d{2})\s+(.+?):\s*(.+)')
+        blocos = []
+        for linha in linhas:
+            m = padrao_simples.match(linha.strip())
+            if m:
+                hora, falante, fala = m.groups()
+                blocos.append(f"[{hora}] {falante.strip()}: {fala.strip()}")
+            elif linha.strip() and not re.match(r'^\d{2}:\d{2}:\d{2}\s*-->', linha):
+                blocos.append(linha)
+        return '\n'.join(blocos) if blocos else texto
+
+    elif formato == 'otter':
+        # Otter: "Nome Sobrenome  HH:MM\nTexto da fala"
+        padrao_falante = re.compile(r'^(.+?)\s{2,}(\d{1,2}:\d{2})\s*$')
+        blocos = []
+        i = 0
+        while i < len(linhas):
+            m = padrao_falante.match(linhas[i].strip())
+            if m and i + 1 < len(linhas):
+                falante, hora = m.groups()
+                fala_linhas = []
+                i += 1
+                while i < len(linhas) and not padrao_falante.match(linhas[i].strip()):
+                    if linhas[i].strip():
+                        fala_linhas.append(linhas[i].strip())
+                    i += 1
+                if fala_linhas:
+                    blocos.append(f"[{hora}] {falante.strip()}: {' '.join(fala_linhas)}")
+            else:
+                if linhas[i].strip():
+                    blocos.append(linhas[i])
+                i += 1
+        return '\n'.join(blocos) if blocos else texto
+
+    elif formato == 'teams':
+        # Teams: "Nome Sobrenome   HH:MM\nTexto" (similar ao Otter)
+        padrao_falante = re.compile(r'^(.+?)\s{3,}(\d{1,2}:\d{2}(?::\d{2})?)\s*$')
+        blocos = []
+        i = 0
+        while i < len(linhas):
+            m = padrao_falante.match(linhas[i].strip())
+            if m and i + 1 < len(linhas):
+                falante, hora = m.groups()
+                fala_linhas = []
+                i += 1
+                while i < len(linhas) and not padrao_falante.match(linhas[i].strip()):
+                    if linhas[i].strip():
+                        fala_linhas.append(linhas[i].strip())
+                    i += 1
+                if fala_linhas:
+                    blocos.append(f"[{hora}] {falante.strip()}: {' '.join(fala_linhas)}")
+            else:
+                if linhas[i].strip():
+                    blocos.append(linhas[i])
+                i += 1
+        return '\n'.join(blocos) if blocos else texto
+
+    return texto
+
+
+def _processar_formato_especial(texto: str, filename: str) -> tuple[str, str | None]:
+    """Detecta e processa formato especial. Retorna (texto_processado, tipo_detectado)."""
+    fmt = _detectar_formato_especial(texto, filename)
+    if fmt in ('whatsapp_android', 'whatsapp_ios'):
+        return _parsear_whatsapp(texto, fmt), fmt
+    elif fmt in ('zoom', 'otter', 'teams'):
+        return _parsear_reuniao(texto, fmt), fmt
+    return texto, None
+
+
 def _extrair_imagem(conteudo_bytes: bytes, filename: str) -> str:
     """Extrai texto de imagem: tenta Ollama multimodal, fallback Tesseract OCR."""
     import io, base64
@@ -317,7 +491,17 @@ async def cerebro_upload(
             else:
                 texto = texto_raw
         elif ext in (".txt", ".md"):
-            texto = conteudo_bytes.decode("utf-8", errors="replace")
+            texto_raw = conteudo_bytes.decode("utf-8", errors="replace")
+            texto, fmt_especial = _processar_formato_especial(texto_raw, arquivo.filename)
+            if fmt_especial:
+                _LABEL = {
+                    'whatsapp_android': 'WhatsApp (Android)',
+                    'whatsapp_ios':     'WhatsApp (iOS)',
+                    'zoom':             'Zoom',
+                    'otter':            'Otter.ai',
+                    'teams':            'Microsoft Teams',
+                }
+                aviso_extracao = f"✅ Formato detectado: {_LABEL.get(fmt_especial, fmt_especial)} — estrutura aplicada automaticamente."
         elif eh_imagem:
             try:
                 texto = _extrair_imagem(conteudo_bytes, arquivo.filename)
