@@ -2,7 +2,7 @@
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
 **Documento-base:** [Relatório de Produto 360 — Junho 2026](Relatório%20de%20Produto%20360%20—%20Junho%202026.md)
-**Criado em:** 11 de junho de 2026 · **Última atualização:** 13 de junho de 2026
+**Criado em:** 11 de junho de 2026 · **Última atualização:** 19 de junho de 2026
 
 ---
 
@@ -70,9 +70,24 @@ resolvido e por quê. Cada item concluído ganha três registros:
 | ○ | Keychain para chaves de API (keytar) | — |
 | ○ | Logging estruturado | — |
 | ○ | Servidor MCP | — |
-| ○ | Atualização automática da base + evição LRU do cache BM25 | — |
+| ◐ | Atualização automática da base + evição LRU do cache BM25 | 19/06/2026 |
 
-### Bônus (achados fora da matriz, corrigidos no caminho)
+### Bônus (achados fora da matriz, implementados no caminho)
+
+| Status | Item | Data |
+|--------|------|------|
+| ✅ | Chat stats persistentes por projeto (`_chat_stats.json` + `/agent/chat-stats`) | 19/06/2026 |
+| ✅ | Visão Geral — inventário completo com KPIs, filtros e suporte a imagens/áudios | 19/06/2026 |
+| ✅ | IndexarModal reescrita — busca, scroll, contagem, tamanho adequado para 100+ bases | 19/06/2026 |
+| ✅ | Cancelamento com fila — modal pergunta continuar ou descartar; backend não auto-limpa | 19/06/2026 |
+| ✅ | Reset total corrigido — path errado de índices, navegação para home, toast confirmação | 19/06/2026 |
+| ✅ | Periodicidade Pro — sub-aba em Extração com hero, tabela preview e tag PRO | 19/06/2026 |
+| ✅ | GuideModal — nova aba "Atalhos de teclado" com grupos e componente Kbd | 19/06/2026 |
+| ✅ | HomeScreen — cards "Extrair conteúdo (YouTube)" e "Incluir conteúdo (Local)" | 19/06/2026 |
+| ✅ | Admin simplificada — "Limpar" saiu da sidebar; periodicidade movida para Extração | 19/06/2026 |
+| ✅ | Filtro de playlist IDs na extração (IDs ≠ 11 chars ou prefixo PL/UU/FL/RD/OL) | 19/06/2026 |
+
+### Bônus originais (achados fora da matriz, corrigidos no caminho)
 
 | Status | Item | Data |
 |--------|------|------|
@@ -371,6 +386,66 @@ Antes, fechar um modal pela tecla Esc dependia de cada tela ter implementado iss
 
 ---
 
+---
+
+### 2.11 ✅ Visão Geral, Reset fix, Periodicidade Pro e UX — 19/06/2026
+
+**Por que foi feito:** O produto estava crescendo em dados (YouTube, docs, imagens, áudios) mas não tinha uma tela que mostrasse o inventário completo. O reset total tinha um bug crítico de path que deixava índices BM25 intactos mesmo após limpar. A atualização automática de canais precisava de um ponto de entrada na UI antes de ser implementada no backend.
+
+**O que foi feito:**
+
+*Visão Geral (VisaoGeralTab):*
+- [x] Reescrita completa: 5 KPIs (Projetos, Arquivos, Chunks BM25, Vídeos, Interações)
+- [x] Suporte a imagens e áudios além de YouTube/docs/textos — `subtipoDoc()` classifica por extensão
+- [x] Cabeçalhos de coluna acessíveis (texto + emoji, não só emoji)
+- [x] Projetos aparecem mesmo sem arquivos .txt — contagem via `videos_mapeados` do CSV
+- [x] 6 filtros: Todos, YouTube, Docs, Imagens, Áudios, Textos
+- [x] Card "Relatório" substituído por "Visão Geral" na HomeScreen
+
+*Chat stats persistentes:*
+- [x] `_atualizar_chat_stats()` grava `_chat_stats.json` por projeto em `management/`
+- [x] `GET /agent/chat-stats` retorna stats acumuladas por projeto (perguntas, refs usadas)
+- [x] `fetchChatStats()` integrado na Visão Geral
+
+*IndexarModal:*
+- [x] Extraída como componente separado de `RepositorioTab`
+- [x] `max-w-lg`, altura `min(80vh, 640px)`, layout flex com header/footer fixos
+- [x] Campo de busca com auto-focus; "Selecionar todos" escopo filtrado; badge YouTube; botão com contagem
+
+*Cancelamento com fila:*
+- [x] Backend: `run_motor()` não limpa mais `extraction_queue` no cancelamento
+- [x] Frontend: modal pergunta "Continuar fila" ou "Cancelar e limpar fila" quando há itens na fila
+
+*Reset total — bug crítico corrigido:*
+- [x] Backend: path `DADOS_DIR + "agent_index"` → `INDEX_DIR` (era `Tusab/agent_index` em vez de `Tusab/data/agent_index`)
+- [x] Backend: limpa `state.stats`, `state.logs`, `canal_url`, `extraction_queue`, `chat_histories` em memória
+- [x] Frontend: `prevExtractionStatus.current = ''` e `prevIsRunningRef.current = false` antes de zerar estado
+- [x] Frontend: `setShowHome(true)` navega para a home + `setProgressToast` exibe "Todos os dados foram apagados"
+- [x] Frontend: botão "Limpar" removido da sidebar — exclusivo na aba Admin
+
+*Periodicidade Pro (sub-aba de Extração):*
+- [x] Nova sub-aba "Periodicidade" com badge `PRO` no switcher de sub-abas
+- [x] Hero card: descrição da feature, chips das características, link para tusab.solutions
+- [x] Tabela preview: lista canais extraídos com frequência mockada e toggle desabilitado
+- [x] Card de Periodicidade removido da aba Admin (estava como "Em breve")
+
+*GuideModal:*
+- [x] Nova aba "Atalhos de teclado" com grupos Chat e Navegação
+- [x] Componente `Kbd` estilizado para exibir teclas
+- [x] Shift+C (abrir chat), Esc (fechar chat), Shift+E/R/B/V/M/I/A (navegação)
+
+*HomeScreen:*
+- [x] Card 1: "Extrair conteúdo" + sub-badge "YouTube"
+- [x] Card 2: "Incluir conteúdo" + sub-badge "Local"
+
+**Explicação técnica:**
+O bug do reset era silencioso: `os.path.join(DADOS_DIR, "agent_index")` produzia `Tusab\agent_index` — pasta inexistente — então o loop de deleção nunca encontrava arquivos e o `except Exception: pass` engolia o erro. A correção usa diretamente `INDEX_DIR` de `storage.py` (`Tusab\data\agent_index`). O padrão de refs (`prevExtractionStatus`, `prevIsRunningRef`) era necessário porque os effects do React reagem à mudança de estado — sem zerar os refs antes de atualizar o estado, o effect de "extração finalizou" poderia reativar o painel de status com os valores antigos antes do próximo render. A sub-aba Periodicidade foi implementada como UI pura (sem backend) marcada com PRO — o backend já tem o `AutoUpdateConfigRequest` e as rotas `/auto-update/*` implementadas em `router_extraction.py`, aguardando apenas o scheduler (APScheduler ou similar).
+
+**Explicação simples:**
+A Visão Geral virou o painel de controle completo do Tusab: mostra tudo que foi indexado, quantas perguntas foram feitas em cada projeto, e filtra por tipo de arquivo. O reset total parava de funcionar silenciosamente — limpava os arquivos mas deixava o "catálogo" intacto, então os projetos continuavam aparecendo. Agora apaga tudo, volta para a tela inicial e confirma com um aviso verde. A aba de Periodicidade mapeia a feature de atualização automática para os usuários Pro — deixa claro o que vai existir, sem quebrar nada no produto atual.
+
+---
+
 ## 3. Histórico de sessões
 
 | Data | Sessão | Itens |
@@ -381,17 +456,35 @@ Antes, fechar um modal pela tecla Esc dependia de cada tela ter implementado iss
 | 12/06/2026 | Smoke test Electron dev mode | Diagnóstico ELECTRON_RUN_AS_NODE=1 (VS Code define esta var que faz Electron rodar como Node.js puro, sem browser process) · fix em build.ps1 · smoke test dev mode ✅ (Electron vivo 8s+) |
 | 12/06/2026 | Setup empacotamento + smoke test packaged | python_env/ (Python 3.12.10 + 76 pacotes) ✅ · bin/yt-dlp.exe ✅ · build.ps1 encoding fix (UTF-8→UTF-16 LE) ✅ · build completo --dir ✅ · tusab.exe packaged smoke test HTTP 200 em 2s ✅ |
 | 13/06/2026 | P1: ModalWrapper + NSIS + toast erros | ModalWrapper (focus trap + Escape + backdrop, 7 modais + 2 portals) ✅ · Toast de erro (4 ações silenciosas) ✅ · NSIS installer (tusab Setup 2.0.0.exe) ✅ · logo dark mode corrigida ✅ · onboarding tela 1 refinada ✅ |
+| 15–19/06/2026 | Freemium groundwork + UX | Pro groundwork (exports zip/docx/xlsx/pdf) · ProSnackbar · canal limit · repositório drag-and-drop + upload imagens · barra de busca avançada · relatório com filtros/views · chat textarea · drive disconnect · Visão Geral v1 |
+| 19/06/2026 | Visão Geral v2 + Reset fix + Periodicidade Pro | Visão Geral: KPIs, imagens/áudios, acessibilidade, videos_mapeados ✅ · IndexarModal: busca + scroll ✅ · Cancelamento com fila: modal fork ✅ · Reset total: path fix (INDEX_DIR), home nav + toast ✅ · Chat stats persistentes (_chat_stats.json) ✅ · Periodicidade: sub-aba Extração com hero Pro + tabela preview ✅ · Admin: Limpar saiu da sidebar ✅ · HomeScreen cards renomeados ✅ · GuideModal: aba atalhos ✅ · 15/15 smoke tests ✅ |
 
 ---
 
 ## 4. Próximo alvo sugerido
 
-**Todos os P0 e todos os P1 estão concluídos.** O produto está pronto para distribuição controlada no Windows.
+**P0 e P1 concluídos. Freemium groundwork implementado. Site publicado em tusab.solutions.**
 
-Próximos passos são P2 (go-to-market, sem código):
-1. **Post no LinkedIn** — divulgação inicial, coleta de interesse
-2. **Landing page mínima** — página de produto para leads
-3. **OAuth em produção** — liberado pela política de privacidade já aprovada
-4. **GitHub Releases** — disponibilizar o `tusab Setup 2.0.0.exe` publicamente
-5. **INPI** — registro de marca (em andamento com contadora)
-6. **Lemon Squeezy** — pagamentos após validação de preço com primeiros clientes
+### Próximos passos técnicos (por prioridade)
+
+**Código — Alta prioridade:**
+1. **Periodicidade Pro — backend** — scheduler real (APScheduler ou `schedule`) que dispara `tusab_engine()` nos horários configurados por canal; config já persistida via `/auto-update/config`
+2. **Refatoração App.jsx** (P3) — extrair abas como componentes autônomos; App.jsx está com ~2 100 linhas
+3. **Keychain para API keys** (P3) — `keytar` para armazenar chaves de forma segura no sistema operacional
+
+**Código — Média prioridade:**
+4. **Sidebar — ícone Agente** Settings→Wrench + item Admin com Settings
+5. **Chat — sobreposição botão vs scroll-to-top** — z-index/posição
+6. **Admin — Notificações do sistema** — alertas de disco, versão nova, índice desatualizado
+
+**Go-to-market (P2, sem código):**
+1. **OAuth em produção** — liberado pela política de privacidade já aprovada
+2. **GitHub Releases** — disponibilizar o instalador publicamente
+3. **INPI** — registro de marca (em andamento)
+4. **Lemon Squeezy** — pagamentos após validação de preço com primeiros clientes
+
+### Riscos mapeados para a feature de Periodicidade
+- **Scheduler no Electron:** APScheduler em thread separada pode conflitar com o shutdown do uvicorn — usar `atexit` ou `lifespan` do FastAPI para cleanup seguro
+- **Múltiplas extrações simultâneas:** o `run_motor()` atual é single-threaded (usa `state.evento_cancelar`); o scheduler precisaria enfileirar (via `extraction_queue`) em vez de disparar diretamente
+- **Notificações desktop no Windows:** requer `win10toast` ou Electron's `Notification` API — o backend não tem acesso direto ao desktop; melhor acionar via IPC Electron
+- **Sem risco de breaking change:** as rotas `/auto-update/*` já existem e o frontend já chama `saveAutoUpdateConfig`; a feature é puramente aditiva
