@@ -127,7 +127,7 @@ def _expandir_query(pergunta: str, config: dict) -> list:
 
 # ── Recuperação BM25 ──────────────────────────────────────────────────────────
 
-def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None) -> list:
+def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None) -> list:
     from rank_bm25 import BM25Okapi
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
@@ -167,17 +167,33 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     import numpy as np
 
-    def _scores_para_queries(bm25_obj, qs):
-        """Roda BM25 para cada query e retorna a média dos scores."""
-        all_s = [bm25_obj.get_scores(q.lower().split()) for q in qs]
-        return np.mean(all_s, axis=0) if len(all_s) > 1 else all_s[0]
+    # Separa fontes_fixadas em bases (@canal) e arquivos individuais
+    bases_fixadas   = [f[1:] for f in (fontes_fixadas or []) if f.startswith('@')]
+    arquivos_fixados = [f for f in (fontes_fixadas or []) if not f.startswith('@')]
 
-    scores  = _scores_para_queries(cached['bm25'], queries)
-    top_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:n]
+    # Filtra chunks pelos arquivos fixados (se houver)
+    chunks_ativos = cached['chunks']
+    if arquivos_fixados:
+        chunks_ativos = [c for c in chunks_ativos if c.get('arquivo', '') in arquivos_fixados]
+
+    def _scores_para_queries(bm25_obj, qs, indices_ativos):
+        """Roda BM25 para os índices ativos e retorna scores mapeados."""
+        all_s = [bm25_obj.get_scores(q.lower().split()) for q in qs]
+        scores_full = np.mean(all_s, axis=0) if len(all_s) > 1 else all_s[0]
+        return scores_full
+
+    scores_full = _scores_para_queries(cached['bm25'], queries, [])
+
+    # Aplica filtragem: usa só os índices dos chunks ativos
+    if arquivos_fixados and chunks_ativos:
+        chunk_indices = [i for i, c in enumerate(cached['chunks']) if c.get('arquivo', '') in arquivos_fixados]
+        top_idx = sorted(chunk_indices, key=lambda i: scores_full[i], reverse=True)[:n]
+    else:
+        top_idx = sorted(range(len(scores_full)), key=lambda i: scores_full[i], reverse=True)[:n]
 
     resultados = [
-        {**cached['chunks'][i], 'score': round(float(scores[i]), 3), 'canal': canal_nome}
-        for i in top_idx if scores[i] > 0
+        {**cached['chunks'][i], 'score': round(float(scores_full[i]), 3), 'canal': canal_nome}
+        for i in top_idx if scores_full[i] > 0
     ]
 
     if canais_extras:
@@ -199,7 +215,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                         corpus_e = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks_e]
                         _bm25_cache[prefixo_extra] = {'chunks': chunks_e, 'bm25': BM25Okapi(corpus_e), 'mtime': mtime_e}
                     cached_e = _bm25_cache[prefixo_extra]
-                scores_e = _scores_para_queries(cached_e['bm25'], queries)
+                scores_e = _scores_para_queries(cached_e['bm25'], queries, [])
                 top_e = sorted(range(len(scores_e)), key=lambda i: scores_e[i], reverse=True)[:3]
                 for i in top_e:
                     if scores_e[i] > 0:
@@ -306,14 +322,14 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
 
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
-def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False) -> dict:
+def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None) -> dict:
     config   = carregar_config()
     provider = config.get('provider', '')
     if not provider or (not _api_key_valida(config) and provider != 'ollama'):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
     n_chunks = 4 if config.get('provider') == 'ollama' else 6
-    contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras)
+    contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas)
     if not contexto:
         return {
             'resposta': 'Não encontrei conteúdo relevante para essa pergunta no índice do canal.',
@@ -405,7 +421,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
 # ── Chat (streaming) ──────────────────────────────────────────────────────────
 
-def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False):
+def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None):
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
     config = carregar_config()
     if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') != 'ollama'):
@@ -414,7 +430,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
 
     try:
         n_chunks = 4 if config.get('provider') == 'ollama' else 6
-        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras)
+        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas)
     except Exception as e:
         yield json.dumps({'error': str(e)})
         return

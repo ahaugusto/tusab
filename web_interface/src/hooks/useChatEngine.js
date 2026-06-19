@@ -39,12 +39,13 @@ export function useChatEngine({
   const { t } = useTranslation();
 
   // ─── State ─────────────────────────────────────────────────────────────────
-  const [chatOpen,      setChatOpen]      = useState(false);
-  const [chatExpandido, setChatExpandido] = useState(false);
-  const [buscaAmpla,    setBuscaAmpla]   = useState(false);
-  const [chatMessages,  setChatMessages]  = useState([]);
-  const [chatInput,     setChatInput]    = useState('');
-  const [chatLoading,   setChatLoading]  = useState(false);
+  const [chatOpen,        setChatOpen]        = useState(false);
+  const [chatExpandido,   setChatExpandido]   = useState(false);
+  const [buscaAmpla,      setBuscaAmpla]      = useState(false);
+  const [chatMessages,    setChatMessages]    = useState([]);
+  const [chatInput,       setChatInput]       = useState('');
+  const [chatLoading,     setChatLoading]     = useState(false);
+  const [fontesFixadas,   setFontesFixadas]   = useState([]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const chatEndRef = useRef(null);
@@ -147,11 +148,14 @@ export function useChatEngine({
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', fontes: [], streaming: true }]);
 
     try {
+      const idsFixados = fontesFixadas.map(f => f.id);
+      setFontesFixadas([]);
       const response = await sendChatStream({
-        mensagem:      msg,
-        canal_nome:    agentStatus.canal_indexado || canalConfigurado,
-        canais_extras: canaisExtras,
-        busca_ampla:   buscaAmpla,
+        mensagem:       msg,
+        canal_nome:     agentStatus.canal_indexado || canalConfigurado,
+        canais_extras:  canaisExtras,
+        busca_ampla:    buscaAmpla,
+        fontes_fixadas: idsFixados,
       });
 
       const reader  = response.body.getReader();
@@ -231,6 +235,8 @@ export function useChatEngine({
     chatLoading,
     setChatLoading,
     chatEndRef,
+    fontesFixadas,
+    setFontesFixadas,
     detectarIntencaoExport,
     handleExportDoChat,
     handleChatSend,
