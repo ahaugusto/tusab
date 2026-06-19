@@ -71,6 +71,7 @@ function App() {
   const [showHome,         setShowHome]         = useState(true);
   const [activeTab,        setActiveTab]        = useState('extracao');
   const [repoAddOpen,      setRepoAddOpen]      = useState(false);
+  const [repoIndexarOpen,  setRepoIndexarOpen]  = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [projetos,             setProjetos]             = useState([]);
@@ -1302,6 +1303,9 @@ function App() {
                     setChatInput(prev => (prev ? prev + '\n\n' : '') + `[${arquivo}]\n${trecho}`);
                     setChatOpen(true);
                   }}
+                  onIndexar={handleIndexarDoChat}
+                  openIndexar={repoIndexarOpen}
+                  onOpenIndexarHandled={() => setRepoIndexarOpen(false)}
                 />
               </div>
             )}
@@ -1512,7 +1516,7 @@ function App() {
                 </section>
 
                 {/* Personas section */}
-                <section aria-labelledby="agent-persona-heading"
+                <section id="agent-persona-section" aria-labelledby="agent-persona-heading"
                   className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                   <div className={`px-5 py-3.5 flex items-center gap-2 border-b ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -1778,6 +1782,20 @@ function App() {
             {/* ── Chat Drawer ── */}
             <ChatDrawer
               darkMode={darkMode}
+              persona={persona}
+              onOpenPersona={() => {
+                setActiveTab('agente');
+                setChatOpen(false);
+                setTimeout(() => {
+                  document.getElementById('agent-persona-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 120);
+              }}
+              onAbrirIndexacaoRepositorio={() => {
+                setChatOpen(false);
+                setActiveTab('repositorio');
+                setShowHome(false);
+                setTimeout(() => setRepoIndexarOpen(true), 80);
+              }}
               chatOpen={chatOpen} setChatOpen={setChatOpen}
               expandido={chatExpandido} setExpandido={setChatExpandido}
               chatMessages={chatMessages} setChatMessages={setChatMessages}

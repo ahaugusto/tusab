@@ -180,11 +180,12 @@ export function useChatEngine({
                 msgs[msgs.length - 1] = { role: 'error', content: parsed.error };
                 return msgs;
               });
-            } else if (parsed.fontes) {
+            } else if (parsed.fontes !== undefined) {
               fontes = parsed.fontes;
+              const semCtx = !!parsed.sem_contexto;
               setChatMessages(prev => {
                 const msgs = [...prev];
-                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], fontes };
+                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], fontes, sem_contexto: semCtx };
                 return msgs;
               });
               // A2 — KPI: primeira resposta com fontes reais (não erro, não vazia)

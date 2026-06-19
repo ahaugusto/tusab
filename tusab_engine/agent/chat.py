@@ -473,7 +473,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas)
     if not contexto:
         resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
-        return {'resposta': resposta_vazia, 'fontes': []}
+        return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
@@ -578,7 +578,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
     if not contexto:
         config_s = carregar_config()
         resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
-        yield json.dumps({'fontes': [], 'done': False})
+        yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
         yield resposta_vazia
         yield json.dumps({'done': True})
         return

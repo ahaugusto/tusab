@@ -187,23 +187,25 @@ os importam pelo nome antigo, sem breaking change.
 ---
 
 ### `tusab_engine/api/router_agent.py`
-**Tags:** agente, RAG, chat, streaming, indexação, ollama, groq, gemini, openai, anthropic, config, histórico
+**Tags:** agente, RAG, chat, streaming, indexação, ollama, groq, gemini, openai, anthropic, config, histórico, persona
 **Rotas:** `GET /agent/status`, `GET /log`, `GET|POST /agent/config`, `POST /agent/index`, `POST /agent/test-key`,
 `POST /agent/index-cancel`, `POST /agent/chat`, `POST /agent/chat/stream`, `POST /agent/chat/clear`,
 `DELETE /agent/canal/{canal_nome}`, `/agent/ollama/*`.
 **Background:** `_run_indexacao(canal_nome, canal_prefixo)` — BM25 com callback de progresso.
 **Histórico:** `_MAX_HIST_MSGS = 12` (6 trocas); server-side em `state.chat_histories`; payload do cliente é ignorado.
+**Persona:** `AgentConfigRequest.persona` — um de `{'', 'objetivo', 'tecnico', 'didatico', 'descontraido', 'socratico'}`; validado contra `_PERSONAS_VALIDAS`; persistido em `agent_config.json`.
 
 ---
 
 ### `tusab_engine/api/router_repositorio.py`
-**Tags:** repositório, neural, documents, texts, upload, PDF, DOCX, XLSX, CSV, manifesto, limpeza, histórico, reset
+**Tags:** repositório, neural, documents, texts, upload, PDF, DOCX, XLSX, CSV, manifesto, limpeza, histórico, reset, whatsapp, reunião
 **Rotas:** `GET /repositorio`, `GET /relatorio/{canal}`,
 `POST /neural/upload`, `POST /neural/texto`,
 `DELETE /neural/arquivo/{tipo}/{fid}`, `DELETE /historico/limpar`,
 `DELETE /neural/limpar` (limpa documentos/textos de um canal), `DELETE /reset-total` (wipe completo).
 **Manifest pattern:** cada subdiretório de docs/texts mantém `_manifest.json` como índice local (atomic write).
 **Aliases:** tipo `"documentos"` → `"documents"`, `"textos"` → `"texts"` no handler DELETE — compatibilidade com clientes legados.
+**Parser de formatos especiais:** `_detectar_formato_especial()` identifica WhatsApp Android/iOS e transcrições Zoom/Otter/Teams por regex; `_processar_formato_especial()` estrutura o texto por dia/participante ou palestrante/timestamp antes de salvar; `aviso_extracao` retorna `✅ Formato detectado: ...` quando identificado.
 
 ---
 
@@ -226,14 +228,14 @@ web_interface/src/
     sidebar/SidebarContent.jsx
     agent/
       OllamaSetup.jsx       setup guiado do Ollama
-      RepositorioTab.jsx    listagem e upload de docs/textos
+      RepositorioTab.jsx    listagem e upload de docs/textos; botão "Indexar base" (modal com checkboxes por projeto)
       RelatorioTab.jsx      tabela de vídeos + stats de cobertura
     extraction/
       ExtractionModal.jsx   seletor de fontes + iniciar extração
       PostExtractionModal.jsx ações pós-extração
     shared/
       Onboarding.jsx, ConsentModal.jsx, StatCard.jsx, LogLine.jsx, ProgressToast.jsx
-  App.jsx                   orquestrador principal (~1 560 linhas)
+  App.jsx                   orquestrador principal (~1 590 linhas)
   locales/pt.json, en.json, es.json   i18n
 ```
 
@@ -272,6 +274,10 @@ tests/
 | Subpastas em inglês (`documents/`, `texts/`, `management/`) | Padrão americano independente de idioma da UI; i18n da UI não afeta nomes de pasta |
 | `projeto_nome` desacoplado do canal | Usuário nomeia o repositório; canal pode mudar sem renomear pasta |
 | Aliases de tipo no DELETE `/neural/arquivo` | Clientes antigos passavam `"documentos"`/`"textos"`; backend normaliza antes de deletar |
+| `sem_contexto: True` no retorno do chat | Sinaliza ao frontend que BM25 não retornou chunks — exibe botão "Indexar base agora" na mensagem em vez de mensagem hardcoded |
+| Persona injetada em `_montar_prompt` | `instrucao_tom` é a última linha do prompt antes da pergunta — o LLM recebe instrução de estilo sem alterar o contexto RAG |
+| Parser WhatsApp/Reuniões no upload | Textos `.txt`/`.md` passam por `_detectar_formato_especial` antes de salvar — estrutura o conteúdo por dia/participante, melhorando o recall BM25 |
+| Modal "Indexar base" no Repositório, não no chat | Indexação é operação de gestão de conteúdo — pertence ao Repositório; chat apenas consome índice já pronto |
 
 ---
 
@@ -285,6 +291,10 @@ tests/
 | Mudar integração com Drive | `tusab_engine/motor/drive.py` |
 | Mudar como o BM25 indexa | `tusab_engine/agent/index.py` → `indexar()` |
 | Mudar como o chat recupera contexto | `tusab_engine/agent/chat.py` → `_recuperar_contexto()` |
+| Mudar tom/persona do agente | `tusab_engine/agent/chat.py` → `PERSONAS` + `_montar_prompt()` → config em `useAgentConfig.js` → seção "Tom" na aba Agente |
+| Mudar parser de WhatsApp/Reuniões | `tusab_engine/api/router_repositorio.py` → `_detectar_formato_especial()`, `_parsear_whatsapp()`, `_parsear_reuniao()` |
+| Adicionar/mudar modal de indexação do Repositório | `web_interface/src/components/agent/RepositorioTab.jsx` → `showIndexar` + `handleIndexarConfirmar()` |
+| Acionar modal de indexação a partir do chat | `ChatDrawer` → prop `onAbrirIndexacaoRepositorio` → `App.jsx` → `repoIndexarOpen` → `RepositorioTab` |
 | Adicionar rota de status/drive | `tusab_engine/api/router_status.py` |
 | Adicionar rota de extração / fila | `tusab_engine/api/router_extraction.py` |
 | Adicionar rota de agente | `tusab_engine/api/router_agent.py` |

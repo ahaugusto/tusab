@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes } from '../../services/api';
@@ -179,6 +179,9 @@ function ChatDrawer({
   onIndexar,
   fontesFixadas,
   setFontesFixadas,
+  persona,
+  onOpenPersona,
+  onAbrirIndexacaoRepositorio,
 }) {
   const { t } = useTranslation();
   const [showRepoModal,     setShowRepoModal]     = useState(false);
@@ -190,6 +193,7 @@ function ChatDrawer({
   const [histSelecionado,   setHistSelecionado]   = useState(null);
   const [salvando,          setSalvando]          = useState(false);
   const [showBaseModal,     setShowBaseModal]     = useState(false);
+  const [showBuscaModal,    setShowBuscaModal]    = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
   const [mencaoQuery,       setMencaoQuery]       = useState('');
   const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
@@ -285,7 +289,7 @@ function ChatDrawer({
         )}
       </div>
       {/* Busca Ampla toggle */}
-      <div className="relative flex items-center gap-1.5 shrink-0 group">
+      <div className="flex items-center gap-1 shrink-0">
         <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
           {buscaAmpla ? 'Ampla' : 'Restrita'}
         </span>
@@ -296,13 +300,12 @@ function ChatDrawer({
           className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
           <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
         </button>
-        <div className={`absolute top-full mt-2 right-0 w-56 p-2.5 rounded-xl border text-[10px] leading-relaxed shadow-xl
-          opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10
-          ${darkMode ? 'bg-[#0C1122] border-white/20 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/60'}`}>
-          {buscaAmpla
-            ? <><strong className={darkMode ? 'text-accent' : 'text-cyan-600'}>Busca Ampla ativada</strong><br/>Usa sua base como referência principal e complementa com o conhecimento geral do modelo quando necessário.</>
-            : <><strong className={darkMode ? 'text-white' : 'text-slate-800'}>Busca Restrita</strong><br/>Responde exclusivamente com o conteúdo da sua base. Se não encontrar, diz que não encontrou.</>}
-        </div>
+        <button
+          onClick={() => setShowBuscaModal(true)}
+          className={`p-0.5 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}
+          aria-label="Saiba mais sobre Busca Ampla e Restrita">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
+        </button>
       </div>
       {chatMessages.length > 0 && (
         <button onClick={() => { setChatMessages([]); onClearHistory?.(); }}
@@ -506,10 +509,10 @@ function ChatDrawer({
                         ${msg.role === 'user'
                           ? darkMode
                             ? 'bg-primary/25 border border-primary/35 text-white rounded-br-sm'
-                            : 'bg-primary/10 border border-primary/25 text-slate-800 rounded-br-sm'
+                            : 'bg-violet-100 border border-violet-200 text-slate-800 rounded-br-sm'
                           : msg.role === 'error'
-                            ? (darkMode ? 'bg-danger/15 border border-danger/30 text-danger' : 'bg-red-50 text-red-700 border border-red-200')
-                            : (darkMode ? 'bg-white/8 border border-white/10 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')} rounded-bl-sm`}>
+                            ? (darkMode ? 'bg-danger/15 border border-danger/30 text-danger' : 'bg-red-50 text-red-700 border border-red-200') + ' rounded-bl-sm'
+                            : (darkMode ? 'bg-white/8 border border-white/10 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm') + ' rounded-bl-sm'}`}>
                         {msg.role === 'user' ? (
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         ) : (
@@ -547,6 +550,15 @@ function ChatDrawer({
                             className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100 transition-opacity">
                             <RefreshCw size={9} aria-hidden="true" />
                             {t('agent.rebuild_index')}
+                          </button>
+                        )}
+                        {msg.sem_contexto && !msg.streaming && onAbrirIndexacaoRepositorio && (
+                          <button
+                            onClick={onAbrirIndexacaoRepositorio}
+                            className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
+                              ${darkMode ? 'bg-accent/20 text-accent hover:bg-accent/30' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
+                            <Zap size={11} aria-hidden="true" />
+                            Indexar base agora
                           </button>
                         )}
                         {msg.fontes && msg.fontes.length > 0 && !msg.streaming && (
@@ -738,6 +750,20 @@ function ChatDrawer({
           <span>Histórico</span>
         </button>
 
+        {/* Tom do agente */}
+        {onOpenPersona && (
+          <button
+            onClick={onOpenPersona}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors
+              ${persona
+                ? darkMode ? 'text-primary bg-primary/15 hover:bg-primary/25' : 'text-violet-600 bg-violet-100 hover:bg-violet-200'
+                : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+            aria-label="Configurar tom de resposta">
+            <SlidersHorizontal size={12} />
+            <span>{ persona ? ({ objetivo: 'Objetivo', tecnico: 'Técnico', didatico: 'Didático', descontraido: 'Descontraído', socratico: 'Socrático' }[persona]) : 'Tom' }</span>
+          </button>
+        )}
+
         {/* Nova conversa — direita */}
         <button
           onClick={async () => {
@@ -762,6 +788,59 @@ function ChatDrawer({
         </button>
       </div>
     </div>
+
+    {/* Modal explicativo: Busca Ampla vs Restrita */}
+    <AnimatePresence>
+      {showBuscaModal && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 z-40 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowBuscaModal(false); }}>
+          <motion.div
+            initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Busca Restrita vs. Ampla</h3>
+              <button onClick={() => setShowBuscaModal(false)}
+                className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-400 hover:bg-slate-100'}`}>
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Restrita */}
+            <div className={`rounded-xl p-3.5 space-y-1.5 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${darkMode ? 'bg-white/30' : 'bg-slate-400'}`} />
+                <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Busca Restrita (padrão)</p>
+              </div>
+              <p className="text-[11px] leading-relaxed">Responde <strong>exclusivamente</strong> com o conteúdo da sua base — transcrições do YouTube, documentos, textos adicionados. Se a resposta não estiver lá, o assistente informa que não encontrou nada.</p>
+              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Ideal para: recuperar informações precisas de conteúdo específico. Sem risco de dados inventados.</p>
+            </div>
+
+            {/* Ampla */}
+            <div className={`rounded-xl p-3.5 space-y-1.5 border ${darkMode ? 'bg-accent/8 border-accent/25' : 'bg-cyan-50 border-cyan-200'}`}>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full shrink-0 bg-accent" />
+                <p className={`text-xs font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>Busca Ampla</p>
+              </div>
+              <p className="text-[11px] leading-relaxed">Usa sua base como <strong>referência principal</strong> e complementa com o conhecimento geral do modelo quando necessário — útil para contexto, explicações adicionais ou perguntas abertas.</p>
+              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Atenção: ao usar provedor externo (OpenAI, Gemini, Groq, Anthropic), mensagens são enviadas a servidores de terceiros. Recomendado apenas para bases sem dados sensíveis.</p>
+            </div>
+
+            <button
+              onClick={() => { setBuscaAmpla(v => !v); setShowBuscaModal(false); }}
+              className={`w-full py-2 rounded-xl text-xs font-bold transition-colors
+                ${buscaAmpla
+                  ? darkMode ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-accent/20 text-accent hover:bg-accent/30'}`}>
+              {buscaAmpla ? 'Desativar Busca Ampla' : 'Ativar Busca Ampla'}
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* Modal de seleção de base de conhecimento */}
     <AnimatePresence>
@@ -970,7 +1049,7 @@ function ChatDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t('agent.chat_title')}
-        onKeyDown={e => { if (e.key === 'Escape') { if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
+        onKeyDown={e => { if (e.key === 'Escape') { if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
         className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
         {conteudo(() => setExpandido(false))}
       </div>
@@ -994,7 +1073,7 @@ function ChatDrawer({
             role="dialog"
             aria-modal="true"
             aria-label={t('agent.chat_title')}
-            onKeyDown={e => { if (e.key === 'Escape') { if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
+            onKeyDown={e => { if (e.key === 'Escape') { if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
             className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
             {conteudo(() => setChatOpen(false))}
           </motion.div>
