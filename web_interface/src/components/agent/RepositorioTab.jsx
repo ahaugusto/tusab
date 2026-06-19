@@ -26,11 +26,11 @@ function _emojiTipo(item) {
 }
 
 // Tipos aceitos para input e drag-drop
-const ACCEPT_TYPES = '.pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac';
+const ACCEPT_TYPES = '.pdf,.docx,.xlsx,.csv,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac';
 
 function _fileIsAccepted(file) {
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  const accepted = ['pdf','docx','txt','md','png','jpg','jpeg','webp','bmp','tiff','mp3','wav','m4a','ogg','flac','opus','aac'];
+  const accepted = ['pdf','docx','xlsx','csv','txt','md','png','jpg','jpeg','webp','bmp','tiff','mp3','wav','m4a','ogg','flac','opus','aac'];
   return accepted.includes(ext);
 }
 
@@ -160,7 +160,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     const dropped = e.dataTransfer.files[0];
     if (!dropped) return;
     if (!_fileIsAccepted(dropped)) {
-      setUploadAviso('Tipo de arquivo não suportado. Use PDF, DOCX, TXT, MD, imagem ou áudio.');
+      setUploadAviso('Tipo de arquivo não suportado. Use PDF, DOCX, XLSX, CSV, TXT, MD, imagem ou áudio.');
       return;
     }
     setFile(dropped);
@@ -511,7 +511,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       {dragging ? 'Solte aqui para fazer upload' : 'Arraste e solte ou clique para selecionar'}
                     </p>
                     <div className={`mt-2 space-y-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                      <p className="text-[10px]">📄 PDF · DOCX · TXT · MD</p>
+                      <p className="text-[10px]">📄 PDF · DOCX · XLSX · CSV · TXT · MD</p>
                       <p className="text-[10px]">🖼️ PNG · JPG · JPEG · WEBP · BMP · TIFF</p>
                       <p className="text-[10px]">🎵 MP3 · WAV · M4A · OGG · FLAC · OPUS · AAC</p>
                     </div>

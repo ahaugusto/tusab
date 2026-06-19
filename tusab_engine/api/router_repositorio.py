@@ -282,6 +282,40 @@ async def cerebro_upload(
             import docx, io
             doc = docx.Document(io.BytesIO(conteudo_bytes))
             texto = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        elif ext == ".xlsx":
+            import openpyxl, io
+            wb = openpyxl.load_workbook(io.BytesIO(conteudo_bytes), data_only=True)
+            blocos = []
+            for sheet in wb.worksheets:
+                rows = list(sheet.iter_rows(values_only=True))
+                if not rows:
+                    continue
+                blocos.append(f"[Planilha: {sheet.title}]")
+                # Primeira linha como cabeçalho se tiver conteúdo
+                headers = [str(c) if c is not None else "" for c in rows[0]]
+                for row in rows[1:]:
+                    cells = [str(c) if c is not None else "" for c in row]
+                    if any(c.strip() for c in cells):
+                        blocos.append(" | ".join(
+                            f"{h}: {v}" for h, v in zip(headers, cells) if h or v
+                        ))
+            texto = "\n".join(blocos)
+        elif ext == ".csv":
+            import csv, io as _io
+            texto_raw = conteudo_bytes.decode("utf-8-sig", errors="replace")
+            reader = csv.reader(_io.StringIO(texto_raw))
+            rows = list(reader)
+            if rows:
+                headers = rows[0]
+                blocos = []
+                for row in rows[1:]:
+                    if any(c.strip() for c in row):
+                        blocos.append(" | ".join(
+                            f"{h}: {v}" for h, v in zip(headers, row) if h or v
+                        ))
+                texto = "\n".join(blocos)
+            else:
+                texto = texto_raw
         elif ext in (".txt", ".md"):
             texto = conteudo_bytes.decode("utf-8", errors="replace")
         elif eh_imagem:

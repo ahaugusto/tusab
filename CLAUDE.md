@@ -174,7 +174,7 @@ os importam pelo nome antigo, sem breaking change.
 ---
 
 ### `tusab_engine/api/router_repositorio.py`
-**Tags:** repositório, cerebro, documentos, textos, upload, PDF, DOCX, manifesto, limpeza, histórico, CSV
+**Tags:** repositório, cerebro, documentos, textos, upload, PDF, DOCX, XLSX, CSV, manifesto, limpeza, histórico
 **Rotas:** `GET /repositorio`, `GET /relatorio/{canal}`, `POST /cerebro/upload`, `POST /cerebro/texto`,
 `DELETE /cerebro/arquivo/{tipo}/{fid}`, `DELETE /historico/limpar`, `DELETE /cerebro/limpar`.
 **Manifest pattern:** cada subdiretório de docs/textos mantém `_manifest.json` como índice local (atomic write).
