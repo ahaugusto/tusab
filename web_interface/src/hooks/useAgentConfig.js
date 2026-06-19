@@ -55,6 +55,7 @@ export function useAgentConfig({ activeTab, showError }) {
   const [ollamaModel,          setOllamaModel]          = useState('llama3.2:1b');
   const [configOpen,           setConfigOpen]           = useState(true);
   const [queryExpansion,       setQueryExpansion]       = useState(false);
+  const [persona,              setPersona]              = useState('');
   const [canalMeta,            setCanalMeta]            = useState(null);
 
   // ─── Effects ─────────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ export function useAgentConfig({ activeTab, showError }) {
     loadAgentConfig().then(async r => {
       if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
       if (r.data.query_expansion !== undefined) setQueryExpansion(!!r.data.query_expansion);
+      if (r.data.persona !== undefined) setPersona(r.data.persona || '');
       const hasExternalKey = r.data.provider && r.data.provider !== 'ollama' && r.data.api_key;
       if (hasExternalKey) {
         setAgentProvider(r.data.provider);
@@ -118,8 +120,16 @@ export function useAgentConfig({ activeTab, showError }) {
   /** Saves selected Ollama model to config */
   const handleOllamaModelChange = async (model) => {
     setOllamaModel(model);
-    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model })
+    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona })
       .catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
+  };
+
+  /** Saves persona immediately (no key required) */
+  const handlePersonaChange = async (novaPersona) => {
+    setPersona(novaPersona);
+    const provider = useExternalProvider ? agentProvider : 'ollama';
+    await saveAgentConfig({ provider, api_key: '', persona: novaPersona })
+      .catch(() => {});
   };
 
   /** Clears external API key and resets provider to Ollama */
@@ -159,7 +169,7 @@ export function useAgentConfig({ activeTab, showError }) {
         const stored = await window.tusab.setApiKey(provider, apiKey).catch(() => false);
         if (stored) backendKey = '__encrypted__';
       }
-      const res = await saveAgentConfig({ provider, api_key: backendKey });
+      const res = await saveAgentConfig({ provider, api_key: backendKey, persona });
       if (res.data.error) {
         setAgentKeyError(res.data.message);
       } else {
@@ -208,9 +218,11 @@ export function useAgentConfig({ activeTab, showError }) {
     ollamaModel,          setOllamaModel,
     configOpen,           setConfigOpen,
     queryExpansion,       setQueryExpansion,
+    persona,              setPersona,
     canalMeta,            setCanalMeta,
     // handlers
     handleOllamaModelChange,
+    handlePersonaChange,
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleTestKey,
