@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from tusab_engine.api import router_status, router_extraction, router_agent, router_repositorio, router_exports
+from tusab_engine.api.router_metrics import router as router_metrics
 
 
 def _criar_aviso_seguranca():
@@ -114,6 +115,7 @@ app.include_router(router_extraction.router)
 app.include_router(router_agent.router)
 app.include_router(router_repositorio.router)
 app.include_router(router_exports.router)
+app.include_router(router_metrics)
 
 
 # ── Frontend estático (catch-all — deve ser o último) ─────────────────────────
