@@ -320,6 +320,131 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     )
 
 
+# ── Resposta sem contexto ────────────────────────────────────────────────────
+
+_SAUDACOES = {
+    'oi', 'olá', 'ola', 'opa', 'eai', 'e ai', 'e aí',
+    'boa tarde', 'bom dia', 'boa noite', 'boa',
+    'tudo bem', 'tudo bom', 'como vai', 'como você vai',
+    'hello', 'hi', 'hey', 'good morning', 'good afternoon',
+    'teste', 'test', 'ping', 'ok', 'okay',
+}
+
+_PROMPT_SEM_CONTEXTO = (
+    "Você é o Tusab, um assistente de gestão de conhecimento.\n\n"
+    "A busca na base de conhecimento não retornou trechos relevantes para a mensagem do usuário.\n\n"
+    "Regras:\n"
+    "1. Se for uma saudação, cumprimento ou teste (ex: 'oi', 'olá', 'teste'), responda de forma breve "
+    "e simpática, apresentando-se como Tusab e explicando como pode ajudar com a base de conhecimento.\n"
+    "2. Se for uma pergunta temática real, explique educadamente que não encontrou informações "
+    "relevantes no índice atual. Mencione que a base pode conter:\n"
+    "   - Transcrições de vídeos do YouTube\n"
+    "   - Documentos enviados (PDF, DOCX, planilhas, imagens, áudios)\n"
+    "   - Textos colados pelo usuário\n"
+    "   E que todos precisam estar indexados para aparecer na busca.\n"
+    "3. Convide o usuário a reformular a pergunta, verificar se o conteúdo foi indexado "
+    "ou adicionar mais arquivos à base.\n"
+    "4. Seja conciso (máximo 3 parágrafos), em português, sem mencionar BM25 ou termos técnicos.\n\n"
+    f"Mensagem do usuário: {{mensagem}}\n\nRESPOSTA:"
+)
+
+
+def _responder_sem_contexto(pergunta: str, config: dict, canal_nome: str) -> str:
+    """Gera resposta inteligente quando o BM25 não retorna contexto relevante."""
+    pergunta_lower = pergunta.strip().lower().rstrip('!?.')
+
+    # Saudação simples: responde sem chamar LLM
+    if pergunta_lower in _SAUDACOES:
+        return (
+            "Olá! Sou o Tusab, seu assistente de base de conhecimento. "
+            "Posso responder perguntas sobre os vídeos, documentos e textos que você adicionou ao repositório. "
+            "Para começar, certifique-se de que o conteúdo está indexado e faça uma pergunta específica."
+        )
+
+    provider = config.get('provider', '')
+    api_key  = config.get('api_key', '')
+
+    # Sem LLM configurado: mensagem estática melhorada
+    if not provider or (not api_key and provider != 'ollama'):
+        return (
+            f"Não encontrei conteúdo relevante para essa pergunta na base de conhecimento.\n\n"
+            f"Isso pode acontecer porque:\n"
+            f"• O conteúdo ainda não foi indexado — use o botão **Indexar Agora** nas configurações do agente\n"
+            f"• A pergunta usa termos diferentes dos que aparecem nos seus arquivos — tente reformular\n"
+            f"• O tema não está coberto pelos vídeos, documentos ou textos da sua base\n\n"
+            f"Lembre-se: a base pode incluir transcrições do YouTube, PDFs, planilhas, imagens e textos colados."
+        )
+
+    prompt = _PROMPT_SEM_CONTEXTO.format(mensagem=pergunta[:1000])
+
+    try:
+        if provider == 'ollama':
+            import requests as _req
+            modelo = config.get('ollama_model', 'llama3.2:1b')
+            resp = _req.post(
+                'http://localhost:11434/api/generate',
+                json={'model': modelo, 'prompt': prompt, 'stream': False},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json().get('response', '').strip() or _fallback_sem_contexto(canal_nome)
+
+        elif provider == 'openai':
+            from openai import OpenAI
+            resp = OpenAI(api_key=api_key).chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=400,
+                timeout=15,
+            )
+            return resp.choices[0].message.content.strip()
+
+        elif provider == 'anthropic':
+            import anthropic
+            msg = anthropic.Anthropic(api_key=api_key).messages.create(
+                model='claude-haiku-4-5-20251001',
+                max_tokens=400,
+                messages=[{'role': 'user', 'content': prompt}],
+            )
+            return msg.content[0].text.strip()
+
+        elif provider == 'groq':
+            from openai import OpenAI
+            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
+            resp = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+                model=modelo,
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=400,
+                timeout=15,
+            )
+            return resp.choices[0].message.content.strip()
+
+        elif provider in ('gemini', 'google'):
+            import google.generativeai as _genai
+            _genai.configure(api_key=api_key)
+            CANDIDATOS = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-lite']
+            modelos_ok = [m.name.replace('models/', '') for m in _genai.list_models()
+                          if 'generateContent' in m.supported_generation_methods]
+            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+            if modelo:
+                resp = _genai.GenerativeModel(modelo).generate_content(prompt)
+                return resp.text.strip()
+
+    except Exception:
+        pass
+
+    return _fallback_sem_contexto(canal_nome)
+
+
+def _fallback_sem_contexto(canal_nome: str) -> str:
+    handle = f'@{canal_nome}' if canal_nome else 'esta base'
+    return (
+        f"Não encontrei conteúdo relevante para essa pergunta em {handle}.\n\n"
+        f"Verifique se o conteúdo foi indexado ou tente reformular a pergunta usando "
+        f"termos que aparecem nos seus vídeos, documentos ou textos."
+    )
+
+
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
 def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None) -> dict:
@@ -331,10 +456,8 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     n_chunks = 4 if config.get('provider') == 'ollama' else 6
     contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas)
     if not contexto:
-        return {
-            'resposta': 'Não encontrei conteúdo relevante para essa pergunta no índice do canal.',
-            'fontes':   []
-        }
+        resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
+        return {'resposta': resposta_vazia, 'fontes': []}
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
@@ -436,8 +559,10 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
         return
 
     if not contexto:
+        config_s = carregar_config()
+        resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
         yield json.dumps({'fontes': [], 'done': False})
-        yield 'Não encontrei conteúdo relevante para essa pergunta no índice do canal.'
+        yield resposta_vazia
         yield json.dumps({'done': True})
         return
 
