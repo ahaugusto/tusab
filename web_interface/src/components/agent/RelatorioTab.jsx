@@ -272,12 +272,11 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className="max-h-96 overflow-y-auto overflow-x-auto custom-scrollbar">
               <table className="w-full text-xs">
-                <caption className="sr-only">Lista de vídeos com título, data, views, aba e status</caption>
+                <caption className="sr-only">Lista de vídeos com título, data, aba e status</caption>
                 <thead>
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Título</th>
                     <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Data</th>
-                    <th className={`text-right px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Views</th>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Aba</th>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
                   </tr>
@@ -285,7 +284,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
                 <tbody>
                   {filtrados.length === 0 && (
                     <tr>
-                      <td colSpan={5} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <td colSpan={4} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                         Nenhum vídeo encontrado com esses filtros
                       </td>
                     </tr>
@@ -299,9 +298,6 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory }) {
                         </a>
                       </td>
                       <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Pub}</td>
-                      <td className={`px-4 py-2 text-right whitespace-nowrap font-mono text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {formatViews(v.Views)}
-                      </td>
                       <td className="px-4 py-2">
                         {v.Aba && (
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
