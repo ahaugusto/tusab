@@ -54,9 +54,7 @@ def run_motor():
             cancelado = state.evento_cancelar.is_set()
             if cancelado:
                 state.stats["status"] = "Interrompido"
-                # Cancelamento limpa a fila — o usuário abortou tudo
-                with state.queue_lock:
-                    state.extraction_queue.clear()
+                # Não limpa a fila — o frontend pergunta se deve continuar
                 break
 
             state.stats["status"]   = "Finalizado ✓"
@@ -198,9 +196,115 @@ def queue_clear():
     return {"ok": True}
 
 
+@router.delete("/queue/item/{index}")
+def queue_remove_item(index: int):
+    """Remove um item específico da fila pelo índice (0-based)."""
+    with state.queue_lock:
+        if index < 0 or index >= len(state.extraction_queue):
+            return {"error": True, "message": "Índice fora do intervalo"}
+        state.extraction_queue.pop(index)
+    return {"ok": True}
+
+
+class QueueMoveRequest(BaseModel):
+    from_index: int
+    to_index: int
+
+
+@router.post("/queue/move")
+def queue_move_item(req: QueueMoveRequest):
+    """Move um item da fila de from_index para to_index."""
+    with state.queue_lock:
+        n = len(state.extraction_queue)
+        if req.from_index < 0 or req.from_index >= n or req.to_index < 0 or req.to_index >= n:
+            return {"error": True, "message": "Índice fora do intervalo"}
+        item = state.extraction_queue.pop(req.from_index)
+        state.extraction_queue.insert(req.to_index, item)
+    return {"ok": True}
+
+
 @router.get("/queue")
 def queue_status():
     """Retorna os itens atualmente na fila."""
     with state.queue_lock:
         itens = list(state.extraction_queue)
     return {"queue": itens}
+
+
+class AutoUpdateConfigRequest(BaseModel):
+    canal_prefixo: str
+    enabled: bool
+    frequencia: str = "semanal"   # 'ao_abrir' | 'diario' | 'semanal' | 'mensal'
+    fontes: list = []
+    canal_url: str = ""
+
+
+@router.post("/auto-update/config")
+def auto_update_config(req: AutoUpdateConfigRequest):
+    """Salva configuração de auto-update no summary.json do canal."""
+    import json as _json
+    import glob as _glob
+    from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
+
+    prefixo      = req.canal_prefixo.strip()
+    summary_path = os.path.join(NEURAL_DIR, prefixo, "management", f"{prefixo}_summary.json")
+
+    summary = {}
+    if os.path.exists(summary_path):
+        try:
+            with open(summary_path, 'r', encoding='utf-8') as f:
+                summary = _json.load(f)
+        except Exception:
+            pass
+
+    # Guarda a URL do canal se fornecida
+    if req.canal_url:
+        summary['canal_url'] = req.canal_url
+
+    summary['auto_update'] = {
+        'enabled':    req.enabled,
+        'frequencia': req.frequencia,
+        'fontes':     req.fontes,
+    }
+
+    os.makedirs(os.path.dirname(summary_path), exist_ok=True)
+    salvar_json_atomico(summary, summary_path, indent=2)
+    return {"ok": True}
+
+
+@router.get("/auto-update/config/{canal_prefixo}")
+def auto_update_get_config(canal_prefixo: str):
+    """Retorna configuração de auto-update do canal."""
+    import json as _json
+    from tusab_engine.storage import NEURAL_DIR
+
+    summary_path = os.path.join(NEURAL_DIR, canal_prefixo, "management", f"{canal_prefixo}_summary.json")
+    if not os.path.exists(summary_path):
+        return {"auto_update": {"enabled": False}}
+    try:
+        with open(summary_path, 'r', encoding='utf-8') as f:
+            summary = _json.load(f)
+        return {"auto_update": summary.get("auto_update", {"enabled": False})}
+    except Exception:
+        return {"auto_update": {"enabled": False}}
+
+
+@router.post("/auto-update/run")
+def auto_update_run(background_tasks: BackgroundTasks):
+    """Dispara verificação imediata de novos vídeos em todos os canais com auto-update ativo."""
+    if state.is_running:
+        return {"error": True, "message": "Extração em andamento. Aguarde para verificar atualizações."}
+
+    def _run():
+        try:
+            from tusab_engine.motor.auto_update import verificar_e_enfileirar
+            novos = verificar_e_enfileirar(state)
+            if novos:
+                print(f"🔄 Auto-update manual: {len(novos)} canal(is) com novos vídeos enfileirado(s)")
+            else:
+                print("✅ Auto-update manual: todos os canais estão atualizados")
+        except Exception as e:
+            print(f"⚠️  Auto-update manual: erro — {e}")
+
+    background_tasks.add_task(_run)
+    return {"ok": True, "message": "Verificação iniciada em background"}

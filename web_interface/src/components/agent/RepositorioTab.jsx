@@ -34,6 +34,159 @@ function _fileIsAccepted(file) {
   return accepted.includes(ext);
 }
 
+// ─── IndexarModal ────────────────────────────────────────────────────────────
+
+function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel, indexando, agentStatus, onConfirmar, onFechar }) {
+  const [busca, setBusca] = React.useState('');
+  const inputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  const lista = projetos.length > 0 ? projetos : [];
+  const listaFiltrada = busca.trim()
+    ? lista.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()))
+    : lista;
+  const todos = listaFiltrada.length > 0 && listaFiltrada.every(p => indexarSel[p.nome]);
+  const nSel  = Object.values(indexarSel).filter(Boolean).length;
+
+  const toggleTodos = () => {
+    const sel = { ...indexarSel };
+    listaFiltrada.forEach(p => { sel[p.nome] = !todos; });
+    setIndexarSel(sel);
+  };
+
+  return (
+    <div className={`w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col overflow-hidden
+      ${darkMode ? 'bg-[#0C1122] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+      style={{ maxHeight: 'min(80vh, 640px)' }}>
+
+      {/* Header */}
+      <div className={`px-5 pt-5 pb-4 border-b shrink-0 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Indexar base de conhecimento</h3>
+            <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+              Selecione os projetos para indexar · {nSel} selecionado{nSel !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {!indexando && !agentStatus?.indexing && (
+            <button onClick={onFechar}
+              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+        </div>
+
+        {/* Busca */}
+        <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30
+          ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={darkMode ? 'text-slate-500' : 'text-slate-400'}>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder={`Buscar entre ${lista.length} projeto${lista.length !== 1 ? 's' : ''}…`}
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`}
+          />
+          {busca && (
+            <button onClick={() => setBusca('')} className={`${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar">
+        {/* Selecionar todos (da lista filtrada) */}
+        {listaFiltrada.length > 0 && (
+          <button
+            onClick={toggleTodos}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors mb-1
+              ${todos
+                ? darkMode ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-violet-50 border-violet-300 text-violet-700'
+                : darkMode ? 'border-white/10 text-slate-300 hover:border-white/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+              ${todos ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+              {todos && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </span>
+            {todos ? 'Desmarcar todos' : `Selecionar ${busca ? `os ${listaFiltrada.length} resultados` : 'todos'}`}
+          </button>
+        )}
+
+        {listaFiltrada.length === 0 ? (
+          <div className={`text-center py-10 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            {busca
+              ? <><p className="text-sm mb-1">🔍</p><p className="text-xs">Nenhum projeto corresponde a "{busca}"</p></>
+              : <><p className="text-sm mb-1">📭</p><p className="text-xs">Nenhum projeto encontrado.<br/>Extraia um canal ou adicione documentos primeiro.</p></>
+            }
+          </div>
+        ) : listaFiltrada.map(p => (
+          <button key={p.nome}
+            onClick={() => setIndexarSel(prev => ({ ...prev, [p.nome]: !prev[p.nome] }))}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
+              ${indexarSel[p.nome]
+                ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
+                : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200'}`}>
+            <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+              ${indexarSel[p.nome] ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+              {indexarSel[p.nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </span>
+            <span className="shrink-0">{p.tipo === 'youtube' ? '🎬' : '🧠'}</span>
+            <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
+            </span>
+            {p.tipo === 'youtube' && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0
+                ${darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-500'}`}>
+                YouTube
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Progresso */}
+      {(indexando || agentStatus?.indexing) && (
+        <div className={`mx-5 mb-3 rounded-xl p-3 space-y-2 shrink-0 ${darkMode ? 'bg-black/30 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
+            <p className={`text-[11px] font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>Indexando… não feche o app</p>
+          </div>
+          {(agentStatus?.index_logs || []).length > 0 && (
+            <div className="max-h-20 overflow-y-auto space-y-0.5">
+              {[...(agentStatus.index_logs)].reverse().slice(0, 6).map((log, i) => (
+                <p key={i} className={`text-[10px] font-mono leading-snug ${i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {log.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className={`px-5 pb-5 pt-3 flex gap-2 shrink-0 border-t ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+        <button onClick={onFechar} disabled={indexando || agentStatus?.indexing}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-40
+            ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+          Cancelar
+        </button>
+        <button onClick={onConfirmar} disabled={indexando || agentStatus?.indexing || nSel === 0}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
+            bg-accent/20 text-accent hover:bg-accent/30`}>
+          {(indexando || agentStatus?.indexing) ? 'Indexando…' : `Indexar ${nSel > 0 ? `(${nSel})` : ''}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -49,7 +202,7 @@ function _fileIsAccepted(file) {
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, openIndexar, onOpenIndexarHandled }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -65,6 +218,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [expandedCanais, setExpandedCanais] = React.useState({});
   const [showLimpar, setShowLimpar]         = React.useState(false);
   const [limparSel, setLimparSel]           = React.useState({ youtube: false, documentos: false, textos: false });
+  const [limparBasesSel, setLimparBasesSel] = React.useState({}); // { nomeDaBase: bool }
   const [limpando, setLimpando]             = React.useState(false);
   const [showResetTotal, setShowResetTotal] = React.useState(false);
   const [resetConfirm, setResetConfirm]     = React.useState('');
@@ -75,10 +229,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [buscaQuery,     setBuscaQuery]     = React.useState('');
   const [buscaResultados, setBuscaResultados] = React.useState(null);
   const [buscando,       setBuscando]       = React.useState(false);
-  const [showBusca,      setShowBusca]      = React.useState(false);
   const [showIndexar,    setShowIndexar]    = React.useState(false);
   const [indexarSel,     setIndexarSel]     = React.useState({});   // { nome: bool }
   const [indexando,      setIndexando]      = React.useState(false);
+  const [indexSnackbar,  setIndexSnackbar]  = React.useState(null);
+  const prevIndexingRef = React.useRef(false);
   // ─── Project selector ────────────────────────────────────────────────────────
   const [projetos,       setProjetos]       = React.useState([]);
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
@@ -91,19 +246,39 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const reload = () =>
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
 
+  const toggleCanal = (nome) =>
+    setExpandedCanais(prev => ({ ...prev, [nome]: !(prev[nome] !== false) }));
+
   const reloadProjetos = () =>
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
 
+  // Detecta fim da indexação via agentStatus e exibe snackbar
+  React.useEffect(() => {
+    const agora = agentStatus?.indexing;
+    if (prevIndexingRef.current && !agora) {
+      setIndexSnackbar('Base indexada com sucesso!');
+      setTimeout(() => setIndexSnackbar(null), 4000);
+    }
+    prevIndexingRef.current = agora;
+  }, [agentStatus?.indexing]);
+
   // Abrir modal de indexação externamente (ex: vindo do chat)
   React.useEffect(() => {
-    if (openIndexar) {
-      const nomes = (history || []).map(h => h.canal_nome).filter(Boolean);
-      const sel = {};
-      nomes.forEach(n => { sel[n] = true; });
-      setIndexarSel(sel);
-      setShowIndexar(true);
-      onOpenIndexarHandled?.();
-    }
+    if (!openIndexar) return;
+    listarProjetos()
+      .then(res => {
+        const lista = res?.data?.projetos || [];
+        setProjetos(lista);
+        const sel = {};
+        lista.forEach(p => { sel[p.nome] = true; });
+        setIndexarSel(sel);
+        setShowIndexar(true);
+        onOpenIndexarHandled?.();
+      })
+      .catch(() => {
+        setShowIndexar(true);
+        onOpenIndexarHandled?.();
+      });
   }, [openIndexar]);
 
   const handleIndexarConfirmar = async () => {
@@ -261,15 +436,15 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     setDragging(true);
   };
 
-  const toggleCanal = (nome) =>
-    setExpandedCanais(prev => ({ ...prev, [nome]: !prev[nome] }));
-
   const handleLimpar = async () => {
-    if (!limparSel.youtube && !limparSel.documentos && !limparSel.textos) return;
+    const selecionadas = Object.entries(limparBasesSel).filter(([, v]) => v).map(([k]) => k);
+    if (selecionadas.length === 0) return;
     setLimpando(true);
-    await limparBase(limparSel).catch(() => {});
+    for (const nome of selecionadas) {
+      await limparCanal(nome).catch(() => {});
+    }
     setShowLimpar(false);
-    setLimparSel({ youtube: false, documentos: false, textos: false });
+    setLimparBasesSel({});
     setLimpando(false);
     reload();
   };
@@ -305,7 +480,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     setBuscando(true);
     setBuscaResultados(null);
     try {
-      const res = await buscarBase(q, canalAtivo || '');
+      const res = await buscarBase(q, _canalEfetivo());
       setBuscaResultados(res.data);
     } catch {
       setBuscaResultados({ resultados: [], total: 0, query: q });
@@ -317,7 +492,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const flatYT    = repositorio.youtube    || [];
   const flatDocs  = repositorio.documentos || [];
   const flatTexts = repositorio.textos     || [];
-  const total     = flatYT.length + flatDocs.length + flatTexts.length;
+  const total     = canais.reduce((acc, c) => acc + c.youtube.length + c.documentos.length + c.textos.length, 0);
 
   const coveredYT  = new Set(canais.flatMap(c => c.youtube.map(f => f.nome)));
   const coveredIds = new Set(canais.flatMap(c => [...c.documentos, ...c.textos].map(d => d.id)));
@@ -340,45 +515,49 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       onDrop={handleDrop}>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.title')}</h2>
-          <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-            {total} arquivo{total !== 1 ? 's' : ''}
-            {canalAtivo && <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-50 text-violet-600'}`}>@{canalAtivo}</span>}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2.5">
+            <h2 className={`text-sm font-bold shrink-0 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.title')}</h2>
+            {total > 0 && (
+              <div className={`flex items-center gap-1.5 flex-1 min-w-0 rounded-xl border px-2.5 py-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30
+                ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input
+                  type="text"
+                  placeholder={`Buscar em ${_canalEfetivo() ? `@${_canalEfetivo()}` : 'todos os projetos'}…`}
+                  value={buscaQuery}
+                  onChange={e => { setBuscaQuery(e.target.value); if (!e.target.value.trim()) setBuscaResultados(null); }}
+                  onKeyDown={e => e.key === 'Enter' && handleBuscar()}
+                  className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 min-w-0 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                {buscaQuery.trim() && (
+                  buscando
+                    ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                    : <button onClick={handleBuscar} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 transition-colors ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>Buscar</button>
+                )}
+              </div>
+            )}
+          </div>
+          <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
+            {total} arquivo{total !== 1 ? 's' : ''} em {canais.length} base{canais.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {total > 0 && (
-            <button onClick={() => setShowLimpar(true)}
+            <button onClick={() => { setLimparBasesSel({}); setShowLimpar(true); }}
               className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
                 ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200'}`}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
               {t('repo.clear')}
             </button>
           )}
-          {total > 0 && (
-            <button onClick={() => { setShowBusca(b => !b); setBuscaQuery(''); setBuscaResultados(null); }}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
-                ${showBusca
-                  ? 'bg-primary/20 text-primary border-primary/30'
-                  : darkMode ? 'text-slate-400 hover:bg-white/8 border-white/15' : 'text-slate-500 hover:bg-slate-100 border-slate-200'}`}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              Buscar
-            </button>
-          )}
-          <button onClick={() => { setShowResetTotal(true); setResetConfirm(''); }}
-            title="Resetar toda a base de conhecimento"
-            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
-              ${darkMode ? 'text-danger/60 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-300 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l16 16M4 20L20 4"/></svg>
-            Reset
-          </button>
           <button
-            onClick={() => {
-              const nomes = (history || []).map(h => h.canal_nome).filter(Boolean);
+            onClick={async () => {
+              const res = await listarProjetos().catch(() => null);
+              const lista = res?.data?.projetos || projetos;
+              setProjetos(lista);
               const sel = {};
-              nomes.forEach(n => { sel[n] = true; });
+              lista.forEach(p => { sel[p.nome] = true; });
               setIndexarSel(sel);
               setShowIndexar(true);
             }}
@@ -387,133 +566,163 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             Indexar base
           </button>
-          <button onClick={() => { const next = !showAdd_; setShowAdd(next); setUploadAviso(''); if (next) reloadProjetos(); else { setShowNovoProjeto(false); setNovoProjNome(''); setFiles([]); setUploadProgress({}); } }}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
-            + Adicionar
-          </button>
         </div>
       </div>
 
-      {/* ── Busca avançada ── */}
-      {showBusca && (
-        <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <form onSubmit={handleBuscar} className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input
-              type="text"
-              placeholder="Buscar termo nos arquivos do repositório…"
-              value={buscaQuery}
-              onChange={e => setBuscaQuery(e.target.value)}
-              className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-            {buscando
-              ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-              : <button type="submit" className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors shrink-0 ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>Buscar</button>
-            }
-          </form>
-
-          {buscaResultados && (
-            <div className="space-y-2">
-              <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                {buscaResultados.total === 0
-                  ? `Nenhum resultado para "${buscaResultados.query}"`
-                  : `${buscaResultados.total} resultado${buscaResultados.total !== 1 ? 's' : ''} para "${buscaResultados.query}"`}
-              </p>
-              {buscaResultados.resultados.map((r, i) => (
-                <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className={`text-[11px] font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                        {r.tipo === 'youtube' ? '🎬' : r.tipo === 'documento' ? '📄' : '📝'} {r.arquivo}
-                      </p>
-                      {r.canal && (
-                        <span className={`text-[9px] px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-500' : 'bg-slate-200 text-slate-500'}`}>@{r.canal}</span>
-                      )}
-                    </div>
-                    {onInjetarContexto && (
-                      <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
-                          title="Injeta apenas o trecho encontrado — mais preciso"
-                          className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
-                            ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                          + Trecho
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await lerArquivo(r.caminho);
-                              if (res.data?.ok) {
-                                onInjetarContexto(res.data.conteudo, r.arquivo);
-                              }
-                            } catch { /* silently ignore */ }
-                          }}
-                          title="Injeta o arquivo completo — mais contexto, consome mais da janela do LLM"
-                          className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
-                            ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
-                          + Arquivo
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    …{r.trecho}…
+      {/* ── Resultados de busca ── */}
+      {buscaResultados && (
+        <div className={`rounded-2xl border p-4 space-y-2 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+            {buscaResultados.total === 0
+              ? `Nenhum resultado para "${buscaResultados.query}"`
+              : `${buscaResultados.total} resultado${buscaResultados.total !== 1 ? 's' : ''} para "${buscaResultados.query}"`}
+          </p>
+          {buscaResultados.resultados.map((r, i) => (
+            <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className={`text-[11px] font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                    {r.tipo === 'youtube' ? '🎬' : r.tipo === 'documento' ? '📄' : '📝'} {r.arquivo}
                   </p>
+                  {r.canal && (
+                    <span className={`text-[9px] px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-500' : 'bg-slate-200 text-slate-500'}`}>@{r.canal}</span>
+                  )}
                 </div>
-              ))}
+                {onInjetarContexto && (
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
+                      title="Injeta apenas o trecho encontrado — mais preciso"
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
+                        ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                      + Trecho
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await lerArquivo(r.caminho);
+                          if (res.data?.ok) {
+                            onInjetarContexto(res.data.conteudo, r.arquivo);
+                          }
+                        } catch { /* silently ignore */ }
+                      }}
+                      title="Injeta o arquivo completo — mais contexto, consome mais da janela do LLM"
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
+                        ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
+                      + Arquivo
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                …{r.trecho}…
+              </p>
             </div>
-          )}
+          ))}
         </div>
       )}
 
       {/* Modal — limpar base */}
       {showLimpar && ReactDOM.createPortal(
-        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('repo.clear_title')}>
-          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
-            <div className="flex items-start gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
-              <div>
-                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.clear_title')}</h3>
-                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Esta ação é irreversível. Selecione o que deseja remover:</p>
-              </div>
-            </div>
+        <ModalWrapper onClose={() => { if (!limpando) { setShowLimpar(false); setLimparBasesSel({}); } }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar bases">
+          {(() => {
+            const selecionadas = Object.entries(limparBasesSel).filter(([, v]) => v).map(([k]) => k);
+            const todasSel = canais.length > 0 && canais.every(c => limparBasesSel[c.nome]);
+            const toggleTodas = () => {
+              const sel = {};
+              canais.forEach(c => { sel[c.nome] = !todasSel; });
+              setLimparBasesSel(sel);
+            };
+            return (
+              <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar bases</h3>
+                    <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Selecione as bases que deseja apagar. Esta ação é irreversível.</p>
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              {[
-                { key: 'youtube',    emoji: '🎬', label: 'YouTube', count: flatYT.length },
-                { key: 'documentos', emoji: '📄', label: 'Documentos', count: flatDocs.length },
-                { key: 'textos',     emoji: '📝', label: 'Textos', count: flatTexts.length },
-              ].filter(opt => opt.count > 0).map(opt => (
-                <label key={opt.key}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors
-                    ${limparSel[opt.key]
-                      ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
-                      : darkMode ? 'border-white/10 hover:border-white/20' : 'border-slate-200 hover:border-slate-300'}`}>
-                  <input type="checkbox" checked={limparSel[opt.key]}
-                    onChange={e => setLimparSel(s => ({ ...s, [opt.key]: e.target.checked }))}
-                    className="accent-red-500 w-3.5 h-3.5" />
-                  <span className="text-sm">{opt.emoji}</span>
-                  <span className={`text-xs font-medium flex-1 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{opt.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>{opt.count}</span>
-                </label>
-              ))}
-            </div>
+                <div className="space-y-2">
+                  {/* Marcar/desmarcar todas */}
+                  <button onClick={toggleTodas}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
+                      ${todasSel
+                        ? darkMode ? 'border-danger/40 bg-danger/10 text-danger' : 'border-red-300 bg-red-50 text-red-700'
+                        : darkMode ? 'border-white/10 text-slate-400 hover:border-white/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors
+                      ${todasSel ? 'bg-danger border-danger' : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
+                      {todasSel && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </span>
+                    {todasSel ? 'Desmarcar todas' : 'Selecionar todas'}
+                  </button>
 
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => { setShowLimpar(false); setLimparSel({ youtube: false, documentos: false, textos: false }); }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
-                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                {t('repo.cancel')}
-              </button>
-              <button onClick={handleLimpar}
-                disabled={limpando || (!limparSel.youtube && !limparSel.documentos && !limparSel.textos)}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
-                  ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                {limpando ? 'Removendo…' : 'Confirmar remoção'}
-              </button>
-            </div>
-          </div>
+                  {/* Lista de bases */}
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                    {canais.length === 0 ? (
+                      <p className={`text-xs text-center py-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma base encontrada.</p>
+                    ) : canais.map(canal => {
+                      const qtd = canal.youtube.length + canal.documentos.length + canal.textos.length;
+                      const sel = !!limparBasesSel[canal.nome];
+                      return (
+                        <button key={canal.nome} onClick={() => setLimparBasesSel(prev => ({ ...prev, [canal.nome]: !sel }))}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all
+                            ${sel
+                              ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
+                              : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200'}`}>
+                          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors
+                            ${sel ? 'bg-danger border-danger' : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
+                            {sel && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          </span>
+                          <span className={`text-xs font-semibold flex-1 truncate ${sel ? darkMode ? 'text-danger' : 'text-red-700' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                            🧠 @{canal.nome}
+                          </span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                            {qtd} arquivo{qtd !== 1 ? 's' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Aviso de reset total */}
+                {todasSel && (
+                  <div className={`flex items-start gap-2 p-3 rounded-xl text-[11px] leading-relaxed ${darkMode ? 'bg-danger/10 border border-danger/20 text-danger/80' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span>Todas as bases serão apagadas — arquivos, índices e histórico removidos permanentemente.</span>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setShowLimpar(false); setLimparBasesSel({}); }} disabled={limpando}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
+                      ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (todasSel) {
+                        // Redireciona para o modal de reset total existente
+                        setShowLimpar(false);
+                        setLimparBasesSel({});
+                        setResetConfirm('');
+                        setShowResetTotal(true);
+                      } else {
+                        handleLimpar();
+                      }
+                    }}
+                    disabled={limpando || selecionadas.length === 0}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
+                      ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                    {limpando ? 'Removendo…' : todasSel ? 'Apagar tudo' : `Apagar ${selecionadas.length} base${selecionadas.length !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </ModalWrapper>,
         document.body
       )}
@@ -528,30 +737,83 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           {/* Project selector */}
           <div className="space-y-1.5">
             <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Pasta / Projeto</p>
-            <div className="flex gap-2 items-center">
-              <select
-                value={projetoSel}
-                onChange={e => {
-                  if (e.target.value === '__novo__') {
-                    setShowNovoProjeto(true);
-                  } else {
-                    setProjetoSel(e.target.value);
-                    setShowNovoProjeto(false);
-                  }
-                }}
-                style={darkMode ? { colorScheme: 'dark' } : {}}
-                className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-[#1a2035] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
-                <option value="">{canalAtivo ? `@${canalAtivo} (atual)` : 'Avulso (sem projeto)'}</option>
-                {projetos.map(p => (
-                  <option key={p.nome} value={p.nome}>
-                    {p.tipo === 'youtube' ? `📺 @${p.nome}` : `📁 ${p.nome}`}
-                  </option>
-                ))}
-                <option value="__novo__">+ Novo projeto…</option>
-              </select>
-            </div>
+
+            {/* Canal ativo (pré-selecionado) */}
+            {canalAtivo && (
+              <button
+                onClick={() => { setProjetoSel(''); setShowNovoProjeto(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
+                  ${projetoSel === ''
+                    ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
+                    : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
+                  ${projetoSel === '' ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                  {projetoSel === '' && <span className="w-2 h-2 rounded-full bg-white block" />}
+                </div>
+                <span className="text-base shrink-0">🧠</span>
+                <span className={`text-xs font-semibold truncate ${projetoSel === '' ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  @{canalAtivo} <span className={`font-normal text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>(atual)</span>
+                </span>
+              </button>
+            )}
+
+            {/* Projetos existentes */}
+            {projetos.filter(p => p.nome !== canalAtivo).map(p => (
+              <button
+                key={p.nome}
+                onClick={() => { setProjetoSel(p.nome); setShowNovoProjeto(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
+                  ${projetoSel === p.nome
+                    ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
+                    : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
+                  ${projetoSel === p.nome ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                  {projetoSel === p.nome && <span className="w-2 h-2 rounded-full bg-white block" />}
+                </div>
+                <span className="text-base shrink-0">🧠</span>
+                <span className={`text-xs font-semibold truncate ${projetoSel === p.nome ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
+                </span>
+              </button>
+            ))}
+
+            {/* Opção sem canal (quando não há canalAtivo) */}
+            {!canalAtivo && (
+              <button
+                onClick={() => { setProjetoSel(''); setShowNovoProjeto(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
+                  ${projetoSel === '' && !showNovoProjeto
+                    ? darkMode ? 'bg-white/8 border-white/20' : 'bg-slate-100 border-slate-300'
+                    : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0
+                  ${projetoSel === '' && !showNovoProjeto ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                  {projetoSel === '' && !showNovoProjeto && <span className="w-2 h-2 rounded-full bg-white block" />}
+                </div>
+                <span className="text-base shrink-0">📂</span>
+                <span className={`text-xs font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Sem projeto (avulso)</span>
+              </button>
+            )}
+
+            {/* Novo projeto */}
+            <button
+              onClick={() => { setShowNovoProjeto(true); setProjetoSel('__novo__'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
+                ${showNovoProjeto
+                  ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
+                  : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0
+                ${showNovoProjeto ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                {showNovoProjeto && <span className="w-2 h-2 rounded-full bg-white block" />}
+              </div>
+              <span className="text-base shrink-0">✨</span>
+              <span className={`text-xs font-semibold ${showNovoProjeto ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                Novo projeto
+              </span>
+            </button>
+
+            {/* Input de nome — aparece quando "Novo projeto" selecionado */}
             {showNovoProjeto && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 pl-1">
                 <input
                   type="text"
                   placeholder="Nome do projeto"
@@ -567,8 +829,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   {criandoProj ? '…' : 'Criar'}
                 </button>
                 <button
-                  onClick={() => { setShowNovoProjeto(false); setNovoProjNome(''); }}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'} ${btnFocus}`}>
+                  onClick={() => { setShowNovoProjeto(false); setProjetoSel(canalAtivo ? '' : ''); setNovoProjNome(''); }}
+                  className={`px-2 py-2 rounded-xl text-xs font-bold transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'} ${btnFocus}`}>
                   ✕
                 </button>
               </div>
@@ -610,7 +872,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     : files.length > 0
                       ? darkMode ? 'border-secondary/40 bg-secondary/5' : 'border-emerald-200 bg-emerald-50/50'
                       : darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}>
-                <p className={`text-xs font-medium ${dragging ? 'text-primary' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-xs font-medium ${dragging ? 'text-primary' : darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
                   {dragging ? 'Solte aqui' : files.length > 0 ? '+ Adicionar mais arquivos' : 'Arraste e solte ou clique para selecionar'}
                 </p>
                 {files.length === 0 && (
@@ -706,7 +968,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           <div key={canal.nome} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
               <button onClick={() => toggleCanal(canal.nome)} className="flex items-center gap-2 flex-1 text-left min-w-0">
-                <span className="text-sm shrink-0">{isAvulso ? '📁' : '📺'}</span>
+                <span className="text-sm shrink-0">{isAvulso ? '📁' : '🧠'}</span>
                 <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-700'}`}>
                   {isAvulso ? 'Avulso' : `@${canal.nome}`}
                 </p>
@@ -717,8 +979,24 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 </svg>
               </button>
               <button
+                onClick={e => {
+                  e.stopPropagation();
+                  reloadProjetos().then(() => {
+                    setProjetoSel(canal.nome);
+                    setShowNovoProjeto(false);
+                    setMode('texto');
+                    setUploadAviso('');
+                    setShowAdd(true);
+                  });
+                }}
+                title={`Adicionar arquivo ao projeto @${canal.nome}`}
+                className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${btnFocus}
+                  ${darkMode ? 'text-primary/70 hover:text-primary hover:bg-primary/10' : 'text-violet-500 hover:text-violet-700 hover:bg-violet-50'}`}>
+                + Adicionar
+              </button>
+              <button
                 onClick={e => { e.stopPropagation(); setLimparCanalNome(canal.nome); }}
-                title={`Limpar tudo do canal @${canal.nome}`}
+                title={`Limpar tudo da base @${canal.nome}`}
                 className={`shrink-0 p-1.5 rounded-lg transition-colors text-danger/50 hover:text-danger hover:bg-danger/10 ${btnFocus}`}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
               </button>
@@ -731,7 +1009,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     <span className="text-sm shrink-0">🎬</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
                     </div>
                   </div>
                 ))}
@@ -742,7 +1020,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     <span className="text-sm shrink-0">{_emojiTipo(item)}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
                     </div>
                     <button onClick={() => handleDelete(item._tipo, item.id)}
                       className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
@@ -781,7 +1059,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       <span className="text-sm shrink-0">🎬</span>
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
                       </div>
                     </div>
                   ))
@@ -790,7 +1068,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       <span className="text-sm shrink-0">{_emojiTipo({...item, _tipo: group.tipo})}</span>
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
                       </div>
                       <button onClick={() => handleDelete(group.tipo, item.id)}
                         className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
@@ -808,10 +1086,23 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
       {/* Empty state */}
       {total === 0 && (
-        <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
-          <p className="text-2xl mb-3">📭</p>
+        <div className={`rounded-2xl border p-8 text-center space-y-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+          <p className="text-2xl">📭</p>
           <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Repositório vazio</p>
-          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Extraia um canal ou adicione documentos para começar</p>
+          <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>Crie um projeto para começar a adicionar documentos e textos</p>
+          <button
+            onClick={() => {
+              reloadProjetos().then(() => {
+                setProjetoSel('__novo__');
+                setShowNovoProjeto(true);
+                setMode('texto');
+                setUploadAviso('');
+                setShowAdd(true);
+              });
+            }}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
+            + Criar projeto
+          </button>
         </div>
       )}
 
@@ -857,7 +1148,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </div>
               <div>
                 <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Resetar base completa</h3>
-                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
                   Apaga <strong>todo o cérebro</strong>: transcrições, documentos, textos, índices BM25 e histórico de extração. Não há como desfazer.
                 </p>
               </div>
@@ -896,70 +1187,28 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       {/* Modal: Indexar base */}
       {showIndexar && ReactDOM.createPortal(
         <ModalWrapper onClose={() => !indexando && setShowIndexar(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Indexar base de conhecimento">
-          <div className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
-            <div>
-              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Indexar base de conhecimento</h3>
-              <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Selecione os projetos que deseja indexar para o chat</p>
-            </div>
-
-            {/* Selecionar / desmarcar todos */}
-            {(() => {
-              const nomes = (history || []).map(h => h.canal_nome).filter(Boolean);
-              const todos = nomes.length > 0 && nomes.every(n => indexarSel[n]);
-              return (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      const sel = {};
-                      nomes.forEach(n => { sel[n] = !todos; });
-                      setIndexarSel(sel);
-                    }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
-                      ${todos
-                        ? darkMode ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-violet-50 border-violet-300 text-violet-700'
-                        : darkMode ? 'border-white/10 text-slate-400 hover:border-white/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
-                      ${todos ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-                      {todos && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </span>
-                    {todos ? 'Desmarcar todos' : 'Selecionar todos'}
-                  </button>
-
-                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-0.5">
-                    {nomes.length === 0 ? (
-                      <p className={`text-xs text-center py-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum canal extraído ainda.</p>
-                    ) : nomes.map(nome => (
-                      <button key={nome}
-                        onClick={() => setIndexarSel(prev => ({ ...prev, [nome]: !prev[nome] }))}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-all
-                          ${indexarSel[nome]
-                            ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
-                            : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200'}`}>
-                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
-                          ${indexarSel[nome] ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-                          {indexarSel[nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                        </span>
-                        <span className={`text-xs truncate font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>@{nome}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => setShowIndexar(false)} disabled={indexando}
-                className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-40
-                  ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                Cancelar
-              </button>
-              <button onClick={handleIndexarConfirmar} disabled={indexando || Object.values(indexarSel).every(v => !v)}
-                className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30">
-                {indexando ? 'Indexando…' : 'Indexar'}
-              </button>
-            </div>
-          </div>
+          <IndexarModal
+            darkMode={darkMode}
+            btnFocus={btnFocus}
+            projetos={projetos}
+            indexarSel={indexarSel}
+            setIndexarSel={setIndexarSel}
+            indexando={indexando}
+            agentStatus={agentStatus}
+            onConfirmar={handleIndexarConfirmar}
+            onFechar={() => setShowIndexar(false)}
+          />
         </ModalWrapper>,
+        document.body
+      )}
+
+      {/* Snackbar de indexação concluída */}
+      {indexSnackbar && ReactDOM.createPortal(
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-xs font-bold pointer-events-none
+            ${darkMode ? 'bg-secondary/90 text-white' : 'bg-emerald-600 text-white'}`}>
+          ✓ {indexSnackbar}
+        </div>,
         document.body
       )}
     </div>

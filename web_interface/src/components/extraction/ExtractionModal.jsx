@@ -41,9 +41,11 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   ];
 
   // Steps: 1=URL, 2=Projeto (só no modoFila), 3=Fontes
-  // No modoFila: 1→2→3. Sem fila: 1→3 diretamente (step visual 2 = fontes).
-  const totalSteps = modoFila ? 3 : 2;
-  const [step, setStep] = React.useState(1);
+  // Sem fila + canal já configurado → começa direto no step 3 (só fontes).
+  // Sem fila + sem canal → 1→3. Com fila → 1→2→3.
+  const totalSteps = modoFila ? 3 : (canalUrlInicial ? 1 : 2);
+  const stepInicial = !modoFila && canalUrlInicial ? 3 : 1;
+  const [step, setStep] = React.useState(stepInicial);
 
   // Step 1: channel URL
   const [canalUrl, setCanalUrl] = React.useState(canalUrlInicial || '');
@@ -59,16 +61,35 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   const [selected, setSelected] = React.useState(ALL_TYPES.map(t => t.id));
   const allSelected = selected.length === ALL_TYPES.length;
 
+  // Auto-update
+  const [autoUpdate,          setAutoUpdate]          = React.useState(false);
+  const [autoUpdateConsent,   setAutoUpdateConsent]   = React.useState(false);
+  const [autoUpdateFreq,      setAutoUpdateFreq]      = React.useState('semanal'); // 'diario' | 'semanal' | 'mensal'
+
   const toggle = (id) => setSelected(prev =>
     prev.includes(id)
       ? (prev.length > 1 ? prev.filter(x => x !== id) : prev)
       : [...prev, id]
   );
 
+  // Deriva handle do canal a partir da URL (ex: "@FGV", "FGV")
+  const extrairHandleUrl = (url) => {
+    try {
+      const u = new URL(url.trim());
+      const partes = u.pathname.split('/').filter(Boolean);
+      if (partes.length > 0) return partes[partes.length - 1].replace(/^@/, '');
+    } catch (_) {}
+    return '';
+  };
+
   // Avança para a próxima etapa (pula projeto se não for modoFila)
   const avancar = () => {
-    if (step === 1) { setStep(modoFila ? 2 : 3); }
-    else if (step === 2) { setStep(3); }
+    if (step === 1) {
+      // Ao avançar do step 1, atualiza o nome do novo projeto com o handle da URL nova
+      const handle = extrairHandleUrl(canalUrl);
+      if (handle) setNovoNome(handle);
+      setStep(modoFila ? 2 : 3);
+    } else if (step === 2) { setStep(3); }
   };
   const voltar = () => {
     if (step === 3) { setStep(modoFila ? 2 : 1); }
@@ -80,10 +101,14 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
       ? (criandoNovo ? novoNome.trim() : projetoSel.trim())
       : canalNome; // sem fila: usa o canal configurado como projeto
     const urlChanged = canalUrl.trim() && canalUrl.trim() !== canalUrlInicial.trim();
-    onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined);
+    const autoUpdateConfig = autoUpdate && autoUpdateConsent
+      ? { enabled: true, frequencia: autoUpdateFreq }
+      : { enabled: false };
+    onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig);
   };
 
-  // Labels adaptativos
+  // Labels adaptativos — quando começa direto no step 3, não há "voltar"
+  const temVoltar = step !== stepInicial;
   const stepVisual = step === 1 ? 1 : step === 2 ? 2 : totalSteps;
   const stepLabel = step === 1
     ? 'Canal do YouTube'
@@ -264,13 +289,89 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
               })}
             </div>
 
+            {/* ── Auto-update panel ── */}
+            <div className={`rounded-xl border mb-4 overflow-hidden ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-200 bg-slate-50'}`}>
+              {/* Toggle row */}
+              <button
+                onClick={() => setAutoUpdate(v => !v)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${BTN_FOCUS}
+                  ${autoUpdate ? darkMode ? 'bg-cyan-500/10' : 'bg-cyan-50' : ''}`}>
+                <div className={`w-8 h-4 rounded-full flex items-center shrink-0 transition-colors px-0.5
+                  ${autoUpdate ? 'bg-cyan-500 justify-end' : darkMode ? 'bg-white/15 justify-start' : 'bg-slate-300 justify-start'}`}>
+                  <div className="w-3 h-3 rounded-full bg-white shadow-sm transition-all" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[11px] font-bold ${autoUpdate ? 'text-cyan-600' : darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Busca automática de novos vídeos
+                  </p>
+                  <p className={`text-[10px] mt-0.5 leading-snug ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    Requer conexão com a internet periodicamente
+                  </p>
+                </div>
+                <span className="text-base shrink-0" aria-hidden="true">🌐</span>
+              </button>
+
+              {/* Expanded config — shown when toggle is on */}
+              {autoUpdate && (
+                <div className={`px-3 pb-3 pt-2 border-t space-y-3 ${darkMode ? 'border-white/8' : 'border-slate-200'}`}>
+
+                  {/* Frequency selector — always visible when toggle is on */}
+                  <div>
+                    <p className={`text-[10px] font-bold mb-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Periodicidade da verificação</p>
+                    <div className="flex gap-1.5">
+                      {[
+                        { id: 'ao_abrir', label: 'Ao abrir' },
+                        { id: 'diario',   label: 'Diária'   },
+                        { id: 'semanal',  label: 'Semanal'  },
+                        { id: 'mensal',   label: 'Mensal'   },
+                      ].map(f => (
+                        <button key={f.id} onClick={() => setAutoUpdateFreq(f.id)}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${BTN_FOCUS}
+                            ${autoUpdateFreq === f.id
+                              ? 'bg-cyan-500 border-cyan-500 text-white'
+                              : darkMode ? 'border-white/15 text-slate-300 hover:border-cyan-500/40' : 'border-slate-200 text-slate-500 hover:border-cyan-400'}`}>
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Consent checkbox — required to confirm */}
+                  <button
+                    onClick={() => setAutoUpdateConsent(v => !v)}
+                    className={`w-full flex items-start gap-2.5 text-left rounded-lg px-2 py-2 transition-colors border ${BTN_FOCUS}
+                      ${autoUpdateConsent
+                        ? darkMode ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-cyan-50 border-cyan-200'
+                        : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-300'}`}>
+                    <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+                      ${autoUpdateConsent ? 'bg-cyan-500 border-cyan-500' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                      {autoUpdateConsent && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      )}
+                    </div>
+                    <p className={`text-[10px] leading-relaxed ${autoUpdateConsent ? darkMode ? 'text-cyan-300' : 'text-cyan-700' : darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      Entendo que o Tusab vai se conectar à internet <strong>apenas para verificar se há vídeos novos</strong>. Nenhum dado pessoal é transmitido. As transcrições continuam sendo processadas localmente.
+                    </p>
+                  </button>
+
+                  {!autoUpdateConsent && (
+                    <p className={`text-[10px] text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Marque o consentimento acima para ativar a busca automática.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Navigation */}
             <div className="flex gap-2">
-              <button onClick={voltar}
-                className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
-                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                Voltar
-              </button>
+              {temVoltar && (
+                <button onClick={voltar}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  Voltar
+                </button>
+              )}
               <button
                 onClick={handleConfirm}
                 className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>

@@ -57,7 +57,7 @@
   "stats.db": "Base de Dados",
   "stats.mapped": "de {{total}} mapeados",
   "stats.waiting": "aguardando início",
-  "stats.parts": "partes do cérebro",
+  "stats.parts": "arquivos na base",
   "stats.active": "Ativa",
   "stats.waiting_db": "Aguardando",
   "stats.no_channel": "sem canal configurado",

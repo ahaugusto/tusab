@@ -57,7 +57,7 @@
   "stats.db": "Database",
   "stats.mapped": "of {{total}} mapped",
   "stats.waiting": "waiting to start",
-  "stats.parts": "brain parts",
+  "stats.parts": "files in base",
   "stats.active": "Active",
   "stats.waiting_db": "Waiting",
   "stats.no_channel": "no channel configured",

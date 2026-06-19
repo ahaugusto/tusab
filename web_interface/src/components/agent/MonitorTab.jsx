@@ -77,11 +77,11 @@ export default function MonitorTab({ darkMode, btnFocus }) {
     return () => clearInterval(intervalRef.current);
   }, [paused]);
 
-  const cur   = metrics?.current;
-  const hist  = metrics?.history ?? [];
-  const ramHist = hist.map(h => h.ram_mb);
-  const cpuHist = hist.map(h => h.cpu_pct);
-  const maxRam  = Math.max(...ramHist, 1);
+  const cur      = metrics?.current;
+  const hist     = metrics?.history ?? [];
+  const ramHist  = hist.map(h => h.ram_mb);
+  const cpuHist  = hist.map(h => h.sys_cpu ?? h.cpu_pct);
+  const maxRam   = Math.max(...ramHist, 1);
 
   const card = `rounded-2xl border p-4 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`;
   const label = `text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`;
@@ -141,16 +141,21 @@ export default function MonitorTab({ darkMode, btnFocus }) {
         <div className={card}>
           <div className="flex items-center gap-2 mb-3">
             <Cpu size={14} className="text-sky-400" />
-            <span className={label}>CPU</span>
+            <span className={label}>CPU Sistema</span>
           </div>
           <div className="flex items-end gap-1 mb-2">
-            <span className={value}>{cur ? cur.cpu_pct.toFixed(0) : '—'}</span>
+            <span className={value}>{cur ? (cur.sys_cpu ?? cur.cpu_pct).toFixed(0) : '—'}</span>
             <span className={`${unit} mb-1`}>%</span>
           </div>
-          <GaugeBar value={cur?.cpu_pct ?? 0} max={100} color="#38bdf8" darkMode={darkMode} />
+          <GaugeBar value={cur?.sys_cpu ?? cur?.cpu_pct ?? 0} max={100} color="#38bdf8" darkMode={darkMode} />
           <div className="mt-3">
             <Sparkline data={cpuHist} max={100} color="#38bdf8" />
           </div>
+          {cur?.cpu_pct !== undefined && (
+            <p className={`mt-2 text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+              Processo: {cur.cpu_pct.toFixed(1)}%
+            </p>
+          )}
         </div>
       </div>
 
@@ -167,7 +172,8 @@ export default function MonitorTab({ darkMode, btnFocus }) {
                 <tr className={darkMode ? 'text-slate-500' : 'text-slate-400'}>
                   <th className="px-4 py-1.5 text-left font-semibold">Horário</th>
                   <th className="px-4 py-1.5 text-right font-semibold">RAM (MB)</th>
-                  <th className="px-4 py-1.5 text-right font-semibold">CPU (%)</th>
+                  <th className="px-4 py-1.5 text-right font-semibold">CPU Sis. (%)</th>
+                  <th className="px-4 py-1.5 text-right font-semibold">CPU Proc. (%)</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,6 +190,9 @@ export default function MonitorTab({ darkMode, btnFocus }) {
                       {h.ram_mb.toFixed(1)}
                     </td>
                     <td className={`px-4 py-1.5 text-right font-mono ${darkMode ? 'text-sky-300' : 'text-sky-600'}`}>
+                      {(h.sys_cpu ?? h.cpu_pct).toFixed(1)}
+                    </td>
+                    <td className={`px-4 py-1.5 text-right font-mono ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                       {h.cpu_pct.toFixed(1)}
                     </td>
                   </tr>

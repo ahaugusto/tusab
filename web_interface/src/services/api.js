@@ -39,6 +39,9 @@ export const fetchHistory = () => axios.get(`${API_BASE}/history`);
 /** Fetches repositório content (youtube + docs + textos) */
 export const fetchRepositorio = () => axios.get(`${API_BASE}/repositorio`);
 
+/** Fetches per-project chat interaction stats */
+export const fetchChatStats = () => axios.get(`${API_BASE}/agent/chat-stats`);
+
 /** Fetches extraction report for a specific canal */
 export const fetchRelatorio = (canal) => axios.get(`${API_BASE}/relatorio/${encodeURIComponent(canal)}`);
 
@@ -69,6 +72,22 @@ export const queueClear = () => axios.delete(`${API_BASE}/queue/clear`);
 
 /** Returns current queue contents */
 export const fetchQueue = () => axios.get(`${API_BASE}/queue`);
+
+/** Removes a single item from the queue by 0-based index */
+export const queueRemoveItem = (index) => axios.delete(`${API_BASE}/queue/item/${index}`);
+
+/** Moves an item in the queue from one index to another */
+export const queueMoveItem = (from_index, to_index) => axios.post(`${API_BASE}/queue/move`, { from_index, to_index });
+
+/** Saves auto-update config for a channel */
+export const saveAutoUpdateConfig = (canal_prefixo, enabled, frequencia, fontes, canal_url) =>
+  axios.post(`${API_BASE}/auto-update/config`, { canal_prefixo, enabled, frequencia, fontes, canal_url });
+
+/** Gets auto-update config for a channel */
+export const getAutoUpdateConfig = (canal_prefixo) => axios.get(`${API_BASE}/auto-update/config/${canal_prefixo}`);
+
+/** Triggers an immediate auto-update check for all configured channels */
+export const runAutoUpdate = () => axios.post(`${API_BASE}/auto-update/run`);
 
 // ─── Drive ───────────────────────────────────────────────────────────────────
 

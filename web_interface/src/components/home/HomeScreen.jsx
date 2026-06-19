@@ -29,23 +29,23 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     {
       id:     'youtube',
       icon:   '📺',
-      title:  t('home.source_youtube_title'),
+      title:  'Extrair conteúdo',
+      sub:    'YouTube',
       desc:   totalCanais > 0
         ? t('home.card_extract_done', { count: totalCanais })
         : t('home.source_youtube_desc'),
       badge:  totalCanais > 0 ? String(totalCanais) : null,
-      accent: true,
       action: () => onNavigate('extracao'),
     },
     {
       id:     'arquivos',
-      icon:   '📄',
-      title:  t('home.source_files_title'),
+      icon:   '📁',
+      title:  'Incluir conteúdo',
+      sub:    'Local',
       desc:   totalDocs > 0
         ? t('home.card_repo_done', { count: totalDocs })
         : t('home.source_files_desc'),
       badge:  totalDocs > 0 ? String(totalDocs) : null,
-      accent: false,
       action: onAddFiles,
     },
   ];
@@ -61,11 +61,11 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       color:  'accent',
     },
     {
-      id:     'relatorio',
-      icon:   '📊',
-      title:  t('home.card_report_title'),
-      desc:   totalCanais > 0 ? t('home.card_report_done', { count: totalCanais }) : t('home.card_report_desc'),
-      badge:  totalCanais > 0 ? String(totalCanais) : null,
+      id:     'visao-geral',
+      icon:   '🗺️',
+      title:  'Visão Geral',
+      desc:   totalArquivos > 0 ? `${totalArquivos} arquivo${totalArquivos !== 1 ? 's' : ''} · ${totalCanais} projeto${totalCanais !== 1 ? 's' : ''}` : 'Inventário completo da ferramenta',
+      badge:  null,
       color:  'secondary',
     },
     {
@@ -134,7 +134,10 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                     </span>
                   )}
                   <span className="text-2xl block mb-2">{card.icon}</span>
-                  <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeClass('primary')}`}>{card.sub}</span>
+                  </div>
                   <p className={`text-[10px] mt-1 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
                 </button>
               ))}

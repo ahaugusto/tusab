@@ -72,6 +72,13 @@ Mais informações: consulte a documentação em Documentação do Produto/Segur
 
 _criar_aviso_seguranca()
 
+# Dispara verificação de auto-update em background (não bloqueia startup)
+try:
+    from tusab_engine.motor.auto_update import agendar_startup_check
+    agendar_startup_check()
+except Exception:
+    pass
+
 app = FastAPI()
 
 app.add_middleware(

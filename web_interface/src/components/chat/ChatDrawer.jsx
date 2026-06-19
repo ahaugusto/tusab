@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes } from '../../services/api';
@@ -195,6 +195,8 @@ function ChatDrawer({
   const [showBaseModal,     setShowBaseModal]     = useState(false);
   const [showBuscaModal,    setShowBuscaModal]    = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
+  const [indexSnackbar,     setIndexSnackbar]     = useState(null); // { msg, type }
+  const prevIndexing = useRef(false);
   const [mencaoQuery,       setMencaoQuery]       = useState('');
   const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
   const [showMencao,        setShowMencao]        = useState(false);
@@ -215,6 +217,16 @@ function ChatDrawer({
     }
     prevChatInputRef.current = chatInput;
   }, [chatInput]);
+
+  // Detecta fim da indexação e exibe snackbar
+  useEffect(() => {
+    const agora = agentStatus.indexing;
+    if (prevIndexing.current && !agora) {
+      setIndexSnackbar({ msg: 'Base indexada com sucesso!', type: 'ok' });
+      setTimeout(() => setIndexSnackbar(null), 4000);
+    }
+    prevIndexing.current = agora;
+  }, [agentStatus.indexing]);
 
   const loadingPhrase = useLoadingPhrase(chatLoading);
   const canaisIndexados = agentStatus.canais_indexados || [];
@@ -284,9 +296,32 @@ function ChatDrawer({
       <Sparkles size={15} className="text-primary shrink-0" />
       <div className="flex-1 min-w-0">
         <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
-        {agentStatus.indexed && (
-          <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>@{canalConfigurado || agentStatus.canal_indexado}</p>
-        )}
+        {agentStatus.indexed && (() => {
+          const principal = canalConfigurado || agentStatus.canal_indexado;
+          const extras = canaisExtras || [];
+          const todas = extras.length > 0
+            ? [principal, ...extras].filter(Boolean)
+            : null;
+          return todas ? (
+            <div className="relative group/bases inline-block">
+              <p className={`text-[10px] cursor-default ${darkMode ? 'text-primary/80' : 'text-primary'}`}>
+                {todas.length} bases ativas
+              </p>
+              <div className={`absolute left-0 top-full mt-1 z-50 hidden group-hover/bases:block
+                rounded-xl border shadow-lg p-2 space-y-0.5 min-w-[140px]
+                ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+                {todas.map(b => (
+                  <p key={b} className={`text-[10px] px-2 py-0.5 rounded whitespace-nowrap
+                    ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    @{b}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>@{principal}</p>
+          );
+        })()}
       </div>
       {/* Busca Ampla toggle */}
       <div className="flex items-center gap-1 shrink-0">
@@ -336,7 +371,7 @@ function ChatDrawer({
                   {!temBase ? (
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
-                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
                         {t('agent.chat_empty_no_index')}
                       </p>
                       {onIndexar && (
@@ -379,7 +414,7 @@ function ChatDrawer({
                                 <Database size={13} className="text-accent shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Todos os canais extraídos</p>
-                                  <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Indexa cada canal em sequência</p>
+                                  <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Indexa cada canal em sequência</p>
                                 </div>
                                 {indexSel === '__todos__' && <div className="w-2 h-2 rounded-full bg-accent shrink-0" />}
                               </button>
@@ -427,7 +462,7 @@ function ChatDrawer({
                             <Database size={14} className="text-primary shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
-                              <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{canal.chunks} {t('chat.chunks_indexed')}</p>
+                              <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{canal.chunks} {t('chat.chunks_indexed')}</p>
                             </div>
                             <ChevronRight size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
                           </button>
@@ -437,7 +472,7 @@ function ChatDrawer({
                   ) : canaisIndexados.length === 0 && !canalAtivo ? (
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
-                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
                         {t('agent.chat_empty_no_index')}
                       </p>
                       {onIndexar && (
@@ -453,7 +488,7 @@ function ChatDrawer({
                   ) : (
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
-                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
                         {t('agent.chat_empty_ready', { canal: canalAtivo })}
                       </p>
                       {canaisIndexados.length > 1 && (
@@ -677,10 +712,10 @@ function ChatDrawer({
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-medium">@{item.label}</p>
                     {item.tipo === 'base' && (
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{item.chunks} chunks indexados</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.chunks} chunks indexados</p>
                     )}
                     {item.tipo === 'documento' && (
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{item.pasta}</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.pasta}</p>
                     )}
                   </div>
                 </button>
@@ -816,7 +851,7 @@ function ChatDrawer({
                 <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Busca Restrita (padrão)</p>
               </div>
               <p className="text-[11px] leading-relaxed">Responde <strong>exclusivamente</strong> com o conteúdo da sua base — transcrições do YouTube, documentos, textos adicionados. Se a resposta não estiver lá, o assistente informa que não encontrou nada.</p>
-              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Ideal para: recuperar informações precisas de conteúdo específico. Sem risco de dados inventados.</p>
+              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Ideal para: recuperar informações precisas de conteúdo específico. Sem risco de dados inventados.</p>
             </div>
 
             {/* Ampla */}
@@ -826,7 +861,7 @@ function ChatDrawer({
                 <p className={`text-xs font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>Busca Ampla</p>
               </div>
               <p className="text-[11px] leading-relaxed">Usa sua base como <strong>referência principal</strong> e complementa com o conhecimento geral do modelo quando necessário — útil para contexto, explicações adicionais ou perguntas abertas.</p>
-              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Atenção: ao usar provedor externo (OpenAI, Gemini, Groq, Anthropic), mensagens são enviadas a servidores de terceiros. Recomendado apenas para bases sem dados sensíveis.</p>
+              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Atenção: ao usar provedor externo (OpenAI, Gemini, Groq, Anthropic), mensagens são enviadas a servidores de terceiros. Recomendado apenas para bases sem dados sensíveis.</p>
             </div>
 
             <button
@@ -844,111 +879,231 @@ function ChatDrawer({
 
     {/* Modal de seleção de base de conhecimento */}
     <AnimatePresence>
-      {showBaseModal && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 z-40 flex flex-col"
-          style={{ background: darkMode ? 'rgba(12,17,34,0.97)' : 'rgba(255,255,255,0.97)' }}>
+      {showBaseModal && (() => {
+        // Monta lista unificada: indexadas + não indexadas
+        const indexadas = agentStatus.canais_indexados || [];
+        const naoIndexadas = (canaisExtraidos || []).filter(n => !indexadas.some(c => c.nome === n));
+        const todasBases = [
+          ...indexadas.map(c => ({ nome: c.nome, chunks: c.chunks || c.index_count || 0, indexado: true, indexed_at: c.indexed_at || null })),
+          ...naoIndexadas.map(n => ({ nome: n, chunks: 0, indexado: false, indexed_at: null })),
+        ];
+        const canalAtualAtivo = canalConfigurado || agentStatus.canal_indexado;
+        const todosSelecionados = todasBases.every(b => {
+          if (b.nome === canalAtualAtivo) return true;
+          return (canaisExtras || []).includes(b.nome);
+        });
+        const toggleTodos = () => {
+          if (todosSelecionados) {
+            setCanaisExtras?.([]);
+          } else {
+            setCanaisExtras?.(todasBases.filter(b => b.nome !== canalAtualAtivo).map(b => b.nome));
+          }
+        };
 
-          <div className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-            <button
-              onClick={() => setShowBaseModal(false)}
-              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
-              <ArrowLeft size={14} />
-            </button>
-            <div className="flex-1 min-w-0">
-              <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Base de conhecimento</h3>
-              <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Selecione uma ou mais bases para a conversa</p>
-            </div>
-          </div>
+        return (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-40 flex flex-col overflow-hidden"
+            style={{ background: darkMode ? 'rgba(12,17,34,0.97)' : 'rgba(255,255,255,0.97)' }}>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {(agentStatus.canais_indexados || []).length === 0 ? (
-              <div className={`flex flex-col items-center justify-center h-32 gap-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                <Database size={24} className="opacity-40" />
-                <p className="text-xs">Nenhuma base indexada ainda.</p>
+            {/* Header */}
+            <div className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+              <button
+                onClick={() => setShowBaseModal(false)}
+                className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <ArrowLeft size={14} />
+              </button>
+              <div className="flex-1 min-w-0">
+                <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Base de conhecimento</h3>
+                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>Selecione as bases para a conversa</p>
               </div>
-            ) : (agentStatus.canais_indexados || []).map(canal => {
-              const isAtivo  = canal.nome === (canalConfigurado || agentStatus.canal_indexado);
-              const isExtra  = (canaisExtras || []).includes(canal.nome);
-              const selecionado = isAtivo || isExtra;
-              return (
-                <div key={canal.nome}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
-                    ${selecionado
-                      ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
-                      : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}
-                  onClick={() => {
-                    if (isAtivo) return; // canal principal não pode ser desmarcado daqui
-                    setCanaisExtras?.(prev =>
-                      isExtra ? prev.filter(c => c !== canal.nome) : [...prev, canal.nome]
-                    );
-                  }}>
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0
-                    ${selecionado
-                      ? darkMode ? 'bg-primary/30 text-primary' : 'bg-violet-100 text-violet-700'
-                      : darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                    {(canal.nome || '?')[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
-                    <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {canal.index_count || 0} chunks indexados
-                    </p>
-                  </div>
-                  <div className="shrink-0 flex items-center gap-2">
-                    {isAtivo && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>Principal</span>
-                    )}
-                    {!isAtivo && (
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors
-                        ${isExtra
-                          ? 'border-primary bg-primary'
-                          : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
-                        {isExtra && <span className="text-white text-[8px] font-bold">✓</span>}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Canais extraídos mas não indexados */}
-            {(canaisExtraidos || [])
-              .filter(nome => !(agentStatus.canais_indexados || []).some(c => c.nome === nome))
-              .map(nome => (
-                <div key={nome}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all
-                    ${darkMode ? 'bg-white/2 border-white/8 opacity-60' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${darkMode ? 'bg-white/8 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
-                    {nome[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>@{nome}</p>
-                    <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Não indexado</p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      setIndexandoBase(nome);
-                      await onIndexar?.(nome).catch?.(() => {});
-                      setIndexandoBase(null);
-                    }}
-                    disabled={indexandoBase === nome || agentStatus.indexing}
-                    className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-50
-                      ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>
-                    {indexandoBase === nome ? <Loader2 size={10} className="animate-spin" /> : 'Indexar'}
-                  </button>
-                </div>
-              ))}
-          </div>
-
-          {(canaisExtras || []).length > 0 && (
-            <div className={`px-4 py-3 border-t text-[10px] ${darkMode ? 'border-white/10 text-primary/70' : 'border-slate-100 text-violet-500'}`}>
-              Buscando em {(canaisExtras || []).length + 1} bases simultaneamente
             </div>
-          )}
-        </motion.div>
-      )}
+
+            {/* Barra de ações: marcar tudo + indexar selecionadas */}
+            {todasBases.length > 0 && (
+              <div className={`flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                <button
+                  onClick={toggleTodos}
+                  className={`text-[10px] font-bold transition-colors ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
+                  {todosSelecionados ? 'Desmarcar todas' : 'Marcar todas'}
+                </button>
+                <button
+                  onClick={async () => {
+                    setIndexandoBase('__todos__');
+                    await onIndexar?.('__todos__').catch?.(() => {});
+                    setIndexandoBase(null);
+                  }}
+                  disabled={!!indexandoBase || agentStatus.indexing}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors disabled:opacity-50
+                    ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200'}`}>
+                  {indexandoBase === '__todos__' || agentStatus.indexing
+                    ? <Loader2 size={10} className="animate-spin" />
+                    : <RefreshCw size={10} />}
+                  Reindexar
+                </button>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {todasBases.length === 0 ? (
+                <div className={`flex flex-col items-center justify-center h-32 gap-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <Database size={24} className="opacity-40" />
+                  <p className="text-xs">Nenhuma base disponível ainda.</p>
+                </div>
+              ) : todasBases.map(base => {
+                const isAtivo = base.nome === canalAtualAtivo;
+                const isExtra = (canaisExtras || []).includes(base.nome);
+                const selecionado = isAtivo || isExtra;
+                const indexandoEsta = indexandoBase === base.nome || indexandoBase === '__todos__';
+                return (
+                  <div key={base.nome}
+                    onClick={() => {
+                      if (isAtivo) return;
+                      setCanaisExtras?.(prev =>
+                        isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
+                      );
+                    }}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
+                      ${selecionado
+                        ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
+                        : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                    {/* Avatar */}
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0
+                      ${selecionado
+                        ? darkMode ? 'bg-primary/30 text-primary' : 'bg-violet-100 text-violet-700'
+                        : darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                      {(base.nome || '?')[0].toUpperCase()}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-semibold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{base.nome}</p>
+                      {base.indexado ? (
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {base.chunks} chunks
+                          </span>
+                          {base.indexed_at && (
+                            <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                              {(() => {
+                                const d = new Date(base.indexed_at * 1000);
+                                return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                              })()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Não indexado</p>
+                      )}
+                    </div>
+                    {/* Ações */}
+                    <div className="shrink-0 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      {base.indexado ? (
+                        /* Reindexar */
+                        <button
+                          onClick={async () => {
+                            setIndexandoBase(base.nome);
+                            await onIndexar?.(base.nome).catch?.(() => {});
+                            setIndexandoBase(null);
+                          }}
+                          disabled={!!indexandoBase || agentStatus.indexing}
+                          title={`Reindexar @${base.nome}`}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-40
+                            ${darkMode ? 'text-slate-500 hover:text-accent hover:bg-accent/10' : 'text-slate-400 hover:text-cyan-600 hover:bg-cyan-50'}`}>
+                          {indexandoEsta
+                            ? <Loader2 size={11} className="animate-spin text-accent" />
+                            : <RefreshCw size={11} />}
+                        </button>
+                      ) : (
+                        /* Indexar */
+                        <button
+                          onClick={async () => {
+                            setIndexandoBase(base.nome);
+                            await onIndexar?.(base.nome).catch?.(() => {});
+                            setIndexandoBase(null);
+                          }}
+                          disabled={!!indexandoBase || agentStatus.indexing}
+                          className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-50
+                            ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>
+                          {indexandoEsta ? <Loader2 size={10} className="animate-spin" /> : 'Indexar'}
+                        </button>
+                      )}
+                      {/* Checkbox */}
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
+                        ${selecionado ? 'border-primary bg-primary' : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
+                        {selecionado && <span className="text-white text-[8px] font-bold">✓</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {(canaisExtras || []).length > 0 && !agentStatus.indexing && (
+              <div className={`px-4 py-2.5 border-t text-[10px] ${darkMode ? 'border-white/10 text-primary/70' : 'border-slate-100 text-violet-500'}`}>
+                Buscando em {(canaisExtras || []).length + 1} bases simultaneamente
+              </div>
+            )}
+
+            {/* Overlay de indexação em andamento */}
+            <AnimatePresence>
+              {agentStatus.indexing && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 16 }} transition={{ duration: 0.2 }}
+                  className={`absolute inset-x-0 bottom-0 rounded-t-2xl border-t shadow-2xl flex flex-col gap-3 p-4
+                    ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+                  style={{ maxHeight: '65%' }}>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="relative shrink-0">
+                      <Zap size={15} className="text-accent" />
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent animate-ping opacity-75" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Indexando base…</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Aguarde — não feche o app</p>
+                    </div>
+                    <Loader2 size={14} className="text-accent animate-spin shrink-0" />
+                  </div>
+                  <div className={`h-1 rounded-full overflow-hidden shrink-0 ${darkMode ? 'bg-white/10' : 'bg-slate-100'}`}>
+                    <motion.div
+                      className="h-full w-1/3 rounded-full bg-accent"
+                      animate={{ x: ['-100%', '300%'] }}
+                      transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                    />
+                  </div>
+                  {(agentStatus.index_logs || []).length > 0 && (
+                    <div className={`flex-1 overflow-y-auto rounded-xl p-3 space-y-1 min-h-0
+                      ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-100'}`}>
+                      {[...(agentStatus.index_logs || [])].reverse().map((log, i) => (
+                        <p key={i} className={`text-[10px] font-mono leading-relaxed ${
+                          i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'
+                        }`}>
+                          <span className={`mr-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>{log.timestamp}</span>
+                          {log.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Snackbar de sucesso */}
+            <AnimatePresence>
+              {indexSnackbar && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.2 }}
+                  className={`absolute bottom-4 left-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-xs font-bold
+                    ${darkMode ? 'bg-secondary/90 text-white' : 'bg-emerald-600 text-white'}`}>
+                  <CheckCircle2 size={14} />
+                  {indexSnackbar.msg}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        );
+      })()}
     </AnimatePresence>
 
     {/* Modal de histórico de conversas */}

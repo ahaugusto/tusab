@@ -341,7 +341,7 @@ function SidebarContent({
             </p>
             <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] ${darkMode ? 'bg-white/4 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
               <Info size={11} className="text-primary shrink-0 mt-0.5" aria-hidden="true" />
-              <p className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
+              <p className={darkMode ? 'text-slate-300' : 'text-slate-500'}>
                 Sincronize os arquivos extraídos com o Drive para usar no{' '}
                 <strong className={darkMode ? 'text-slate-300' : 'text-slate-700'}>NotebookLM</strong>.
                 O Tusab monta o repositório; o NotebookLM atua como interface de leitura.
@@ -443,7 +443,7 @@ function SidebarContent({
           <p className={`text-[11px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
             Seus Arquivos
           </p>
-          <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             Adicione documentos ao repositório para conversar com eles via IA — sem canal YouTube, sem extração.
           </p>
           <div className="flex flex-wrap gap-1.5">
