@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto } from '../../services/api';
+import { fetchRepositorio, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -64,6 +64,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [showLimpar, setShowLimpar]         = React.useState(false);
   const [limparSel, setLimparSel]           = React.useState({ youtube: false, documentos: false, textos: false });
   const [limpando, setLimpando]             = React.useState(false);
+  const [showResetTotal, setShowResetTotal] = React.useState(false);
+  const [resetConfirm, setResetConfirm]     = React.useState('');
+  const [resetando, setResetando]           = React.useState(false);
+  const [limparCanalNome, setLimparCanalNome] = React.useState(null); // canal sendo limpo
+  const [limpandoCanal, setLimpandoCanal]   = React.useState(false);
   const [dragging, setDragging]             = React.useState(false);
   const [buscaQuery,     setBuscaQuery]     = React.useState('');
   const [buscaResultados, setBuscaResultados] = React.useState(null);
@@ -201,6 +206,25 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
+  const handleLimparCanal = async () => {
+    if (!limparCanalNome) return;
+    setLimpandoCanal(true);
+    await limparCanal(limparCanalNome).catch(() => {});
+    setLimparCanalNome(null);
+    setLimpandoCanal(false);
+    reload();
+  };
+
+  const handleResetTotal = async () => {
+    if (resetConfirm !== 'RESETAR') return;
+    setResetando(true);
+    await resetTotal().catch(() => {});
+    setShowResetTotal(false);
+    setResetConfirm('');
+    setResetando(false);
+    reload();
+  };
+
   const handleBuscar = async (e) => {
     e?.preventDefault();
     const q = buscaQuery.trim();
@@ -270,6 +294,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               Buscar
             </button>
           )}
+          <button onClick={() => { setShowResetTotal(true); setResetConfirm(''); }}
+            title="Resetar toda a base de conhecimento"
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
+              ${darkMode ? 'text-danger/60 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-300 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l16 16M4 20L20 4"/></svg>
+            Reset
+          </button>
           <button onClick={() => { const next = !showAdd_; setShowAdd(next); setUploadAviso(''); if (next) reloadProjetos(); else { setShowNovoProjeto(false); setNovoProjNome(''); } }}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
             + Adicionar
@@ -550,19 +581,25 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         const isAvulso = canal.nome === '_avulso';
         return (
           <div key={canal.nome} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            <button
-              onClick={() => toggleCanal(canal.nome)}
-              className={`w-full px-4 py-3 border-b flex items-center gap-2 text-left transition-colors ${darkMode ? 'border-white/10 bg-white/4 hover:bg-white/8' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}>
-              <span className="text-sm">{isAvulso ? '📁' : '📺'}</span>
-              <p className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                {isAvulso ? 'Avulso' : `@${canal.nome}`}
-              </p>
-              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{cTotal} item{cTotal !== 1 ? 's' : ''}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                className={`transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
+            <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+              <button onClick={() => toggleCanal(canal.nome)} className="flex items-center gap-2 flex-1 text-left min-w-0">
+                <span className="text-sm shrink-0">{isAvulso ? '📁' : '📺'}</span>
+                <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+                  {isAvulso ? 'Avulso' : `@${canal.nome}`}
+                </p>
+                <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{cTotal} item{cTotal !== 1 ? 's' : ''}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setLimparCanalNome(canal.nome); }}
+                title={`Limpar tudo do canal @${canal.nome}`}
+                className={`shrink-0 p-1.5 rounded-lg transition-colors text-danger/50 hover:text-danger hover:bg-danger/10 ${btnFocus}`}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+              </button>
+            </div>
 
             {isOpen && (
               <div className="divide-y divide-white/5">
@@ -653,6 +690,84 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Repositório vazio</p>
           <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Extraia um canal ou adicione documentos para começar</p>
         </div>
+      )}
+
+      {/* Modal — limpar canal individual */}
+      {limparCanalNome && ReactDOM.createPortal(
+        <ModalWrapper onClose={() => !limpandoCanal && setLimparCanalNome(null)} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar canal">
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+              </div>
+              <div>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar canal</h3>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Remove todas as transcrições, documentos, textos e índice BM25 do canal <span className="font-bold">@{limparCanalNome}</span>. Irreversível.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setLimparCanalNome(null)} disabled={limpandoCanal}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
+                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                Cancelar
+              </button>
+              <button onClick={handleLimparCanal} disabled={limpandoCanal}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
+                  ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                {limpandoCanal ? 'Removendo…' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>,
+        document.body
+      )}
+
+      {/* Modal — reset total */}
+      {showResetTotal && ReactDOM.createPortal(
+        <ModalWrapper onClose={() => !resetando && (setShowResetTotal(false), setResetConfirm(''))} zIndex="z-[9999]" backdrop="bg-black/70" label="Reset total">
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/20' : 'bg-red-100'}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Resetar base completa</h3>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Apaga <strong>todo o cérebro</strong>: transcrições, documentos, textos, índices BM25 e histórico de extração. Não há como desfazer.
+                </p>
+              </div>
+            </div>
+            <div className={`rounded-xl border px-3 py-2.5 ${darkMode ? 'bg-danger/8 border-danger/25' : 'bg-red-50 border-red-200'}`}>
+              <p className={`text-[10px] mb-2 font-semibold ${darkMode ? 'text-danger/80' : 'text-red-500'}`}>
+                Digite <span className="font-mono font-bold">RESETAR</span> para confirmar:
+              </p>
+              <input
+                type="text"
+                value={resetConfirm}
+                onChange={e => setResetConfirm(e.target.value)}
+                placeholder="RESETAR"
+                autoFocus
+                className={`w-full rounded-lg border px-3 py-1.5 text-xs font-mono outline-none focus:border-danger
+                  ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-600' : 'bg-white border-slate-300 text-slate-800'}`}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setShowResetTotal(false); setResetConfirm(''); }} disabled={resetando}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
+                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                Cancelar
+              </button>
+              <button onClick={handleResetTotal} disabled={resetando || resetConfirm !== 'RESETAR'}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
+                  ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                {resetando ? 'Resetando…' : 'Resetar tudo'}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>,
+        document.body
       )}
     </div>
   );

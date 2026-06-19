@@ -165,6 +165,16 @@ export const limparBase = (payload) => axios.delete(`${API_BASE}/cerebro/limpar`
 /** Removes extraction history for selected canal prefixes (empty = all) */
 export const limparHistorico = (prefixos = []) => axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos } });
 
+/** Full reset: wipes cerebro, gestao CSVs, BM25 indexes and chat history */
+export const resetTotal = () => axios.delete(`${API_BASE}/reset-total`);
+
+/** Deletes cerebro files + BM25 index for a single canal */
+export const limparCanal = (canal_nome) => Promise.all([
+  axios.delete(`${API_BASE}/cerebro/limpar`, { data: { youtube: true, documentos: true, textos: true } }),
+  axios.delete(`${API_BASE}/agent/canal/${encodeURIComponent(canal_nome)}`),
+  axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos: [canal_nome.replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '')] } }),
+]);
+
 // ─── System ──────────────────────────────────────────────────────────────────
 
 /** Opens a local folder in Windows Explorer */
