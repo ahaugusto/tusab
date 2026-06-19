@@ -87,12 +87,15 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
+_PERSONAS_VALIDAS = {'', 'objetivo', 'tecnico', 'didatico', 'descontraido', 'socratico'}
+
 class AgentConfigRequest(BaseModel):
     provider:      str  = Field(max_length=30)
     api_key:       str  = Field(max_length=300)
     embed_api_key: str  = Field(default="", max_length=300)
     groq_model:    str  = Field(default="", max_length=80)
     ollama_model:  str  = Field(default="", max_length=80)
+    persona:       str  = Field(default="", max_length=30)
 
 class AgentChatRequest(BaseModel):
     mensagem:       str  = Field(max_length=4000)
@@ -332,6 +335,8 @@ def get_agent_config():
         "provider":     config.get("provider", "gemini"),
         "api_key":      "***" if raw_key else "",
         "ollama_model": config.get("ollama_model", "llama3.2:1b"),
+        "persona":      config.get("persona", ""),
+        "query_expansion": config.get("query_expansion", False),
     }
 
 
@@ -351,6 +356,8 @@ def agent_config(req: AgentConfigRequest):
         config["groq_model"] = req.groq_model
     if req.ollama_model:
         config["ollama_model"] = req.ollama_model
+    if req.persona in _PERSONAS_VALIDAS:
+        config["persona"] = req.persona
     agent_tusab.salvar_config(config)
     return {"message": "Configuração salva com sucesso."}
 

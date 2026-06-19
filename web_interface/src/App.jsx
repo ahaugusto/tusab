@@ -146,8 +146,10 @@ function App() {
     ollamaModel,          setOllamaModel,
     configOpen,           setConfigOpen,
     queryExpansion,       setQueryExpansion,
+    persona,              setPersona,
     canalMeta,            setCanalMeta,
     handleOllamaModelChange,
+    handlePersonaChange,
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleTestKey,
@@ -1507,6 +1509,54 @@ function App() {
                       </motion.div>
                     )}
                   </AnimatePresence>
+                </section>
+
+                {/* Personas section */}
+                <section aria-labelledby="agent-persona-heading"
+                  className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-3.5 flex items-center gap-2 border-b ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      className={persona ? 'text-primary' : darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <h3 id="agent-persona-heading" className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                      Tom de resposta
+                    </h3>
+                    {persona && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-100 text-violet-700'}`}>
+                        ativo
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <p className={`text-[11px] mb-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Define como o assistente comunica as respostas — sem alterar o que ele busca.
+                    </p>
+                    {[
+                      { id: '',             emoji: '⚪', label: 'Padrão',        desc: 'Sem instrução de tom' },
+                      { id: 'objetivo',     emoji: '🎯', label: 'Objetivo',      desc: 'Direto ao ponto, sem floreios' },
+                      { id: 'tecnico',      emoji: '🔬', label: 'Técnico',       desc: 'Terminologia precisa e dados exatos' },
+                      { id: 'didatico',     emoji: '📚', label: 'Didático',      desc: 'Exemplos, analogias e passo a passo' },
+                      { id: 'descontraido', emoji: '😊', label: 'Descontraído',  desc: 'Tom leve, como conversa entre amigos' },
+                      { id: 'socratico',    emoji: '🤔', label: 'Socrático',     desc: 'Termina cada resposta com uma pergunta' },
+                    ].map(p => (
+                      <button key={p.id} onClick={() => handlePersonaChange(p.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${BTN_FOCUS}
+                          ${persona === p.id
+                            ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
+                            : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
+                          ${persona === p.id ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                          {persona === p.id && <span className="w-2 h-2 rounded-full bg-white block" />}
+                        </div>
+                        <span className="text-base leading-none shrink-0" aria-hidden="true">{p.emoji}</span>
+                        <div className="min-w-0">
+                          <p className={`text-xs font-semibold ${persona === p.id ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{p.label}</p>
+                          <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{p.desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </section>
 
                 {/* Telemetry section */}

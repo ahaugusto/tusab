@@ -36,6 +36,16 @@ from tusab_engine.agent.index import (
 # Provedores rápidos o suficiente para query expansion sem degradar UX
 PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google'}
 
+# ── Personas ──────────────────────────────────────────────────────────────────
+
+PERSONAS = {
+    'objetivo':      'Use linguagem direta e objetiva, sem floreios ou rodeios. Vá direto ao ponto.',
+    'tecnico':       'Use terminologia técnica precisa, dados exatos e nomenclaturas corretas. Assuma que o usuário tem conhecimento da área.',
+    'didatico':      'Explique com exemplos concretos, analogias e passo a passo. Priorize a compreensão.',
+    'descontraido':  'Use um tom leve e conversacional, como uma conversa entre amigos. Pode usar linguagem informal.',
+    'socratico':     'Ao final de cada resposta, inclua uma pergunta que aprofunde o raciocínio do usuário sobre o tema.',
+}
+
 
 def _api_key_valida(config: dict) -> bool:
     """Retorna True se há chave de API real configurada (não sentinel, não vazia)."""
@@ -267,7 +277,7 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str) -> str
 
 # ── Montagem do prompt ────────────────────────────────────────────────────────
 
-def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False) -> str:
+def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '') -> str:
     pergunta = pergunta[:2000].strip()
     handle   = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
@@ -293,6 +303,10 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
         if trocas:
             hist_str = "<conversation_history>\n" + "\n".join(trocas) + "\n</conversation_history>\n\n"
 
+    instrucao_tom = ''
+    if persona and persona in PERSONAS:
+        instrucao_tom = f"TOM DE RESPOSTA: {PERSONAS[persona]}\n\n"
+
     if busca_ampla:
         instrucoes = (
             f"Você é o Tusab em modo de Busca Ampla.\n\n"
@@ -301,6 +315,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"Quando forem insuficientes, você pode complementar com conhecimento geral "
             f"— mas deixe claro: use 'além do que está na base...' ou 'de forma geral...'.\n"
             f"Seja sempre honesto sobre a origem de cada informação.\n\n"
+            + instrucao_tom
         )
     else:
         instrucoes = (
@@ -310,6 +325,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"CADA afirmação deve poder ser rastreada a uma das fontes.\n"
             f"Se as fontes não contiverem a informação, responda APENAS:\n"
             f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
+            + instrucao_tom
         )
 
     return (
@@ -461,7 +477,8 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla)
+    persona       = config.get('persona', '')
+    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona)
     provider      = config['provider']
     api_key       = config['api_key']
 
@@ -568,7 +585,8 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla)
+    persona       = config.get('persona', '')
+    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona)
     provider      = config['provider']
     api_key       = config.get('api_key', '')
 
