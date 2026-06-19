@@ -154,6 +154,7 @@ function App() {
     chatInput,     setChatInput,
     chatLoading,
     chatEndRef,
+    fontesFixadas, setFontesFixadas,
     handleChatSend,
   } = useChatEngine({
     agentProvider,
@@ -590,7 +591,7 @@ function App() {
                 <span className="text-[9px] font-semibold leading-none">{darkMode ? 'Claro' : 'Escuro'}</span>
               </button>
             </div>
-            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v0.4</p>
+            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v1.0.0</p>
           </nav>
         )}
 
@@ -1585,6 +1586,8 @@ function App() {
                 Analytics.buscaAmplaToggled(next);
                 setBuscaAmpla(next);
               }}
+              fontesFixadas={fontesFixadas}
+              setFontesFixadas={setFontesFixadas}
             />
 
             {/* Floating chat button */}

@@ -95,11 +95,12 @@ class AgentConfigRequest(BaseModel):
     ollama_model:  str  = Field(default="", max_length=80)
 
 class AgentChatRequest(BaseModel):
-    mensagem:      str  = Field(max_length=4000)
-    canal_nome:    str  = Field(max_length=120)
-    historico:     list = []
-    canais_extras: list = []
-    busca_ampla:   bool = False
+    mensagem:       str  = Field(max_length=4000)
+    canal_nome:     str  = Field(max_length=120)
+    historico:      list = []
+    canais_extras:  list = []
+    busca_ampla:    bool = False
+    fontes_fixadas: list = []
 
 class AgentIndexRequest(BaseModel):
     canal_nome: str = Field(default="", max_length=120)
@@ -113,11 +114,12 @@ class TestKeyRequest(BaseModel):
     api_key:  str = Field(default='', max_length=300)
 
 class AgentChatStreamRequest(BaseModel):
-    mensagem:      str  = Field(max_length=4000)
-    canal_nome:    str  = Field(max_length=120)
-    historico:     list = []
-    canais_extras: list = []
-    busca_ampla:   bool = False
+    mensagem:       str  = Field(max_length=4000)
+    canal_nome:     str  = Field(max_length=120)
+    historico:      list = []
+    canais_extras:  list = []
+    busca_ampla:    bool = False
+    fontes_fixadas: list = []
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -134,6 +136,61 @@ def agent_status():
     status["dias_desde_install"] = retencao["dias_desde_install"]
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     return status
+
+
+@router.get("/agent/mencoes/{canal_nome}")
+def agent_mencoes(canal_nome: str):
+    """Lista itens mencionáveis via @ no chat: bases indexadas + documentos do canal ativo."""
+    from tusab_engine.storage import CEREBRO_DIR
+
+    # Bases indexadas (canais com índice BM25)
+    bases = []
+    status = agent_tusab.get_agent_status()
+    for c in status.get("canais_indexados", []):
+        bases.append({
+            "tipo":   "base",
+            "id":     c["nome"],
+            "label":  c["nome"],
+            "emoji":  "🗂",
+            "chunks": c.get("chunks", 0),
+        })
+
+    # Documentos do canal ativo
+    documentos = []
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    canal_dir = os.path.join(CEREBRO_DIR, canal_prefixo)
+
+    _EMOJIS = {
+        "youtube":      "🎬",
+        "documentos":   "📄",
+        "textos":       "📝",
+        "conversas":    "💬",
+        "transcricoes": "🎙",
+    }
+
+    def _listar_pasta(pasta_path, pasta_id, emoji):
+        if not os.path.isdir(pasta_path):
+            return
+        for fname in sorted(os.listdir(pasta_path)):
+            if not fname.endswith(".txt") or fname.startswith("_"):
+                continue
+            label = fname.replace(".txt", "")
+            documentos.append({
+                "tipo":    "documento",
+                "id":      f"{pasta_id}/{fname}",
+                "label":   label,
+                "emoji":   emoji,
+                "pasta":   pasta_id,
+                "arquivo": fname,
+            })
+
+    if os.path.isdir(canal_dir):
+        for sub in sorted(os.listdir(canal_dir)):
+            sub_path = os.path.join(canal_dir, sub)
+            if os.path.isdir(sub_path):
+                _listar_pasta(sub_path, sub, _EMOJIS.get(sub, "📁"))
+
+    return {"bases": bases, "documentos": documentos}
 
 
 @router.get("/log", response_class=HTMLResponse)
@@ -489,7 +546,7 @@ def agent_chat(req: AgentChatRequest):
         hist = list(state.chat_histories.get(req.canal_nome, []))
     try:
         with state.agent_chat_lock:
-            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla)
+            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []))
         if not resultado.get("error"):
             hist = hist + [
                 {"role": "user",      "content": mensagem},
@@ -517,7 +574,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 
     def _gen():
         try:
-            for chunk in agent_tusab.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla):
+            for chunk in agent_tusab.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', [])):
                 try:
                     data = json.loads(chunk)
                     if data.get("texto"):
