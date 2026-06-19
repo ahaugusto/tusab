@@ -23,6 +23,14 @@ _test_key_last: float = 0.0  # rate-limit: máx 1 chamada por 5s
 
 # ── Background helper ─────────────────────────────────────────────────────────
 
+def _fix_encoding(texto: str) -> str:
+    """Corrige mojibake latin-1→utf-8 comum em títulos extraídos do YouTube."""
+    try:
+        return texto.encode('latin-1').decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return texto
+
+
 def _gerar_perguntas_sugeridas(canal_prefixo: str, n: int = 3) -> list:
     """Gera até n perguntas sugeridas a partir dos títulos dos chunks indexados."""
     import random
@@ -54,8 +62,9 @@ def _gerar_perguntas_sugeridas(canal_prefixo: str, n: int = 3) -> list:
         perguntas = []
         for i, titulo in enumerate(amostra):
             tmpl = templates[i % len(templates)]
-            # Limpa o título (remove extensão .txt, underscores, etc.)
+            # Limpa o título (remove extensão .txt, underscores, etc.) e corrige encoding
             titulo_limpo = re.sub(r'\.txt$', '', titulo).replace('_', ' ').strip()
+            titulo_limpo = _fix_encoding(titulo_limpo)
             perguntas.append(tmpl.format(titulo_limpo))
         return perguntas
     except Exception:
@@ -460,6 +469,49 @@ def agent_index_cancel():
     return {"message": "Indexação cancelada."}
 
 
+def _atualizar_chat_stats(canal_nome: str, n_refs: int = 0):
+    """Incrementa contadores de interações em _chat_stats.json do projeto."""
+    import re as _re
+    from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_') or '_avulso'
+    stats_path = os.path.join(NEURAL_DIR, canal_prefixo, 'management', '_chat_stats.json')
+    mgmt_dir = os.path.dirname(stats_path)
+    os.makedirs(mgmt_dir, exist_ok=True)
+
+    stats = {}
+    if os.path.exists(stats_path):
+        try:
+            with open(stats_path, 'r', encoding='utf-8') as f:
+                stats = json.load(f)
+        except Exception:
+            stats = {}
+
+    stats['total_interactions'] = stats.get('total_interactions', 0) + 1
+    stats['total_refs_used']    = stats.get('total_refs_used', 0) + n_refs
+    stats['last_interaction']   = time.strftime('%Y-%m-%d')
+    salvar_json_atomico(stats, stats_path, indent=2)
+
+
+@router.get("/agent/chat-stats")
+def agent_chat_stats():
+    """Retorna stats de interações por projeto (lê _chat_stats.json de cada projeto)."""
+    from tusab_engine.storage import NEURAL_DIR
+
+    result = {}
+    if not os.path.isdir(NEURAL_DIR):
+        return result
+    for projeto in os.listdir(NEURAL_DIR):
+        stats_path = os.path.join(NEURAL_DIR, projeto, 'management', '_chat_stats.json')
+        if os.path.exists(stats_path):
+            try:
+                with open(stats_path, 'r', encoding='utf-8') as f:
+                    result[projeto] = json.load(f)
+            except Exception:
+                pass
+    return result
+
+
 @router.post("/agent/chat/clear")
 def agent_chat_clear(req: AgentChatRequest):
     """Limpa histórico de conversa do lado do servidor para o canal informado."""
@@ -563,6 +615,11 @@ def agent_chat(req: AgentChatRequest):
             ]
             with state.hist_lock:
                 state.chat_histories[req.canal_nome] = hist[-_MAX_HIST_MSGS:]
+            try:
+                n_refs = len(resultado.get("fontes", []))
+                _atualizar_chat_stats(req.canal_nome, n_refs)
+            except Exception:
+                pass
         return resultado
     except Exception as e:
         return {"error": True, "message": str(e)}
@@ -580,6 +637,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
         hist = list(state.chat_histories.get(req.canal_nome, []))
 
     resposta_acumulada = []
+    refs_acumuladas = []
 
     def _gen():
         try:
@@ -588,6 +646,8 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                     data = json.loads(chunk)
                     if data.get("texto"):
                         resposta_acumulada.append(data["texto"])
+                    if data.get("fontes"):
+                        refs_acumuladas.extend(data["fontes"])
                 except Exception:
                     pass
                 yield chunk + '\n'
@@ -602,6 +662,10 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                 ]
                 with state.hist_lock:
                     state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+                try:
+                    _atualizar_chat_stats(req.canal_nome, len(refs_acumuladas))
+                except Exception:
+                    pass
 
     return StreamingResponse(_gen(), media_type='text/plain')
 

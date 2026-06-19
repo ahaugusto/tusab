@@ -80,28 +80,43 @@ def get_repositorio():
                 })
         return arquivos
 
+    def _count_csv_videos(canal_prefixo, mgmt_dir):
+        """Conta linhas no CSV de gestão — vídeos mapeados mesmo sem .txt."""
+        csv_path = os.path.join(mgmt_dir, f"{canal_prefixo}_base.csv")
+        if not os.path.exists(csv_path):
+            return 0
+        try:
+            with open(csv_path, 'r', encoding='utf-8-sig') as f:
+                return max(0, sum(1 for _ in f) - 1)  # desconta header
+        except Exception:
+            return 0
+
     seen_yt = set()
 
     if os.path.exists(neural_dir):
         for entry in sorted(os.scandir(neural_dir), key=lambda e: e.name):
             if not entry.is_dir():
                 continue
-            canal_nome = entry.name
+            canal_nome    = entry.name
             canal_yt_dir  = os.path.join(entry.path, 'youtube')
             canal_doc_dir = os.path.join(entry.path, 'documents')
             canal_txt_dir = os.path.join(entry.path, 'texts')
+            canal_mgmt_dir = os.path.join(entry.path, 'management')
 
             yt_files  = _list_youtube(canal_yt_dir, canal_nome)
             docs      = _read_manifest(os.path.join(canal_doc_dir, '_manifest.json'))
             textos    = _read_manifest(os.path.join(canal_txt_dir, '_manifest.json'))
+            videos_mapeados = _count_csv_videos(canal_nome, canal_mgmt_dir)
 
             for item in docs:   item['canal'] = canal_nome
             for item in textos: item['canal'] = canal_nome
 
-            if yt_files or docs or textos:
+            # Inclui canal mesmo sem .txt, se tiver CSV ou docs/textos
+            if yt_files or docs or textos or videos_mapeados > 0:
                 result["canais"].append({
                     "nome": canal_nome, "youtube": yt_files,
                     "documentos": docs, "textos": textos,
+                    "videos_mapeados": videos_mapeados,
                 })
                 for f in yt_files:
                     key = f["nome"]
@@ -722,7 +737,8 @@ def reset_total():
 
     neural_dir = motor_tusab.NEURAL_DIR
     gestao_dir = motor_tusab.GESTAO_DIR
-    index_dir  = os.path.join(motor_tusab.DADOS_DIR, "agent_index")
+    from tusab_engine.storage import INDEX_DIR
+    index_dir  = INDEX_DIR
 
     removidos = {"cerebro": 0, "indices": 0}
 
@@ -763,6 +779,28 @@ def reset_total():
     # 5. Limpa histórico de chat em memória
     with state.hist_lock:
         state.chat_histories.clear()
+
+    # 6. Reseta estado de extração em memória
+    with state.state_lock:
+        state.logs = []
+        state.stats["canal_nome"]          = ""
+        state.stats["status"]              = "Ocioso"
+        state.stats["progress"]            = 0
+        state.stats["videos_processed"]    = 0
+        state.stats["videos_total"]        = 0
+        state.stats["videos_mapeados"]     = 0
+        state.stats["videos_sem_legenda"]  = 0
+        state.stats["videos_legenda_curta"]= 0
+        state.stats["files_generated"]     = 0
+        state.stats["idioma_detectado"]    = ""
+    state.canal_url   = ""
+    state.projeto_nome = ""
+    with state.queue_lock:
+        state.extraction_queue.clear()
+
+    # 7. Reseta estado do agente RAG em memória
+    state.perguntas_sugeridas = []
+    state.agent_index_logs    = []
 
     return {"ok": True, "removidos": removidos}
 

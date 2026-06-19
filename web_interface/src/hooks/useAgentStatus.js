@@ -32,13 +32,14 @@ export function useAgentStatus() {
   const [agentStatus, setAgentStatus] = useState(DEFAULT_AGENT_STATUS);
 
   useEffect(() => {
-    /** Polls /agent/status every 3 seconds */
-    const interval = setInterval(async () => {
+    const poll = async () => {
       try {
         const res = await fetchAgentStatus();
         setAgentStatus(res.data);
       } catch {}
-    }, 3000);
+    };
+    poll(); // fetch imediato na montagem
+    const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
   }, []);
 

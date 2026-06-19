@@ -144,11 +144,14 @@ def _ytdlp_run(args, timeout=_YTDLP_TIMEOUT, capture_stderr=False):
             _resolve_cmd(['yt-dlp'] + args),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE if capture_stderr else subprocess.DEVNULL,
-            encoding='utf-8', errors='replace',
+            text=False,
             check=False, creationflags=creationflags,
             timeout=timeout,
         )
-        return r.stdout, (r.stderr if capture_stderr else ''), r.returncode
+        def _dec(b):
+            try: return b.decode('utf-8')
+            except UnicodeDecodeError: return b.decode('cp1252', errors='replace')
+        return _dec(r.stdout), (_dec(r.stderr) if capture_stderr else ''), r.returncode
     except subprocess.TimeoutExpired:
         return '', f'yt-dlp timeout após {timeout}s', 1
     except Exception as e:
@@ -167,7 +170,11 @@ def executar_comando(cmd, timeout=None):
         kw['timeout'] = timeout
     try:
         result = subprocess.run(_resolve_cmd(cmd), **kw)
-        return result.stdout.decode('utf-8', errors='replace')
+        raw = result.stdout
+        try:
+            return raw.decode('utf-8')
+        except UnicodeDecodeError:
+            return raw.decode('cp1252', errors='replace')
     except subprocess.TimeoutExpired:
         return ''
     except Exception:
@@ -451,6 +458,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         parts = line.split('|||')
                         if len(parts) >= 4:
                             vid, titulo = parts[0], parts[3].strip()
+                            if not vid or len(vid) != 11 or vid[:2] in ('PL','UU','FL','RD','OL'):
+                                continue
                             if vid in ids_mapeados:
                                 continue
                             if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
@@ -474,6 +483,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                 parts = line.split('|||')
                 if len(parts) >= 4:
                     vid, titulo = parts[0], parts[3].strip()
+                    if not vid or len(vid) != 11 or vid[:2] in ('PL','UU','FL','RD','OL'):
+                        continue
                     if vid in ids_mapeados:
                         continue
                     if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
@@ -620,6 +631,9 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         if v_title in ['[Private video]', '[Deleted video]']:
             continue
         if v_id in ids_ja_minerados:
+            continue
+        # IDs de playlist/canal não são vídeos — pular silenciosamente
+        if v_id and (len(v_id) != 11 or v_id[:2] in ('PL', 'UU', 'FL', 'RD', 'OL')):
             continue
 
         print(f"[{idx + 1}/{total_liquido}] 🎬 Extraindo: {v_title[:55]}...")
@@ -787,7 +801,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
 
     # --- 4. FINALIZAÇÃO LOCAL ---
     print("      📁 Transcrições salvas localmente.")
-    print("      📊 Banco de dados salvo em: cerebro/{prefixo}/gestao/")
+    print(f"      📊 Banco de dados salvo em: neural/{prefixo}/management/")
 
     # ── Relatório de observabilidade ─────────────────────────────────────────
     def _salvar_relatorio_obs(status_final):

@@ -90,7 +90,8 @@ def get_agent_status() -> dict:
                         raise ValueError("chunks inválidos")
                     nome  = data.get('canal_nome', fname.replace('_index.json', ''))
                     count = len(chunks)
-                    canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname})
+                    indexed_at = data.get('indexed_at', None)
+                    canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at})
                     if nome == canal_nome:
                         index_count = count
                 except Exception:
@@ -183,6 +184,11 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
         caminho = os.path.join(txt_dir, arquivo)
         with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
             conteudo = f.read()
+        # Corrige mojibake latin-1→utf-8 (comum em títulos extraídos pelo yt-dlp)
+        try:
+            conteudo = conteudo.encode('latin-1').decode('utf-8')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
 
         blocos = re.split(r'={50,}', conteudo)
         for bloco in blocos:
@@ -333,7 +339,8 @@ def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None)
     if callback: callback(f"📦 {len(chunks)} chunks encontrados. Salvando índice local...")
 
     os.makedirs(INDEX_DIR, exist_ok=True)
-    salvar_json_atomico({'canal_nome': canal_nome, 'chunks': chunks}, _index_path(canal_prefixo))
+    import time as _time
+    salvar_json_atomico({'canal_nome': canal_nome, 'chunks': chunks, 'indexed_at': int(_time.time())}, _index_path(canal_prefixo))
 
     config['canal_indexado'] = canal_nome
     salvar_config(config)
