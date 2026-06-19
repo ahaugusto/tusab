@@ -48,6 +48,7 @@ def run_motor():
                 evento_pausa=state.evento_pausa,
                 evento_cancelar=state.evento_cancelar,
                 fontes_filtro=state.fontes_filtro or None,
+                projeto_nome=state.projeto_nome,
             )
 
             cancelado = state.evento_cancelar.is_set()
@@ -90,6 +91,8 @@ def run_motor():
         state.stats["canal_nome"]   = match.group(1) if match else url.rstrip('/').split('/')[-1]
         state.stats["status"]       = "Na fila"
         state.fontes_filtro         = proximo.get("fontes", [])
+        raw_proj = proximo.get("projeto_nome", "")
+        state.projeto_nome = re.sub(r'[<>:"/\\|?*\s]', '_', raw_proj).strip('_') if raw_proj else ""
         state.evento_cancelar.clear()
         state.evento_pausa.set()
         state.is_paused             = False
@@ -98,14 +101,16 @@ def run_motor():
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class ChannelRequest(BaseModel):
-    canal_url: str = Field(max_length=300)
+    canal_url:    str = Field(max_length=300)
+    projeto_nome: str = Field(default="", max_length=120)
 
 class StartRequest(BaseModel):
     fontes: list = []
 
 class QueueAddRequest(BaseModel):
-    canal_url: str = Field(max_length=300)
-    fontes: list = []
+    canal_url:    str = Field(max_length=300)
+    fontes:       list = []
+    projeto_nome: str = Field(default="", max_length=120)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -125,6 +130,10 @@ def set_channel(req: ChannelRequest):
     state.canal_url = url
     match = re.search(r'@([^/?\s]+)', url)
     state.stats["canal_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
+    if req.projeto_nome:
+        state.projeto_nome = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
+    else:
+        state.projeto_nome = ""
     return {"message": "Canal configurado", "canal_nome": state.stats["canal_nome"]}
 
 
@@ -176,7 +185,7 @@ def queue_add(req: QueueAddRequest):
     if not url or not _YT_URL_RE.match(url):
         return {"error": True, "message": "URL inválida. Use o formato: https://www.youtube.com/@canal"}
     with state.queue_lock:
-        state.extraction_queue.append({"url": url, "fontes": req.fontes})
+        state.extraction_queue.append({"url": url, "fontes": req.fontes, "projeto_nome": req.projeto_nome})
         tamanho = len(state.extraction_queue)
     return {"ok": True, "queue_size": tamanho}
 

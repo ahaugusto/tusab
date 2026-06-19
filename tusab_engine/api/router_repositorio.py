@@ -52,8 +52,8 @@ class BuscarPayload(BaseModel):
 
 @router.get("/repositorio")
 def get_repositorio():
-    """Lista arquivos do cerebro agrupados por canal + listas planas para compatibilidade."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    """Lista arquivos do neural agrupados por canal + listas planas para compatibilidade."""
+    neural_dir = motor_tusab.NEURAL_DIR
     result = {"youtube": [], "documentos": [], "textos": [], "canais": []}
 
     def _read_manifest(path):
@@ -82,14 +82,14 @@ def get_repositorio():
 
     seen_yt = set()
 
-    if os.path.exists(cerebro_dir):
-        for entry in sorted(os.scandir(cerebro_dir), key=lambda e: e.name):
+    if os.path.exists(neural_dir):
+        for entry in sorted(os.scandir(neural_dir), key=lambda e: e.name):
             if not entry.is_dir():
                 continue
             canal_nome = entry.name
             canal_yt_dir  = os.path.join(entry.path, 'youtube')
-            canal_doc_dir = os.path.join(entry.path, 'documentos')
-            canal_txt_dir = os.path.join(entry.path, 'textos')
+            canal_doc_dir = os.path.join(entry.path, 'documents')
+            canal_txt_dir = os.path.join(entry.path, 'texts')
 
             yt_files  = _list_youtube(canal_yt_dir, canal_nome)
             docs      = _read_manifest(os.path.join(canal_doc_dir, '_manifest.json'))
@@ -124,8 +124,8 @@ def get_repositorio():
                     "data": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y"),
                 })
 
-    result["documentos"] += _read_manifest(os.path.join(cerebro_dir, "documentos", "_manifest.json"))
-    result["textos"]     += _read_manifest(os.path.join(cerebro_dir, "textos",     "_manifest.json"))
+    result["documentos"] += _read_manifest(os.path.join(neural_dir, "documents", "_manifest.json"))
+    result["textos"]     += _read_manifest(os.path.join(neural_dir, "texts",     "_manifest.json"))
 
     return result
 
@@ -246,17 +246,17 @@ def _extrair_audio(conteudo_bytes: bytes, filename: str) -> str:
     return f"[Transcrição gerada por Whisper — idioma detectado: {idioma}]\n\n{texto}"
 
 
-@router.post("/cerebro/upload")
+@router.post("/neural/upload")
 async def cerebro_upload(
     arquivo: UploadFile = File(...),
     canal: str = Form(default="")
 ):
-    """Recebe arquivo (PDF, DOCX, MD, TXT, imagem ou áudio) e converte para .txt no cerebro/{canal}/documentos/."""
+    """Recebe arquivo (PDF, DOCX, MD, TXT, imagem ou áudio) e converte para .txt no neural/{canal}/documentos/."""
     import uuid as _uuid
 
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    neural_dir = motor_tusab.NEURAL_DIR
     canal_prefixo = _get_canal_prefixo_ativo(canal)
-    doc_dir = os.path.join(cerebro_dir, canal_prefixo, "documentos")
+    doc_dir = os.path.join(neural_dir, canal_prefixo, "documents")
     os.makedirs(doc_dir, exist_ok=True)
 
     ext = os.path.splitext(arquivo.filename)[1].lower()
@@ -374,14 +374,14 @@ async def cerebro_upload(
     return resp
 
 
-@router.post("/cerebro/texto")
+@router.post("/neural/texto")
 def cerebro_texto(req: TextoRequest):
-    """Salva texto colado pelo usuário no cerebro/{canal}/textos/."""
+    """Salva texto colado pelo usuário no neural/{canal}/textos/."""
     import uuid as _uuid
 
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    neural_dir = motor_tusab.NEURAL_DIR
     canal_prefixo = _get_canal_prefixo_ativo(req.canal)
-    txt_dir2 = os.path.join(cerebro_dir, canal_prefixo, "textos")
+    txt_dir2 = os.path.join(neural_dir, canal_prefixo, "texts")
     os.makedirs(txt_dir2, exist_ok=True)
 
     if not req.conteudo.strip():
@@ -416,20 +416,23 @@ def cerebro_texto(req: TextoRequest):
     return {"ok": True, "id": fid, "titulo": req.titulo}
 
 
-@router.delete("/cerebro/arquivo/{tipo}/{fid}")
+@router.delete("/neural/arquivo/{tipo}/{fid}")
 def cerebro_delete(tipo: str, fid: str):
-    """Remove arquivo do cerebro — busca em todos os subdirs de canal."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    """Remove arquivo do neural — busca em todos os subdirs de canal."""
+    neural_dir = motor_tusab.NEURAL_DIR
 
-    if tipo not in ("documentos", "textos"):
+    # Normaliza aliases legados para os nomes canônicos em inglês
+    _alias = {"documentos": "documents", "textos": "texts"}
+    tipo = _alias.get(tipo, tipo)
+    if tipo not in ("documents", "texts"):
         return {"error": True, "message": "Tipo inválido"}
 
     candidate_dirs = []
-    if os.path.exists(cerebro_dir):
-        for entry in os.scandir(cerebro_dir):
+    if os.path.exists(neural_dir):
+        for entry in os.scandir(neural_dir):
             if entry.is_dir():
                 candidate_dirs.append(os.path.join(entry.path, tipo))
-    candidate_dirs.append(os.path.join(cerebro_dir, tipo))
+    candidate_dirs.append(os.path.join(neural_dir, tipo))
 
     for subdir in candidate_dirs:
         manifest_path = os.path.join(subdir, "_manifest.json")
@@ -463,7 +466,7 @@ def cerebro_delete(tipo: str, fid: str):
 @router.delete("/historico/limpar")
 def historico_limpar(req: LimparHistoricoRequest):
     """Remove CSVs e summaries de canais selecionados (ou todos se prefixos vazio)."""
-    pattern = os.path.join(motor_tusab.CEREBRO_DIR, "*", "gestao", "*_base.csv")
+    pattern = os.path.join(motor_tusab.NEURAL_DIR, "*", "management", "*_base.csv")
     todos   = sorted(glob.glob(pattern))
     removidos = 0
 
@@ -484,11 +487,11 @@ def historico_limpar(req: LimparHistoricoRequest):
     return {"ok": True, "removidos": removidos}
 
 
-@router.delete("/cerebro/limpar")
+@router.delete("/neural/limpar")
 def cerebro_limpar(req: LimparRequest):
-    """Remove arquivos selecionados de todas as pastas do cerebro."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
-    deletados   = {'youtube': 0, 'documentos': 0, 'textos': 0}
+    """Remove arquivos selecionados de todas as pastas do neural."""
+    neural_dir = motor_tusab.NEURAL_DIR
+    deletados  = {'youtube': 0, 'documentos': 0, 'textos': 0}
 
     def _limpar_dir(path: str) -> int:
         count = 0
@@ -504,8 +507,8 @@ def cerebro_limpar(req: LimparRequest):
         return count
 
     canal_paths = []
-    if os.path.exists(cerebro_dir):
-        for entry in os.scandir(cerebro_dir):
+    if os.path.exists(neural_dir):
+        for entry in os.scandir(neural_dir):
             if entry.is_dir():
                 canal_paths.append(entry.path)
 
@@ -513,16 +516,16 @@ def cerebro_limpar(req: LimparRequest):
         if req.youtube:
             deletados['youtube']    += _limpar_dir(os.path.join(canal_path, 'youtube'))
         if req.documentos:
-            deletados['documentos'] += _limpar_dir(os.path.join(canal_path, 'documentos'))
+            deletados['documentos'] += _limpar_dir(os.path.join(canal_path, 'documents'))
         if req.textos:
-            deletados['textos']     += _limpar_dir(os.path.join(canal_path, 'textos'))
+            deletados['textos']     += _limpar_dir(os.path.join(canal_path, 'texts'))
 
     if req.youtube:
         deletados['youtube']    += _limpar_dir(motor_tusab.LOCAL_TXT_DIR)
     if req.documentos:
-        deletados['documentos'] += _limpar_dir(os.path.join(cerebro_dir, 'documentos'))
+        deletados['documentos'] += _limpar_dir(os.path.join(neural_dir, 'documents'))
     if req.textos:
-        deletados['textos']     += _limpar_dir(os.path.join(cerebro_dir, 'textos'))
+        deletados['textos']     += _limpar_dir(os.path.join(neural_dir, 'texts'))
 
     return {'ok': True, 'deletados': deletados}
 
@@ -533,15 +536,15 @@ def reset_total():
     import shutil
     import agent_tusab
 
-    cerebro_dir = motor_tusab.CEREBRO_DIR
-    gestao_dir  = motor_tusab.GESTAO_DIR
-    index_dir   = os.path.join(motor_tusab.DADOS_DIR, "agent_index")
+    neural_dir = motor_tusab.NEURAL_DIR
+    gestao_dir = motor_tusab.GESTAO_DIR
+    index_dir  = os.path.join(motor_tusab.DADOS_DIR, "agent_index")
 
     removidos = {"cerebro": 0, "indices": 0}
 
-    # 1. Cérebro — apaga todo o conteúdo (inclui gestao/ por canal) mas mantém a pasta raiz
-    if os.path.exists(cerebro_dir):
-        for entry in os.scandir(cerebro_dir):
+    # 1. Neural — apaga todo o conteúdo (inclui gestao/ por canal) mas mantém a pasta raiz
+    if os.path.exists(neural_dir):
+        for entry in os.scandir(neural_dir):
             try:
                 if entry.is_dir():
                     shutil.rmtree(entry.path)
@@ -580,10 +583,10 @@ def reset_total():
     return {"ok": True, "removidos": removidos}
 
 
-@router.post("/cerebro/buscar")
+@router.post("/neural/buscar")
 def cerebro_buscar(req: BuscarPayload):
-    """Busca por texto nos arquivos .txt do cerebro, retornando até 20 resultados com trecho."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    """Busca por texto nos arquivos .txt do neural, retornando até 20 resultados com trecho."""
+    neural_dir = motor_tusab.NEURAL_DIR
     query = req.query.strip()
 
     if not query:
@@ -592,12 +595,12 @@ def cerebro_buscar(req: BuscarPayload):
     query_lower = query.lower()
     resultados = []
 
-    # Determina raiz de busca: todo o cerebro_dir, ou subdir do canal filtrado
+    # Determina raiz de busca: todo o neural_dir, ou subdir do canal filtrado
     if req.canal:
         canal_safe = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal).strip('_')
-        search_root = os.path.join(cerebro_dir, canal_safe)
+        search_root = os.path.join(neural_dir, canal_safe)
     else:
-        search_root = cerebro_dir
+        search_root = neural_dir
 
     if not os.path.exists(search_root):
         return {"resultados": [], "total": 0, "query": query}
@@ -607,9 +610,9 @@ def cerebro_buscar(req: BuscarPayload):
         for part in parts:
             if part == "youtube":
                 return "youtube"
-            if part == "documentos":
+            if part in ("documentos", "documents"):
                 return "documento"
-            if part == "textos":
+            if part in ("textos", "texts"):
                 return "texto"
         return "youtube"
 
@@ -617,7 +620,7 @@ def cerebro_buscar(req: BuscarPayload):
         parts = rel_path.replace("\\", "/").split("/")
         # Se há ao menos dois segmentos e o segundo é um subdir conhecido,
         # o primeiro segmento é o canal
-        subdirs_conhecidos = {"youtube", "documentos", "textos"}
+        subdirs_conhecidos = {"youtube", "documentos", "textos", "documents", "texts", "management", "gestao"}
         if len(parts) >= 2 and parts[-2] in subdirs_conhecidos:
             return parts[0] if len(parts) >= 3 else ""
         if len(parts) >= 2:
@@ -642,7 +645,7 @@ def cerebro_buscar(req: BuscarPayload):
                 continue
 
             fpath = os.path.join(dirpath, fname)
-            rel_path = os.path.relpath(fpath, cerebro_dir)
+            rel_path = os.path.relpath(fpath, neural_dir)
 
             try:
                 with open(fpath, "r", encoding="utf-8", errors="replace") as f:
@@ -682,14 +685,14 @@ class CriarProjetoPayload(BaseModel):
     nome: str = Field(max_length=120)
 
 
-@router.get("/cerebro/projetos")
+@router.get("/neural/projetos")
 def cerebro_listar_projetos():
-    """Lista todos os projetos (subdirs) no cerebro_dir, classificando por tipo."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    """Lista todos os projetos (subdirs) no neural_dir, classificando por tipo."""
+    neural_dir = motor_tusab.NEURAL_DIR
     projetos = []
-    if not os.path.exists(cerebro_dir):
+    if not os.path.exists(neural_dir):
         return {"projetos": projetos}
-    for entry in sorted(os.scandir(cerebro_dir), key=lambda e: e.name):
+    for entry in sorted(os.scandir(neural_dir), key=lambda e: e.name):
         if not entry.is_dir():
             continue
         # Tipo: youtube = tem subdir youtube/; projeto = criado manualmente
@@ -699,36 +702,36 @@ def cerebro_listar_projetos():
     return {"projetos": projetos}
 
 
-@router.post("/cerebro/projeto")
+@router.post("/neural/projeto")
 def cerebro_criar_projeto(req: CriarProjetoPayload):
-    """Cria um novo subdiretório de projeto no cerebro_dir."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    """Cria um novo subdiretório de projeto no neural_dir."""
+    neural_dir = motor_tusab.NEURAL_DIR
     nome_raw = req.nome.strip()
     if not nome_raw:
         return {"error": True, "message": "Nome não pode ser vazio"}
     nome_safe = re.sub(r'[<>:"/\\|?*\s]', '_', nome_raw).strip('_')
     if not nome_safe:
         return {"error": True, "message": "Nome inválido"}
-    projeto_dir = os.path.join(cerebro_dir, nome_safe)
+    projeto_dir = os.path.join(neural_dir, nome_safe)
     # Proteção contra path traversal
-    if not os.path.normpath(projeto_dir).startswith(os.path.normpath(cerebro_dir) + os.sep):
+    if not os.path.normpath(projeto_dir).startswith(os.path.normpath(neural_dir) + os.sep):
         return {"error": True, "message": "Caminho inválido"}
     if os.path.exists(projeto_dir):
         return {"ok": True, "nome": nome_safe, "criado": False, "message": "Já existe"}
-    os.makedirs(os.path.join(projeto_dir, "documentos"), exist_ok=True)
-    os.makedirs(os.path.join(projeto_dir, "textos"), exist_ok=True)
+    os.makedirs(os.path.join(projeto_dir, "documents"), exist_ok=True)
+    os.makedirs(os.path.join(projeto_dir, "texts"), exist_ok=True)
     return {"ok": True, "nome": nome_safe, "criado": True}
 
 
-@router.post("/cerebro/ler-arquivo")
+@router.post("/neural/ler-arquivo")
 def cerebro_ler_arquivo(req: LerArquivoPayload):
-    """Lê o conteúdo completo de um arquivo .txt do cerebro pelo caminho relativo."""
-    cerebro_dir = motor_tusab.CEREBRO_DIR
+    """Lê o conteúdo completo de um arquivo .txt do neural pelo caminho relativo."""
+    neural_dir = motor_tusab.NEURAL_DIR
     # Sanitiza para evitar path traversal
     caminho_limpo = req.caminho.replace("\\", "/").lstrip("/")
-    caminho_abs = os.path.normpath(os.path.join(cerebro_dir, caminho_limpo))
-    # Garante que o arquivo está dentro do cerebro_dir
-    if not caminho_abs.startswith(os.path.normpath(cerebro_dir)):
+    caminho_abs = os.path.normpath(os.path.join(neural_dir, caminho_limpo))
+    # Garante que o arquivo está dentro do neural_dir
+    if not caminho_abs.startswith(os.path.normpath(neural_dir)):
         return {"error": True, "message": "Acesso negado"}
     if not caminho_abs.endswith(".txt"):
         return {"error": True, "message": "Apenas arquivos .txt são suportados"}
