@@ -38,20 +38,28 @@ const DEFAULT_STATUS = {
  * @returns {{ status: Object, setStatus: Function }}
  */
 export function useStatus() {
-  const [status, setStatus] = useState(DEFAULT_STATUS);
+  const [status,        setStatus]        = useState(DEFAULT_STATUS);
+  const [backendOnline, setBackendOnline] = useState(true);
 
   useEffect(() => {
-    /** Polls /status every 2 seconds and updates state only on changes */
+    let failCount = 0;
+
     const interval = setInterval(async () => {
       try {
         const res = await fetchStatus();
+        failCount = 0;
+        setBackendOnline(true);
         setStatus(prev =>
           JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data
         );
-      } catch {}
+      } catch {
+        failCount++;
+        // Marca offline apenas após 2 falhas consecutivas (evita falso positivo no boot)
+        if (failCount >= 2) setBackendOnline(false);
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  return { status, setStatus };
+  return { status, setStatus, backendOnline };
 }

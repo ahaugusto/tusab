@@ -32,7 +32,7 @@ import {
   fetchHistory, fetchRepositorio, setChannel, startExtraction, pauseExtraction, queueAdd,
   cancelExtraction, startDriveAuth, cancelDriveAuth, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
-  deleteCanalIndex, openFolder,
+  deleteCanalIndex, openFolder, extrairMensagemErro,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -91,6 +91,8 @@ function App() {
   const [history,          setHistory]          = useState([]);
   const [repositorio,      setRepositorio]      = useState({ youtube: [], documentos: [], textos: [] });
   const prevExtractionStatus = useRef('');
+  const [backendOnline,    setBackendOnline]    = useState(true);
+  const _backendFailCount  = useRef(0);
 
   // ─── Canal state ───────────────────────────────────────────────────────────
   const [canalInput,       setCanalInput]       = useState('');
@@ -264,9 +266,14 @@ function App() {
       if (!isVisibleRef.current) return;
       try {
         const res = await axios.get(`${API_BASE}/status`);
+        _backendFailCount.current = 0;
+        setBackendOnline(true);
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
         if (res.data.stats?.canal_nome && !canalConfigurado) setCanalConfigurado(res.data.stats.canal_nome);
-      } catch {}
+      } catch {
+        _backendFailCount.current += 1;
+        if (_backendFailCount.current >= 2) setBackendOnline(false);
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, [canalConfigurado]);
@@ -353,7 +360,7 @@ function App() {
       const res = await setChannel(canalInput.trim());
       if (res.data.error) { setCanalError(res.data.message); }
       else { setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
-    } catch { setCanalError(t('channel.error_server')); }
+    } catch (err) { setCanalError(extrairMensagemErro(err)); }
     Analytics.canalConfigurado();
     setConfigurando(false);
   };
@@ -365,7 +372,7 @@ function App() {
     try {
       const res = await startIndexing(canal || '');
       if (res.data.error) setAgentIndexError(res.data.message);
-    } catch { setAgentIndexError('Erro ao conectar com o servidor.'); }
+    } catch (err) { setAgentIndexError(extrairMensagemErro(err)); }
   };
 
   /** Cancels ongoing indexing */
@@ -791,7 +798,7 @@ function App() {
                             <AlertTriangle size={11} aria-hidden="true" /> {canalError}
                           </p>
                         )}
-                        <button onClick={handleConfigurarCanal} disabled={configurando || !canalInput.trim()}
+                        <button onClick={handleConfigurarCanal} disabled={configurando || !canalInput.trim() || !backendOnline}
                           className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                             disabled:opacity-40 disabled:cursor-not-allowed
                             bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 ${BTN_FOCUS}`}>
