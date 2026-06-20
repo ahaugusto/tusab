@@ -37,6 +37,7 @@ function _fileIsAccepted(file) {
 // ─── IndexarModal ────────────────────────────────────────────────────────────
 
 function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel, indexando, agentStatus, onConfirmar, onFechar }) {
+  const { t } = useTranslation();
   const [busca, setBusca] = React.useState('');
   const inputRef = React.useRef(null);
 
@@ -66,9 +67,9 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
       <div className={`px-5 pt-5 pb-4 border-b shrink-0 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Indexar base de conhecimento</h3>
+            <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('repo.indexar_title')}</h3>
             <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
-              Selecione os projetos para indexar · {nSel} selecionado{nSel !== 1 ? 's' : ''}
+              {t('repo.indexar_subtitle', { count: nSel })}
             </p>
           </div>
           {!indexando && !agentStatus?.indexing && (
@@ -88,7 +89,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
           <input
             ref={inputRef}
             type="text"
-            placeholder={`Buscar entre ${lista.length} projeto${lista.length !== 1 ? 's' : ''}…`}
+            placeholder={t('repo.indexar_search_placeholder', { count: lista.length })}
             value={busca}
             onChange={e => setBusca(e.target.value)}
             className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`}
@@ -115,15 +116,15 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
               ${todos ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
               {todos && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
             </span>
-            {todos ? 'Desmarcar todos' : `Selecionar ${busca ? `os ${listaFiltrada.length} resultados` : 'todos'}`}
+            {todos ? t('repo.deselect_all') : busca ? t('repo.indexar_select_results', { count: listaFiltrada.length }) : t('repo.select_all')}
           </button>
         )}
 
         {listaFiltrada.length === 0 ? (
           <div className={`text-center py-10 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
             {busca
-              ? <><p className="text-sm mb-1">🔍</p><p className="text-xs">Nenhum projeto corresponde a "{busca}"</p></>
-              : <><p className="text-sm mb-1">📭</p><p className="text-xs">Nenhum projeto encontrado.<br/>Extraia um canal ou adicione documentos primeiro.</p></>
+              ? <><p className="text-sm mb-1">🔍</p><p className="text-xs">{t('repo.indexar_no_match', { query: busca })}</p></>
+              : <><p className="text-sm mb-1">📭</p><p className="text-xs">{t('repo.indexar_empty')}</p></>
             }
           </div>
         ) : listaFiltrada.map(p => (
@@ -156,7 +157,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
         <div className={`mx-5 mb-3 rounded-xl p-3 space-y-2 shrink-0 ${darkMode ? 'bg-black/30 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
-            <p className={`text-[11px] font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>Indexando… não feche o app</p>
+            <p className={`text-[11px] font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>{t('repo.indexing')}</p>
           </div>
           {(agentStatus?.index_logs || []).length > 0 && (
             <div className="max-h-20 overflow-y-auto space-y-0.5">
@@ -175,12 +176,12 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
         <button onClick={onFechar} disabled={indexando || agentStatus?.indexing}
           className={`flex-1 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-40
             ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-          Cancelar
+          {t('repo.cancel')}
         </button>
         <button onClick={onConfirmar} disabled={indexando || agentStatus?.indexing || nSel === 0}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
             bg-accent/20 text-accent hover:bg-accent/30`}>
-          {(indexando || agentStatus?.indexing) ? 'Indexando…' : `Indexar ${nSel > 0 ? `(${nSel})` : ''}`}
+          {(indexando || agentStatus?.indexing) ? t('repo.indexing_short') : t('repo.indexar_btn', { count: nSel })}
         </button>
       </div>
     </div>
@@ -256,7 +257,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   React.useEffect(() => {
     const agora = agentStatus?.indexing;
     if (prevIndexingRef.current && !agora) {
-      setIndexSnackbar('Base indexada com sucesso!');
+      setIndexSnackbar(t('repo.index_success'));
       setTimeout(() => setIndexSnackbar(null), 4000);
     }
     prevIndexingRef.current = agora;
@@ -331,7 +332,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     const accepted = Array.from(newFiles).filter(_fileIsAccepted);
     const rejected = Array.from(newFiles).filter(f => !_fileIsAccepted(f));
     if (rejected.length > 0) {
-      setUploadAviso(`Tipo não suportado: ${rejected.map(f => f.name).join(', ')}`);
+      setUploadAviso(t('repo.unsupported_type', { names: rejected.map(f => f.name).join(', ') }));
     }
     setFiles(prev => {
       const existing = new Set(prev.map(f => f.name + f.size));
@@ -368,7 +369,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         }
       } catch {
         setUploadProgress(prev => ({ ...prev, [f.name + f.size]: 'error' }));
-        avisos.push(`${f.name}: erro de conexão.`);
+        avisos.push(`${f.name}: ${t('repo.connection_error')}`);
         hasError = true;
       }
     }
@@ -502,9 +503,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const orphanTexts = flatTexts.filter(t => !coveredIds.has(t.id));
 
   const orphanGroups = [
-    { key: 'orp-youtube',    label: 'YouTube',    emoji: '🎬', items: orphanYT,    tipo: null },
-    { key: 'orp-documentos', label: 'Documentos', emoji: '📄', items: orphanDocs,  tipo: 'documents' },
-    { key: 'orp-textos',     label: 'Textos',     emoji: '📝', items: orphanTexts, tipo: 'texts' },
+    { key: 'orp-youtube',    label: t('repo.orphan_youtube'),    emoji: '🎬', items: orphanYT,    tipo: null },
+    { key: 'orp-documentos', label: t('repo.orphan_docs'), emoji: '📄', items: orphanDocs,  tipo: 'documents' },
+    { key: 'orp-textos',     label: t('repo.orphan_texts'),     emoji: '📝', items: orphanTexts, tipo: 'texts' },
   ].filter(g => g.items.length > 0);
 
   return (
@@ -525,7 +526,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <input
                   type="text"
-                  placeholder={`Buscar em ${_canalEfetivo() ? `@${_canalEfetivo()}` : 'todos os projetos'}…`}
+                  placeholder={_canalEfetivo() ? t('repo.search_in_canal', { canal: _canalEfetivo() }) : t('repo.search_all_projects')}
                   value={buscaQuery}
                   onChange={e => { setBuscaQuery(e.target.value); if (!e.target.value.trim()) setBuscaResultados(null); }}
                   onKeyDown={e => e.key === 'Enter' && handleBuscar()}
@@ -533,13 +534,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 {buscaQuery.trim() && (
                   buscando
                     ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                    : <button onClick={handleBuscar} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 transition-colors ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>Buscar</button>
+                    : <button onClick={handleBuscar} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 transition-colors ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>{t('repo.search_btn')}</button>
                 )}
               </div>
             )}
           </div>
           <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
-            {total} arquivo{total !== 1 ? 's' : ''} em {canais.length} base{canais.length !== 1 ? 's' : ''}
+            {t('repo.file_count', { files: total, bases: canais.length })}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -564,7 +565,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
               ${darkMode ? 'text-accent border-accent/30 hover:bg-accent/10' : 'text-cyan-700 border-cyan-300 bg-cyan-50 hover:bg-cyan-100'}`}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Indexar base
+            {t('repo.indexar_base_btn')}
           </button>
         </div>
       </div>
@@ -574,8 +575,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         <div className={`rounded-2xl border p-4 space-y-2 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
             {buscaResultados.total === 0
-              ? `Nenhum resultado para "${buscaResultados.query}"`
-              : `${buscaResultados.total} resultado${buscaResultados.total !== 1 ? 's' : ''} para "${buscaResultados.query}"`}
+              ? t('repo.search_no_results', { query: buscaResultados.query })
+              : t('repo.search_results', { count: buscaResultados.total, query: buscaResultados.query })}
           </p>
           {buscaResultados.resultados.map((r, i) => (
             <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
@@ -592,10 +593,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   <div className="flex gap-1 shrink-0">
                     <button
                       onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
-                      title="Injeta apenas o trecho encontrado — mais preciso"
+                      title={t('repo.inject_excerpt_title')}
                       className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
                         ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                      + Trecho
+                      {t('repo.inject_excerpt_btn')}
                     </button>
                     <button
                       onClick={async () => {
@@ -606,10 +607,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                           }
                         } catch { /* silently ignore */ }
                       }}
-                      title="Injeta o arquivo completo — mais contexto, consome mais da janela do LLM"
+                      title={t('repo.inject_file_title')}
                       className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
                         ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
-                      + Arquivo
+                      {t('repo.inject_file_btn')}
                     </button>
                   </div>
                 )}
@@ -640,8 +641,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   </div>
                   <div>
-                    <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar bases</h3>
-                    <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Selecione as bases que deseja apagar. Esta ação é irreversível.</p>
+                    <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.clear_bases_title')}</h3>
+                    <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('repo.clear_bases_desc')}</p>
                   </div>
                 </div>
 
@@ -656,13 +657,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       ${todasSel ? 'bg-danger border-danger' : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
                       {todasSel && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </span>
-                    {todasSel ? 'Desmarcar todas' : 'Selecionar todas'}
+                    {todasSel ? t('repo.deselect_all_bases') : t('repo.select_all_bases')}
                   </button>
 
                   {/* Lista de bases */}
                   <div className="space-y-1.5 max-h-52 overflow-y-auto">
                     {canais.length === 0 ? (
-                      <p className={`text-xs text-center py-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma base encontrada.</p>
+                      <p className={`text-xs text-center py-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.no_bases_found')}</p>
                     ) : canais.map(canal => {
                       const qtd = canal.youtube.length + canal.documentos.length + canal.textos.length;
                       const sel = !!limparBasesSel[canal.nome];
@@ -680,7 +681,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                             🧠 @{canal.nome}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                            {qtd} arquivo{qtd !== 1 ? 's' : ''}
+                            {t('repo.item_file_count', { count: qtd })}
                           </span>
                         </button>
                       );
@@ -692,7 +693,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 {todasSel && (
                   <div className={`flex items-start gap-2 p-3 rounded-xl text-[11px] leading-relaxed ${darkMode ? 'bg-danger/10 border border-danger/20 text-danger/80' : 'bg-red-50 border border-red-200 text-red-700'}`}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <span>Todas as bases serão apagadas — arquivos, índices e histórico removidos permanentemente.</span>
+                    <span>{t('repo.clear_all_warning')}</span>
                   </div>
                 )}
 
@@ -700,7 +701,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   <button onClick={() => { setShowLimpar(false); setLimparBasesSel({}); }} disabled={limpando}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
                       ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                    Cancelar
+                    {t('repo.cancel')}
                   </button>
                   <button
                     onClick={() => {
@@ -717,7 +718,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     disabled={limpando || selecionadas.length === 0}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
                       ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                    {limpando ? 'Removendo…' : todasSel ? 'Apagar tudo' : `Apagar ${selecionadas.length} base${selecionadas.length !== 1 ? 's' : ''}`}
+                    {limpando ? t('repo.removing') : todasSel ? t('repo.delete_all') : t('repo.delete_bases', { count: selecionadas.length })}
                   </button>
                 </div>
               </div>
@@ -736,7 +737,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
           {/* Project selector */}
           <div className="space-y-1.5">
-            <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Pasta / Projeto</p>
+            <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>
 
             {/* Canal ativo (pré-selecionado) */}
             {canalAtivo && (
@@ -752,7 +753,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 </div>
                 <span className="text-base shrink-0">🧠</span>
                 <span className={`text-xs font-semibold truncate ${projetoSel === '' ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  @{canalAtivo} <span className={`font-normal text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>(atual)</span>
+                  @{canalAtivo} <span className={`font-normal text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>({t('repo.current_label')})</span>
                 </span>
               </button>
             )}
@@ -790,7 +791,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   {projetoSel === '' && !showNovoProjeto && <span className="w-2 h-2 rounded-full bg-white block" />}
                 </div>
                 <span className="text-base shrink-0">📂</span>
-                <span className={`text-xs font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Sem projeto (avulso)</span>
+                <span className={`text-xs font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('repo.no_project')}</span>
               </button>
             )}
 
@@ -807,7 +808,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </div>
               <span className="text-base shrink-0">✨</span>
               <span className={`text-xs font-semibold ${showNovoProjeto ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                Novo projeto
+                {t('repo.new_project')}
               </span>
             </button>
 
@@ -816,7 +817,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <div className="flex gap-2 pl-1">
                 <input
                   type="text"
-                  placeholder="Nome do projeto"
+                  placeholder={t('repo.project_name_placeholder')}
                   value={novoProjNome}
                   onChange={e => setNovoProjNome(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleCriarProjeto()}
@@ -826,7 +827,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   onClick={handleCriarProjeto}
                   disabled={criandoProj || !novoProjNome.trim()}
                   className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
-                  {criandoProj ? '…' : 'Criar'}
+                  {criandoProj ? '…' : t('repo.create_btn')}
                 </button>
                 <button
                   onClick={() => { setShowNovoProjeto(false); setProjetoSel(canalAtivo ? '' : ''); setNovoProjNome(''); }}
@@ -841,16 +842,16 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             {['texto', 'arquivo'].map(m => (
               <button key={m} onClick={() => setMode(m)}
                 className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${mode === m ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
-                {m === 'texto' ? 'Colar texto' : 'Upload de arquivo'}
+                {m === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
               </button>
             ))}
           </div>
 
           {mode === 'texto' ? (
             <>
-              <input placeholder="Título do conteúdo" value={title} onChange={e => setTitle(e.target.value)}
+              <input placeholder={t('repo.title_placeholder')} value={title} onChange={e => setTitle(e.target.value)}
                 className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
-              <textarea placeholder="Cole o texto aqui..." value={text} onChange={e => setText(e.target.value)} rows={6}
+              <textarea placeholder={t('repo.text_placeholder')} value={text} onChange={e => setText(e.target.value)} rows={6}
                 className={`w-full rounded-xl border px-3 py-2 text-xs outline-none resize-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
               <button onClick={handleSaveText} disabled={saving || !title.trim() || !text.trim()}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
@@ -873,7 +874,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       ? darkMode ? 'border-secondary/40 bg-secondary/5' : 'border-emerald-200 bg-emerald-50/50'
                       : darkMode ? 'border-white/15 hover:border-primary/40' : 'border-slate-200 hover:border-violet-300'}`}>
                 <p className={`text-xs font-medium ${dragging ? 'text-primary' : darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-                  {dragging ? 'Solte aqui' : files.length > 0 ? '+ Adicionar mais arquivos' : 'Arraste e solte ou clique para selecionar'}
+                  {dragging ? t('repo.drop_here') : files.length > 0 ? t('repo.add_more_files') : t('repo.drag_or_click')}
                 </p>
                 {files.length === 0 && (
                   <div className={`mt-1.5 space-y-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -915,7 +916,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                         {!status && (
                           <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
                             className={`p-1 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-500 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'} ${btnFocus}`}
-                            aria-label="Remover arquivo">
+                            aria-label={t('repo.remove_file_label')}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                           </button>
                         )}
@@ -942,7 +943,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-medium
                   ${darkMode ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-violet-50 text-violet-700 border border-violet-200'}`}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                  Reindexando base de conhecimento…
+                  {t('repo.reindexing')}
                 </div>
               )}
 
@@ -951,8 +952,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 disabled={saving || files.length === 0}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-accent/20 text-accent hover:bg-accent/30 ${btnFocus}`}>
                 {saving
-                  ? `Processando ${files.length} arquivo${files.length !== 1 ? 's' : ''}…`
-                  : `Confirmar upload${files.length > 1 ? ` (${files.length} arquivos)` : ''}`}
+                  ? t('repo.processing_files', { count: files.length })
+                  : files.length > 1 ? t('repo.confirm_upload_many', { count: files.length }) : t('repo.confirm_upload')}
               </button>
             </>
           )}
@@ -970,9 +971,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <button onClick={() => toggleCanal(canal.nome)} className="flex items-center gap-2 flex-1 text-left min-w-0">
                 <span className="text-sm shrink-0">{isAvulso ? '📁' : '🧠'}</span>
                 <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                  {isAvulso ? 'Avulso' : `@${canal.nome}`}
+                  {isAvulso ? t('repo.orphan_label') : `@${canal.nome}`}
                 </p>
-                <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{cTotal} item{cTotal !== 1 ? 's' : ''}</span>
+                <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.item_count', { count: cTotal })}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   <path d="M6 9l6 6 6-6"/>
@@ -989,14 +990,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     setShowAdd(true);
                   });
                 }}
-                title={`Adicionar arquivo ao projeto @${canal.nome}`}
+                title={t('repo.add_to_project_title', { nome: canal.nome })}
                 className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${btnFocus}
                   ${darkMode ? 'text-primary/70 hover:text-primary hover:bg-primary/10' : 'text-violet-500 hover:text-violet-700 hover:bg-violet-50'}`}>
-                + Adicionar
+                {t('repo.add_btn')}
               </button>
               <button
                 onClick={e => { e.stopPropagation(); setLimparCanalNome(canal.nome); }}
-                title={`Limpar tudo da base @${canal.nome}`}
+                title={t('repo.clear_base_title', { nome: canal.nome })}
                 className={`shrink-0 p-1.5 rounded-lg transition-colors text-danger/50 hover:text-danger hover:bg-danger/10 ${btnFocus}`}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
               </button>
@@ -1024,7 +1025,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     </div>
                     <button onClick={() => handleDelete(item._tipo, item.id)}
                       className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
-                      aria-label={`Remover ${item.titulo || item.nome_original || 'arquivo'}`}>
+                      aria-label={t('repo.remove_item_label', { name: item.titulo || item.nome_original || 'arquivo' })}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
                     </button>
                   </div>
@@ -1045,7 +1046,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               className={`w-full px-4 py-3 border-b flex items-center gap-2 text-left transition-colors ${darkMode ? 'border-white/10 bg-white/4 hover:bg-white/8' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}>
               <span className="text-sm">{group.emoji}</span>
               <p className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{group.label}</p>
-              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{group.items.length} item{group.items.length !== 1 ? 's' : ''}</span>
+              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.item_count', { count: group.items.length })}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 className={`transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                 <path d="M6 9l6 6 6-6"/>
@@ -1072,7 +1073,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       </div>
                       <button onClick={() => handleDelete(group.tipo, item.id)}
                         className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
-                        aria-label={`Remover ${item.titulo || item.nome_original || 'arquivo'}`}>
+                        aria-label={t('repo.remove_item_label', { name: item.titulo || item.nome_original || 'arquivo' })}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
                       </button>
                     </div>
@@ -1088,8 +1089,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       {total === 0 && (
         <div className={`rounded-2xl border p-8 text-center space-y-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
           <p className="text-2xl">📭</p>
-          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Repositório vazio</p>
-          <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>Crie um projeto para começar a adicionar documentos e textos</p>
+          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('repo.empty')}</p>
+          <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{t('repo.empty_full_desc')}</p>
           <button
             onClick={() => {
               reloadProjetos().then(() => {
@@ -1101,7 +1102,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               });
             }}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
-            + Criar projeto
+            {t('repo.create_project_btn')}
           </button>
         </div>
       )}
@@ -1115,9 +1116,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
               </div>
               <div>
-                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar canal</h3>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.clear_canal_title')}</h3>
                 <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Remove todas as transcrições, documentos, textos e índice BM25 do canal <span className="font-bold">@{limparCanalNome}</span>. Irreversível.
+                  {t('repo.clear_canal_desc', { canal: limparCanalNome })}
                 </p>
               </div>
             </div>
@@ -1125,12 +1126,12 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <button onClick={() => setLimparCanalNome(null)} disabled={limpandoCanal}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
               <button onClick={handleLimparCanal} disabled={limpandoCanal}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                {limpandoCanal ? 'Removendo…' : 'Confirmar'}
+                {limpandoCanal ? t('repo.removing') : t('repo.confirm_btn')}
               </button>
             </div>
           </div>
@@ -1147,16 +1148,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <div>
-                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Resetar base completa</h3>
-                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-                  Apaga <strong>todo o cérebro</strong>: transcrições, documentos, textos, índices BM25 e histórico de extração. Não há como desfazer.
-                </p>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.reset_title')}</h3>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`} dangerouslySetInnerHTML={{ __html: t('repo.reset_desc') }} />
               </div>
             </div>
             <div className={`rounded-xl border px-3 py-2.5 ${darkMode ? 'bg-danger/8 border-danger/25' : 'bg-red-50 border-red-200'}`}>
-              <p className={`text-[10px] mb-2 font-semibold ${darkMode ? 'text-danger/80' : 'text-red-500'}`}>
-                Digite <span className="font-mono font-bold">RESETAR</span> para confirmar:
-              </p>
+              <p className={`text-[10px] mb-2 font-semibold ${darkMode ? 'text-danger/80' : 'text-red-500'}`}
+                dangerouslySetInnerHTML={{ __html: t('repo.reset_confirm_label') }} />
               <input
                 type="text"
                 value={resetConfirm}
@@ -1171,12 +1169,12 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <button onClick={() => { setShowResetTotal(false); setResetConfirm(''); }} disabled={resetando}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
               <button onClick={handleResetTotal} disabled={resetando || resetConfirm !== 'RESETAR'}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                {resetando ? 'Resetando…' : 'Resetar tudo'}
+                {resetando ? t('repo.resetting') : t('repo.reset_all_btn')}
               </button>
             </div>
           </div>

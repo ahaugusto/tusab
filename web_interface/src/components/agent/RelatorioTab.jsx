@@ -110,7 +110,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
         <div className="flex items-center justify-between">
           <div>
             <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('relatorio.title')}</h2>
-            <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''} com histórico</p>
+            <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('relatorio.history_count', { count: history.length })}</p>
           </div>
           <button onClick={() => setShowLimpar(true)}
             className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
@@ -124,7 +124,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       {/* Canal selector */}
       {history.length > 1 && (
         <div className="flex items-center gap-2">
-          <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Canal:</label>
+          <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.canal_label')}</label>
           <select value={canal} onChange={e => setCanal(e.target.value)}
             style={darkMode ? { colorScheme: 'dark' } : {}}
             className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-[#1a2035] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
@@ -147,15 +147,15 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
 
       {/* Modal — limpar histórico */}
       {showLimpar && ReactDOM.createPortal(
-        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({}); }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar histórico">
+        <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({}); }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('relatorio.clear')}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-danger/15' : 'bg-red-50'}`}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <div>
-                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Limpar histórico</h3>
-                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Selecione os canais cujo histórico deseja remover:</p>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('relatorio.clear')}</h3>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.clear_desc')}</p>
               </div>
             </div>
 
@@ -163,7 +163,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
               ${todosSelected ? darkMode ? 'border-danger/40 bg-danger/10' : 'border-red-300 bg-red-50'
                               : darkMode ? 'border-white/10 hover:border-white/20' : 'border-slate-200 hover:border-slate-300'}`}>
               <input type="checkbox" checked={todosSelected} onChange={toggleTodos} className="accent-red-500 w-3.5 h-3.5" />
-              <span className={`text-xs font-bold flex-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Selecionar todos</span>
+              <span className={`text-xs font-bold flex-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('relatorio.select_all')}</span>
               <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>{history.length}</span>
             </label>
 
@@ -177,7 +177,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                   <input type="checkbox" checked={!!limparSel[h.canal]} onChange={() => toggleSel(h.canal)} className="accent-red-500 w-3.5 h-3.5" />
                   <span className="text-sm shrink-0">📺</span>
                   <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>@{h.canal}</span>
-                  <span className={`text-[10px] whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.extraidos} vídeos</span>
+                  <span className={`text-[10px] whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('relatorio.videos_count', { count: h.extraidos })}</span>
                 </label>
               ))}
             </div>
@@ -186,12 +186,12 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
               <button onClick={() => { setShowLimpar(false); setLimparSel({}); }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
               <button onClick={handleLimpar} disabled={limpando || !algumSelected}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                {limpando ? 'Removendo…' : 'Confirmar'}
+                {limpando ? t('relatorio.removing') : t('relatorio.confirm')}
               </button>
             </div>
           </div>
@@ -205,13 +205,12 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5 opacity-80" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>
-            A <strong>cobertura (%)</strong> mostra os vídeos extraídos com legenda em relação ao total mapeado. Vídeos sem legenda ou com legenda muito curta não integram a base de conhecimento.
-          </p>
+          <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}
+            dangerouslySetInnerHTML={{ __html: t('relatorio.coverage_info') }} />
           <button
             onClick={() => setShowCoberturaInfo(false)}
             className={`p-0.5 rounded transition-opacity opacity-60 hover:opacity-100 shrink-0`}
-            aria-label="Fechar aviso">
+            aria-label={t('relatorio.close_notice')}>
             <X size={13} />
           </button>
         </div>
@@ -228,10 +227,10 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
           {/* Stats cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Total',       value: stats.total,           color: 'primary'   },
-              { label: 'Extraídos',   value: stats.sucesso,         color: 'secondary' },
-              { label: 'Sem legenda', value: stats.sem_legenda,     color: 'slate'     },
-              { label: 'Cobertura',   value: `${stats.cobertura}%`, color: stats.cobertura >= 80 ? 'secondary' : 'warning' },
+              { label: t('relatorio.stat_total'),    value: stats.total,           color: 'primary'   },
+              { label: t('summary.extracted'),       value: stats.sucesso,         color: 'secondary' },
+              { label: t('summary.no_caption'),      value: stats.sem_legenda,     color: 'slate'     },
+              { label: t('relatorio.stat_coverage'), value: `${stats.cobertura}%`, color: stats.cobertura >= 80 ? 'secondary' : 'warning' },
             ].map(s => (
               <div key={s.label} className={`rounded-2xl p-4 border text-center ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <p className={`text-xl font-bold ${s.color === 'secondary' ? 'text-secondary' : s.color === 'warning' ? 'text-warning' : s.color === 'primary' ? 'text-primary' : darkMode ? 'text-white' : 'text-slate-800'}`}>{s.value}</p>
@@ -247,7 +246,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
               <Search size={12} className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
               <input
                 type="text"
-                placeholder="Buscar por título…"
+                placeholder={t('relatorio.search_placeholder')}
                 value={busca}
                 onChange={e => setBusca(e.target.value)}
                 className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
@@ -260,7 +259,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
 
             {/* Filtro de status */}
             <div className="flex gap-1.5 flex-wrap">
-              {[['todos','Todos'], ['Sucesso','Extraídos'], ['Sem Legenda','Sem legenda'], ['Legenda Curta','Leg. curta']].map(([v, l]) => (
+              {[['todos', t('relatorio.filter_all')], ['Sucesso', t('relatorio.filter_extracted')], ['Sem Legenda', t('relatorio.filter_no_caption')], ['Legenda Curta', t('relatorio.filter_short_caption')]].map(([v, l]) => (
                 <button key={v} onClick={() => setFiltroStatus(v)}
                   className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtroStatus === v ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
                   {l}
@@ -273,7 +272,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
               <div className="flex gap-1.5 flex-wrap">
                 <button onClick={() => setFiltroAba('todas')}
                   className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${filtroAba === 'todas' ? 'bg-secondary/20 text-secondary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
-                  Todas as abas
+                  {t('relatorio.all_tabs')}
                 </button>
                 {abasDisponiveis.map(aba => (
                   <button key={aba} onClick={() => setFiltroAba(aba)}
@@ -287,9 +286,9 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
             {/* Contador de resultados */}
             <p className={`text-[10px] px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
               {filtrados.length === videos.length
-                ? `${videos.length} vídeos`
-                : `${filtrados.length} de ${videos.length} vídeos`}
-              {busca && ` para "${busca}"`}
+                ? t('relatorio.results_total', { count: videos.length })
+                : t('relatorio.results_filtered', { filtered: filtrados.length, total: videos.length })}
+              {busca && t('relatorio.results_search', { query: busca })}
             </p>
           </div>
 
@@ -297,20 +296,20 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className="max-h-96 overflow-y-auto overflow-x-auto custom-scrollbar">
               <table className="w-full text-xs">
-                <caption className="sr-only">Lista de vídeos com título, data, aba e status</caption>
+                <caption className="sr-only">{t('relatorio.table_caption')}</caption>
                 <thead>
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Título</th>
-                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Data</th>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Aba</th>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_title')}</th>
+                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_date')}</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_tab')}</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_status')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtrados.length === 0 && (
                     <tr>
                       <td colSpan={4} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        Nenhum vídeo encontrado com esses filtros
+                        {t('relatorio.no_results')}
                       </td>
                     </tr>
                   )}
@@ -352,8 +351,8 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       {!loading && !data && history.length === 0 && (
         <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
           <p className="text-2xl mb-3">📊</p>
-          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Nenhuma extração ainda</p>
-          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Extraia um canal para ver o relatório aqui</p>
+          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('relatorio.empty')}</p>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('relatorio.empty_desc')}</p>
         </div>
       )}
     </div>
