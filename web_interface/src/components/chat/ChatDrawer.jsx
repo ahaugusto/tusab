@@ -222,11 +222,11 @@ function ChatDrawer({
   useEffect(() => {
     const agora = agentStatus.indexing;
     if (prevIndexing.current && !agora) {
-      setIndexSnackbar({ msg: 'Base indexada com sucesso!', type: 'ok' });
+      setIndexSnackbar({ msg: t('chat.index_success'), type: 'ok' });
       setTimeout(() => setIndexSnackbar(null), 4000);
     }
     prevIndexing.current = agora;
-  }, [agentStatus.indexing]);
+  }, [agentStatus.indexing, t]);
 
   const loadingPhrase = useLoadingPhrase(chatLoading);
   const canaisIndexados = agentStatus.canais_indexados || [];
@@ -305,7 +305,7 @@ function ChatDrawer({
           return todas ? (
             <div className="relative group/bases inline-block">
               <p className={`text-[10px] cursor-default ${darkMode ? 'text-primary/80' : 'text-primary'}`}>
-                {todas.length} bases ativas
+                {t('chat.active_bases', { count: todas.length })}
               </p>
               <div className={`absolute left-0 top-full mt-1 z-50 hidden group-hover/bases:block
                 rounded-xl border shadow-lg p-2 space-y-0.5 min-w-[140px]
@@ -326,7 +326,7 @@ function ChatDrawer({
       {/* Busca Ampla toggle */}
       <div className="flex items-center gap-1 shrink-0">
         <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
-          {buscaAmpla ? 'Ampla' : 'Restrita'}
+          {buscaAmpla ? t('chat.search_broad_label') : t('chat.search_restricted_label')}
         </span>
         <button
           role="switch"
@@ -338,7 +338,7 @@ function ChatDrawer({
         <button
           onClick={() => setShowBuscaModal(true)}
           className={`p-0.5 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}
-          aria-label="Saiba mais sobre Busca Ampla e Restrita">
+          aria-label={t('chat.search_info_aria')}>
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
         </button>
       </div>
@@ -353,7 +353,7 @@ function ChatDrawer({
         <button
           onClick={() => expandido ? setExpandido(false) : setExpandido(true)}
           className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-          aria-label={expandido ? 'Recolher chat' : 'Expandir chat'}>
+          aria-label={expandido ? t('chat.collapse_aria') : t('chat.expand_aria')}>
           {expandido ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
         </button>
       )}
@@ -380,7 +380,7 @@ function ChatDrawer({
                           className={`mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                             bg-accent/20 text-accent hover:bg-accent/30`}>
                           <Zap size={13} aria-hidden="true" />
-                          Indexar base
+                          {t('chat.index_base_btn')}
                         </button>
                       )}
 
@@ -395,7 +395,7 @@ function ChatDrawer({
                             className={`w-full rounded-2xl border p-4 space-y-3 shadow-xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
                             <div className="flex items-center justify-between">
                               <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                                Selecionar base para indexar
+                                {t('chat.index_modal_title')}
                               </p>
                               <button onClick={() => setShowIndexModal(false)}
                                 className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-400 hover:bg-slate-100'}`}>
@@ -413,8 +413,8 @@ function ChatDrawer({
                                     : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
                                 <Database size={13} className="text-accent shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Todos os canais extraídos</p>
-                                  <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Indexa cada canal em sequência</p>
+                                  <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.index_all_channels')}</p>
+                                  <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('chat.index_all_channels_desc')}</p>
                                 </div>
                                 {indexSel === '__todos__' && <div className="w-2 h-2 rounded-full bg-accent shrink-0" />}
                               </button>
@@ -440,7 +440,7 @@ function ChatDrawer({
                               className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                                 disabled:opacity-40 disabled:cursor-not-allowed bg-accent/20 text-accent hover:bg-accent/30`}>
                               <Zap size={13} />
-                              {agentStatus.indexing ? 'Indexando…' : 'Confirmar e Indexar'}
+                              {agentStatus.indexing ? t('chat.indexing_progress') : t('chat.index_confirm_btn')}
                             </button>
                           </motion.div>
                         )}
@@ -481,7 +481,7 @@ function ChatDrawer({
                           className={`mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                             bg-accent/20 text-accent hover:bg-accent/30`}>
                           <Zap size={13} aria-hidden="true" />
-                          Indexar base
+                          {t('chat.index_base_btn')}
                         </button>
                       )}
                     </>
@@ -500,7 +500,7 @@ function ChatDrawer({
                       {agentStatus?.perguntas_sugeridas?.length > 0 && (
                         <div className="w-full mt-3 space-y-1.5">
                           <p className={`text-[10px] font-semibold text-center uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                            Pergunte sobre
+                            {t('chat.suggested_questions')}
                           </p>
                           {agentStatus.perguntas_sugeridas.map((q, i) => (
                             <button key={i}
@@ -593,7 +593,7 @@ function ChatDrawer({
                             className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
                               ${darkMode ? 'bg-accent/20 text-accent hover:bg-accent/30' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
                             <Zap size={11} aria-hidden="true" />
-                            Indexar base agora
+                            {t('chat.index_base_now_btn')}
                           </button>
                         )}
                         {msg.fontes && msg.fontes.length > 0 && !msg.streaming && (
@@ -695,11 +695,11 @@ function ChatDrawer({
             {mencaoLoading ? (
               <div className="flex items-center gap-2 px-3 py-2.5">
                 <Loader2 size={12} className={`animate-spin ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
-                <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Carregando...</span>
+                <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('chat.loading')}</span>
               </div>
             ) : itensFiltrados.length === 0 ? (
               <div className={`px-3 py-2.5 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                Nenhuma base ou documento encontrado.
+                {t('chat.mention_empty')}
               </div>
             ) : (
               itensFiltrados.map(item => (
@@ -712,7 +712,7 @@ function ChatDrawer({
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-medium">@{item.label}</p>
                     {item.tipo === 'base' && (
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.chunks} chunks indexados</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.chunks} {t('chat.chunks_indexed')}</p>
                     )}
                     {item.tipo === 'documento' && (
                       <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.pasta}</p>
@@ -758,9 +758,9 @@ function ChatDrawer({
             ${canaisExtras?.length > 0
               ? darkMode ? 'text-primary hover:bg-primary/10' : 'text-primary hover:bg-violet-50'
               : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-          aria-label="Selecionar base de conhecimento">
+          aria-label={t('chat.base_btn_aria')}>
           <Database size={12} />
-          <span>Base{canaisExtras?.length > 0 ? ` (${canaisExtras.length + 1})` : ''}</span>
+          <span>{t('chat.base_btn')}{canaisExtras?.length > 0 ? ` (${canaisExtras.length + 1})` : ''}</span>
         </button>
 
         {/* Histórico — centro */}
@@ -780,9 +780,9 @@ function ChatDrawer({
           disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
             ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-          aria-label="Histórico de conversas">
+          aria-label={t('chat.history_btn_aria')}>
           <History size={12} />
-          <span>Histórico</span>
+          <span>{t('chat.history_btn')}</span>
         </button>
 
         {/* Tom do agente */}
@@ -793,9 +793,9 @@ function ChatDrawer({
               ${persona
                 ? darkMode ? 'text-primary bg-primary/15 hover:bg-primary/25' : 'text-violet-600 bg-violet-100 hover:bg-violet-200'
                 : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-            aria-label="Configurar tom de resposta">
+            aria-label={t('chat.tone_btn_aria')}>
             <SlidersHorizontal size={12} />
-            <span>{ persona ? ({ objetivo: 'Objetivo', tecnico: 'Técnico', didatico: 'Didático', descontraido: 'Descontraído', socratico: 'Socrático' }[persona]) : 'Tom' }</span>
+            <span>{ persona ? t(`persona.${persona}`) : t('chat.tone_btn') }</span>
           </button>
         )}
 
@@ -817,9 +817,9 @@ function ChatDrawer({
           disabled={chatMessages.length === 0 || salvando || chatLoading}
           className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
             ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-          aria-label="Nova conversa">
+          aria-label={t('chat.new_conversation_aria')}>
           {salvando ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />}
-          <span>Nova conversa</span>
+          <span>{t('chat.new_conversation_btn')}</span>
         </button>
       </div>
     </div>
@@ -837,7 +837,7 @@ function ChatDrawer({
             transition={{ duration: 0.2 }}
             className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
             <div className="flex items-center justify-between">
-              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Busca Restrita vs. Ampla</h3>
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('chat.search_modal_title')}</h3>
               <button onClick={() => setShowBuscaModal(false)}
                 className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-400 hover:bg-slate-100'}`}>
                 <X size={14} />
@@ -848,20 +848,20 @@ function ChatDrawer({
             <div className={`rounded-xl p-3.5 space-y-1.5 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${darkMode ? 'bg-white/30' : 'bg-slate-400'}`} />
-                <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Busca Restrita (padrão)</p>
+                <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.restricted_title_default')}</p>
               </div>
-              <p className="text-[11px] leading-relaxed">Responde <strong>exclusivamente</strong> com o conteúdo da sua base — transcrições do YouTube, documentos, textos adicionados. Se a resposta não estiver lá, o assistente informa que não encontrou nada.</p>
-              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Ideal para: recuperar informações precisas de conteúdo específico. Sem risco de dados inventados.</p>
+              <p className="text-[11px] leading-relaxed" dangerouslySetInnerHTML={{ __html: t('chat.restricted_body') }} />
+              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('chat.restricted_hint')}</p>
             </div>
 
             {/* Ampla */}
             <div className={`rounded-xl p-3.5 space-y-1.5 border ${darkMode ? 'bg-accent/8 border-accent/25' : 'bg-cyan-50 border-cyan-200'}`}>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full shrink-0 bg-accent" />
-                <p className={`text-xs font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>Busca Ampla</p>
+                <p className={`text-xs font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>{t('chat.broad_title')}</p>
               </div>
-              <p className="text-[11px] leading-relaxed">Usa sua base como <strong>referência principal</strong> e complementa com o conhecimento geral do modelo quando necessário — útil para contexto, explicações adicionais ou perguntas abertas.</p>
-              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Atenção: ao usar provedor externo (OpenAI, Gemini, Groq, Anthropic), mensagens são enviadas a servidores de terceiros. Recomendado apenas para bases sem dados sensíveis.</p>
+              <p className="text-[11px] leading-relaxed" dangerouslySetInnerHTML={{ __html: t('chat.broad_body') }} />
+              <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('chat.broad_hint')}</p>
             </div>
 
             <button
@@ -870,7 +870,7 @@ function ChatDrawer({
                 ${buscaAmpla
                   ? darkMode ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   : 'bg-accent/20 text-accent hover:bg-accent/30'}`}>
-              {buscaAmpla ? 'Desativar Busca Ampla' : 'Ativar Busca Ampla'}
+              {buscaAmpla ? t('chat.broad_disable_btn') : t('chat.broad_enable_btn')}
             </button>
           </motion.div>
         </motion.div>
@@ -914,8 +914,8 @@ function ChatDrawer({
                 <ArrowLeft size={14} />
               </button>
               <div className="flex-1 min-w-0">
-                <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Base de conhecimento</h3>
-                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>Selecione as bases para a conversa</p>
+                <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.base_modal_title')}</h3>
+                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{t('chat.base_modal_desc')}</p>
               </div>
             </div>
 
@@ -925,7 +925,7 @@ function ChatDrawer({
                 <button
                   onClick={toggleTodos}
                   className={`text-[10px] font-bold transition-colors ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
-                  {todosSelecionados ? 'Desmarcar todas' : 'Marcar todas'}
+                  {todosSelecionados ? t('chat.deselect_all') : t('chat.select_all')}
                 </button>
                 <button
                   onClick={async () => {
@@ -939,7 +939,7 @@ function ChatDrawer({
                   {indexandoBase === '__todos__' || agentStatus.indexing
                     ? <Loader2 size={10} className="animate-spin" />
                     : <RefreshCw size={10} />}
-                  Reindexar
+                  {t('chat.reindex_btn')}
                 </button>
               </div>
             )}
@@ -948,7 +948,7 @@ function ChatDrawer({
               {todasBases.length === 0 ? (
                 <div className={`flex flex-col items-center justify-center h-32 gap-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   <Database size={24} className="opacity-40" />
-                  <p className="text-xs">Nenhuma base disponível ainda.</p>
+                  <p className="text-xs">{t('chat.no_base')}</p>
                 </div>
               ) : todasBases.map(base => {
                 const isAtivo = base.nome === canalAtualAtivo;
@@ -992,7 +992,7 @@ function ChatDrawer({
                           )}
                         </div>
                       ) : (
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Não indexado</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('chat.not_indexed')}</p>
                       )}
                     </div>
                     {/* Ações */}
@@ -1024,7 +1024,7 @@ function ChatDrawer({
                           disabled={!!indexandoBase || agentStatus.indexing}
                           className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-50
                             ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>
-                          {indexandoEsta ? <Loader2 size={10} className="animate-spin" /> : 'Indexar'}
+                          {indexandoEsta ? <Loader2 size={10} className="animate-spin" /> : t('chat.index_btn')}
                         </button>
                       )}
                       {/* Checkbox */}
@@ -1040,7 +1040,7 @@ function ChatDrawer({
 
             {(canaisExtras || []).length > 0 && !agentStatus.indexing && (
               <div className={`px-4 py-2.5 border-t text-[10px] ${darkMode ? 'border-white/10 text-primary/70' : 'border-slate-100 text-violet-500'}`}>
-                Buscando em {(canaisExtras || []).length + 1} bases simultaneamente
+                {t('chat.searching_bases', { count: (canaisExtras || []).length + 1 })}
               </div>
             )}
 
@@ -1059,8 +1059,8 @@ function ChatDrawer({
                       <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent animate-ping opacity-75" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Indexando base…</p>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Aguarde — não feche o app</p>
+                      <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.indexing_base_label')}</p>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('chat.wait_no_close')}</p>
                     </div>
                     <Loader2 size={14} className="text-accent animate-spin shrink-0" />
                   </div>
@@ -1122,13 +1122,13 @@ function ChatDrawer({
               <ArrowLeft size={14} />
             </button>
             <h3 className={`text-sm font-semibold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-              {histSelecionado ? histSelecionado.titulo : 'Histórico de conversas'}
+              {histSelecionado ? histSelecionado.titulo : t('chat.history_title')}
             </h3>
             {histSelecionado && (
               <button
                 onClick={() => setHistSelecionado(null)}
                 className={`text-[10px] px-2 py-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
-                Voltar à lista
+                {t('chat.back_to_list')}
               </button>
             )}
           </div>
@@ -1154,13 +1154,13 @@ function ChatDrawer({
             ) : histLoading ? (
               <div className="flex items-center justify-center h-24 gap-2">
                 <Loader2 size={14} className={`animate-spin ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
-                <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Carregando...</span>
+                <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('chat.loading')}</span>
               </div>
             ) : historicos.length === 0 ? (
               <div className={`flex flex-col items-center justify-center h-32 gap-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                 <History size={24} className="opacity-40" />
-                <p className="text-xs">Nenhuma conversa salva ainda.</p>
-                <p className="text-[10px] opacity-70">Clique em "Nova conversa" para salvar a atual.</p>
+                <p className="text-xs">{t('chat.no_history')}</p>
+                <p className="text-[10px] opacity-70">{t('chat.no_history_hint')}</p>
               </div>
             ) : (
               /* Lista de conversas */
@@ -1183,7 +1183,7 @@ function ChatDrawer({
                       <FileText size={12} className={`mt-0.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
                       <div className="min-w-0">
                         <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{h.titulo}</p>
-                        <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.data} · {Math.round((h.chars || 0) / 5)} palavras aprox.</p>
+                        <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{h.data} · {Math.round((h.chars || 0) / 5)} {t('chat.words_approx')}</p>
                       </div>
                       <ChevronRight size={12} className={`ml-auto shrink-0 mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`} />
                     </div>
