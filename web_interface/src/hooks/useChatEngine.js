@@ -23,7 +23,8 @@ import { sendChatStream } from '../services/api';
  * @param {string[]} opts.canaisExtras         - extra canais for multi-canal search
  * @param {boolean}  opts.useExternalProvider  - whether a cloud provider is active
  * @param {Function} opts.showError            - App-level error display (message: string) => void
- * @param {Object}   [opts.exportFns]          - optional Pro export functions: { docx, xlsx, pdf, historico }
+ * @param {Object}   [opts.exportFns]          - optional export functions: { docx, xlsx, pdf, historico }
+ * @param {Function} [opts.onPrimeiraFonte]    - callback disparado na primeira resposta com fontes reais
  * @returns {Object} chat state and handlers
  */
 export function useChatEngine({
@@ -35,6 +36,7 @@ export function useChatEngine({
   useExternalProvider,
   showError,
   exportFns = {},
+  onPrimeiraFonte,
 }) {
   const { t } = useTranslation();
 
@@ -49,6 +51,7 @@ export function useChatEngine({
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const chatEndRef = useRef(null);
+  const fonteSnackbarMostrado = useRef(false);
 
   // ─── Effects ───────────────────────────────────────────────────────────────
 
@@ -192,6 +195,11 @@ export function useChatEngine({
               if (fontes.length > 0 && agentStatus.primeiro_uso) {
                 const minutos = Math.round((Date.now() / 1000 - agentStatus.primeiro_uso) / 60);
                 Analytics.primeiraRespostaUtil(minutos, useExternalProvider ? agentProvider : 'ollama');
+              }
+              // Snackbar educativo: mostra uma vez por sessão na primeira resposta com fontes
+              if (fontes.length > 0 && !fonteSnackbarMostrado.current && onPrimeiraFonte) {
+                fonteSnackbarMostrado.current = true;
+                onPrimeiraFonte();
               }
             } else if (parsed.done) {
               setChatMessages(prev => {
