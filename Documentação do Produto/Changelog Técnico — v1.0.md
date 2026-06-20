@@ -426,3 +426,162 @@ enquanto o sistema de licença não é lançado.
 
 *Para o histórico de decisões de produto, ver `Gaps e To-Dos — v1.0.md` e `Modelo de negócio.txt`.*
 *Para a arquitetura modular completa, ver `Blueprint de Modularização.md`.*
+
+---
+
+## v1.0.0 — Sprint de lançamento completo
+
+**Data:** Junho 2026 (até 19/06/2026)
+**Escopo:** Backend + Frontend + Electron + Testes + Documentação
+**Branch:** main
+
+Esta seção consolida todas as entregas da sprint de lançamento que não estavam registradas nos commits anteriores.
+
+---
+
+### Modularização — `tusab_engine/`
+
+Refatoração completa do monolito (`api_Tusab.py` + `motor_Tusab.py` + `agent_Tusab.py`) para pacote estruturado em 9 módulos com separação limpa de responsabilidades:
+
+```
+tusab_engine/
+  api/
+    router_status.py        ← GET /status, /drive-auth, /history, /open-folder
+    router_extraction.py    ← POST /set-channel, /start, /pause, /cancel, /queue/*
+    router_agent.py         ← /agent/* (chat, config, index, ollama, stream)
+    router_repositorio.py   ← /repositorio, /relatorio, /neural/*, /reset-total
+    router_exports.py       ← /export/* (zip, markdown, docx, xlsx, pdf)
+  motor/
+    drive.py                ← OAuth2 Google Drive + upload
+    extraction.py           ← engine principal (tusab_engine), relatórios
+  agent/
+    config.py               ← carregar/salvar agent_config.json
+    index.py                ← BM25 indexing + cache
+    chat.py                 ← RAG chat + streaming
+  state.py                  ← AppState singleton + LogRedirector
+  storage.py                ← paths de dados + IO atômico
+```
+
+Shims de compatibilidade na raiz (`motor_tusab.py`, `agent_tusab.py`) garantem zero breaking change para Electron e código legado.
+
+Regra de dependência acíclica: `api → agent | motor → storage`. Nunca o contrário.
+
+---
+
+### Suite de testes — 27/27 verde
+
+**`tests/conftest.py`**
+Fixture central: `TUSAB_DATA_DIR` apontada para `tempdir` antes de qualquer import — garante isolamento total entre testes.
+
+**`tests/test_api.py`** (integração, TestClient FastAPI)
+Cobre rotas: `/neural/upload`, `/neural/texto`, `/neural/arquivo/{tipo}/{fid}`, `/queue/add`, `/queue/clear`, `/queue`, `/agent/config`, `/agent/index`, `/agent/test-key`, `/agent/chat`, `/agent/chat/stream`, `/agent/chat/clear`, `/repositorio`, `/relatorio/{canal}`, `/reset-total`.
+
+**`tests/test_confiabilidade.py`**
+Testa: escrita atômica (`salvar_csv_atomico`, `salvar_json_atomico`), concorrência com múltiplas threads escrevendo simultaneamente, recovery de índice corrompido (JSON inválido detectado e deletado), comportamento com base vazia.
+
+**Smoke tests — 15/15 verde** (pre-commit hook `smoke_test.py`)
+Checks contra backend real em porta 8001:
+- yt-dlp funcionando (3 vídeos reais mapeados)
+- `/status`, `/history`, `/repositorio` com schema correto
+- `/queue`, `/queue/add` (URL válida e inválida), `/queue/clear`
+- `/agent/status`, Ollama respondendo
+- `/agent/test-key` rejeita chave inválida
+- `/agent/config` não expõe chave em claro
+- `/agent/chat` retorna erro orientado para canal sem índice
+- `/` serve `index.html`
+- Path traversal bloqueado (fallback seguro)
+
+---
+
+### Segurança — 12 fixes aplicados
+
+Dois sprints de segurança em junho 2026. Fixes ①–⑤ na primeira rodada (CORS, yt-dlp playlist ID, upload size, path traversal no delete, dangerouslySetInnerHTML). Fixes ⑧–⑫ na segunda rodada (path traversal no serve_static, prompt injection, Drive query injection, URL YouTube regex, histórico do chat server-side). Fix ⑥ implementado separadamente (keychain via safeStorage). Fix ⑦ aplicado em todos os modelos Pydantic. Ver `Segurança.txt` para detalhes completos de cada fix.
+
+---
+
+### UX — entregas da sprint
+
+**HomeScreen com cards de navegação**
+Cards com dados reais (número de vídeos extraídos, status do agente, último canal). Badges contextuais. Layout responsivo: mobile drawer, tablet rail, desktop split.
+
+**Modal de indexação no Repositório (showIndexar)**
+Botão "Indexar base" no header do Repositório abre modal com checkboxes por projeto. Usuário seleciona quais projetos reindexar. Prop `onAbrirIndexacaoRepositorio` permite acionar o modal diretamente do chat (botão "Indexar base agora" na mensagem de sem_contexto).
+
+**Reset total corrigido**
+`DELETE /reset-total` limpa arquivos, índices e histórico de chat. Campo de confirmação case-sensitive (`RESETAR`). Extração em andamento cancelada antes do reset.
+
+**Cancelamento com limpeza de fila**
+`POST /cancel` cancela a extração atual e limpa `state.extraction_queue`. Botão "Limpar fila" na UI afeta apenas canais aguardando, não o que está rodando.
+
+**GuideModal — atalhos de teclado**
+Modal de guia de uso com 6 passos. Acessível via botão Ajuda no sidebar. Focus trap + Escape para fechar.
+
+**Sub-aba Periodicidade (ExtractionModal)**
+Estrutura de modal em etapas: URL → Projeto → Fontes. Quando há extração em andamento, o modal abre em 3 etapas para enfileirar novo canal com projeto próprio.
+
+**Textarea no chat com auto-resize**
+Input do ChatDrawer migrado de `<input type="text">` para `<textarea>`. `Enter` envia, `Shift+Enter` quebra linha. Auto-resize até 120px. Integra injeção de contexto do repositório.
+
+---
+
+### Chat stats persistentes (`_chat_stats.json`)
+
+`registrar_primeiro_uso()` em `config.py` grava timestamp de primeiro uso. `/agent/status` retorna `dias_desde_install` e `retencao_dia`. App.jsx dispara `Analytics.retencaoDia()` ao detectar nova marca (idempotente — marcas `retencao_diaX_registrado` em `config.json`).
+
+Perguntas sugeridas: `_gerar_perguntas_sugeridas()` gera 3 perguntas dos títulos indexados, armazenadas em `state.perguntas_sugeridas`. ChatDrawer exibe chips clicáveis no empty state após indexação bem-sucedida.
+
+---
+
+### Banner ASCII no startup
+
+`api_tusab.py` exibe no startup:
+
+```
+████████╗██╗   ██╗███████╗ █████╗ ██████╗
+╚══██╔══╝██║   ██║██╔════╝██╔══██╗██╔══██╗
+   ██║   ██║   ██║███████╗███████║██████╔╝
+   ██║   ██║   ██║╚════██║██╔══██║██╔══██╗
+   ██║   ╚██████╔╝███████║██║  ██║██████╔╝
+   ╚═╝    ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝
+INDEX · AUGMENT · CONVERSE
+```
+
+Seguido de versão, data e status de inicialização de cada módulo.
+
+---
+
+### Exports liberados (sem paywall)
+
+Em junho 2026, a decisão de modelo de negócio removeu o paywall. Todos os endpoints de export funcionam para todos os usuários:
+- `POST /export/base` — ZIP de `cerebro/` + `gestao/`
+- `POST /export/historico` — Markdown do histórico de chat
+- `POST /export/resumo-canal` — DOCX com Q&A do canal
+- `POST /export/tabela-videos` — XLSX com tabela de vídeos
+- `POST /export/relatorio-pdf` — PDF com Q&A formatado
+
+O `config.get('pro', False)` retorna `False` para todos — nenhum usuário tem Pro ativo. O limite de 2 canais em `indexar()` permanece no código mas inativo na prática. A infraestrutura de feature flags está pronta para ativar quando o modelo de negócio for decidido.
+
+---
+
+### Empacotamento Windows
+
+Build de produção para Windows:
+- Python 3.12 embeddable (Win x64) bundled em `python_env/`
+- yt-dlp binário bundled (sem dependência de PATH)
+- Instalador NSIS via electron-builder
+- `electron-updater` configurado para auto-update via GitHub Releases
+- `TUSAB_DATA_DIR` aponta para `%AppData%\Tusab\data\` no Electron packaged
+
+---
+
+### Estado consolidado dos testes (19/06/2026)
+
+| Suite | Resultado |
+|-------|-----------|
+| `pytest tests/ -v` (27 testes) | ✅ 27/27 verde |
+| Smoke test pre-commit (15 checks) | ✅ 15/15 verde |
+
+---
+
+*Para a arquitetura modular completa, ver `Blueprint de Modularização.md`.*
+*Para as decisões estratégicas que guiaram a sprint, ver `Decisões de Produto.md`.*

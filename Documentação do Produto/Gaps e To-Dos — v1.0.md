@@ -1,3 +1,5 @@
+<!-- Substituído por: Roadmap.md e Decisões de Produto.md (junho 2026) -->
+
 # Gaps e To-Dos — Tusab v1.0
 © 2026 CriAugu — Atualizado: Junho 2026
 

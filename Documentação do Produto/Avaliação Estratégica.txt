@@ -1,4 +1,7 @@
-﻿AVALIAÇÃO ESTRATÉGICA — Tusab
+﻿<!-- Substituído por: Decisões de Produto.md e Roadmap.md (junho 2026) -->
+<!-- Os achados de segurança desta avaliação foram migrados para Segurança.txt. -->
+
+AVALIAÇÃO ESTRATÉGICA — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 Análise crítica sob seis perspectivas da cadeia de produto digital.

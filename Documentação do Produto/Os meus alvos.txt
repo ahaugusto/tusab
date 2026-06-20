@@ -1,4 +1,6 @@
-﻿OS MEUS ALVOS — Tusab
+﻿<!-- Substituído por: Visão Geral do Produto.md (seção Público-alvo) e Decisões de Produto.md (junho 2026) -->
+
+OS MEUS ALVOS — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────

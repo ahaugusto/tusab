@@ -1,4 +1,7 @@
-﻿MODELO DE NEGÓCIO — Tusab
+﻿<!-- Substituído por: Decisões de Produto.md (seção Modelo de negócio atual) (junho 2026) -->
+<!-- Nota: este arquivo descreve o modelo freemium que foi descartado. Ver Decisões de Produto.md para o raciocínio. -->
+
+MODELO DE NEGÓCIO — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────

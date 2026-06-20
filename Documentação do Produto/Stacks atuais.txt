@@ -1,4 +1,6 @@
-﻿Tusab — STACKS E ARQUITETURA
+﻿<!-- Substituído por: Arquitetura Técnica.md (junho 2026) -->
+
+Tusab — STACKS E ARQUITETURA
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 Atualizado: Junho 2026
 
