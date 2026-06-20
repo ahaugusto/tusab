@@ -188,6 +188,10 @@ function App() {
     canaisExtras,
     useExternalProvider,
     showError,
+    onPrimeiraFonte: () => setProgressToast({
+      type: 'info',
+      message: 'Não é resumo. É citação. — Cada resposta vem com a fonte exata de onde o trecho foi recuperado.',
+    }),
   });
 
   // ─── Refs ──────────────────────────────────────────────────────────────────

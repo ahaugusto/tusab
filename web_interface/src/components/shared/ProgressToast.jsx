@@ -8,7 +8,7 @@
  */
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ArrowRight, X } from 'lucide-react';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ import { CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react';
  * @param {Object}   props
  * @param {boolean}  props.darkMode      - dark/light theme flag
  * @param {string}   props.message       - message to display
- * @param {'success'|'error'} [props.type='success'] - visual variant
+ * @param {'success'|'error'|'info'} [props.type='success'] - visual variant
  * @param {string}   [props.nextStep]    - optional next action label
  * @param {Function} [props.onNext]      - callback for next action button
  * @param {Function} props.onClose       - callback to dismiss
@@ -33,7 +33,8 @@ function ProgressToast({ darkMode, message, type = 'success', nextStep, onNext, 
   }, [autoClose, onClose]);
 
   const isError = type === 'error';
-  const Icon = isError ? AlertCircle : CheckCircle2;
+  const isInfo  = type === 'info';
+  const Icon = isError ? AlertCircle : isInfo ? Info : CheckCircle2;
 
   return (
     <motion.div
@@ -43,11 +44,13 @@ function ProgressToast({ darkMode, message, type = 'success', nextStep, onNext, 
       transition={{ duration: 0.2 }}
       className={`fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border p-4 shadow-2xl
         ${isError
-          ? darkMode ? 'bg-[#0C1122] border-red-500/30' : 'bg-white border-red-200 shadow-red-100/60'
-          : darkMode ? 'bg-[#0C1122] border-secondary/30' : 'bg-white border-emerald-200 shadow-emerald-100/60'
+          ? darkMode ? 'bg-[#0C1122] border-red-500/30'    : 'bg-white border-red-200 shadow-red-100/60'
+          : isInfo
+          ? darkMode ? 'bg-[#0C1122] border-primary/30'    : 'bg-white border-violet-200 shadow-violet-100/60'
+          : darkMode ? 'bg-[#0C1122] border-secondary/30'  : 'bg-white border-emerald-200 shadow-emerald-100/60'
         }`}>
       <div className="flex items-start gap-3">
-        <Icon size={16} className={`shrink-0 mt-0.5 ${isError ? 'text-red-400' : 'text-secondary'}`} />
+        <Icon size={16} className={`shrink-0 mt-0.5 ${isError ? 'text-red-400' : isInfo ? 'text-primary' : 'text-secondary'}`} />
         <div className="flex-1 min-w-0">
           <p className={`text-xs font-medium ${darkMode ? 'text-white' : 'text-slate-800'}`}>{message}</p>
           {nextStep && (
