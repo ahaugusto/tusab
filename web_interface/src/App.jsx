@@ -364,8 +364,8 @@ function App() {
         markSeen(KEYS.indexDone);
         Analytics.baseIndexada(agentStatus.index_count);
         setProgressToast({
-          message: `Base indexada — ${agentStatus.index_count} chunks prontos!`,
-          nextStep: 'Abrir chat',
+          message: t('toast.base_indexed', { count: agentStatus.index_count }),
+          nextStep: t('toast.open_chat'),
           onNext: () => setChatOpen(true),
         });
       }
@@ -469,7 +469,7 @@ function App() {
   /** Removes an indexed canal and updates the extras list */
   const handleDeleteCanal = async (nome) => {
     const ok = await deleteCanalIndex(nome).then(() => true).catch(() => false);
-    if (!ok) { showError('Erro ao remover canal. Tente novamente.'); return; }
+    if (!ok) { showError(t('error.remove_canal')); return; }
     setCanaisExtras(prev => prev.filter(c => c !== nome));
   };
 
@@ -793,7 +793,7 @@ function App() {
                     // Navega para home e notifica
                     setActiveTab('extracao');
                     setShowHome(true);
-                    setProgressToast({ type: 'success', message: 'Todos os dados foram apagados com sucesso.' });
+                    setProgressToast({ type: 'success', message: t('toast.reset_success') });
 
                     // Recarrega dados do backend
                     fetchHistory().then(r => setHistory(r.data)).catch(() => {});
@@ -835,7 +835,7 @@ function App() {
               className={`rounded-2xl p-5 max-w-sm w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Fila de extração</h2>
+                  <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('ops.queue_title')}</h2>
                   <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                     {extractionQueue.length === 0 ? 'Fila vazia.' : `${extractionQueue.length} ${extractionQueue.length === 1 ? 'canal aguardando' : 'canais aguardando'}`}
                   </p>
@@ -943,10 +943,10 @@ function App() {
               {[
                 { id: 'extracao',    icon: Zap,             label: t('tabs.extraction')  },
                 { id: 'repositorio', icon: BookOpen,         label: t('tabs.repositorio') },
-                { id: 'visao-geral', icon: LayoutDashboard,  label: 'Visão Geral'         },
-                { id: 'monitor',     icon: Activity,         label: 'Monitor'             },
+                { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
+                { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
-                { id: 'admin',       icon: Settings,         label: 'Admin'               },
+                { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
               ].map(({ id, icon: Icon, label }) => (
                 <button key={id}
                   onClick={() => {
@@ -983,7 +983,7 @@ function App() {
                 className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 <HelpCircle size={15} aria-hidden="true" />
-                <span className="text-[9px] font-semibold leading-none">Ajuda</span>
+                <span className="text-[9px] font-semibold leading-none">{t('nav.help')}</span>
               </button>
               <button
                 onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
@@ -991,7 +991,7 @@ function App() {
                 className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 {darkMode ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-                <span className="text-[9px] font-semibold leading-none">{darkMode ? 'Claro' : 'Escuro'}</span>
+                <span className="text-[9px] font-semibold leading-none">{darkMode ? t('footer.light') : t('footer.dark')}</span>
               </button>
             </div>
             <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v1.0.0</p>
@@ -1022,9 +1022,9 @@ function App() {
                 {[
                   { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
                   { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
-                  { id: 'monitor',     icon: Activity,  label: 'Monitor'             },
+                  { id: 'monitor',     icon: Activity,  label: t('tabs.monitor')     },
                   { id: 'agente',      icon: Wrench,    label: t('tabs.agent')       },
-                  { id: 'admin',       icon: Settings,  label: 'Admin'               },
+                  { id: 'admin',       icon: Settings,  label: t('tabs.admin')       },
                 ].map(({ id, icon: Icon, label }) => (
                   <button key={id}
                     onClick={() => {
@@ -1257,7 +1257,7 @@ function App() {
                         ? 'bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30'
                         : 'bg-primary text-white hover:bg-primary/85 shadow shadow-primary/20'} ${BTN_FOCUS}`}>
                     <Zap size={13} aria-hidden="true" />
-                    {isRunning ? 'Extrair Outro' : t('ops.start')}
+                    {isRunning ? t('ops.extract_another') : t('ops.start')}
                   </button>
                 </div>
               </div>
@@ -1425,7 +1425,7 @@ function App() {
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
                     ${darkMode ? 'bg-white/4 border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/8' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Activity size={12} className="text-sky-400" aria-hidden="true" />
-                  Monitorar consumo de recursos →
+                  {t('ops.monitor_shortcut')}
                 </button>
               )}
 
@@ -1456,7 +1456,7 @@ function App() {
                   <div className={`rounded-2xl border ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                     <div className={`px-4 lg:px-5 py-3 border-b flex items-center gap-2 rounded-t-2xl ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
                       <Globe size={14} className="text-primary" aria-hidden="true" />
-                      <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Canais Extraídos</h3>
+                      <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('history.title')}</h3>
                       <div className="relative group/hint ml-1">
                         <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className={`cursor-default ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
                         <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
@@ -1491,7 +1491,7 @@ function App() {
                               if (res && !res.data.error) setCanalConfigurado(res.data.canal_nome || h.canal);
                             }}
                             className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-                            Usar
+                            {t('history.use_btn')}
                           </button>
                         </div>
                       ))}
@@ -1937,11 +1937,11 @@ function App() {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                     </svg>
                     <h3 id="agent-persona-heading" className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                      Tom de resposta
+                      {t('agent.persona_title')}
                     </h3>
                     {persona && (
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-100 text-violet-700'}`}>
-                        ativo
+                        {t('agent.persona_active')}
                       </span>
                     )}
                   </div>
@@ -1950,12 +1950,12 @@ function App() {
                       Define como o assistente comunica as respostas — sem alterar o que ele busca.
                     </p>
                     {[
-                      { id: '',             emoji: '⚪', label: 'Padrão',        desc: 'Sem instrução de tom' },
-                      { id: 'objetivo',     emoji: '🎯', label: 'Objetivo',      desc: 'Direto ao ponto, sem floreios' },
-                      { id: 'tecnico',      emoji: '🔬', label: 'Técnico',       desc: 'Terminologia precisa e dados exatos' },
-                      { id: 'didatico',     emoji: '📚', label: 'Didático',      desc: 'Exemplos, analogias e passo a passo' },
-                      { id: 'descontraido', emoji: '😊', label: 'Descontraído',  desc: 'Tom leve, como conversa entre amigos' },
-                      { id: 'socratico',    emoji: '🤔', label: 'Socrático',     desc: 'Termina cada resposta com uma pergunta' },
+                      { id: '',             emoji: '⚪', label: t('persona.default'),      desc: t('persona.default_desc')      },
+                      { id: 'objetivo',     emoji: '🎯', label: t('persona.objetivo'),     desc: t('persona.objetivo_desc')     },
+                      { id: 'tecnico',      emoji: '🔬', label: t('persona.tecnico'),      desc: t('persona.tecnico_desc')      },
+                      { id: 'didatico',     emoji: '📚', label: t('persona.didatico'),     desc: t('persona.didatico_desc')     },
+                      { id: 'descontraido', emoji: '😊', label: t('persona.descontraido'), desc: t('persona.descontraido_desc') },
+                      { id: 'socratico',    emoji: '🤔', label: t('persona.socratico'),    desc: t('persona.socratico_desc')    },
                     ].map(p => (
                       <button key={p.id} onClick={() => handlePersonaChange(p.id)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${BTN_FOCUS}
@@ -1982,7 +1982,7 @@ function App() {
             {/* ── Admin tab ── */}
             {activeTab === 'admin' && !showHome && (
               <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
-                <h2 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Administração</h2>
+                <h2 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('tabs.admin_title')}</h2>
 
                 {/* Telemetria */}
                 <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>

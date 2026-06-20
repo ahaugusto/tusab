@@ -6,6 +6,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Activity, Cpu, HardDrive, RefreshCw } from 'lucide-react';
 import { fetchMetrics } from '../../services/api';
 import { BTN_FOCUS } from '../../constants';
@@ -54,6 +55,7 @@ function GaugeBar({ value, max, color, darkMode }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MonitorTab({ darkMode, btnFocus }) {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState(null);
   const [error, setError]     = useState('');
   const [paused, setPaused]   = useState(false);
@@ -65,7 +67,7 @@ export default function MonitorTab({ darkMode, btnFocus }) {
       setMetrics(res.data);
       setError('');
     } catch {
-      setError('Não foi possível carregar métricas. Backend offline?');
+      setError(t('monitor.error_load'));
     }
   };
 
@@ -94,9 +96,9 @@ export default function MonitorTab({ darkMode, btnFocus }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Monitor de Sistema</h2>
+          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('monitor.title')}</h2>
           <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-            Consumo do processo Tusab em tempo real
+            {t('monitor.subtitle')}
           </p>
         </div>
         <button
@@ -108,7 +110,7 @@ export default function MonitorTab({ darkMode, btnFocus }) {
             }`}
         >
           <RefreshCw size={11} className={paused ? '' : 'animate-spin'} style={{ animationDuration: '3s' }} />
-          {paused ? 'Pausado' : 'Ao vivo'}
+          {paused ? t('monitor.paused') : t('monitor.live')}
         </button>
       </div>
 
@@ -125,7 +127,7 @@ export default function MonitorTab({ darkMode, btnFocus }) {
         <div className={card}>
           <div className="flex items-center gap-2 mb-3">
             <HardDrive size={14} className="text-violet-400" />
-            <span className={label}>Memória RAM</span>
+            <span className={label}>{t('monitor.card_ram')}</span>
           </div>
           <div className="flex items-end gap-1 mb-2">
             <span className={value}>{cur ? cur.ram_mb.toFixed(0) : '—'}</span>
@@ -141,7 +143,7 @@ export default function MonitorTab({ darkMode, btnFocus }) {
         <div className={card}>
           <div className="flex items-center gap-2 mb-3">
             <Cpu size={14} className="text-sky-400" />
-            <span className={label}>CPU Sistema</span>
+            <span className={label}>{t('monitor.card_cpu_sys')}</span>
           </div>
           <div className="flex items-end gap-1 mb-2">
             <span className={value}>{cur ? (cur.sys_cpu ?? cur.cpu_pct).toFixed(0) : '—'}</span>
@@ -153,7 +155,7 @@ export default function MonitorTab({ darkMode, btnFocus }) {
           </div>
           {cur?.cpu_pct !== undefined && (
             <p className={`mt-2 text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-              Processo: {cur.cpu_pct.toFixed(1)}%
+              {t('monitor.process_prefix')} {cur.cpu_pct.toFixed(1)}%
             </p>
           )}
         </div>
@@ -164,16 +166,16 @@ export default function MonitorTab({ darkMode, btnFocus }) {
         <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
             <Activity size={13} className="text-slate-400" />
-            <span className={label}>Histórico recente ({hist.length} amostras)</span>
+            <span className={label}>{t('monitor.history_title')} ({hist.length} {t('monitor.samples_suffix')})</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[11px]">
               <thead>
                 <tr className={darkMode ? 'text-slate-500' : 'text-slate-400'}>
-                  <th className="px-4 py-1.5 text-left font-semibold">Horário</th>
-                  <th className="px-4 py-1.5 text-right font-semibold">RAM (MB)</th>
-                  <th className="px-4 py-1.5 text-right font-semibold">CPU Sis. (%)</th>
-                  <th className="px-4 py-1.5 text-right font-semibold">CPU Proc. (%)</th>
+                  <th className="px-4 py-1.5 text-left font-semibold">{t('monitor.col_time')}</th>
+                  <th className="px-4 py-1.5 text-right font-semibold">{t('monitor.col_ram')}</th>
+                  <th className="px-4 py-1.5 text-right font-semibold">{t('monitor.col_cpu_sys')}</th>
+                  <th className="px-4 py-1.5 text-right font-semibold">{t('monitor.col_cpu_proc')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,14 +203,14 @@ export default function MonitorTab({ darkMode, btnFocus }) {
             </table>
           </div>
           <p className={`px-4 py-2 text-[10px] border-t ${darkMode ? 'border-white/8 text-slate-600' : 'border-slate-100 text-slate-400'}`}>
-            Exibindo as 20 amostras mais recentes · Atualizado a cada 2s
+            {t('monitor.footer')}
           </p>
         </div>
       )}
 
       {/* Nota */}
       <p className={`text-[10px] px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-        Métricas referentes exclusivamente ao processo Tusab (backend Python). Picos de RAM/CPU são esperados durante extração de canais grandes.
+        {t('monitor.note')}
       </p>
     </div>
   );
