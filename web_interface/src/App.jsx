@@ -190,7 +190,7 @@ function App() {
     showError,
     onPrimeiraFonte: () => setProgressToast({
       type: 'info',
-      message: 'Não é resumo. É citação. — Cada resposta vem com a fonte exata de onde o trecho foi recuperado.',
+      message: t('citation.snackbar'),
     }),
   });
 
@@ -1574,27 +1574,23 @@ function App() {
                   <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                     <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                       <Clock size={14} className="text-amber-500" />
-                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Periodicidade de Atualização</span>
+                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('periodicidade.title')}</span>
                     </div>
                     <div className="px-5 py-10 flex flex-col items-center text-center gap-4">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${darkMode ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
                         <Clock size={28} className="text-amber-500" />
                       </div>
                       <div>
-                        <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Mantenha suas bases sempre atualizadas</p>
+                        <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('periodicidade.tagline')}</p>
                         <p className={`text-xs mt-1.5 max-w-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          Configure alertas automáticos por canal — diário, semanal ou mensal. O Tusab verifica se há novos vídeos e notifica quando sua base precisar de reindexação.
+                          {t('periodicidade.desc')}
                         </p>
                       </div>
                       <div className={`flex flex-wrap justify-center gap-2 mt-1`}>
-                        {['Verificação automática', 'Por canal', 'Notificação na área de trabalho', 'Diário · Semanal · Mensal'].map(f => (
+                        {[t('periodicidade.tag1'), t('periodicidade.tag2'), t('periodicidade.tag3'), t('periodicidade.tag4')].map(f => (
                           <span key={f} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${darkMode ? 'border-white/10 text-slate-400 bg-white/4' : 'border-slate-200 text-slate-500 bg-slate-50'}`}>{f}</span>
                         ))}
                       </div>
-                      <a href="https://tusab.solutions" target="_blank" rel="noreferrer"
-                        className="mt-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-white transition-colors">
-                        Conheça o plano Pro
-                      </a>
                     </div>
                   </div>
 
@@ -1602,8 +1598,8 @@ function App() {
                   <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                     <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                       <BarChart3 size={14} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
-                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Seus canais extraídos</span>
-                      <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Preview — disponível no Pro</span>
+                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('periodicidade.channels_title')}</span>
+                      <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('periodicidade.coming_soon')}</span>
                     </div>
                     <div className="divide-y divide-white/5">
                       {history.length === 0 ? (
@@ -2160,7 +2156,7 @@ function App() {
 
             {/* Scroll-to-top button */}
             <AnimatePresence>
-              {showScrollTop && (
+              {showScrollTop && !chatOpen && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}
@@ -2170,7 +2166,7 @@ function App() {
                   }}
                   aria-label="Voltar ao topo"
                   className={`fixed z-30 p-3 rounded-full shadow-lg transition-colors ${BTN_FOCUS}
-                    ${!chatOpen ? 'bottom-24 right-6' : 'bottom-6 right-6'}
+                    bottom-24 right-6
                     ${darkMode ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/35' : 'bg-primary text-white hover:bg-primary/85 shadow-primary/30'}`}>
                   <ArrowUp size={18} aria-hidden="true" />
                 </motion.button>
