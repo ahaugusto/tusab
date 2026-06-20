@@ -274,5 +274,7 @@
   "periodicidade.tag4": "Daily · Weekly · Monthly",
   "periodicidade.channels_title": "Your extracted channels",
   "periodicidade.coming_soon": "Coming soon",
-  "citation.snackbar": "Not a summary. It's a citation. — Every answer comes with the exact source where the excerpt was retrieved from."
+  "citation.snackbar": "Not a summary. It's a citation. — Every answer comes with the exact source where the excerpt was retrieved from.",
+  "home.source_files_sub": "Local",
+  "home.card_overview_done": "{{files}} file{{files, plural, one {} other {s}}} · {{projects}} project{{projects, plural, one {} other {s}}}"
 }

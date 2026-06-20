@@ -29,7 +29,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     {
       id:     'youtube',
       icon:   '📺',
-      title:  'Extrair conteúdo',
+      title:  t('home.source_youtube_title'),
       sub:    'YouTube',
       desc:   totalCanais > 0
         ? t('home.card_extract_done', { count: totalCanais })
@@ -40,8 +40,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     {
       id:     'arquivos',
       icon:   '📁',
-      title:  'Incluir conteúdo',
-      sub:    'Local',
+      title:  t('home.source_files_title'),
+      sub:    t('home.source_files_sub'),
       desc:   totalDocs > 0
         ? t('home.card_repo_done', { count: totalDocs })
         : t('home.source_files_desc'),
@@ -63,8 +63,10 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     {
       id:     'visao-geral',
       icon:   '🗺️',
-      title:  'Visão Geral',
-      desc:   totalArquivos > 0 ? `${totalArquivos} arquivo${totalArquivos !== 1 ? 's' : ''} · ${totalCanais} projeto${totalCanais !== 1 ? 's' : ''}` : 'Inventário completo da ferramenta',
+      title:  t('tabs.overview'),
+      desc:   totalArquivos > 0
+        ? t('home.card_overview_done', { files: totalArquivos, projects: totalCanais })
+        : t('overview.subtitle'),
       badge:  null,
       color:  'secondary',
     },
