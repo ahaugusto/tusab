@@ -742,9 +742,12 @@ def reset_total():
 
     removidos = {"cerebro": 0, "indices": 0}
 
-    # 1. Neural — apaga todo o conteúdo (inclui gestao/ por canal) mas mantém a pasta raiz
-    if os.path.exists(neural_dir):
-        for entry in os.scandir(neural_dir):
+    # 1. Neural + aliases legados — apaga conteúdo mas mantém pastas raiz
+    for data_dir in [neural_dir, motor_tusab.CEREBRO_DIR, gestao_dir]:
+        if not os.path.exists(data_dir):
+            continue
+        # Evita apagar duas vezes se CEREBRO_DIR == NEURAL_DIR
+        for entry in os.scandir(data_dir):
             try:
                 if entry.is_dir():
                     shutil.rmtree(entry.path)
