@@ -5,12 +5,29 @@
 
 import sys
 import os
+import warnings
+
+# Suprime FutureWarning do SDK Gemini clássico (google-generativeai deprecado)
+# Migração para google-genai pendente — manter até atualizar o SDK
+warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
 
 import motor_tusab
 import agent_tusab
 
 import logging
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
+# Banner de boas-vindas — impresso antes do LogRedirector redirecionar sys.stdout
+print(r"""
+  ████████╗██╗   ██╗███████╗ █████╗ ██████╗
+  ╚══██╔══╝██║   ██║██╔════╝██╔══██╗██╔══██╗
+     ██║   ██║   ██║███████╗███████║██████╔╝
+     ██║   ██║   ██║╚════██║██╔══██║██╔══██╗
+     ██║   ╚██████╔╝███████║██║  ██║██████╔╝
+     ╚═╝    ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝
+  v1.0.0 · Indexe. Aprenda. Consulte.
+  © 2026 CriAugu — CNPJ 65.131.075/0001-57
+""")
 
 # AppState singleton + LogRedirector (redirects sys.stdout/stderr on import)
 from tusab_engine.state import state, _real_stderr  # noqa: E402
@@ -120,15 +137,6 @@ try:
 except Exception:
     pass
 
-# Cria base de conhecimento embutida do Tusab na primeira execução
-try:
-    _ajuda_path = os.path.join(motor_tusab.NEURAL_DIR, 'textos', '_tusab_ajuda.txt')
-    if not os.path.exists(_ajuda_path):
-        import subprocess as _sp
-        _sp.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts', 'create_help_base.py')],
-                check=False, timeout=10)
-except Exception:
-    pass
 
 # ── Roteadores ────────────────────────────────────────────────────────────────
 app.include_router(router_status.router)

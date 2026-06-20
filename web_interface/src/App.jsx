@@ -1167,8 +1167,8 @@ function App() {
                   {[
                     { id: 'extrair',      label: t('tabs.extraction'), icon: Zap },
                     { id: 'relatorio',    label: t('tabs.relatorio'),  icon: BarChart3 },
-                    { id: 'periodicidade', label: 'Periodicidade',     icon: Clock, pro: true },
-                  ].map(({ id, label, icon: Icon, pro }) => (
+                    { id: 'periodicidade', label: 'Periodicidade',     icon: Clock },
+                  ].map(({ id, label, icon: Icon }) => (
                     <button key={id}
                       onClick={() => setExtracaoSubTab(id)}
                       className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors -mb-px ${BTN_FOCUS}
@@ -1177,9 +1177,6 @@ function App() {
                           : darkMode ? 'border-transparent text-slate-500 hover:text-slate-300' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
                       <Icon size={12} />
                       {label}
-                      {pro && (
-                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>PRO</span>
-                      )}
                     </button>
                   ))}
                 </div>
@@ -1574,7 +1571,6 @@ function App() {
                     <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                       <Clock size={14} className="text-amber-500" />
                       <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Periodicidade de Atualização</span>
-                      <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>PRO</span>
                     </div>
                     <div className="px-5 py-10 flex flex-col items-center text-center gap-4">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${darkMode ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
