@@ -138,9 +138,9 @@ function App() {
   const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getConsent() === 'yes');
 
-  // Se já deu consent mas ainda não fez onboarding, abre onboarding direto
+  // Se consent já dado mas onboarding pendente E landing não está visível (reload mid-flow)
   useEffect(() => {
-    if (getConsent() !== null && !localStorage.getItem('tusab_onboarded')) {
+    if (getConsent() !== null && !localStorage.getItem('tusab_onboarded') && !showLanding) {
       setShowOnboarding(true);
     }
   }, []);
@@ -653,17 +653,17 @@ function App() {
       </AnimatePresence>
 
       {/* Analytics consent — shown once on first launch */}
-      <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
-        <AnimatePresence>
-          {showConsent && (
+      <AnimatePresence>
+        {showConsent && (
+          <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
             <ConsentModal key="consent" darkMode={darkMode} onDone={() => {
               setShowConsent(false);
               if (!localStorage.getItem('tusab_onboarded')) setShowOnboarding(true);
               else setShowLanding(false);
             }} />
-          )}
-        </AnimatePresence>
-      </div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Drive security warning — shown once before first Drive auth */}
       <DriveWarningModal
@@ -687,11 +687,13 @@ function App() {
         )}
       </AnimatePresence>
 
-      <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
-        <AnimatePresence>
-          {showOnboarding && <Onboarding key="onboarding" onDone={(perfilEscolhido) => { setPerfil(perfilEscolhido); setShowOnboarding(false); setShowLanding(false); }} />}
-        </AnimatePresence>
-      </div>
+      <AnimatePresence>
+        {showOnboarding && (
+          <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
+            <Onboarding key="onboarding" onDone={(perfilEscolhido) => { setPerfil(perfilEscolhido); setShowOnboarding(false); setShowLanding(false); }} />
+          </div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showGuide && <GuideModal key="guide-modal" onClose={() => setShowGuide(false)} darkMode={darkMode} />}
       </AnimatePresence>

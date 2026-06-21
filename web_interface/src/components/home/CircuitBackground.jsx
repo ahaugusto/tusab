@@ -304,7 +304,7 @@ export default function CircuitBackground({ darkMode, interactive = false }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     let raf;
 
     const color   = darkMode ? '#4B9FE8' : '#1558B0';
@@ -328,11 +328,20 @@ export default function CircuitBackground({ darkMode, interactive = false }) {
     window.addEventListener('resize', init);
     if (interactive) window.addEventListener('mousemove', onMouseMove);
 
+    // 24fps é suficiente para a animação — reduz CPU vs 60fps do rAF contínuo
+    const FPS = 24;
+    const INTERVAL = 1000 / FPS;
     let frame = 0;
-    const loop = () => {
+    let lastTime = 0;
+
+    const loop = (ts) => {
       raf = requestAnimationFrame(loop);
+      if (ts - lastTime < INTERVAL) return; // throttle
+      lastTime = ts;
+
       const s = stateRef.current;
-      if (!s) return;
+      if (!s || document.hidden) return; // pausa quando aba oculta
+
       frame++;
 
       s.pulses.forEach((p, i) => {
@@ -341,7 +350,7 @@ export default function CircuitBackground({ darkMode, interactive = false }) {
         if (p.dist - PULSE_LEN > p.totalLen) s.pulses[i] = null;
       });
 
-      if (s.pulses.filter(Boolean).length < MAX_PULSES && frame % 20 === 0) {
+      if (s.pulses.filter(Boolean).length < MAX_PULSES && frame % 10 === 0) {
         const p = pickPulse(s.circuits.nodeMap);
         if (p) {
           const slot = s.pulses.indexOf(null);
@@ -350,11 +359,10 @@ export default function CircuitBackground({ darkMode, interactive = false }) {
         }
       }
 
-      // Decai o glow quando o mouse para
       if (s.mouse.glow > 0) s.mouse.glow = Math.max(0, s.mouse.glow - MOUSE_DECAY);
       drawFrame(ctx, s.w, s.h, s.circuits, s.pulses, s.color, s.opacity, s.mouse);
     };
-    loop();
+    raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -367,6 +375,7 @@ export default function CircuitBackground({ darkMode, interactive = false }) {
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ cursor: 'default' }}
     />
   );
 }
