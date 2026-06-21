@@ -811,12 +811,27 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         document.body
       )}
 
-      {/* Add panel */}
-      {showAdd_ && (
-        <div className={`rounded-2xl border p-4 space-y-3 transition-colors
-          ${dragging
-            ? darkMode ? 'border-primary bg-primary/8' : 'border-violet-400 bg-violet-50'
-            : darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+      {/* Add modal */}
+      {showAdd_ && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowAdd(false)}>
+          <div
+            className={`w-full max-w-lg rounded-2xl border shadow-2xl p-4 space-y-3 overflow-y-auto
+              ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}
+              ${dragging ? darkMode ? 'border-primary' : 'border-violet-400' : ''}`}
+            style={{ maxHeight: 'min(90vh, 680px)' }}
+            onClick={e => e.stopPropagation()}>
+          {/* Modal header */}
+          <div className="flex items-center justify-between pb-2 border-b border-white/8">
+            <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              {mode === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
+            </h3>
+            <button onClick={() => setShowAdd(false)}
+              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div className={`rounded-2xl border-0 p-0 space-y-3`}>
 
           {/* Project selector */}
           <div className="space-y-1.5">
@@ -1030,7 +1045,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </button>
             </>
           )}
-        </div>
+          </div>
+          </div>
+        </div>,
+        document.body
       )}
 
 

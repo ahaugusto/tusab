@@ -5,10 +5,11 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Analytics } from '../services/analytics';
-import { sendChatStream } from '../services/api';
+import { sendChatStream, resumeConversation } from '../services/api';
+import { useChatHistory } from './useChatHistory';
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,9 @@ export function useChatEngine({
 }) {
   const { t } = useTranslation();
 
+  // ─── Histórico persistido ──────────────────────────────────────────────────
+  const history = useChatHistory();
+
   // ─── State ─────────────────────────────────────────────────────────────────
   const [chatOpen,        setChatOpen]        = useState(false);
   const [chatExpandido,   setChatExpandido]   = useState(false);
@@ -51,8 +55,10 @@ export function useChatEngine({
   const [fontesFixadas,   setFontesFixadas]   = useState([]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
-  const chatEndRef = useRef(null);
+  const chatEndRef            = useRef(null);
   const fonteSnackbarMostrado = useRef(false);
+  // id da conversa ativa — criado ao enviar a primeira mensagem
+  const convIdRef             = useRef(null);
 
   // ─── Effects ───────────────────────────────────────────────────────────────
 
@@ -60,6 +66,15 @@ export function useChatEngine({
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  /** Auto-save: persiste após cada resposta completa (não durante streaming) */
+  useEffect(() => {
+    const canal = agentStatus?.canal_indexado || canalConfigurado || '';
+    const hasFinished = chatMessages.length > 0 && !chatMessages.some(m => m.streaming);
+    if (!hasFinished || chatMessages.length === 0) return;
+    if (!convIdRef.current) convIdRef.current = history.startNew(canal);
+    history.saveMessages(convIdRef.current, chatMessages, canal);
+  }, [chatMessages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -231,6 +246,34 @@ export function useChatEngine({
     setChatLoading(false);
   };
 
+  /**
+   * Retoma uma conversa salva: repopula o chat visualmente e reenvia contexto ao servidor.
+   * @param {Object} conv — objeto de conversa do useChatHistory
+   */
+  const retomar = useCallback(async (conv) => {
+    convIdRef.current = conv.id;
+    history.setActiveId(conv.id);
+    // Restaura mensagens no chat visual
+    setChatMessages(conv.messages.map(m => ({ ...m, streaming: false })));
+    setChatOpen(true);
+    // Reenvia últimas N mensagens ao servidor para restaurar contexto do LLM
+    const canal = conv.canalNome || agentStatus?.canal_indexado || canalConfigurado || '';
+    if (canal && conv.messages.length > 0) {
+      try {
+        const ultimas = conv.messages.slice(-6); // últimas 3 trocas (6 mensagens)
+        await resumeConversation({ canal_nome: canal, historico: ultimas.map(m => ({ role: m.role, content: m.content })) });
+      } catch { /* servidor pode estar offline — chat visual ainda funciona */ }
+    }
+  }, [agentStatus, canalConfigurado, history]);
+
+  /** Inicia uma nova conversa (descarta contexto ativo) */
+  const novaConversa = useCallback(() => {
+    convIdRef.current = null;
+    history.setActiveId(null);
+    setChatMessages([]);
+    setChatInput('');
+  }, [history]);
+
   // ─── Return ────────────────────────────────────────────────────────────────
   return {
     chatOpen,
@@ -251,5 +294,10 @@ export function useChatEngine({
     detectarIntencaoExport,
     handleExportDoChat,
     handleChatSend,
+    // histórico
+    chatHistory:  history,
+    retomar,
+    novaConversa,
+    convId: convIdRef,
   };
 }

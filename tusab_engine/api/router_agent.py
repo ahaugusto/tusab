@@ -524,6 +524,30 @@ def agent_chat_clear(req: AgentChatRequest):
     return {"message": "Histórico limpo."}
 
 
+class ResumeConversationRequest(BaseModel):
+    canal_nome: str  = Field(max_length=120)
+    historico:  list = []
+
+
+@router.post("/agent/chat/resume")
+def agent_chat_resume(req: ResumeConversationRequest):
+    """Restaura o contexto de uma conversa salva no servidor.
+
+    Recebe as últimas N mensagens do localStorage e as carrega em
+    state.chat_histories para que o próximo /chat/stream as use como contexto.
+    Limita ao máximo de _MAX_HIST_MSGS mensagens (mesmo limite do chat normal).
+    """
+    # Sanitiza: aceita apenas role user/assistant e content string
+    msgs_validas = [
+        {"role": m.get("role", ""), "content": str(m.get("content", ""))[:4000]}
+        for m in req.historico
+        if m.get("role") in ("user", "assistant") and m.get("content")
+    ]
+    with state.hist_lock:
+        state.chat_histories[req.canal_nome] = msgs_validas[-_MAX_HIST_MSGS:]
+    return {"restored": len(msgs_validas), "canal": req.canal_nome}
+
+
 @router.post("/agent/chat/salvar-historico")
 def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
     """Serializa as mensagens do chat em Markdown e salva no repositório de textos do canal."""

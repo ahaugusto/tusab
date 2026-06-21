@@ -28,7 +28,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
 
   // ── Source cards (top, side-by-side) ──────────────────────────────────────
   const sourceBase = darkMode
-    ? 'bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30'
+    ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20'
     : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300';
 
   // Cards de fonte variam por perfil
@@ -161,8 +161,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     : darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700';
 
   const highlightBase = darkMode
-    ? 'bg-primary/10 border-primary/40 hover:bg-primary/15 hover:border-primary/60'
-    : 'bg-violet-50 border-violet-300 shadow-sm hover:shadow-md hover:border-violet-400';
+    ? 'bg-[#0C1122]/95 border-primary/50 hover:bg-[#0E1428]/95 hover:border-primary/70'
+    : 'bg-white border-violet-300 shadow-sm hover:shadow-md hover:border-violet-400';
 
   return (
     <div className={`flex-1 flex overflow-hidden relative ${darkMode ? 'bg-[#080C18]' : 'bg-slate-50'}`}>
@@ -238,8 +238,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                   onClick={() => onNavigate(card.id)}
                   className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus}
                     ${card.alert
-                      ? darkMode ? 'bg-amber-500/8 border-amber-500/30 hover:bg-amber-500/12 hover:border-amber-500/50' : 'bg-amber-50 border-amber-200 hover:border-amber-300 shadow-sm'
-                      : darkMode ? 'bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                      ? darkMode ? 'bg-[#0C1122]/95 border-amber-500/40 hover:bg-[#0E1428]/95 hover:border-amber-500/60' : 'bg-white border-amber-200 hover:border-amber-300 shadow-sm'
+                      : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
                   {card.alert && (
                     <span className={`absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
