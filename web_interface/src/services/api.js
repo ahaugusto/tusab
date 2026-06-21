@@ -146,6 +146,9 @@ export const sendChatStream = (payload) => fetch(`${API_BASE}/agent/chat/stream`
 /** Clears server-side conversation history for a canal */
 export const clearChatHistory = (canal_nome) => axios.post(`${API_BASE}/agent/chat/clear`, { canal_nome, mensagem: '', historico: [], canais_extras: [], busca_ampla: false });
 
+/** Resumes a saved conversation by reloading its messages into server-side context */
+export const resumeConversation = (payload) => axios.post(`${API_BASE}/agent/chat/resume`, payload);
+
 /** Saves current chat messages as a .md file in the canal's text repository */
 export const salvarHistoricoChat = (canal_nome, mensagens) => axios.post(`${API_BASE}/agent/chat/salvar-historico`, { canal_nome, mensagens });
 

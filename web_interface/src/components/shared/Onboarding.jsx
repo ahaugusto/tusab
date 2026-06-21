@@ -75,7 +75,7 @@ function Onboarding({ onDone }) {
   // ── Step 0 — Profile picker ───────────────────────────────────────────────
   if (isProfileStep) {
     return (
-      <ModalWrapper onClose={() => finish(true)} disableBackdrop label="Introdução ao Tusab">
+      <ModalWrapper onClose={() => finish(true)} disableBackdrop disableEscape label="Introdução ao Tusab">
         <motion.div
           key="profile-step"
           initial={{ opacity: 0, y: 12 }}
@@ -152,7 +152,7 @@ function Onboarding({ onDone }) {
 
   // ── Steps 1–7 — Content steps ─────────────────────────────────────────────
   return (
-    <ModalWrapper onClose={() => finish(false)} disableBackdrop label="Introdução ao Tusab">
+    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label="Introdução ao Tusab">
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 12 }}

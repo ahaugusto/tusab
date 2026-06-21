@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react';
 // ---------------------------------------------------------------------------
 export const PERFIS_CONFIG = {
   estudante: {
-    abas: ['repositorio'],
+    abas: ['repositorio', 'historico'],
     persona_padrao: 'didatico',
     busca_ampla: false,
     config_api: false,
@@ -22,7 +22,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: false,
   },
   professor: {
-    abas: ['extracao', 'repositorio', 'relatorio', 'agente'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'agente'],
     persona_padrao: 'didatico',
     busca_ampla: false,
     config_api: false,
@@ -39,7 +39,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: true,
   },
   pesquisador: {
-    abas: ['extracao', 'repositorio', 'relatorio', 'visao-geral', 'agente'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'agente'],
     persona_padrao: 'tecnico',
     busca_ampla: true,
     config_api: true,
@@ -56,7 +56,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: true,
   },
   profissional: {
-    abas: ['extracao', 'repositorio', 'relatorio', 'visao-geral', 'monitor', 'agente', 'admin'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'monitor', 'agente', 'admin'],
     persona_padrao: 'objetivo',
     busca_ampla: true,
     config_api: true,
