@@ -53,6 +53,7 @@ import MonitorTab               from './components/agent/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
 import LandingScreen            from './components/home/LandingScreen';
 import ChatDrawer               from './components/chat/ChatDrawer';
+import HistoricoTab             from './components/agent/HistoricoTab';
 import { DriveToggle }          from './components/sidebar/SidebarContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -135,15 +136,8 @@ function App() {
   const [agentIndexError,  setAgentIndexError]  = useState('');
 
   // ─── Consent / analytics ──────────────────────────────────────────────────
-  const [showConsent,      setShowConsent]      = useState(() => getConsent() === null);
+  const [showConsent,      setShowConsent]      = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getConsent() === 'yes');
-
-  // Se consent já dado mas onboarding pendente E landing não está visível (reload mid-flow)
-  useEffect(() => {
-    if (getConsent() !== null && !localStorage.getItem('tusab_onboarded') && !showLanding) {
-      setShowOnboarding(true);
-    }
-  }, []);
   const [progressToast,    setProgressToast]    = useState(null);
   const showError = (message) => setProgressToast({ type: 'error', message });
 
@@ -189,6 +183,9 @@ function App() {
     chatEndRef,
     fontesFixadas, setFontesFixadas,
     handleChatSend,
+    chatHistory,
+    retomar:       retomar,
+    novaConversa,
   } = useChatEngine({
     agentProvider,
     agentStatus,
@@ -602,11 +599,11 @@ function App() {
           <motion.div key="landing-screen" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
             className="fixed inset-0 z-[9999]">
             <LandingScreen darkMode={darkMode} onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }} onEnter={() => {
-              // Abre consent/onboarding por cima da landing — landing some só quando onboarding termina
-              if (getConsent() === null) {
-                setShowConsent(true);
-              } else if (!localStorage.getItem('tusab_onboarded')) {
+              // Fluxo: landing → onboarding → consent → home
+              if (!localStorage.getItem('tusab_onboarded')) {
                 setShowOnboarding(true);
+              } else if (getConsent() === null) {
+                setShowConsent(true);
               } else {
                 setShowLanding(false);
               }
@@ -655,11 +652,10 @@ function App() {
       {/* Analytics consent — shown once on first launch */}
       <AnimatePresence>
         {showConsent && (
-          <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
+          <div className="fixed inset-0 z-[10000]">
             <ConsentModal key="consent" darkMode={darkMode} onDone={() => {
               setShowConsent(false);
-              if (!localStorage.getItem('tusab_onboarded')) setShowOnboarding(true);
-              else setShowLanding(false);
+              setShowLanding(false);
             }} />
           </div>
         )}
@@ -690,7 +686,15 @@ function App() {
       <AnimatePresence>
         {showOnboarding && (
           <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
-            <Onboarding key="onboarding" onDone={(perfilEscolhido) => { setPerfil(perfilEscolhido); setShowOnboarding(false); setShowLanding(false); }} />
+            <Onboarding key="onboarding" onDone={(perfilEscolhido) => {
+              setPerfil(perfilEscolhido);
+              setShowOnboarding(false);
+              if (getConsent() === null) {
+                setShowConsent(true); // consent aparece após o onboarding
+              } else {
+                setShowLanding(false);
+              }
+            }} />
           </div>
         )}
       </AnimatePresence>
@@ -1014,6 +1018,7 @@ function App() {
               {[
                 { id: 'extracao',    icon: Zap,             label: t('tabs.extraction')  },
                 { id: 'repositorio', icon: BookOpen,         label: t('tabs.repositorio') },
+                { id: 'historico',   icon: History,          label: t('tabs.historico')   },
                 { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                 { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
@@ -1055,11 +1060,17 @@ function App() {
                 <button
                   onClick={() => setShowAlterarPerfil(true)}
                   aria-label={t('perfil.trocar')}
-                  className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
-                    ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
-                  <span className="text-sm leading-none" aria-hidden="true">
-                    {PERFIS_META[perfil]?.icon ?? '👤'}
-                  </span>
+                  title={t('perfil.trocar')}
+                  className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors group ${BTN_FOCUS}
+                    ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
+                  <div className="relative">
+                    <span className="text-sm leading-none" aria-hidden="true">
+                      {PERFIS_META[perfil]?.icon ?? '👤'}
+                    </span>
+                    <span className={`absolute -top-1 -right-2 opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-primary' : 'text-primary'}`}>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </span>
+                  </div>
                   <span className="text-[9px] font-semibold leading-none truncate max-w-full px-0.5">
                     {t(PERFIS_META[perfil]?.label ?? 'perfil.profissional')}
                   </span>
@@ -1218,7 +1229,7 @@ function App() {
                 ) : (
                   <div>
                     <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent') }[activeTab]}
+                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
@@ -1227,28 +1238,25 @@ function App() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {/* Drive status chip — always navigates to Repositório */}
-                {regras.drive && driveStatus !== 'autenticado' && (
+                {/* Chip de perfil — sempre visível quando Drive não autenticado */}
+                {driveStatus !== 'autenticado' && (
                   <button
-                    onClick={() => setActiveTab('repositorio')}
-                    title={driveStatus === 'em_progresso' ? 'Autenticando Drive…' : 'Conectar Google Drive'}
-                    aria-label={driveStatus === 'em_progresso' ? 'Autenticando Drive' : 'Conectar Google Drive — ir para Repositório'}
-                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
-                      ${driveStatus === 'em_progresso'
-                        ? darkMode ? 'border-primary/30 text-primary bg-primary/8 hover:bg-primary/15' : 'border-violet-300 text-violet-600 bg-violet-50 hover:bg-violet-100'
-                        : darkMode ? 'border-warning/30 text-warning bg-warning/8 hover:bg-warning/15' : 'border-amber-300 text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
-                    {driveStatus === 'em_progresso'
-                      ? <Loader2 size={11} className="animate-spin" aria-hidden="true" />
-                      : <CloudOff size={12} aria-hidden="true" />}
-                    <span className="hidden sm:inline">Drive</span>
+                    onClick={() => setShowOnboarding(true)}
+                    title="Alterar perfil"
+                    aria-label="Perfil ativo — clique para alterar"
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                      ${darkMode ? 'border-white/15 text-slate-300 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100'}`}>
+                    <span>{PERFIS_META[perfil]?.icon ?? '🧑‍💻'}</span>
+                    <span className="hidden sm:inline">{t(PERFIS_META[perfil]?.label ?? 'perfil.especialista')}</span>
                   </button>
                 )}
+                {/* Drive chip — só aparece quando autenticado */}
                 {regras.drive && driveStatus === 'autenticado' && (
                   <button
                     onClick={() => setActiveTab('repositorio')}
                     title={isRunning ? 'Drive sincronizando…' : 'Drive conectado — ir para Repositório'}
                     aria-label={isRunning ? 'Drive sincronizando' : 'Drive conectado — ir para Repositório'}
-                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                       ${isRunning
                         ? darkMode ? 'border-secondary/40 text-secondary bg-secondary/12 hover:bg-secondary/20' : 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
                         : darkMode ? 'border-white/15 text-slate-400 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-500 bg-slate-50 hover:bg-slate-100'}`}>
@@ -1731,6 +1739,29 @@ function App() {
               )}
             </div>
 
+            {/* ── TAB: HISTÓRICO ── */}
+            {activeTab === 'historico' && (
+              <div id="panel-historico" role="tabpanel" aria-labelledby="tab-historico"
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Histórico de conversas</h2>
+                    <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Salvo automaticamente · máx. 100 conversas · JSON exportável
+                    </p>
+                  </div>
+                </div>
+                <HistoricoTab
+                  darkMode={darkMode}
+                  conversations={chatHistory.conversations}
+                  onRetomar={(conv) => { retomar(conv); setShowHome(false); }}
+                  onDelete={chatHistory.deleteConversation}
+                  onToggleFav={chatHistory.toggleFavorito}
+                  onRename={chatHistory.renameConversation}
+                />
+              </div>
+            )}
+
             {/* ── TAB: REPOSITÓRIO ── */}
             {activeTab === 'repositorio' && (
               <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio"
@@ -2087,7 +2118,6 @@ function App() {
             {/* ── Admin tab ── */}
             {activeTab === 'admin' && !showHome && (
               <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
-                <h2 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('tabs.admin_title')}</h2>
 
                 {/* Telemetria */}
                 <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -2233,6 +2263,9 @@ function App() {
               }}
               fontesFixadas={fontesFixadas}
               setFontesFixadas={setFontesFixadas}
+              chatHistory={chatHistory}
+              onRetomar={retomar}
+              onNovaConversa={novaConversa}
             />
 
             {/* Floating chat button */}

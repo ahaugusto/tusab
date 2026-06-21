@@ -9,7 +9,7 @@ import { fetchRepositorio, fetchAgentStatus, fetchHistory, fetchChatStats } from
 import {
   Database, FileText, Brain, Play, BookOpen, AlignLeft,
   Search, RefreshCw, ChevronDown, ChevronUp, MessageSquare,
-  Image, Music, LayoutDashboard,
+  Image, Music,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -176,17 +176,8 @@ export default function VisaoGeralTab({ darkMode, btnFocus }) {
   return (
     <div className="space-y-5">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-primary/15' : 'bg-violet-50'}`}>
-            <LayoutDashboard size={16} className="text-primary" />
-          </div>
-          <div>
-            <h2 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('tabs.overview')}</h2>
-            <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{t('overview.subtitle')}</p>
-          </div>
-        </div>
+      {/* ── Atualizar ── */}
+      <div className="flex justify-end">
         <button onClick={load} disabled={loading}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${btnFocus}
             ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>

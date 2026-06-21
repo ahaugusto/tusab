@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes } from '../../services/api';
@@ -182,6 +182,9 @@ function ChatDrawer({
   persona,
   onOpenPersona,
   onAbrirIndexacaoRepositorio,
+  chatHistory,
+  onRetomar,
+  onNovaConversa,
 }) {
   const { t } = useTranslation();
   const [showRepoModal,     setShowRepoModal]     = useState(false);
@@ -192,6 +195,8 @@ function ChatDrawer({
   const [histLoading,       setHistLoading]       = useState(false);
   const [histSelecionado,   setHistSelecionado]   = useState(null);
   const [salvando,          setSalvando]          = useState(false);
+  const [showHistQuick,     setShowHistQuick]     = useState(false);
+  const histQuickRef        = useRef(null);
   const [showBaseModal,     setShowBaseModal]     = useState(false);
   const [showBuscaModal,    setShowBuscaModal]    = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
@@ -763,27 +768,74 @@ function ChatDrawer({
           <span>{t('chat.base_btn')}{canaisExtras?.length > 0 ? ` (${canaisExtras.length + 1})` : ''}</span>
         </button>
 
-        {/* Histórico — centro */}
-        <button
-          onClick={async () => {
-            const canal = agentStatus?.canal_indexado || canalConfigurado;
-            if (!canal) return;
-            setShowHistModal(true);
-            setHistSelecionado(null);
-            setHistLoading(true);
-            try {
-              const r = await listarHistoricosChat(canal);
-              setHistoricos(r.data.historicos || []);
-            } catch { setHistoricos([]); }
-            finally { setHistLoading(false); }
-          }}
-          disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
-            ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-          aria-label={t('chat.history_btn_aria')}>
-          <History size={12} />
-          <span>{t('chat.history_btn')}</span>
-        </button>
+        {/* Histórico rápido — dropdown com últimas 10 conversas */}
+        <div className="relative" ref={histQuickRef}>
+          <button
+            onClick={() => setShowHistQuick(v => !v)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors
+              ${showHistQuick
+                ? darkMode ? 'text-primary bg-primary/10' : 'text-violet-700 bg-violet-50'
+                : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+            aria-label="Histórico de conversas">
+            <History size={12} />
+            <span>Histórico</span>
+            {chatHistory?.recent?.length > 0 && (
+              <span className={`text-[9px] font-bold px-1 rounded-full ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-600'}`}>
+                {chatHistory.recent.length}
+              </span>
+            )}
+          </button>
+
+          {/* Dropdown */}
+          {showHistQuick && (
+            <div
+              className={`absolute bottom-full left-0 mb-2 w-72 rounded-2xl border shadow-2xl z-50 overflow-hidden
+                ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+              style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <div className={`px-3 py-2.5 border-b flex items-center justify-between ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                <p className={`text-[11px] font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Conversas recentes</p>
+                <button onClick={() => setShowHistQuick(false)}
+                  className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+                  <X size={12} />
+                </button>
+              </div>
+
+              {!chatHistory?.recent?.length ? (
+                <p className={`text-[11px] text-center py-6 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Nenhuma conversa salva ainda
+                </p>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {chatHistory.recent.map(conv => (
+                    <button
+                      key={conv.id}
+                      onClick={() => { onRetomar?.(conv); setShowHistQuick(false); }}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors group
+                        ${chatHistory.activeId === conv.id
+                          ? darkMode ? 'bg-primary/15 border border-primary/30' : 'bg-violet-50 border border-violet-200'
+                          : darkMode ? 'hover:bg-white/8' : 'hover:bg-slate-50'}`}>
+                      <div className="flex items-start gap-2">
+                        {conv.favorito && <span className="text-amber-400 shrink-0 mt-0.5" style={{ fontSize: 10 }}>★</span>}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[11px] font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{conv.titulo}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {conv.canalNome && (
+                              <span className={`text-[9px] font-bold px-1 rounded ${darkMode ? 'text-primary/70' : 'text-violet-500'}`}>@{conv.canalNome}</span>
+                            )}
+                            <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                              {conv.messages?.length || 0} msg · {new Date(conv.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                            </span>
+                          </div>
+                        </div>
+                        <RotateCcw size={10} className={`shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-primary' : 'text-violet-500'}`} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Tom do agente */}
         {onOpenPersona && (
@@ -801,24 +853,12 @@ function ChatDrawer({
 
         {/* Nova conversa — direita */}
         <button
-          onClick={async () => {
-            const canal = agentStatus?.canal_indexado || canalConfigurado;
-            if (!canal || chatMessages.length === 0) return;
-            const msgs = chatMessages.filter(m => m.role === 'user' || m.role === 'assistant');
-            if (msgs.length === 0) return;
-            setSalvando(true);
-            try {
-              await salvarHistoricoChat(canal, msgs);
-              await clearChatHistory(canal);
-              setChatMessages([]);
-            } catch { /* silencioso */ }
-            finally { setSalvando(false); }
-          }}
-          disabled={chatMessages.length === 0 || salvando || chatLoading}
+          onClick={() => { onNovaConversa?.(); setShowHistQuick(false); }}
+          disabled={chatMessages.length === 0 || chatLoading}
           className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed
             ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
           aria-label={t('chat.new_conversation_aria')}>
-          {salvando ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />}
+          <PlusCircle size={12} />
           <span>{t('chat.new_conversation_btn')}</span>
         </button>
       </div>
