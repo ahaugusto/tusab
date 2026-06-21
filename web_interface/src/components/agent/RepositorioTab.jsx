@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing } from '../../services/api';
+import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -235,6 +235,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [indexando,      setIndexando]      = React.useState(false);
   const [indexSnackbar,  setIndexSnackbar]  = React.useState(null);
   const prevIndexingRef = React.useRef(false);
+  const [exportando,     setExportando]     = React.useState(false);
+  const [importando,     setImportando]     = React.useState(false);
+  const [shareSnackbar,  setShareSnackbar]  = React.useState(null);
+  const importInputRef = React.useRef(null);
   // ─── Project selector ────────────────────────────────────────────────────────
   const [projetos,       setProjetos]       = React.useState([]);
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
@@ -474,6 +478,45 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
+  const handleExportar = async (projeto) => {
+    setExportando(true);
+    setShareSnackbar(null);
+    try {
+      const res = await exportarBaseCompartilhavel(projeto);
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${projeto}.tusab`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setShareSnackbar({ ok: true, msg: t('repo.export_ok', { projeto }) });
+    } catch {
+      setShareSnackbar({ ok: false, msg: t('repo.export_error') });
+    } finally {
+      setExportando(false);
+      setTimeout(() => setShareSnackbar(null), 4000);
+    }
+  };
+
+  const handleImportar = async (e) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    setImportando(true);
+    setShareSnackbar(null);
+    try {
+      const res = await importarBaseCompartilhavel(arquivo);
+      setShareSnackbar({ ok: true, msg: t('repo.import_ok', { projeto: res.data.projeto }) });
+      reload();
+    } catch (err) {
+      const msg = err?.response?.data?.message || t('repo.import_error');
+      setShareSnackbar({ ok: false, msg });
+    } finally {
+      setImportando(false);
+      e.target.value = '';
+      setTimeout(() => setShareSnackbar(null), 4000);
+    }
+  };
+
   const handleBuscar = async (e) => {
     e?.preventDefault();
     const q = buscaQuery.trim();
@@ -567,8 +610,32 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             {t('repo.indexar_base_btn')}
           </button>
+
+          {/* Importar .tusab */}
+          <input ref={importInputRef} type="file" accept=".tusab" className="hidden" onChange={handleImportar} />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            disabled={importando}
+            title={t('repo.import_base_title')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
+              ${darkMode ? 'text-secondary border-secondary/30 hover:bg-secondary/10' : 'text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100'}`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {importando ? t('repo.importing') : t('repo.import_base_btn')}
+          </button>
         </div>
       </div>
+
+      {/* ── Snackbar exportar/importar ── */}
+      {shareSnackbar && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border ${
+          shareSnackbar.ok
+            ? darkMode ? 'bg-secondary/10 border-secondary/30 text-secondary' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+            : darkMode ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-red-50 border-red-200 text-red-600'
+        }`}>
+          <span>{shareSnackbar.ok ? '✓' : '✕'}</span>
+          <span>{shareSnackbar.msg}</span>
+        </div>
+      )}
 
       {/* ── Resultados de busca ── */}
       {buscaResultados && (
@@ -994,6 +1061,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${btnFocus}
                   ${darkMode ? 'text-primary/70 hover:text-primary hover:bg-primary/10' : 'text-violet-500 hover:text-violet-700 hover:bg-violet-50'}`}>
                 {t('repo.add_btn')}
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); handleExportar(canal.nome); }}
+                disabled={exportando}
+                title={t('repo.export_base_title', { nome: canal.nome })}
+                className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-secondary/60 hover:text-secondary hover:bg-secondary/10' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </button>
               <button
                 onClick={e => { e.stopPropagation(); setLimparCanalNome(canal.nome); }}

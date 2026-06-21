@@ -11,16 +11,19 @@ Endpoints de export — feature Pro.
 
 import os
 import io
+import json
 import zipfile
+import shutil
+import tempfile
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
-from tusab_engine.storage import NEURAL_DIR, GESTAO_DIR, gestao_canal_dir
+from tusab_engine.storage import NEURAL_DIR, GESTAO_DIR, DATA_DIR, gestao_canal_dir, salvar_json_atomico
 
 router = APIRouter()
 
@@ -338,3 +341,117 @@ def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+# ── Export de base compartilhável (.tusab) ────────────────────────────────────
+
+_INDEX_DIR = os.path.join(DATA_DIR, 'indexes')
+_TUSAB_FORMAT_VERSION = 1
+
+
+@router.get("/export/base-compartilhavel/{projeto}")
+def export_base_compartilhavel(projeto: str):
+    """Empacota textos processados + índice BM25 de um projeto num arquivo .tusab."""
+    projeto = projeto.strip()
+    if not projeto:
+        return JSONResponse({"error": True, "message": "Nome do projeto não informado."})
+
+    neural_path = os.path.join(NEURAL_DIR, projeto)
+    index_path  = os.path.join(_INDEX_DIR, f"{projeto}.pkl")
+
+    if not os.path.exists(neural_path):
+        return JSONResponse({"error": True, "message": f"Projeto '{projeto}' não encontrado."})
+
+    buf = io.BytesIO()
+    chunk_count = 0
+
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Textos processados — apenas subpastas de conteúdo (sem arquivos originais grandes)
+        for subdir in ('youtube', 'documents', 'texts', 'management'):
+            subpath = os.path.join(neural_path, subdir)
+            if not os.path.exists(subpath):
+                continue
+            for root, _, files in os.walk(subpath):
+                for fname in files:
+                    fpath = os.path.join(root, fname)
+                    arcname = os.path.join('neural', projeto, os.path.relpath(fpath, neural_path))
+                    zf.write(fpath, arcname)
+                    if fname.endswith('.txt'):
+                        chunk_count += 1
+
+        # Índice BM25 serializado (aluno não precisa reindexar)
+        if os.path.exists(index_path):
+            zf.write(index_path, os.path.join('indexes', f"{projeto}.pkl"))
+
+        # Manifest
+        manifest = {
+            "format": "tusab-base",
+            "version": _TUSAB_FORMAT_VERSION,
+            "projeto": projeto,
+            "exportado_em": datetime.now().isoformat(),
+            "chunks": chunk_count,
+            "tem_indice": os.path.exists(index_path),
+        }
+        zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+
+    buf.seek(0)
+    safe_name = projeto.replace(' ', '_')
+    filename = f"{safe_name}.tusab"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# ── Import de base compartilhável (.tusab) ────────────────────────────────────
+
+@router.post("/import/base-compartilhavel")
+async def import_base_compartilhavel(arquivo: UploadFile = File(...)):
+    """Importa um arquivo .tusab — descompacta neural/ e indexes/ na pasta de dados."""
+    if not arquivo.filename.endswith('.tusab'):
+        return JSONResponse({"error": True, "message": "Arquivo deve ter extensão .tusab"})
+
+    conteudo = await arquivo.read()
+    buf = io.BytesIO(conteudo)
+
+    try:
+        with zipfile.ZipFile(buf, 'r') as zf:
+            nomes = zf.namelist()
+
+            # Valida manifest
+            if 'manifest.json' not in nomes:
+                return JSONResponse({"error": True, "message": "Arquivo .tusab inválido: manifest.json ausente."})
+
+            manifest = json.loads(zf.read('manifest.json'))
+            if manifest.get('format') != 'tusab-base':
+                return JSONResponse({"error": True, "message": "Formato de arquivo não reconhecido."})
+
+            projeto = manifest.get('projeto', '').strip()
+            if not projeto:
+                return JSONResponse({"error": True, "message": "Manifest sem nome de projeto."})
+
+            # Extrai apenas neural/ e indexes/ — ignora qualquer outro caminho (segurança)
+            for name in nomes:
+                if not (name.startswith('neural/') or name.startswith('indexes/')):
+                    continue
+                # Proteção contra path traversal
+                dest = os.path.join(DATA_DIR, name)
+                dest = os.path.realpath(dest)
+                if not dest.startswith(os.path.realpath(DATA_DIR)):
+                    continue
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with zf.open(name) as src, open(dest, 'wb') as dst:
+                    shutil.copyfileobj(src, dst)
+
+    except zipfile.BadZipFile:
+        return JSONResponse({"error": True, "message": "Arquivo corrompido ou não é um .tusab válido."})
+
+    return {
+        "ok": True,
+        "projeto": projeto,
+        "chunks": manifest.get("chunks", 0),
+        "tem_indice": manifest.get("tem_indice", False),
+        "message": f"Base '{projeto}' importada com sucesso.",
+    }
