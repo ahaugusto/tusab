@@ -31,7 +31,7 @@ import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
 import {
   fetchHistory, fetchRepositorio, fetchQueue, setChannel, startExtraction, pauseExtraction, queueAdd, queueClear,
-  queueRemoveItem, queueMoveItem, saveAutoUpdateConfig, runAutoUpdate,
+  queueRemoveItem, queueMoveItem, saveAutoUpdateConfig, runAutoUpdate, getAutoUpdateConfig,
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, resetTotal,
@@ -93,6 +93,8 @@ function App() {
   const [projetos,             setProjetos]             = useState([]);
   const [extractionQueue,      setExtractionQueue]      = useState([]);
   const [showQueueModal,       setShowQueueModal]       = useState(false);
+  const [autoUpdateConfigs,    setAutoUpdateConfigs]    = useState({}); // { [canal]: { enabled, frequencia, fontes } }
+  const [autoUpdateChecking,   setAutoUpdateChecking]   = useState(false);
   const [cancelFlash,          setCancelFlash]          = useState(false);
   const [showCancelQueueModal, setShowCancelQueueModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
@@ -423,7 +425,19 @@ function App() {
 
   useEffect(() => {
     if (extracaoSubTab === 'relatorio') Analytics.relatorioAcessado();
-  }, [extracaoSubTab]);
+    if (extracaoSubTab === 'periodicidade' && history.length > 0) {
+      Promise.all(
+        history.map(h => getAutoUpdateConfig(h.canal)
+          .then(r => ({ canal: h.canal, cfg: r.data.auto_update || { enabled: false } }))
+          .catch(() => ({ canal: h.canal, cfg: { enabled: false } }))
+        )
+      ).then(results => {
+        const map = {};
+        results.forEach(({ canal, cfg }) => { map[canal] = cfg; });
+        setAutoUpdateConfigs(map);
+      });
+    }
+  }, [extracaoSubTab, history]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -1286,7 +1300,7 @@ function App() {
                   {[
                     { id: 'extrair',      label: t('tabs.extraction'), icon: Zap },
                     { id: 'relatorio',    label: t('tabs.relatorio'),  icon: BarChart3 },
-                    { id: 'periodicidade', label: 'Periodicidade',     icon: Clock },
+                    { id: 'periodicidade', label: 'Auto-Update',       icon: Clock },
                   ].map(({ id, label, icon: Icon }) => (
                     <button key={id}
                       onClick={() => setExtracaoSubTab(id)}
@@ -1681,64 +1695,101 @@ function App() {
                 </div>
               )}
 
-              {/* ── Sub-aba: Periodicidade (Pro) ── */}
+              {/* ── Sub-aba: Auto-Update ── */}
               {extracaoSubTab === 'periodicidade' && (
                 <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
 
-                  {/* Hero Pro */}
+                  {/* Header da aba com botão Verificar agora */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Configure a frequência de verificação de novos vídeos por canal.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAutoUpdateChecking(true);
+                        runAutoUpdate().finally(() => setAutoUpdateChecking(false));
+                      }}
+                      disabled={autoUpdateChecking || isRunning}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${BTN_FOCUS}
+                        ${darkMode ? 'border-cyan-500/30 text-cyan-400 bg-cyan-500/8 hover:bg-cyan-500/15' : 'border-cyan-500/40 text-cyan-700 bg-cyan-50 hover:bg-cyan-100'}`}>
+                      <RefreshCw size={11} className={autoUpdateChecking ? 'animate-spin' : ''} />
+                      Verificar agora
+                    </button>
+                  </div>
+
+                  {/* Tabela de canais com config real */}
                   <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                     <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-                      <Clock size={14} className="text-amber-500" />
-                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('periodicidade.title')}</span>
+                      <Clock size={14} className="text-cyan-500" />
+                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Seus canais</span>
+                      <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''}</span>
                     </div>
-                    <div className="px-5 py-10 flex flex-col items-center text-center gap-4">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${darkMode ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
-                        <Clock size={28} className="text-amber-500" />
-                      </div>
-                      <div>
-                        <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('periodicidade.tagline')}</p>
-                        <p className={`text-xs mt-1.5 max-w-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {t('periodicidade.desc')}
-                        </p>
-                      </div>
-                      <div className={`flex flex-wrap justify-center gap-2 mt-1`}>
-                        {[t('periodicidade.tag1'), t('periodicidade.tag2'), t('periodicidade.tag3'), t('periodicidade.tag4')].map(f => (
-                          <span key={f} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${darkMode ? 'border-white/10 text-slate-400 bg-white/4' : 'border-slate-200 text-slate-500 bg-slate-50'}`}>{f}</span>
-                        ))}
-                      </div>
+                    <div className={`divide-y ${darkMode ? 'divide-white/5' : 'divide-slate-100'}`}>
+                      {history.length === 0 ? (
+                        <div className="px-5 py-10 flex flex-col items-center gap-2">
+                          <Clock size={24} className={darkMode ? 'text-slate-700' : 'text-slate-300'} />
+                          <p className={`text-xs text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                            Nenhum canal extraído ainda.<br />Extraia um canal para configurar o Auto-Update.
+                          </p>
+                        </div>
+                      ) : history.map((h) => {
+                        const cfg = autoUpdateConfigs[h.canal] || { enabled: false, frequencia: 'semanal' };
+                        const FREQ_LABELS = { ao_abrir: 'Ao abrir', diario: 'Diária', semanal: 'Semanal', mensal: 'Mensal' };
+                        const toggleEnabled = (canal, currentCfg) => {
+                          const next = { ...currentCfg, enabled: !currentCfg.enabled };
+                          setAutoUpdateConfigs(prev => ({ ...prev, [canal]: next }));
+                          saveAutoUpdateConfig(canal, next.enabled, next.frequencia || 'semanal', next.fontes || [], '').catch(() => {});
+                        };
+                        const changeFreq = (canal, currentCfg, freq) => {
+                          const next = { ...currentCfg, frequencia: freq };
+                          setAutoUpdateConfigs(prev => ({ ...prev, [canal]: next }));
+                          saveAutoUpdateConfig(canal, next.enabled, freq, next.fontes || [], '').catch(() => {});
+                        };
+                        return (
+                          <div key={h.canal} className={`px-5 py-3.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/3' : 'hover:bg-slate-50'} transition-colors`}>
+                            {/* Avatar */}
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${darkMode ? 'bg-white/8 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
+                              {(h.canal || '?')[0].toUpperCase()}
+                            </div>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>@{h.canal}</p>
+                              <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{h.videos_count ?? 0} vídeos</p>
+                            </div>
+                            {/* Frequência — só visível quando ativo */}
+                            {cfg.enabled && (
+                              <div className="flex gap-1">
+                                {['ao_abrir', 'diario', 'semanal', 'mensal'].map(f => (
+                                  <button key={f} onClick={() => changeFreq(h.canal, cfg, f)}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${BTN_FOCUS}
+                                      ${cfg.frequencia === f
+                                        ? 'bg-cyan-500 border-cyan-500 text-white'
+                                        : darkMode ? 'border-white/10 text-slate-500 hover:border-cyan-500/40 hover:text-cyan-400' : 'border-slate-200 text-slate-400 hover:border-cyan-400 hover:text-cyan-600'}`}>
+                                    {FREQ_LABELS[f]}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {/* Toggle */}
+                            <button
+                              onClick={() => toggleEnabled(h.canal, cfg)}
+                              role="switch" aria-checked={cfg.enabled}
+                              className={`w-9 h-5 rounded-full flex items-center shrink-0 transition-colors px-0.5 ${BTN_FOCUS}
+                                ${cfg.enabled ? 'bg-cyan-500 justify-end' : darkMode ? 'bg-white/15 justify-start' : 'bg-slate-300 justify-start'}`}>
+                              <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Preview — tabela de canais com periodicidade (mockup somente-leitura) */}
-                  <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-                      <BarChart3 size={14} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
-                      <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('periodicidade.channels_title')}</span>
-                      <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('periodicidade.coming_soon')}</span>
-                    </div>
-                    <div className="divide-y divide-white/5">
-                      {history.length === 0 ? (
-                        <p className={`px-5 py-6 text-xs text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                          Nenhum canal extraído ainda. Extraia um canal para vê-lo aqui.
-                        </p>
-                      ) : history.slice(0, 8).map((h, i) => (
-                        <div key={i} className={`px-5 py-3 flex items-center gap-3 ${darkMode ? 'opacity-50' : 'opacity-40'}`}>
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${darkMode ? 'bg-white/8 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                            {(h.canal || '?')[0].toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>@{h.canal}</p>
-                            <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{h.videos_count ?? 0} vídeos</p>
-                          </div>
-                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${darkMode ? 'border-white/8 text-slate-600 bg-white/4' : 'border-slate-200 text-slate-400 bg-slate-50'}`}>
-                            <Clock size={9} />
-                            {i % 3 === 0 ? 'Semanal' : i % 3 === 1 ? 'Mensal' : 'Diário'}
-                          </div>
-                          <div className={`w-6 h-3 rounded-full ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Info */}
+                  <p className={`text-[10px] text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                    O Tusab verifica novos vídeos na frequência configurada e os enfileira automaticamente para extração.
+                  </p>
 
                 </div>
               )}
