@@ -859,22 +859,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </button>
             ))}
 
-            {/* Opção sem canal (quando não há canalAtivo) */}
-            {!canalAtivo && (
-              <button
-                onClick={() => { setProjetoSel(''); setShowNovoProjeto(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
-                  ${projetoSel === '' && !showNovoProjeto
-                    ? darkMode ? 'bg-white/8 border-white/20' : 'bg-slate-100 border-slate-300'
-                    : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0
-                  ${projetoSel === '' && !showNovoProjeto ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-                  {projetoSel === '' && !showNovoProjeto && <span className="w-2 h-2 rounded-full bg-white block" />}
-                </div>
-                <span className="text-base shrink-0">📂</span>
-                <span className={`text-xs font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('repo.no_project')}</span>
-              </button>
-            )}
 
             {/* Novo projeto */}
             <button
@@ -928,7 +912,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             ))}
           </div>
 
-          {mode === 'texto' ? (
+          {/* Aviso bloqueante: projeto obrigatório */}
+          {projetoSel === '' && !showNovoProjeto ? (
+            <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs ${darkMode ? 'bg-amber-500/8 border-amber-500/25 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              {t('repo.select_project_first')}
+            </div>
+          ) : mode === 'texto' ? (
             <>
               <input placeholder={t('repo.title_placeholder')} value={title} onChange={e => setTitle(e.target.value)}
                 className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
@@ -1041,18 +1031,18 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         </div>
       )}
 
+
       {/* Canal groups */}
       {canais.map(canal => {
         const cTotal = canal.youtube.length + canal.documentos.length + canal.textos.length;
         const isOpen = expandedCanais[canal.nome] !== false;
-        const isAvulso = canal.nome === '_avulso';
         return (
           <div key={canal.nome} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className={`px-4 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
               <button onClick={() => toggleCanal(canal.nome)} className="flex items-center gap-2 flex-1 text-left min-w-0">
-                <span className="text-sm shrink-0">{isAvulso ? '📁' : '🧠'}</span>
+                <span className="text-sm shrink-0">🧠</span>
                 <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                  {isAvulso ? t('repo.orphan_label') : `@${canal.nome}`}
+                  @{canal.nome}
                 </p>
                 {readonlyMap[canal.nome] && (
                   <span

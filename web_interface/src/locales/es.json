@@ -427,6 +427,7 @@
   "citation.snackbar": "No es un resumen. Es una cita. — Cada respuesta incluye la fuente exacta de donde se recuperó el fragmento.",
   "home.source_files_sub": "Local",
   "home.card_overview_done": "{{files}} archivo{{files, plural, one {} other {s}}} · {{projects}} proyecto{{projects, plural, one {} other {s}}}",
+  "repo.select_project_first": "Selecciona o crea un proyecto arriba antes de agregar contenido.",
   "home.source_import_title": "Importar Base",
   "home.source_import_sub": "Del profesor",
   "home.source_import_desc": "Abre la base enviada por tu profesor",
