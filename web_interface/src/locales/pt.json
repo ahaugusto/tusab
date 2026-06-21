@@ -427,6 +427,8 @@
   "citation.snackbar": "Não é resumo. É citação. — Cada resposta vem com a fonte exata de onde o trecho foi recuperado.",
   "home.source_files_sub": "Local",
   "home.card_overview_done": "{{files}} arquivo{{files, plural, one {} other {s}}} · {{projects}} projeto{{projects, plural, one {} other {s}}}",
+  "repo.add_text_title": "Colar texto em @{{nome}}",
+  "repo.add_file_title": "Anexar arquivo em @{{nome}}",
   "repo.select_project_first": "Selecione ou crie um projeto acima para adicionar conteúdo.",
   "home.source_import_title": "Importar Base",
   "home.source_import_sub": "Professor",
