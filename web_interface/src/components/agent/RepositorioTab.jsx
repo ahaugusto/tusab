@@ -6,7 +6,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
 import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel, fetchReadonlyStatus } from '../../services/api';
@@ -707,7 +707,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Modal — limpar base */}
-      {showLimpar && ReactDOM.createPortal(
+      {showLimpar && createPortal(
         <ModalWrapper onClose={() => { if (!limpando) { setShowLimpar(false); setLimparBasesSel({}); } }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar bases">
           {(() => {
             const selecionadas = Object.entries(limparBasesSel).filter(([, v]) => v).map(([k]) => k);
@@ -812,7 +812,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Add modal */}
-      {showAdd_ && ReactDOM.createPortal(
+      {showAdd_ && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={() => setShowAdd(false)}>
           <div
@@ -1240,7 +1240,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Modal — limpar canal individual */}
-      {limparCanalNome && ReactDOM.createPortal(
+      {limparCanalNome && createPortal(
         <ModalWrapper onClose={() => !limpandoCanal && setLimparCanalNome(null)} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar canal">
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
@@ -1272,7 +1272,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Modal — reset total */}
-      {showResetTotal && ReactDOM.createPortal(
+      {showResetTotal && createPortal(
         <ModalWrapper onClose={() => !resetando && (setShowResetTotal(false), setResetConfirm(''))} zIndex="z-[9999]" backdrop="bg-black/70" label="Reset total">
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
@@ -1315,7 +1315,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Modal: Indexar base */}
-      {showIndexar && ReactDOM.createPortal(
+      {showIndexar && createPortal(
         <ModalWrapper onClose={() => !indexando && setShowIndexar(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Indexar base de conhecimento">
           <IndexarModal
             darkMode={darkMode}
@@ -1333,7 +1333,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Snackbar de indexação concluída */}
-      {indexSnackbar && ReactDOM.createPortal(
+      {indexSnackbar && createPortal(
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}
           className={`flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-xs font-bold pointer-events-none
             ${darkMode ? 'bg-secondary/90 text-white' : 'bg-emerald-600 text-white'}`}>
