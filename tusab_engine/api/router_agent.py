@@ -474,7 +474,9 @@ def _atualizar_chat_stats(canal_nome: str, n_refs: int = 0):
     import re as _re
     from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_') or '_avulso'
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    if not canal_prefixo:
+        return
     stats_path = os.path.join(NEURAL_DIR, canal_prefixo, 'management', '_chat_stats.json')
     mgmt_dir = os.path.dirname(stats_path)
     os.makedirs(mgmt_dir, exist_ok=True)
@@ -531,7 +533,9 @@ def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
     if not req.mensagens:
         return {"error": True, "message": "Nenhuma mensagem para salvar"}
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_') or "_avulso"
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Canal não especificado."}
     txt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts")
     os.makedirs(txt_dir, exist_ok=True)
 
@@ -582,7 +586,9 @@ def agent_chat_historicos(canal_nome: str):
     import re as _re
     from tusab_engine.storage import NEURAL_DIR
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_') or "_avulso"
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    if not canal_prefixo:
+        return {"historicos": []}
     manifest_path = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_manifest.json")
 
     if not os.path.exists(manifest_path):

@@ -30,11 +30,10 @@ def _get_canal_youtube_dir(prefixo: str) -> str:
 
 
 def _get_canal_doc_dirs(prefixo: str) -> list:
-    """Retorna dirs de documentos/textos do canal + _avulso + legado."""
+    """Retorna dirs de documentos/textos do canal + legado."""
     dirs = []
-    for canal in [prefixo, '_avulso']:
-        for sub in ['documents', 'texts']:
-            dirs.append(os.path.join(NEURAL_DIR, canal, sub))
+    for sub in ['documents', 'texts']:
+        dirs.append(os.path.join(NEURAL_DIR, prefixo, sub))
     dirs += [DOC_DIR, TEXT_DIR]
     return dirs
 

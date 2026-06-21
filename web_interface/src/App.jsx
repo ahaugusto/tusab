@@ -675,7 +675,7 @@ function App() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showOnboarding && <Onboarding key="onboarding" onDone={() => setShowOnboarding(false)} />}
+        {showOnboarding && <Onboarding key="onboarding" onDone={(perfilEscolhido) => { setPerfil(perfilEscolhido); setShowOnboarding(false); }} />}
       </AnimatePresence>
       <AnimatePresence>
         {showGuide && <GuideModal key="guide-modal" onClose={() => setShowGuide(false)} darkMode={darkMode} />}
