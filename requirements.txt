@@ -8,6 +8,7 @@ google-api-python-client
 
 # --- Agente RAG ---
 rank_bm25
+sentence-transformers  # CrossEncoder para re-rankeamento semântico pós-BM25
 openai
 anthropic
 google-generativeai  # SDK usado pelo chat Gemini (import google.generativeai)

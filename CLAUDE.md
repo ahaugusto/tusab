@@ -223,7 +223,10 @@ web_interface/src/
     useAgentConfig.js       config do agente (provider, API key, Ollama poll, canal-meta, keychain)
     useChatEngine.js        pipeline de chat RAG (streaming, export detection, auto-scroll)
   components/
-    home/HomeScreen.jsx     tela inicial (logo + cards)
+    home/
+      HomeScreen.jsx        tela inicial (logo + cards por perfil) — CircuitBackground interativo
+      LandingScreen.jsx     tela de boas-vindas (first-run) — CircuitBackground + pulso no logo + seletor idioma/tema
+      CircuitBackground.jsx canvas animado de circuitos PCB com pulsos elétricos e glow do mouse
     chat/ChatDrawer.jsx     drawer lateral de chat RAG
     sidebar/SidebarContent.jsx
     agent/
@@ -235,7 +238,7 @@ web_interface/src/
       PostExtractionModal.jsx ações pós-extração
     shared/
       Onboarding.jsx, ConsentModal.jsx, StatCard.jsx, LogLine.jsx, ProgressToast.jsx
-  App.jsx                   orquestrador principal (~1 590 linhas)
+  App.jsx                   orquestrador principal (~1 600 linhas)
   locales/pt.json, en.json, es.json   i18n
 ```
 
@@ -278,6 +281,12 @@ tests/
 | Persona injetada em `_montar_prompt` | `instrucao_tom` é a última linha do prompt antes da pergunta — o LLM recebe instrução de estilo sem alterar o contexto RAG |
 | Parser WhatsApp/Reuniões no upload | Textos `.txt`/`.md` passam por `_detectar_formato_especial` antes de salvar — estrutura o conteúdo por dia/participante, melhorando o recall BM25 |
 | Modal "Indexar base" no Repositório, não no chat | Indexação é operação de gestão de conteúdo — pertence ao Repositório; chat apenas consome índice já pronto |
+| Slug `profissional` ≠ label "Especialista" | Em jun/2026 o perfil foi renomeado na UI para "Especialista", mas o slug interno permanece `profissional` para preservar localStorage já gravado e todos os fallbacks em App.jsx, Onboarding.jsx e HomeScreen.jsx. **Nunca renomear o slug sem migração explícita de localStorage.** Ver comentário em `usePerfil.js → PERFIS_META.profissional`. |
+| BM25 + CrossEncoder na Busca Ampla | Busca Restrita: BM25 puro (~1ms). Busca Ampla: BM25 recupera top-12 → CrossEncoder (`ms-marco-MiniLM-L-6-v2`, `sentence-transformers`) reordena semanticamente → top-6 vão ao prompt (+236ms medido). Lazy load do modelo; degradação graciosa se lib ausente. Embeddings e GraphRAG são evolução futura — corpus atual (transcrições YouTube, PDFs avulsos) tem baixa densidade relacional para justificar GraphRAG agora. |
+| Chunking de docs com overlap | Documentos longos: janelas de 2.000 chars com overlap de 200 chars entre chunks. Evita cortar uma ideia na borda e garante que frases-chave na fronteira apareçam em dois candidatos BM25. YouTube não precisa: cada vídeo já é um chunk natural. |
+| `CircuitBackground` com prop `interactive` | `interactive={false}` (landing): só pulsos automáticos, sem listener de mouse. `interactive={true}` (HomeScreen): glow nos segmentos próximos ao cursor. Separação evita event listener desnecessário na landing. |
+| Landing → Onboarding sem flash da HomeScreen | `onEnter` na landing não fecha a landing — abre consent/onboarding por cima (`z-[10000]`). A landing só some no `onDone` do onboarding. Evita o flash da HomeScreen antes do perfil ser escolhido. |
+| LandingScreen: seletor de idioma + tema acima do logo | Brazil First: usuário escolhe idioma antes de entrar. Toggle de tema também disponível na landing. Onboarding não repete o seletor — usuário já escolheu. |
 
 ---
 
@@ -307,3 +316,5 @@ tests/
 | Mudar eventos de telemetria | `web_interface/src/services/analytics.js` + `constants/index.js` |
 | Entender histórico de decisões | `Documentação do Produto/Execução do Relatório 360.md` |
 | Entender o blueprint da modularização | `Documentação do Produto/Blueprint de Modularização.md` |
+| Mudar animação de circuito (landing + home) | `web_interface/src/components/home/CircuitBackground.jsx` — constantes no topo: `GRID`, `NUM_PATHS`, `DIAG_PROB`, `MAX_PULSES`, `PULSE_SPEED`, `MOUSE_RADIUS` |
+| Mudar pulso do logo na landing | `web_interface/src/components/home/LandingScreen.jsx` → `usePulseLogo()` |

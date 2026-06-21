@@ -37,6 +37,7 @@ export function useChatEngine({
   showError,
   exportFns = {},
   onPrimeiraFonte,
+  perfil = '',
 }) {
   const { t } = useTranslation();
 
@@ -159,6 +160,7 @@ export function useChatEngine({
         canais_extras:  canaisExtras,
         busca_ampla:    buscaAmpla,
         fontes_fixadas: idsFixados,
+        perfil:         perfil,
       });
 
       const reader  = response.body.getReader();

@@ -197,6 +197,7 @@ function App() {
     canaisExtras,
     useExternalProvider,
     showError,
+    perfil: perfil ?? '',
     onPrimeiraFonte: () => setProgressToast({
       type: 'info',
       message: t('citation.snackbar'),
@@ -598,9 +599,18 @@ function App() {
       {/* Landing screen — shown only on first-ever visit (not yet onboarded) */}
       <AnimatePresence>
         {showLanding && (
-          <motion.div key="landing-screen" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+          <motion.div key="landing-screen" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
             className="fixed inset-0 z-[9999]">
-            <LandingScreen darkMode={darkMode} onEnter={() => setShowLanding(false)} />
+            <LandingScreen darkMode={darkMode} onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }} onEnter={() => {
+              // Abre consent/onboarding por cima da landing — landing some só quando onboarding termina
+              if (getConsent() === null) {
+                setShowConsent(true);
+              } else if (!localStorage.getItem('tusab_onboarded')) {
+                setShowOnboarding(true);
+              } else {
+                setShowLanding(false);
+              }
+            }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -643,14 +653,17 @@ function App() {
       </AnimatePresence>
 
       {/* Analytics consent — shown once on first launch */}
-      <AnimatePresence>
-        {showConsent && (
-          <ConsentModal key="consent" darkMode={darkMode} onDone={() => {
-            setShowConsent(false);
-            if (!localStorage.getItem('tusab_onboarded')) setShowOnboarding(true);
-          }} />
-        )}
-      </AnimatePresence>
+      <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
+        <AnimatePresence>
+          {showConsent && (
+            <ConsentModal key="consent" darkMode={darkMode} onDone={() => {
+              setShowConsent(false);
+              if (!localStorage.getItem('tusab_onboarded')) setShowOnboarding(true);
+              else setShowLanding(false);
+            }} />
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Drive security warning — shown once before first Drive auth */}
       <DriveWarningModal
@@ -674,9 +687,11 @@ function App() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showOnboarding && <Onboarding key="onboarding" onDone={(perfilEscolhido) => { setPerfil(perfilEscolhido); setShowOnboarding(false); }} />}
-      </AnimatePresence>
+      <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
+        <AnimatePresence>
+          {showOnboarding && <Onboarding key="onboarding" onDone={(perfilEscolhido) => { setPerfil(perfilEscolhido); setShowOnboarding(false); setShowLanding(false); }} />}
+        </AnimatePresence>
+      </div>
       <AnimatePresence>
         {showGuide && <GuideModal key="guide-modal" onClose={() => setShowGuide(false)} darkMode={darkMode} />}
       </AnimatePresence>

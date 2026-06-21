@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import CircuitBackground from './CircuitBackground';
 
 function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onAddFiles, onToggleTheme, onChangeLang, onImportBase, regras }) {
   const { t, i18n: homeI18n } = useTranslation();
@@ -27,7 +28,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
 
   // ── Source cards (top, side-by-side) ──────────────────────────────────────
   const sourceBase = darkMode
-    ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20'
+    ? 'bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30'
     : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300';
 
   // Cards de fonte variam por perfil
@@ -164,7 +165,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     : 'bg-violet-50 border-violet-300 shadow-sm hover:shadow-md hover:border-violet-400';
 
   return (
-    <div className={`flex-1 flex overflow-hidden ${darkMode ? 'bg-[#080C18]' : 'bg-slate-50'}`}>
+    <div className={`flex-1 flex overflow-hidden relative ${darkMode ? 'bg-[#080C18]' : 'bg-slate-50'}`}>
+      <CircuitBackground darkMode={darkMode} interactive />
 
       {/* Left — logo (tablet+) */}
       <div className={`hidden md:flex flex-col items-center justify-center w-1/2 px-8 lg:px-12 border-r ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
@@ -237,7 +239,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                   className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus}
                     ${card.alert
                       ? darkMode ? 'bg-amber-500/8 border-amber-500/30 hover:bg-amber-500/12 hover:border-amber-500/50' : 'bg-amber-50 border-amber-200 hover:border-amber-300 shadow-sm'
-                      : darkMode ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                      : darkMode ? 'bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
                   {card.alert && (
                     <span className={`absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -266,7 +268,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         {/* Footer controls */}
         <div className="mt-8 flex flex-col items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className={`flex items-center rounded-lg border px-2 py-1.5 gap-1.5 ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`flex items-center rounded-lg border px-2 py-1.5 gap-1.5 ${darkMode ? 'bg-white/10 border-white/20' : 'bg-slate-50 border-slate-200'}`}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={darkMode ? 'text-slate-500' : 'text-slate-500'}>
                 <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
               </svg>
@@ -280,7 +282,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             <button onClick={onToggleTheme}
               aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
               title={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              className={`p-2 rounded-lg border transition-colors ${darkMode ? 'bg-white/5 border-white/15 text-slate-400 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+              className={`p-2 rounded-lg border transition-colors ${darkMode ? 'bg-white/10 border-white/20 text-slate-400 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
               {darkMode
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                 : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>

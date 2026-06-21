@@ -113,6 +113,7 @@ class AgentChatRequest(BaseModel):
     canais_extras:  list = []
     busca_ampla:    bool = False
     fontes_fixadas: list = []
+    perfil:         str  = Field(default='', max_length=30)
 
 class AgentIndexRequest(BaseModel):
     canal_nome: str = Field(default="", max_length=120)
@@ -132,6 +133,7 @@ class AgentChatStreamRequest(BaseModel):
     canais_extras:  list = []
     busca_ampla:    bool = False
     fontes_fixadas: list = []
+    perfil:         str  = Field(default='', max_length=30)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -613,7 +615,7 @@ def agent_chat(req: AgentChatRequest):
         hist = list(state.chat_histories.get(req.canal_nome, []))
     try:
         with state.agent_chat_lock:
-            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []))
+            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''))
         if not resultado.get("error"):
             hist = hist + [
                 {"role": "user",      "content": mensagem},
@@ -647,7 +649,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 
     def _gen():
         try:
-            for chunk in agent_tusab.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', [])):
+            for chunk in agent_tusab.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', '')):
                 try:
                     data = json.loads(chunk)
                     if data.get("texto"):

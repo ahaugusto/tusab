@@ -252,7 +252,11 @@ def _parsear_todos_chunks(canal_prefixo: str) -> list:
                     conteudo = f.read().strip()
                 if len(conteudo) < 80:
                     continue
-                partes = [conteudo[i:i+2000] for i in range(0, len(conteudo), 2000)]
+                # Overlap de 200 chars entre chunks: evita cortar uma ideia no meio
+                # e garante que frases-chave na borda de um chunk apareçam em dois candidatos BM25.
+                CHUNK_SIZE, OVERLAP = 2000, 200
+                partes = [conteudo[max(0, i - OVERLAP):i + CHUNK_SIZE]
+                          for i in range(0, len(conteudo), CHUNK_SIZE)]
                 for parte in partes:
                     if len(parte) < 80:
                         continue

@@ -16,6 +16,52 @@ from tusab_engine.agent.index import (
     _carregar_meta_canal, _STOPWORDS,
 )
 
+# ── CrossEncoder (re-rankeamento semântico pós-BM25) ─────────────────────────
+#
+# O BM25 recupera candidatos por overlap de tokens. O CrossEncoder compara
+# a pergunta com cada chunk diretamente e produz um score de relevância semântica.
+# Resultado: chunks mais relevantes chegam ao topo mesmo com vocabulário diferente.
+#
+# Modelo: ms-marco-MiniLM-L-6-v2 (~80 MB, CPU-only, sem GPU necessária).
+# Lazy load: carregado na primeira chamada, mantido em memória até reiniciar.
+# Fallback: se o modelo não estiver disponível (sem sentence-transformers),
+# o re-rankeamento é silenciosamente ignorado — BM25 puro continua funcionando.
+
+_cross_encoder = None
+_cross_encoder_lock = __import__('threading').Lock()
+
+def _get_cross_encoder():
+    """Retorna o CrossEncoder carregado (lazy, singleton). Retorna None se indisponível."""
+    global _cross_encoder
+    if _cross_encoder is not None:
+        return _cross_encoder
+    with _cross_encoder_lock:
+        if _cross_encoder is not None:
+            return _cross_encoder
+        try:
+            from sentence_transformers import CrossEncoder as _CE
+            _cross_encoder = _CE('cross-encoder/ms-marco-MiniLM-L-6-v2')
+        except Exception:
+            _cross_encoder = False  # sentinel: tentativa feita, indisponível
+    return _cross_encoder if _cross_encoder else None
+
+
+def _rerankar(pergunta: str, chunks: list) -> list:
+    """Re-ordena chunks por relevância semântica usando CrossEncoder.
+
+    Se o modelo não estiver disponível, retorna os chunks na ordem original.
+    """
+    ce = _get_cross_encoder()
+    if not ce or not chunks:
+        return chunks
+    try:
+        pares = [(pergunta, c['texto'][:512]) for c in chunks]
+        scores = ce.predict(pares)
+        reordenados = sorted(zip(scores, chunks), key=lambda x: x[0], reverse=True)
+        return [c for _, c in reordenados]
+    except Exception:
+        return chunks
+
 
 # ── Query expansion ───────────────────────────────────────────────────────────
 #
@@ -137,7 +183,9 @@ def _expandir_query(pergunta: str, config: dict) -> list:
 
 # ── Recuperação BM25 ──────────────────────────────────────────────────────────
 
-def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None) -> list:
+_PERFIS_RERANK = {'pesquisador', 'profissional'}  # slug 'profissional' = Especialista na UI
+
+def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '') -> list:
     from rank_bm25 import BM25Okapi
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
@@ -234,10 +282,15 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                 pass
 
     resultados.sort(key=lambda x: x['score'], reverse=True)
-    top = resultados[:n]
 
     SCORE_MINIMO = 0.5
-    top = [r for r in top if r['score'] >= SCORE_MINIMO]
+    resultados = [r for r in resultados if r['score'] >= SCORE_MINIMO]
+
+    # Re-rankeamento semântico com CrossEncoder — ativado quando busca_ampla=True.
+    # O toggle de Busca Ampla é a decisão consciente do usuário de querer mais profundidade:
+    # BM25 recupera top-2n candidatos, CrossEncoder reordena por relevância semântica real.
+    # BM25 puro quando busca_ampla=False — mais rápido, suficiente para busca restrita.
+    top = _rerankar(pergunta, resultados[:n * 2])[:n] if busca_ampla else resultados[:n]
 
     return top
 
@@ -463,14 +516,14 @@ def _fallback_sem_contexto(canal_nome: str) -> str:
 
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
-def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None) -> dict:
+def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '') -> dict:
     config   = carregar_config()
     provider = config.get('provider', '')
     if not provider or (not _api_key_valida(config) and provider != 'ollama'):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
     n_chunks = 4 if config.get('provider') == 'ollama' else 6
-    contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas)
+    contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
     if not contexto:
         resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
         return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
@@ -561,7 +614,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
 # ── Chat (streaming) ──────────────────────────────────────────────────────────
 
-def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None):
+def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = ''):
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
     config = carregar_config()
     if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') != 'ollama'):
@@ -570,7 +623,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
 
     try:
         n_chunks = 4 if config.get('provider') == 'ollama' else 6
-        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas)
+        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
     except Exception as e:
         yield json.dumps({'error': str(e)})
         return
