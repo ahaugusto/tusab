@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel } from '../../services/api';
+import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel, fetchReadonlyStatus } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -238,6 +238,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [exportando,     setExportando]     = React.useState(false);
   const [importando,     setImportando]     = React.useState(false);
   const [shareSnackbar,  setShareSnackbar]  = React.useState(null);
+  const [readonlyMap,    setReadonlyMap]    = React.useState({});
   const importInputRef = React.useRef(null);
   // ─── Project selector ────────────────────────────────────────────────────────
   const [projetos,       setProjetos]       = React.useState([]);
@@ -248,8 +249,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const fileRef  = React.useRef(null);
   const dropRef  = React.useRef(null);
 
-  const reload = () =>
+  const reload = () => {
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+    fetchReadonlyStatus().then(r => setReadonlyMap(r.data || {})).catch(() => {});
+  };
 
   const toggleCanal = (nome) =>
     setExpandedCanais(prev => ({ ...prev, [nome]: !(prev[nome] !== false) }));
@@ -1040,6 +1043,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-700'}`}>
                   {isAvulso ? t('repo.orphan_label') : `@${canal.nome}`}
                 </p>
+                {readonlyMap[canal.nome] && (
+                  <span
+                    title={t('repo.readonly_tooltip')}
+                    className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+                    {t('repo.readonly_badge')}
+                  </span>
+                )}
                 <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.item_count', { count: cTotal })}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1062,19 +1072,23 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   ${darkMode ? 'text-primary/70 hover:text-primary hover:bg-primary/10' : 'text-violet-500 hover:text-violet-700 hover:bg-violet-50'}`}>
                 {t('repo.add_btn')}
               </button>
-              <button
-                onClick={e => { e.stopPropagation(); handleExportar(canal.nome); }}
-                disabled={exportando}
-                title={t('repo.export_base_title', { nome: canal.nome })}
-                className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-secondary/60 hover:text-secondary hover:bg-secondary/10' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); setLimparCanalNome(canal.nome); }}
-                title={t('repo.clear_base_title', { nome: canal.nome })}
-                className={`shrink-0 p-1.5 rounded-lg transition-colors text-danger/50 hover:text-danger hover:bg-danger/10 ${btnFocus}`}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
-              </button>
+              {!readonlyMap[canal.nome] && (
+                <button
+                  onClick={e => { e.stopPropagation(); handleExportar(canal.nome); }}
+                  disabled={exportando}
+                  title={t('repo.export_base_title', { nome: canal.nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-secondary/60 hover:text-secondary hover:bg-secondary/10' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+              )}
+              {!readonlyMap[canal.nome] && (
+                <button
+                  onClick={e => { e.stopPropagation(); setLimparCanalNome(canal.nome); }}
+                  title={t('repo.clear_base_title', { nome: canal.nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors text-danger/50 hover:text-danger hover:bg-danger/10 ${btnFocus}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+                </button>
+              )}
             </div>
 
             {isOpen && (

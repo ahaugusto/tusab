@@ -383,7 +383,7 @@ def export_base_compartilhavel(projeto: str):
         if os.path.exists(index_path):
             zf.write(index_path, os.path.join('indexes', f"{projeto}.pkl"))
 
-        # Manifest
+        # Manifest — somente_leitura: True marca a base como recebida/protegida no destino
         manifest = {
             "format": "tusab-base",
             "version": _TUSAB_FORMAT_VERSION,
@@ -391,6 +391,7 @@ def export_base_compartilhavel(projeto: str):
             "exportado_em": datetime.now().isoformat(),
             "chunks": chunk_count,
             "tem_indice": os.path.exists(index_path),
+            "somente_leitura": True,
         }
         zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
 
@@ -445,6 +446,15 @@ async def import_base_compartilhavel(arquivo: UploadFile = File(...)):
                 with zf.open(name) as src, open(dest, 'wb') as dst:
                     shutil.copyfileobj(src, dst)
 
+            # Salva flag de readonly se manifest indica somente_leitura
+            somente_leitura = manifest.get("somente_leitura", False)
+            if somente_leitura:
+                readonly_path = os.path.join(NEURAL_DIR, projeto, '_readonly.json')
+                salvar_json_atomico(
+                    {"somente_leitura": True, "importado_em": datetime.now().isoformat()},
+                    readonly_path
+                )
+
     except zipfile.BadZipFile:
         return JSONResponse({"error": True, "message": "Arquivo corrompido ou não é um .tusab válido."})
 
@@ -453,5 +463,22 @@ async def import_base_compartilhavel(arquivo: UploadFile = File(...)):
         "projeto": projeto,
         "chunks": manifest.get("chunks", 0),
         "tem_indice": manifest.get("tem_indice", False),
+        "somente_leitura": manifest.get("somente_leitura", False),
         "message": f"Base '{projeto}' importada com sucesso.",
     }
+
+
+# ── Status de readonly por projeto ───────────────────────────────────────────
+
+@router.get("/export/readonly-status")
+def readonly_status():
+    """Retorna dict { projeto: bool } com quais projetos são somente leitura."""
+    resultado = {}
+    if not os.path.exists(NEURAL_DIR):
+        return resultado
+    for entry in os.scandir(NEURAL_DIR):
+        if not entry.is_dir():
+            continue
+        readonly_path = os.path.join(entry.path, '_readonly.json')
+        resultado[entry.name] = os.path.exists(readonly_path)
+    return resultado

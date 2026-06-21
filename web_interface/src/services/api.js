@@ -203,6 +203,9 @@ export const exportarBaseCompartilhavel = (projeto) =>
     timeout: 60000,
   });
 
+/** Returns { projeto: bool } map of which projects are readonly */
+export const fetchReadonlyStatus = () => axios.get(`${API_BASE}/export/readonly-status`);
+
 /** Imports a .tusab file into the local data folder */
 export const importarBaseCompartilhavel = (arquivo) => {
   const fd = new FormData();
