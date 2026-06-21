@@ -124,6 +124,8 @@ function App() {
   const [configurando,     setConfigurando]     = useState(false);
   // Bloqueia restauração automática pelo polling quando o usuário remove manualmente
   const canalRemovidoRef = useRef(false);
+  // Marca que o canal foi configurado nesta sessão (não apenas restaurado pelo polling)
+  const canalConfiguradoNaSessaoRef = useRef(false);
 
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
@@ -439,7 +441,7 @@ function App() {
     try {
       const res = await setChannel(canalInput.trim());
       if (res.data.error) { setCanalError(res.data.message); }
-      else { canalRemovidoRef.current = false; setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
+      else { canalRemovidoRef.current = false; canalConfiguradoNaSessaoRef.current = true; setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
     } catch (err) { setCanalError(extrairMensagemErro(err)); }
     Analytics.canalConfigurado();
     setConfigurando(false);
@@ -884,7 +886,7 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || status.canal_url || canalConfigurado || ''} projetos={projetos} modoFila={isRunning} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalConfiguradoNaSessaoRef.current ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} />
         )}
       </AnimatePresence>
       <AnimatePresence>
