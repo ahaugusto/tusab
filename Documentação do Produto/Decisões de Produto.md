@@ -174,3 +174,49 @@ O `App.jsx` tem ~1.590 linhas orquestrando ~40 estados. É um "God Component" re
 **Por que não foi refatorado ainda:** a refatoração para Context API ou Zustand é trabalho de semanas sem nenhum valor visível para o usuário. Na fase atual, o gargalo não é a manutenibilidade do código — é chegar ao primeiro case. O débito está mapeado e será atacado quando o produto entrar em fase de crescimento real.
 
 **Quando refatorar:** quando o número de estados gerenciados em `App.jsx` tornar impossível adicionar features sem regressão. O sinal de gatilho é: quando um desenvolvedor novo demorar mais de 1 hora para entender o fluxo de estado de uma feature específica.
+
+---
+
+## Feature: Base Compartilhável (`.tusab`)
+
+**Contexto:** O Tusab permite curadoria de conhecimento local. Um professor (ou qualquer curador) pode extrair canais do YouTube, indexar PDFs e textos, e querer compartilhar essa base pronta com alunos — que abrem o Tusab e já podem chatear sem precisar extrair ou indexar nada.
+
+### Fluxo do exportador (professor)
+
+1. No Repositório, seleciona um projeto já indexado
+2. Clica em "Exportar Base"
+3. Recebe um arquivo `{nome_projeto}.tusab` (zip renomeado)
+4. Compartilha via e-mail, Drive, pen drive etc.
+
+### Fluxo do importador (aluno)
+
+1. Na tela inicial ou Repositório, clica em "Importar Base"
+2. Seleciona o arquivo `.tusab`
+3. O projeto aparece disponível para chat imediatamente — sem reindexar
+
+### Conteúdo do `.tusab`
+
+| Caminho no arquivo | Descrição |
+|--------------------|-----------|
+| `manifest.json` | Nome do projeto, versão do formato (`1`), data de exportação, contagem de chunks |
+| `neural/{projeto}/youtube/` | Transcrições processadas do YouTube |
+| `neural/{projeto}/documents/` | Textos extraídos de PDFs e DOCX |
+| `neural/{projeto}/texts/` | Textos colados pelo usuário |
+| `neural/{projeto}/management/` | CSVs de gestão, summary.json, README |
+| `indexes/{projeto}.pkl` | Índice BM25 serializado |
+
+**Decisão de escopo:** exportar apenas textos processados e o índice BM25 — não os arquivos originais (PDFs, áudios). Razão: tamanho gerenciável; o caso de uso do importador é chat, não acesso aos originais.
+
+### Caso de uso primário
+
+Ambiente escolar — professor como curador, aluno como consumidor. Também útil para times, pesquisadores e comunidades de estudo.
+
+### Arquivos a criar/modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `tusab_engine/api/router_exports.py` | Rotas `GET /export/base/{projeto}` e `POST /import/base` |
+| `tusab_engine/storage.py` | Helper `export_base_path(projeto)` |
+| `web_interface/src/components/agent/RepositorioTab.jsx` | Botão "Exportar Base" por projeto + botão "Importar Base" |
+| `web_interface/src/components/home/HomeScreen.jsx` | Entrada alternativa para "Importar Base" (opcional) |
+| `web_interface/src/locales/{pt,en,es}.json` | Chaves `repo.export_base`, `repo.import_base`, `repo.import_success`, etc. |

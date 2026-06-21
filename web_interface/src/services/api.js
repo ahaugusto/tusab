@@ -194,6 +194,22 @@ export const limparCanal = (canal_nome) => Promise.all([
   axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos: [canal_nome.replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '')] } }),
 ]);
 
+// ─── Base Compartilhável ─────────────────────────────────────────────────────
+
+/** Exports a project as a .tusab file (returns blob URL for download) */
+export const exportarBaseCompartilhavel = (projeto) =>
+  axios.get(`${API_BASE}/export/base-compartilhavel/${encodeURIComponent(projeto)}`, {
+    responseType: 'blob',
+    timeout: 60000,
+  });
+
+/** Imports a .tusab file into the local data folder */
+export const importarBaseCompartilhavel = (arquivo) => {
+  const fd = new FormData();
+  fd.append('arquivo', arquivo);
+  return axios.post(`${API_BASE}/import/base-compartilhavel`, fd, { timeout: 60000 });
+};
+
 // ─── System ──────────────────────────────────────────────────────────────────
 
 /** Opens a local folder in Windows Explorer */
