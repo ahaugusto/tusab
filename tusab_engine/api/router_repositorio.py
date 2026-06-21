@@ -20,12 +20,12 @@ router = APIRouter()
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
-def _get_canal_prefixo_ativo(canal_form: str = "") -> str:
-    """Retorna o prefixo de canal ativo (form > state > '_avulso')."""
+def _get_canal_prefixo_ativo(canal_form: str = "") -> str | None:
+    """Retorna o prefixo de canal ativo (form > state). Retorna None se não houver projeto."""
     raw = canal_form or state.stats.get("canal_nome", "") or ""
     if not raw:
-        return "_avulso"
-    return re.sub(r'[<>:"/\\|?*\s]', '_', raw).strip('_') or "_avulso"
+        return None
+    return re.sub(r'[<>:"/\\|?*\s]', '_', raw).strip('_') or None
 
 
 # ── Models ────────────────────────────────────────────────────────────────────
@@ -445,6 +445,8 @@ async def cerebro_upload(
 
     neural_dir = motor_tusab.NEURAL_DIR
     canal_prefixo = _get_canal_prefixo_ativo(canal)
+    if not canal_prefixo:
+        return {"error": True, "message": "Selecione um projeto antes de enviar arquivos."}
     doc_dir = os.path.join(neural_dir, canal_prefixo, "documents")
     os.makedirs(doc_dir, exist_ok=True)
 
@@ -580,6 +582,8 @@ def cerebro_texto(req: TextoRequest):
 
     neural_dir = motor_tusab.NEURAL_DIR
     canal_prefixo = _get_canal_prefixo_ativo(req.canal)
+    if not canal_prefixo:
+        return {"error": True, "message": "Selecione um projeto antes de salvar texto."}
     txt_dir2 = os.path.join(neural_dir, canal_prefixo, "texts")
     os.makedirs(txt_dir2, exist_ok=True)
 

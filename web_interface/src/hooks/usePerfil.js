@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react';
 // ---------------------------------------------------------------------------
 export const PERFIS_CONFIG = {
   estudante: {
-    abas: ['repositorio', 'agente'],
+    abas: ['repositorio'],
     persona_padrao: 'didatico',
     busca_ampla: false,
     config_api: false,
