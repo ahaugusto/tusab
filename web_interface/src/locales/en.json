@@ -511,5 +511,6 @@
   "perfil.alerta_confirmar": "Yes, I want to change",
   "perfil.alerta_cancelar": "Cancel",
   "perfil.escolha_titulo": "How will you use Tusab?",
-  "perfil.escolha_subtitulo": "You can change this later at any time."
+  "perfil.escolha_subtitulo": "You can change this later at any time.",
+  "landing.enter": "Enter"
 }
