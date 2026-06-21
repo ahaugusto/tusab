@@ -25,6 +25,7 @@ import { initAnalytics, getConsent, acceptAnalytics, declineAnalytics, Analytics
 import { useOnboarding } from './hooks/useOnboarding';
 import { useAgentConfig } from './hooks/useAgentConfig';
 import { useChatEngine }  from './hooks/useChatEngine';
+import { usePerfil, PERFIS_META, PERFIS_CONFIG } from './hooks/usePerfil';
 import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
@@ -39,6 +40,7 @@ import {
 // ─── Components ───────────────────────────────────────────────────────────────
 import Onboarding               from './components/shared/Onboarding';
 import GuideModal               from './components/shared/GuideModal';
+import AlterarPerfilModal       from './components/shared/AlterarPerfilModal';
 import StatCard                 from './components/shared/StatCard';
 import LogLine                  from './components/shared/LogLine';
 import ExtractionModal          from './components/extraction/ExtractionModal';
@@ -65,6 +67,10 @@ function StatusDot({ isRunning, isPaused }) {
 
 function App() {
   const { t } = useTranslation();
+
+  // ─── Perfil ────────────────────────────────────────────────────────────────
+  const { perfil, setPerfil, perfilDefinido } = usePerfil();
+  const [showAlterarPerfil, setShowAlterarPerfil] = useState(false);
 
   // ─── UI state ──────────────────────────────────────────────────────────────
   const [showOnboarding,   setShowOnboarding]   = useState(false);
@@ -650,6 +656,29 @@ function App() {
         {showGuide && <GuideModal key="guide-modal" onClose={() => setShowGuide(false)} darkMode={darkMode} />}
       </AnimatePresence>
 
+      {/* Modal: alterar perfil */}
+      <AnimatePresence>
+        {showAlterarPerfil && (
+          <AlterarPerfilModal
+            key="alterar-perfil-modal"
+            darkMode={darkMode}
+            btnFocus={BTN_FOCUS}
+            perfilAtual={perfil ?? 'profissional'}
+            onConfirmar={(novoPerfil) => {
+              setPerfil(novoPerfil);
+              // Aplica persona padrão do novo perfil se o agente ainda não tiver provider configurado
+              if (!agentStatus.configured) {
+                const personaPadrao = PERFIS_CONFIG[novoPerfil]?.persona_padrao ?? '';
+                saveAgentConfig({ persona: personaPadrao }).catch(() => {});
+                setPersona(personaPadrao);
+              }
+              setShowAlterarPerfil(false);
+            }}
+            onFechar={() => setShowAlterarPerfil(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Modal: cancelar extração com fila pendente */}
       <AnimatePresence>
         {showCancelQueueModal && (
@@ -979,6 +1008,21 @@ function App() {
               ))}
             </div>
             <div className="flex flex-col items-center gap-0.5 w-full px-1.5 mb-1">
+              {/* Botão de perfil — fixo no bottom do nav rail */}
+              {perfilDefinido && (
+                <button
+                  onClick={() => setShowAlterarPerfil(true)}
+                  aria-label={t('perfil.trocar')}
+                  className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                  <span className="text-sm leading-none" aria-hidden="true">
+                    {PERFIS_META[perfil]?.icon ?? '👤'}
+                  </span>
+                  <span className="text-[9px] font-semibold leading-none truncate max-w-full px-0.5">
+                    {t(PERFIS_META[perfil]?.label ?? 'perfil.profissional')}
+                  </span>
+                </button>
+              )}
 <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
                 className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
@@ -1043,6 +1087,19 @@ function App() {
                   </button>
                 ))}
               </div>
+              {/* Botão de perfil no rodapé do drawer mobile */}
+              {perfilDefinido && (
+                <button
+                  onClick={() => { setShowAlterarPerfil(true); setSidebarOpen(false); }}
+                  aria-label={t('perfil.trocar')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+                  <span className="text-base leading-none" aria-hidden="true">
+                    {PERFIS_META[perfil]?.icon ?? '👤'}
+                  </span>
+                  {t(PERFIS_META[perfil]?.label ?? 'perfil.profissional')}
+                </button>
+              )}
               <button onClick={() => { setShowGuide(true); setSidebarOpen(false); }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
