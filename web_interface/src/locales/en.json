@@ -3,6 +3,7 @@
   "tabs.extraction": "Extraction",
   "tabs.repositorio": "Repository",
   "tabs.historico": "History",
+  "header.perfil_acessado": "Active profile:",
   "tabs.relatorio": "Report",
   "tabs.agent": "Configure Agent",
   "header.engine": "Tusab",

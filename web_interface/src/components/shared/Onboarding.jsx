@@ -81,7 +81,8 @@ function Onboarding({ onDone }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="bg-[#0C1122] border border-white/15 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+          className="bg-[#0C1122] border border-white/15 rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar"
+          style={{ maxHeight: 'min(90vh, 680px)', padding: '2rem' }}
         >
           {/* Header row: dots + skip */}
           <div className="flex items-center justify-between mb-6">
@@ -158,7 +159,8 @@ function Onboarding({ onDone }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="bg-[#0C1122] border border-white/15 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+        className="bg-[#0C1122] border border-white/15 rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar"
+        style={{ maxHeight: 'min(90vh, 680px)', padding: '2rem' }}
       >
         {/* Step dots + skip */}
         <div className="flex items-center justify-between mb-6">
