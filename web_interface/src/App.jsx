@@ -51,6 +51,7 @@ import RelatorioTab             from './components/agent/RelatorioTab';
 import VisaoGeralTab            from './components/agent/VisaoGeralTab';
 import MonitorTab               from './components/agent/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
+import LandingScreen            from './components/home/LandingScreen';
 import ChatDrawer               from './components/chat/ChatDrawer';
 import { DriveToggle }          from './components/sidebar/SidebarContent';
 
@@ -69,8 +70,9 @@ function App() {
   const { t } = useTranslation();
 
   // ─── Perfil ────────────────────────────────────────────────────────────────
-  const { perfil, setPerfil, perfilDefinido } = usePerfil();
+  const { perfil, regras, setPerfil, perfilDefinido } = usePerfil();
   const [showAlterarPerfil, setShowAlterarPerfil] = useState(false);
+  const [showLanding,      setShowLanding]      = useState(() => !localStorage.getItem('tusab_onboarded'));
 
   // ─── UI state ──────────────────────────────────────────────────────────────
   const [showOnboarding,   setShowOnboarding]   = useState(false);
@@ -200,6 +202,11 @@ function App() {
     }),
   });
 
+  /** When profile disables busca ampla, always revert to restricted */
+  useEffect(() => {
+    if (!regras.busca_ampla && buscaAmpla) setBuscaAmpla(false);
+  }, [regras.busca_ampla, buscaAmpla]);
+
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const logContainerRef = useRef(null);
   const logSectionRef   = useRef(null);
@@ -237,6 +244,13 @@ function App() {
 
   // ─── Effects ───────────────────────────────────────────────────────────────
 
+  /** Resets activeTab if it is not in the current profile's allowed tabs */
+  useEffect(() => {
+    if (regras.abas && !regras.abas.includes(activeTab)) {
+      setActiveTab(regras.abas[0] ?? 'repositorio');
+    }
+  }, [regras]);
+
   /** Pauses polling when tab is in background */
   useEffect(() => {
     const onVisibility = () => { isVisibleRef.current = !document.hidden; };
@@ -260,13 +274,13 @@ function App() {
       const editable = document.activeElement?.isContentEditable;
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
       if (e.key === 'C' && !chatOpen) { setChatOpen(true); return; }
-      if (e.key === 'R') { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
+      if (e.key === 'R' && regras.abas?.includes('extracao')) { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
       const tab = NAV_KEYS[e.key];
-      if (tab) { setActiveTab(tab); setShowHome(false); }
+      if (tab && regras.abas?.includes(tab)) { setActiveTab(tab); setShowHome(false); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [chatOpen, setChatOpen]);
+  }, [chatOpen, setChatOpen, regras]);
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
@@ -580,6 +594,16 @@ function App() {
 
   return (
     <>
+      {/* Landing screen — shown only on first-ever visit (not yet onboarded) */}
+      <AnimatePresence>
+        {showLanding && (
+          <motion.div key="landing-screen" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[9999]">
+            <LandingScreen darkMode={darkMode} onEnter={() => setShowLanding(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* WCAG 2.4.1 — Skip navigation link */}
       <a href="#main-content"
         className={`sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-xs focus:font-bold focus:bg-primary focus:text-white ${BTN_FOCUS}`}>
@@ -820,7 +844,7 @@ function App() {
                     }));
 
                     // Navega para home e notifica
-                    setActiveTab('extracao');
+                    setActiveTab(regras.abas?.[0] ?? 'extracao');
                     setShowHome(true);
                     setProgressToast({ type: 'success', message: t('toast.reset_success') });
 
@@ -976,7 +1000,7 @@ function App() {
                 { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
                 { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
-              ].map(({ id, icon: Icon, label }) => (
+              ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
                 <button key={id}
                   onClick={() => {
                     setActiveTab(id);
@@ -1064,12 +1088,13 @@ function App() {
               </div>
               <div className="flex flex-col gap-1 flex-1">
                 {[
-                  { id: 'extracao',    icon: Zap,      label: t('tabs.extraction')  },
-                  { id: 'repositorio', icon: BookOpen,  label: t('tabs.repositorio') },
-                  { id: 'monitor',     icon: Activity,  label: t('tabs.monitor')     },
-                  { id: 'agente',      icon: Wrench,    label: t('tabs.agent')       },
-                  { id: 'admin',       icon: Settings,  label: t('tabs.admin')       },
-                ].map(({ id, icon: Icon, label }) => (
+                  { id: 'extracao',    icon: Zap,             label: t('tabs.extraction')  },
+                  { id: 'repositorio', icon: BookOpen,         label: t('tabs.repositorio') },
+                  { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
+                  { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
+                  { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
+                  { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
+                ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
                   <button key={id}
                     onClick={() => {
                       setActiveTab(id); setSidebarOpen(false); setShowHome(false);
@@ -1183,7 +1208,7 @@ function App() {
               </div>
               <div className="flex items-center gap-2">
                 {/* Drive status chip — always navigates to Repositório */}
-                {driveStatus !== 'autenticado' && (
+                {regras.drive && driveStatus !== 'autenticado' && (
                   <button
                     onClick={() => setActiveTab('repositorio')}
                     title={driveStatus === 'em_progresso' ? 'Autenticando Drive…' : 'Conectar Google Drive'}
@@ -1198,7 +1223,7 @@ function App() {
                     <span className="hidden sm:inline">Drive</span>
                   </button>
                 )}
-                {driveStatus === 'autenticado' && (
+                {regras.drive && driveStatus === 'autenticado' && (
                   <button
                     onClick={() => setActiveTab('repositorio')}
                     title={isRunning ? 'Drive sincronizando…' : 'Drive conectado — ir para Repositório'}
@@ -1299,7 +1324,7 @@ function App() {
                   </div>
                   </div>
                 <div className={`px-4 pb-4 pt-3 border-t flex items-center gap-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                  {extractionQueue.length > 0 && (
+                  {regras.fila && extractionQueue.length > 0 && (
                     <button onClick={() => setShowQueueModal(true)}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors border ${BTN_FOCUS}
                         ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8 hover:text-slate-200' : 'border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
@@ -1321,7 +1346,7 @@ function App() {
 
               {/* ── Fila de extração inline ── */}
               <AnimatePresence>
-                {isRunning && extractionQueue.length > 0 && (
+                {regras.fila && isRunning && extractionQueue.length > 0 && (
                   <motion.div
                     key="queue-inline"
                     initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -1476,8 +1501,8 @@ function App() {
                 )}
               </AnimatePresence>
 
-              {/* Monitor shortcut — visible during extraction */}
-              {isRunning && (
+              {/* Monitor shortcut — visible during extraction for profiles with monitor */}
+              {isRunning && regras.monitor && (
                 <button onClick={() => setActiveTab('monitor')}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
                     ${darkMode ? 'bg-white/4 border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/8' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
@@ -1692,7 +1717,7 @@ function App() {
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
 
                 {/* ── Drive toggle — topo ── */}
-                <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                {regras.drive && <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                   <div className="px-5 py-3.5 flex items-center gap-3">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                       className={`shrink-0 ${driveStatus === 'autenticado' ? 'text-secondary' : 'text-primary'}`} aria-hidden="true">
@@ -1748,7 +1773,7 @@ function App() {
                       )}
                     </div>
                   )}
-                </div>
+                </div>}
 
                 {/* ── Onboarding hint ── */}
                 {!seen(KEYS.repositorio) && (
@@ -1776,6 +1801,7 @@ function App() {
                   agentStatus={agentStatus}
                   openIndexar={repoIndexarOpen}
                   onOpenIndexarHandled={() => setRepoIndexarOpen(false)}
+                  regras={regras}
                 />
               </div>
             )}
@@ -2075,7 +2101,8 @@ function App() {
                   </div>
                 </section>
 
-                {/* Limpeza de bases */}
+                {/* Limpeza de bases — only shown for profiles with reset_total permission */}
+                {regras.reset_total && (
                 <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                   <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
                     <Trash2 size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
@@ -2093,6 +2120,7 @@ function App() {
                     </button>
                   </div>
                 </section>
+                )}
 
 {/* Notificações */}
                 <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -2174,8 +2202,9 @@ function App() {
               canaisExtras={canaisExtras}
               setCanaisExtras={setCanaisExtras}
               onIndexar={handleIndexarDoChat}
-              buscaAmpla={buscaAmpla}
+              buscaAmpla={regras.busca_ampla ? buscaAmpla : false}
               setBuscaAmpla={(updater) => {
+                if (!regras.busca_ampla) return;
                 const next = typeof updater === 'function' ? updater(buscaAmpla) : updater;
                 Analytics.buscaAmplaToggled(next);
                 setBuscaAmpla(next);
