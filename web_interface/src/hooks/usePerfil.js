@@ -93,10 +93,15 @@ export const PERFIS_META = {
     icon: '🔬',
     desc: 'perfil.pesquisador_desc',
   },
+  // ATENÇÃO MANUTENÇÃO: o slug interno é 'profissional' (não 'especialista').
+  // O nome exibido na UI foi renomeado para "Especialista" em jun/2026, mas o slug
+  // NÃO foi alterado para preservar compatibilidade com localStorage já gravado,
+  // fallbacks em App.jsx/Onboarding.jsx e filtros de feature flag em HomeScreen.jsx.
+  // Nunca renomeie o slug sem uma migração explícita de localStorage.
   profissional: {
-    label: 'perfil.profissional',
-    icon: '💼',
-    desc: 'perfil.profissional_desc',
+    label: 'perfil.especialista',
+    icon: '🧑‍💻',
+    desc: 'perfil.especialista_desc',
   },
 };
 

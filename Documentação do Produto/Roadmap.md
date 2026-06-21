@@ -4,9 +4,26 @@ Atualizado: Junho 2026
 
 ---
 
+> Para o histórico completo do produto — de script pessoal (fev/2025) até a v1.0 — veja [`Evolução do Produto — De Raspador a Plataforma de IA.md`](Evolução%20do%20Produto%20—%20De%20Raspador%20a%20Plataforma%20de%20IA.md).
+
+---
+
 ## Estado atual — v1.0.0 (junho 2026)
 
 ### Feito e funcionando
+
+**Sistema de Perfis**
+- Onboarding com seleção de perfil na primeira abertura (Estudante, Professor, Pesquisador, Especialista)
+- Feature flags por perfil: abas visíveis, persona padrão, busca ampla, config de API, fila, Drive, export, monitor, admin, reset total
+- Landing screen na primeira abertura; tela inicial personalizada por perfil
+- Alteração de perfil a qualquer momento via menu no cabeçalho
+- Slug interno `profissional` com label "Especialista" — compatibilidade com localStorage preservada
+
+**Base Compartilhável**
+- Export `.tusab` por projeto (neural/ + índice BM25 + manifest.json)
+- Import `.tusab` com validação de manifest e proteção readonly (UX)
+- Fluxo professor→aluno: professor exporta, aluno importa e conversa sem reindexar
+- Card "Importar Base" em destaque na tela inicial do perfil Estudante
 
 **Extração**
 - Extração de canais YouTube via yt-dlp (legendas PT, incremental)
@@ -16,16 +33,18 @@ Atualizado: Junho 2026
 - Relatório de cobertura por canal: tabela de vídeos, filtros por tipo/status/aba, busca por título, colunas Views e Aba
 
 **Repositório**
-- Upload de PDF, DOCX, XLSX, CSV, Markdown, TXT, imagens, áudio
-- Drag and drop sobre a área de upload
+- Upload de PDF, DOCX, XLSX, CSV, Markdown, TXT, imagens, áudio — sempre dentro de um projeto nomeado
+- Botões de adicionar texto (📝) e arquivo (📎) por projeto, no header do accordion — sem opção "avulso"
 - Parser automático de WhatsApp (Android/iOS) e transcrições (Zoom/Otter/Teams)
-- Busca full-text no repositório com injeção de trecho no chat
+- Toolbar global com 3 botões: Indexar base | Importar .tusab | Limpar base
 - Manifesto `_manifest.json` por subdiretório (escrita atômica)
 
 **Agente RAG**
 - Indexação BM25 com cache em memória por projeto
+- Chunking com overlap de 200 chars entre janelas de 2.000 chars — evita cortar ideias na borda de documentos longos
 - Enriquecimento: tags YouTube (3×) + keywords TF-IDF (2×) + descrições
 - Query expansion (LLM gera variações da pergunta) — Groq, OpenAI, Anthropic, Gemini; desabilitado para Ollama
+- Re-rankeamento semântico com CrossEncoder (`ms-marco-MiniLM-L-6-v2`, ~80MB, CPU) — ativado na Busca Ampla; BM25 recupera top-12 candidatos, CrossEncoder reordena por relevância semântica real antes de montar o prompt
 - Multi-canal: busca simultânea em múltiplos índices com merge
 - Anti-alucinação: threshold BM25 + verificação pós-geração por keyword overlap
 - Recovery de índice corrompido: detecção automática + toast com botão Reindexar
@@ -33,7 +52,7 @@ Atualizado: Junho 2026
 **Chat**
 - Streaming via ReadableStream, cursor piscante
 - Histórico server-side — últimas 6 trocas por canal
-- Busca Restrita e Busca Ampla (toggle no chat)
+- Busca Restrita (~1ms de retrieval) e Busca Ampla com CrossEncoder (~+236ms de retrieval) — toggle disponível para todos os perfis
 - Persona / tom do agente: Padrão, Objetivo, Técnico, Didático, Descontraído, Socrático
 - Perguntas sugeridas pós-indexação (chips clicáveis)
 - Renderização Markdown nas respostas (negrito, listas, tabelas, código)
@@ -42,7 +61,7 @@ Atualizado: Junho 2026
 
 **Provedores LLM**
 - Ollama (llama3.2:1b padrão, qualquer modelo instalado configurável)
-- Groq (llama-3.1-8b-instant, llama-3.1-70b-versatile)
+- Groq (llama-3.1-8b-instant, llama-3.1-70b-versatile) — destacado como melhor gratuito para o mercado brasileiro
 - OpenAI (gpt-4o-mini)
 - Anthropic (claude-sonnet-4-6)
 - Google Generative AI (gemini-1.5-flash)
@@ -58,11 +77,11 @@ Atualizado: Junho 2026
 - Modularização: 9 módulos em `tusab_engine/` com separação limpa de responsabilidades
 - Suite pytest: 27/27 verde
 - Smoke tests: 15/15 verde (pre-commit hook)
-- Segurança: 12 fixes aplicados (CORS, path traversal, prompt injection, CORS, upload size, etc.)
+- Segurança: 12 fixes aplicados (CORS, path traversal, prompt injection, upload size, etc.)
 - Chaves de API criptografadas via `safeStorage` do Electron (Windows DPAPI)
 - Watchdog do backend no Electron (poll de 5s, IPC backend-dead/alive, banner vermelho com botão Reiniciar)
 - Telemetria PostHog opt-in com retenção Day 7 / Day 30
-- i18n PT/EN/ES (216 chaves, 100% consistentes)
+- i18n PT/EN/ES (Brasil como mercado primário — app abre em português)
 - Empacotamento Windows: Python embeddable + yt-dlp bundled + instalador NSIS
 
 **Google Drive**
@@ -74,61 +93,121 @@ Atualizado: Junho 2026
 
 ## Próximos passos técnicos prioritários
 
-### P1 — Implementáveis sem decisão de produto
+### ~~P0 — RAG: re-rankeamento com CrossEncoder~~ ✅ IMPLEMENTADO (junho 2026)
 
-**Scheduler de periodicidade (sub-aba no modal de extração)**
-Permitir que o usuário configure atualização automática de canais: a cada N dias, o Tusab verifica novos vídeos e extrai automaticamente. Impacto: transforma o uso de "ação pontual" para "base sempre atualizada". Pré-requisito: persistir agenda em `agent_config.json` e implementar loop no startup do Electron.
+- `sentence-transformers==5.6.0` adicionado ao `requirements.txt`
+- Modelo `ms-marco-MiniLM-L-6-v2` (~80MB, CPU) carregado em lazy load na primeira chamada
+- Ativado apenas com Busca Ampla — BM25 puro na Busca Restrita (sem overhead)
+- Latência medida: +236ms de retrieval (modelo já em memória); carga inicial ~29s (download único, primeira sessão)
+- Degradação graciosa: se `sentence-transformers` não estiver disponível, BM25 puro continua funcionando
+- Chunking de documentos também corrigido: overlap de 200 chars entre janelas de 2.000 chars
 
-**Refatoração de App.jsx**
-Migrar estado global do orquestrador (~40 estados, ~1.590 linhas) para Context API ou Zustand. Não tem impacto visível para o usuário, mas é o débito técnico com maior risco de crescimento. Gatilho: quando a adição de uma nova feature exigir mais de 1h para entender o fluxo de estado existente.
+---
 
-**Proteção do código Python (pré-lançamento comercial)**
-Compilar o backend com Nuitka ou PyArmor antes de distribuir versão com cobrança. Sem isso, o código Python fica acessível no diretório de instalação. Só faz sentido implementar quando o sistema de licença estiver ativo.
+### P1 — RAG: embedding local opcional (quando Ollama disponível)
 
-**Mensagem específica "Ollama offline" no chat**
-Quando o Ollama trava silenciosamente, o chat exibe erro genérico "Erro ao conectar com servidor". Detectar especificamente o status do Ollama no payload de erro e exibir mensagem orientada com link para verificação.
+**O que é:** quando o usuário tem Ollama configurado e `nomic-embed-text` instalado, usar busca vetorial como complemento ao BM25 (RAG híbrido). Quando não disponível, BM25 puro — degradação graciosa.
 
-**Analytics.chatPergunta() ativo**
-O método existe em `analytics.js` mas nunca é invocado. Sem ele, Time to First Value Answer não está sendo medido — a principal métrica de ativação está cega.
+**Por que depois do CrossEncoder:** mais complexo. Exige detecção de disponibilidade do modelo de embedding, fallback gracioso, e fusão de scores BM25 + vetorial. O CrossEncoder é mais direto.
 
-### P2 — Dependem de decisão de produto
+**Quem mais se beneficia:** Pesquisador (corpora acadêmicos com vocabulário especializado onde sinônimos são problema real).
 
-**Sistema de licença (Lemon Squeezy)**
-Tela de ativação no Electron, validação HTTP, hardware fingerprint. Pré-requisito: decisão de quando e como cobrar. A infraestrutura de feature flags já existe (`PRO_LIMIT:` no backend, ProSnackbar no frontend) — é questão de ativar o `config.get('pro', False)`.
+---
 
-**Publicar OAuth do Google Drive em produção**
-Atualmente em modo "Testing" — só funciona para contas autorizadas no Google Cloud Console. Para distribuição pública, precisa passar por revisão do Google (exige URL pública da política de privacidade). A política já existe como `.md` — falta publicar em URL.
+### P2 — Scheduler de periodicidade
 
-**Landing page mínima**
-Proposta de valor, demo em vídeo (30s), botão de download. Sem essa página, não há pipeline de aquisição para usuários que não conhecem o autor diretamente.
+**O que é:** atualização automática de canais configurável pelo usuário. A cada N dias, o Tusab verifica novos vídeos e extrai automaticamente.
 
-**Funil de ativação no PostHog**
-Os eventos existem e estão ativos. Falta configurar o funil no dashboard: install → primeira extração → indexação → primeira pergunta → primeira resposta com fonte. Sem isso, os dados existem mas não são legíveis.
+**Impacto:** transforma o uso de "ação pontual" para "base sempre atualizada". Especialmente relevante para o perfil Professor (canal que posta aulas periodicamente).
+
+**Pré-requisito:** persistir agenda em `agent_config.json` e implementar loop no startup do Electron.
+
+---
+
+### P3 — Publicar OAuth do Google Drive em produção
+
+**Contexto:** atualmente em modo "Testing" — só funciona para contas autorizadas no Google Cloud Console. Para distribuição pública, precisa passar por revisão do Google (exige URL pública da política de privacidade). A política já existe como `.md` — falta publicar em URL.
+
+---
+
+### P4 — Landing page mínima (tusab.solutions)
+
+**O que é:** proposta de valor, seção de perfis, demo em vídeo (30s), botão de download.
+
+**Copy base disponível:** seção "Copy para site" em `Visão Geral do Produto.md`.
+
+**Por que é P4:** sem landing page, não há pipeline de aquisição para usuários que não conhecem o autor diretamente. É pré-requisito para qualquer esforço de marketing.
+
+---
+
+### P5 — Sistema de licença
+
+**Contexto:** a infraestrutura de feature flags já existe. O modelo correto é: case documentado → landing page → sistema de licença → venda. Não o inverso.
+
+**Pré-requisito:** Lemon Squeezy + hardware fingerprint + proteção do código Python (Nuitka ou PyArmor).
 
 ---
 
 ## Candidatos a features futuras
 
-**Servidor MCP**
-Expõe a base RAG do Tusab como ferramenta para agentes externos. O usuário conecta o Tusab ao Claude Code, Cursor ou qualquer agente compatível com MCP. A base de conhecimento vira uma "ferramenta de busca" para qualquer agente. Alto potencial para o público técnico.
+### RAG: Embeddings via Ollama + ChromaDB (próxima versão)
 
-**Modo institucional (servidor interno)**
-Deploy do backend em servidor local da instituição com autenticação de usuários. Múltiplos usuários consultando a mesma base. Requer separação de sessões e histórico por usuário. Candidato natural para contratos enterprise.
+**O que é:** RAG Híbrido — BM25 continua como retriever principal, embeddings vetoriais via `nomic-embed-text` (Ollama) complementam com busca semântica. Fusão de scores BM25 + vetorial antes de montar o prompt.
 
-**Entrada por voz no chat**
-Usuário pergunta ao mentor por voz, sem digitar. Requer integração com Web Speech API ou Whisper local. Caso de uso: perguntas rápidas enquanto trabalha.
+**Por que não agora:** aguardando feedback dos usuários com o CrossEncoder já implementado. Decisão tomada em junho 2026.
 
-**Modo "full context" para bases pequenas**
-Com modelos de 256K tokens de contexto (Gemma 4 12B via Ollama), bases com menos de 50 arquivos podem caber inteiras no prompt — sem necessidade de seleção BM25. O BM25 continua essencial para bases grandes (100+ vídeos extraídos).
+**Condição obrigatória:** só ativar quando o provedor for Ollama. Para Groq/OpenAI (resposta ~1s), o retrieval estimado de 700–1.100ms seria mais lento que o próprio LLM — destruiria a UX.
 
-**Fontes além do YouTube**
-Podcasts via RSS, páginas web via URL, repositórios de código. Cada fonte exige um extrator próprio — escopo considerável.
+**Latência estimada do RAG híbrido completo:**
+- Embeddings via `nomic-embed-text` CPU: +400–800ms
+- ChromaDB lookup: +50–100ms
+- Fusão BM25 + vetorial: +10ms
+- **Total: ~700–1.100ms de retrieval** — aceitável para Ollama (LLM ~10s), inaceitável para provedores rápidos
 
-**Busca web integrada no chat**
-Integração com Brave Search API (2.000 buscas/mês gratuitas). A base como referência primária + snippets da web como complemento. Requer campo para API key nas configurações do agente.
+**Três pontos a decidir antes de codar:**
+1. Detectar `nomic-embed-text` disponível via `GET /api/tags` do Ollama antes de indexar — sem travar o chat se ausente
+2. Recriar índice vetorial (ChromaDB) sempre junto com BM25 no `indexar()` — nunca separado, para evitar inconsistência
+3. Comunicar lentidão da primeira indexação com toast de aviso e estimativa de tempo baseada no número de chunks
 
-**API pública para integrações**
-Expor a base RAG como API REST autenticada para integrações externas. Pré-requisito: modo servidor + autenticação.
+---
+
+### RAG: GraphRAG (fase futura — Pesquisador e Especialista)
+
+**O que é:** construção de grafo de conhecimento entre documentos — entende relações entre conceitos, não só trechos isolados.
+
+**Quando faz sentido:** quando corpora de Pesquisadores e Especialistas atingirem alta densidade relacional (artigos que se citam, documentos normativos com referências cruzadas, bases acadêmicas temáticas densas). O corpus atual do usuário médio (transcrições YouTube + PDFs avulsos) é predominantemente paralelo — baixa densidade relacional.
+
+**Por que não agora:** requer Neo4j ou implementação manual de grafos — complexidade incompatível com o princípio local-first sem dependências pesadas. Reavaliação quando dados de uso mostrarem padrão de corpus denso nos perfis Pesquisador e Especialista.
+
+---
+
+### Servidor MCP
+
+Expõe a base RAG do Tusab como ferramenta para agentes externos. O usuário conecta o Tusab ao Claude Code, Cursor ou qualquer agente compatível com MCP. A base de conhecimento vira uma "ferramenta de busca" para qualquer agente. Alto potencial para o perfil Especialista e usuários técnicos.
+
+---
+
+### Modo institucional (servidor interno)
+
+Deploy do backend em servidor local da instituição com autenticação de usuários. Múltiplos usuários consultando a mesma base. Requer separação de sessões e histórico por usuário. Candidato natural para contratos enterprise com instituições de ensino.
+
+---
+
+### Scheduler com sync automático para Drive
+
+Combinação do Scheduler (P2) com a integração Google Drive existente: ao concluir extração incremental, faz upload automático para Drive configurado. Relevante para o perfil Professor que mantém base compartilhada.
+
+---
+
+### Fontes além do YouTube
+
+Podcasts via RSS, páginas web via URL, repositórios de código. Cada fonte exige um extrator próprio — escopo considerável. Prioridade por perfil: Pesquisador (feeds acadêmicos) e Especialista (RSS de publicações setoriais).
+
+---
+
+### Busca web integrada no chat
+
+Integração com Brave Search API (2.000 buscas/mês gratuitas). A base como referência primária + snippets da web como complemento. Relevante para Pesquisador (busca ampla + web) e Especialista.
 
 ---
 
@@ -137,17 +216,11 @@ Expor a base RAG como API REST autenticada para integrações externas. Pré-req
 **Freemium com paywall ativo**
 Descartado em junho 2026. O produto serve como vitrine técnica — um paywall na fase atual gera atrito no momento errado. A infraestrutura foi construída mas não ativada. Ver `Decisões de Produto.md`.
 
-**Exportar base como "Exportar para Drive"**
-Descartado como feature separada. A pasta `data/neural/` já é local (acesso direto pelo explorador de arquivos) e o Drive sync já cobre o compartilhamento. O export ZIP (`/export/base`) cobre o caso de backup/portabilidade sem duplicar o Drive.
+**Exportar base como "Exportar para Drive" (feature separada)**
+Descartado. A pasta `data/neural/` já é local e o Drive sync já cobre o compartilhamento. O export `.tusab` cobre portabilidade e o fluxo professor→aluno sem duplicar a feature.
 
 **Suporte a imagens via OCR (Tesseract) como feature principal**
-Mantido como dependência opcional (pytesseract), não como feature de destaque. O caso de uso principal (fotos de slides, capturas de tela) é melhor coberto por Gemma 4 12B via Ollama — sem pipeline separado. OCR fica como fallback para quem não tem GPU.
-
-**Whisper como feature principal para áudio**
-Mantido via faster-whisper como dependência opcional. Para o roadmap, Gemma 4 12B tem ASR nativo — pode simplificar ou eliminar essa dependência. Aguardar maturação do ecossistema antes de investir mais.
-
-**Export para formatos adicionais (ePub, HTML)**
-Sem demanda identificada. Os formatos existentes (ZIP, MD, DOCX, XLSX, PDF) cobrem os casos de uso documentados.
+Mantido como dependência opcional, não como feature de destaque. O caso de uso principal é melhor coberto por Gemma 4 12B via Ollama.
 
 **Histórico de chat persistido em disco por padrão**
-O histórico atual é em memória (perdido ao fechar o app) para evitar crescimento irrestrito de dados. Persistência em disco exige política de retenção, interface de gerenciamento e espaço adicional — complexidade sem demanda clara.
+O histórico atual é em memória (perdido ao fechar o app) para evitar crescimento irrestrito. Persistência exige política de retenção, interface de gerenciamento e espaço adicional — complexidade sem demanda clara.

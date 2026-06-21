@@ -597,14 +597,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {total > 0 && (
-            <button onClick={() => { setLimparBasesSel({}); setShowLimpar(true); }}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
-                ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200'}`}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
-              {t('repo.clear')}
-            </button>
-          )}
+          {/* Indexar base */}
           <button
             onClick={async () => {
               const res = await listarProjetos().catch(() => null);
@@ -636,6 +629,15 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           </button>
           </>
           )}
+
+          {/* Limpar bases */}
+          <button
+            onClick={() => { setLimparBasesSel({}); setShowLimpar(true); }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
+              ${darkMode ? 'text-danger/70 hover:text-danger hover:bg-danger/10 border-danger/20' : 'text-red-400 hover:text-red-600 hover:bg-red-50 border-red-200'}`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+            {t('repo.clear')}
+          </button>
         </div>
       </div>
 

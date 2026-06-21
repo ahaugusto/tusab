@@ -6,6 +6,66 @@ Registro das decisões estratégicas e técnicas que moldaram o produto. Cada de
 
 ---
 
+## Por que quatro perfis (e não um produto genérico)
+
+**Contexto:** o produto atendia um público amplo e indefinido. A tela inicial, as funcionalidades e o onboarding eram iguais para todos.
+
+**Decisão tomada em junho 2026:** implementar sistema de perfis com quatro personas distintas — Estudante, Professor, Pesquisador, Especialista.
+
+**Por que essa decisão muda a visão do produto:**
+
+O Tusab não é uma ferramenta genérica de PKM. É uma plataforma com diferentes camadas de poder, e cada camada tem um usuário natural:
+
+- O **Estudante** não precisa saber que existe BM25, Ollama ou qualquer configuração. Ele precisa de um mentor que responde com a fonte certa.
+- O **Professor** é o curador — quem decide o que entra na base. A feature mais importante para ele não é o chat; é o export `.tusab` que permite transferir uma base pronta para os alunos.
+- O **Pesquisador** precisa de controle total sobre o que entra no corpus e busca semântica robusta para análise aprofundada.
+- O **Especialista** usa o Tusab como infraestrutura de conhecimento organizacional — quer monitoramento, administração e reset quando necessário.
+
+**O que não muda entre perfis:** qualidade do RAG, privacidade local-first, citação de fonte obrigatória, custo zero com Ollama. Esses são invariantes de produto.
+
+**Implementação técnica:** `usePerfil.js` com 14 feature flags por perfil. Slug interno sempre em inglês técnico (`profissional` para Especialista — ver decisão abaixo). Label exibido via chave i18n, alterável sem mudar a lógica.
+
+**Impacto estratégico:** o fluxo professor→aluno via `.tusab` cria rede de valor. Um professor adotando traz N alunos. É o mecanismo de crescimento orgânico mais natural para o produto.
+
+---
+
+## Por que o slug "profissional" permanece (label "Especialista")
+
+**Contexto:** o perfil mais avançado foi renomeado de "Profissional" para "Especialista" em junho 2026, após a decisão de que o termo "Especialista" é mais preciso para o público-alvo (analistas, gestores, usuários corporativos avançados).
+
+**Decisão:** manter o slug interno `profissional` e alterar apenas o label exibido.
+
+**Por que não renomear o slug:**
+- localStorage já gravado em instalações existentes com o valor `profissional`
+- Fallbacks em `App.jsx`, `Onboarding.jsx` e `HomeScreen.jsx` que verificam o slug por string
+- Filtros de feature flag em `HomeScreen.jsx` que usam o slug como chave de array
+
+Renomear o slug sem migração de localStorage quebraria silenciosamente o perfil de qualquer usuário que já havia feito o onboarding.
+
+**Como alterar no futuro (se necessário):** implementar uma migração de localStorage no startup do app — ler o valor antigo, gravar o novo, deletar o antigo. Só então renomear o slug no código.
+
+**Referência:** comentário em `usePerfil.js → PERFIS_META.profissional` e entrada na tabela de decisões técnicas do `CLAUDE.md`.
+
+---
+
+## Por que Brazil First
+
+**Decisão:** o Tusab abre em português. PT é o idioma primário. EN e ES são suportados via i18n, mas não são o foco da experiência padrão.
+
+**Motivos:**
+
+1. **Mercado educacional brasileiro:** o Brasil tem o maior mercado de educação da América Latina. Professores e criadores educacionais brasileiros produzem conteúdo em escala — e têm exatamente o problema que o Tusab resolve.
+
+2. **Groq como alternativa real:** para o público brasileiro, cartão internacional é barreira real de acesso a APIs de IA. O Groq oferece `llama-3.1-8b-instant` e `llama-3.1-70b-versatile` gratuitamente, sem cartão de crédito. O Tusab destaca o Groq explicitamente como melhor alternativa gratuita para quem não tem acesso a OpenAI ou Anthropic.
+
+3. **Vantagem competitiva local:** ferramentas como NotebookLM são projetadas para o mercado americano e suportam português como cidadão de segunda classe. O Tusab é construído para o contexto brasileiro desde o início.
+
+4. **Autor e empresa:** Augusto Brasil / CriAugu — CNPJ 65.131.075/0001-57. O produto é intrinsecamente brasileiro.
+
+**O que isso não significa:** o produto não é exclusivo para o Brasil. i18n PT/EN/ES está implementado com 100% de consistência. Significa que a experiência padrão, a documentação primária e o go-to-market são direcionados ao Brasil primeiro.
+
+---
+
 ## Por que freemium foi descartado
 
 **Contexto:** o produto chegou a ter uma especificação completa de modelo freemium (Free / Pro / Studio / Enterprise com Lemon Squeezy), com feature flags, ProSnackbar e limite de 2 canais indexados no tier free.
@@ -16,12 +76,10 @@ Registro das decisões estratégicas e técnicas que moldaram o produto. Cada de
 
 Um freemium com paywall nessa fase:
 - Gera atrito no momento em que o produto precisa ser testado e recomendado
-- Exige implementar sistema de licença (Lemon Squeezy + hardware fingerprint + proteção do código Python) antes de validar se há tração
+- Exige implementar sistema de licença antes de validar se há tração
 - Cria risco de imagem negativa se o paywall frustrar exatamente o perfil técnico que o produto quer impressionar
 
-O modelo correto agora: produto completo e gratuito → cases documentados → contratos B2B diretos quando houver tração suficiente.
-
-**O que permanece:** o ProSnackbar existe no código (informativo), o limite de 2 canais está codificado em `indexar()` mas desabilitado (`config.get('pro', False)` sempre retorna `False`). A infraestrutura está pronta para ativar quando o momento for certo — sem reescrever nada.
+**O que permanece:** o ProSnackbar existe no código (informativo), o limite de 2 canais está codificado em `indexar()` mas desabilitado (`config.get('pro', False)` sempre retorna `False`). A infraestrutura está pronta para ativar quando o momento for certo.
 
 ---
 
@@ -39,8 +97,6 @@ Proteção intelectual via:
 - CNPJ 65.131.075/0001-57 como titular
 - Registro INPI pendente (Programa de Computador "Tusab")
 
-**O que isso não impede:** demos públicos, vídeos técnicos, apresentações de arquitetura. O código não precisa estar público para o produto ser vitrine técnica.
-
 ---
 
 ## Por que local-first
@@ -51,13 +107,13 @@ Proteção intelectual via:
 
 **Motivos:**
 
-1. **Diferencial competitivo real:** o NotebookLM (Google) e praticamente todos os concorrentes são SaaS. O nicho local/privado está estruturalmente aberto. O Tusab ocupa.
+1. **Diferencial competitivo real:** o NotebookLM e praticamente todos os concorrentes são SaaS. O nicho local/privado está estruturalmente aberto.
 
-2. **Proteção contra bloqueios do YouTube:** a extração via yt-dlp roda no IP residencial do usuário. Se o Tusab fosse SaaS, as extrações viriam de poucos IPs de servidor — alvo óbvio para rate limiting. Com distribuição por IP de usuário, não há superfície centralizada para bloquear.
+2. **Proteção contra bloqueios do YouTube:** a extração via yt-dlp roda no IP residencial do usuário. Com distribuição por IP de usuário, não há superfície centralizada para bloquear.
 
-3. **Mercado institucional:** para hospitais, conselhos, empresas e universidades, mandar documentos internos para um servidor externo é um bloqueador — jurídico, de compliance ou de política interna. Local-first elimina esse bloqueador.
+3. **Mercado institucional:** para hospitais, conselhos, empresas e universidades, mandar documentos internos para um servidor externo é bloqueador. Local-first elimina esse bloqueador.
 
-4. **Sem custo de infraestrutura:** zero servidor para manter, escalar ou proteger. O custo marginal de cada usuário adicional é zero.
+4. **Sem custo de infraestrutura:** zero servidor para manter, escalar ou proteger. Custo marginal de cada usuário adicional é zero.
 
 5. **LGPD simplificada:** dados que nunca saem da máquina não precisam de política de transferência, DPA ou adequação internacional.
 
@@ -65,72 +121,45 @@ Proteção intelectual via:
 
 ---
 
-## Por que BM25 em vez de embeddings
+## Por que BM25 em vez de embeddings — e o que vem depois
 
-**Alternativa considerada:** embeddings vetoriais (OpenAI `text-embedding-3-small`, sentence-transformers local, ChromaDB, pgvector).
+**Alternativa considerada:** embeddings vetoriais (OpenAI `text-embedding-3-small`, sentence-transformers local, ChromaDB).
 
-**Decisão:** BM25Okapi via `rank_bm25`.
+**Decisão atual:** BM25Okapi via `rank_bm25`.
 
 **Motivos:**
+1. **Latência:** BM25 retorna resultados em milissegundos. Embeddings adicionam 1–3s por query.
+2. **Custo zero:** BM25 roda em CPU puro sem dependência de API externa.
+3. **Sem dependência de GPU:** a maioria dos usuários-alvo não tem GPU.
+4. **Suficiência para o caso de uso atual:** corpus rico e específico (canais curados pelo próprio usuário) com enriquecimento (tags × 3, keywords TF-IDF × 2, query expansion via LLM).
+5. **Auditabilidade:** BM25 é determinístico e depurável. Embeddings são caixa-preta.
 
-1. **Latência:** BM25 retorna resultados em milissegundos. Embeddings exigem encoder — mesmo local (sentence-transformers), adiciona 1–3s por query. Com query expansion, esse custo se multiplica.
+**Evolução mapeada:**
 
-2. **Custo zero:** BM25 roda em CPU puro sem dependência de API externa. Embeddings via OpenAI custam por token. Embeddings locais exigem download e carregamento de modelo (~90MB–1GB).
+| Etapa | O que é | Quando |
+|-------|---------|--------|
+| ~~**Re-rankeamento CrossEncoder**~~ | ✅ **IMPLEMENTADO (junho 2026)** — BM25 recupera top-12 candidatos; CrossEncoder (`ms-marco-MiniLM-L-6-v2`, ~80MB, CPU) reordena por relevância semântica; ativado na Busca Ampla para todos os perfis. Latência medida: +236ms (modelo em memória). Degradação graciosa se `sentence-transformers` ausente. | — |
+| **Embedding local opcional** | Busca vetorial como complemento quando Ollama + `nomic-embed-text` disponíveis. Degradação graciosa para BM25 puro quando não disponível. Latência estimada: +400–800ms — só viável quando provedor for Ollama; para Groq/OpenAI o retrieval superaria o LLM. | Após validação de uso real |
+| **GraphRAG** | Grafo de conhecimento entre documentos; entende relações entre conceitos | Futuro — apenas quando Pesquisador e Especialista tiverem corpora com alta densidade relacional (artigos que se citam, normas com referências cruzadas). Corpus atual é predominantemente paralelo. |
 
-3. **Sem dependência de GPU:** a maioria dos usuários-alvo não tem GPU. sentence-transformers em CPU é lento para bases grandes.
-
-4. **Suficiência para o caso de uso:** o corpus do Tusab é texto rico e específico (transcrições de canais curados pelo próprio usuário). BM25 com enriquecimento (tags × 3, keywords TF-IDF × 2, query expansion via LLM para provedores rápidos) entrega recall adequado.
-
-5. **Zero mágica:** BM25 é determinístico, auditável e depurável. Embeddings são uma caixa-preta de float32 — difíceis de diagnosticar quando o retrieval falha.
-
-**Quando embeddings fariam sentido:** bases muito grandes (100k+ documentos) com terminologia especializada onde BM25 falha por problemas de vocabulário. Para o perfil de usuário atual do Tusab, BM25 é a escolha correta.
+**O que é densidade relacional:** o quanto os documentos de uma base se referem uns aos outros de forma explícita ou implícita. Transcrições de YouTube e PDFs avulsos têm baixa densidade (cada documento é independente). Artigos acadêmicos que se citam, código com imports, wikis com links — têm alta densidade. GraphRAG só vale para o segundo caso.
 
 ---
 
 ## Por que yt-dlp local (não servidor)
 
-**Alternativa considerada:** processar extração em servidor próprio, receber transcrições via API.
-
-**Decisão:** yt-dlp roda 100% local, no IP do usuário.
-
-**Motivo principal:** é o princípio intocável do produto.
-
-Tudo mais pode evoluir — providers, UI, arquitetura. A extração local não.
+**Decisão:** yt-dlp roda 100% local, no IP do usuário. É o princípio intocável do produto.
 
 **Por quê:**
-- O YouTube aplica rate limiting por IP. Com extração centralizada em servidor, poucos IPs servem todos os usuários — bloqueio é questão de tempo e escala.
-- Cada usuário extraindo pelo próprio IP distribui a carga de forma natural. O YouTube não tem como identificar padrão anômalo em requisições individuais.
-- Dados do usuário nunca saem da máquina antes de serem processados. A transcrição de um vídeo vai direto para `data/neural/` — sem passar por nenhum servidor intermediário.
+- O YouTube aplica rate limiting por IP. Com extração centralizada, poucos IPs servem todos os usuários — bloqueio é questão de tempo.
+- Cada usuário extraindo pelo próprio IP distribui a carga naturalmente.
+- Dados do usuário nunca saem da máquina antes de serem processados.
 
 ---
 
-## Por que Ollama como padrão (não Groq, não OpenAI)
+## Por que Groq como alternativa gratuita de destaque (contexto Brazil First)
 
-**Motivo:** a proposta de valor central inclui "zero custo com Ollama". Se o padrão fosse um provedor com API key, o usuário estaria a um passo de custo de uso — o que contradiz o posicionamento.
-
-Ollama com llama3.2:1b (~1.3 GB) funciona em qualquer máquina com 4GB+ de RAM. É lento para modelos maiores, mas entrega o loop completo (indexar → perguntar → receber resposta com fonte) sem nenhuma dependência externa.
-
-**Groq como melhor alternativa gratuita:** Groq oferece `llama-3.1-8b-instant` e `llama-3.1-70b-versatile` no tier gratuito — sem cartão de crédito. Especialmente relevante para o público brasileiro, onde cartão internacional é barreira real. Groq é listado explicitamente como provedor na UI.
-
----
-
-## Comparação com NotebookLM — onde perdemos, onde ganhamos
-
-### Onde o NotebookLM é melhor
-- Motor de IA superior (Gemini 1.5 Pro vs. llama3.2:1b padrão)
-- UI mais polida — produto Google com time dedicado
-- Audio Overview — resumo em formato podcast, feature única
-- Gratuito sem nenhuma configuração
-- Disponível no browser, sem instalação
-
-### Onde o Tusab ganha
-- **Escala de YouTube:** o NotebookLM aceita vídeos individuais. O Tusab extrai canais inteiros. Para um canal com 800 vídeos, a diferença é de magnitude, não de feature.
-- **Local-first:** o NotebookLM processa nos servidores do Google. Para qualquer uso com dados sensíveis, isso é bloqueador.
-- **Sem conta Google:** funciona offline com Ollama. Sem risco de mudança de política.
-- **Multi-fonte com controle total:** o usuário decide exatamente o que entra — YouTube + documentos próprios + textos colados, por projeto separado.
-- **BYOK:** o usuário pode usar GPT-4o, Claude, Gemini ou Groq — sem ser forçado a usar o motor do NotebookLM.
-
-**Conclusão de posicionamento:** o NotebookLM valida o mercado — prova que usuários querem chat com documentos. O Tusab ocupa o nicho que o NotebookLM deliberadamente não quer: local, privado, sem Google, com extração de canais em escala.
+**Motivo:** Groq oferece `llama-3.1-8b-instant` e `llama-3.1-70b-versatile` no tier gratuito, sem cartão de crédito. Para o público brasileiro, cartão internacional é barreira real. Groq é listado explicitamente como provedor na UI e na documentação — não apenas como mais uma opção, mas como a recomendação para quem não quer ou não pode pagar por APIs.
 
 ---
 
@@ -140,9 +169,9 @@ Ollama com llama3.2:1b (~1.3 GB) funciona em qualquer máquina com 4GB+ de RAM. 
 
 **Motivo de produto:** a ausência de servidor central é o argumento de confiança para o mercado institucional. "Seus dados nunca saem da rede de vocês" é verificável — não é política de privacidade, é design.
 
-**Motivo de segurança:** sem servidor central, não há superfície única para atacar. Um ataque bem-sucedido ao servidor de um SaaS expõe dados de todos os usuários. Com arquitetura local, cada usuário é um ilha isolada.
+**Motivo de segurança:** sem servidor central, não há superfície única para atacar.
 
-**Desvantagem aceita:** sem servidor, não há sync automático entre máquinas, não há colaboração em tempo real, não há backup automático na nuvem (Drive é opt-in). São trade-offs conscientes.
+**Desvantagem aceita:** sem sync automático entre máquinas, sem colaboração em tempo real, sem backup automático na nuvem (Drive é opt-in).
 
 ---
 
@@ -150,55 +179,30 @@ Ollama com llama3.2:1b (~1.3 GB) funciona em qualquer máquina com 4GB+ de RAM. 
 
 **Estágio:** vitrine técnica → cases → B2B eventual.
 
-O produto é gratuito. O valor imediato é demonstrar competência técnica de Augusto Brasil no mercado.
-
-**Caminho de negócio:**
-1. Produto funcional e sem paywall → facilita testes e recomendações
+**Caminho:**
+1. Produto completo e gratuito → facilita testes e recomendações
 2. Cases documentados (criadores, instituições que adotam) → prova social
-3. Conversas B2B com criadores educacionais (50k–500k inscritos) → demos com o canal deles
+3. Conversas B2B com criadores educacionais (50k–500k inscritos no Brasil) → demos com o canal deles
 4. Contratos de implementação, onboarding e suporte quando houver demanda
 
 **Por que não vender licença agora:**
-- Sem sistema de licença implementado (Lemon Squeezy + hardware fingerprint + proteção do código Python)
-- Sem landing page com proposta de valor clara para visitantes frios
-- Sem case público documentado além da AUVP (ideia comprada antes do produto existir)
+- Sem sistema de licença implementado
+- Sem landing page com proposta de valor para visitante frio
+- Sem case público documentado
 
-Esses três precisam existir antes de qualquer esforço de venda. A ordem correta é: case → landing page → sistema de licença → venda. Não o inverso.
-
----
-
-## Decisão sobre App.jsx (débito técnico aceito)
-
-O `App.jsx` tem ~1.590 linhas orquestrando ~40 estados. É um "God Component" reconhecido.
-
-**Por que não foi refatorado ainda:** a refatoração para Context API ou Zustand é trabalho de semanas sem nenhum valor visível para o usuário. Na fase atual, o gargalo não é a manutenibilidade do código — é chegar ao primeiro case. O débito está mapeado e será atacado quando o produto entrar em fase de crescimento real.
-
-**Quando refatorar:** quando o número de estados gerenciados em `App.jsx` tornar impossível adicionar features sem regressão. O sinal de gatilho é: quando um desenvolvedor novo demorar mais de 1 hora para entender o fluxo de estado de uma feature específica.
+A ordem correta é: case → landing page → sistema de licença → venda. Não o inverso.
 
 ---
 
 ## Feature: Base Compartilhável (`.tusab`)
 
-**Contexto:** O Tusab permite curadoria de conhecimento local. Um professor (ou qualquer curador) pode extrair canais do YouTube, indexar PDFs e textos, e querer compartilhar essa base pronta com alunos — que abrem o Tusab e já podem chatear sem precisar extrair ou indexar nada.
-
-### Fluxo do exportador (professor)
-
-1. No Repositório, seleciona um projeto já indexado
-2. Clica em "Exportar Base"
-3. Recebe um arquivo `{nome_projeto}.tusab` (zip renomeado)
-4. Compartilha via e-mail, Drive, pen drive etc.
-
-### Fluxo do importador (aluno)
-
-1. Na tela inicial ou Repositório, clica em "Importar Base"
-2. Seleciona o arquivo `.tusab`
-3. O projeto aparece disponível para chat imediatamente — sem reindexar
+**Contexto:** o mecanismo central do fluxo professor→aluno. Um curador (professor, pesquisador, especialista) exporta uma base indexada. O consumidor (aluno, colega) importa e já conversa — sem extrair, sem indexar.
 
 ### Conteúdo do `.tusab`
 
 | Caminho no arquivo | Descrição |
 |--------------------|-----------|
-| `manifest.json` | Nome do projeto, versão do formato (`1`), data de exportação, contagem de chunks |
+| `manifest.json` | Nome do projeto, versão do formato (`1`), data de exportação, contagem de chunks, flag `somente_leitura: true` |
 | `neural/{projeto}/youtube/` | Transcrições processadas do YouTube |
 | `neural/{projeto}/documents/` | Textos extraídos de PDFs e DOCX |
 | `neural/{projeto}/texts/` | Textos colados pelo usuário |
@@ -207,16 +211,14 @@ O `App.jsx` tem ~1.590 linhas orquestrando ~40 estados. É um "God Component" re
 
 **Decisão de escopo:** exportar apenas textos processados e o índice BM25 — não os arquivos originais (PDFs, áudios). Razão: tamanho gerenciável; o caso de uso do importador é chat, não acesso aos originais.
 
-### Caso de uso primário
+**Proteção readonly:** bases importadas recebem `_readonly.json` — flag UX que desabilita botões de modificação. É proteção de interface, não criptografia — o usuário avançado pode contornar acessando os arquivos diretamente, e isso é aceito.
 
-Ambiente escolar — professor como curador, aluno como consumidor. Também útil para times, pesquisadores e comunidades de estudo.
+---
 
-### Arquivos a criar/modificar
+## Decisão sobre App.jsx (débito técnico aceito)
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `tusab_engine/api/router_exports.py` | Rotas `GET /export/base/{projeto}` e `POST /import/base` |
-| `tusab_engine/storage.py` | Helper `export_base_path(projeto)` |
-| `web_interface/src/components/agent/RepositorioTab.jsx` | Botão "Exportar Base" por projeto + botão "Importar Base" |
-| `web_interface/src/components/home/HomeScreen.jsx` | Entrada alternativa para "Importar Base" (opcional) |
-| `web_interface/src/locales/{pt,en,es}.json` | Chaves `repo.export_base`, `repo.import_base`, `repo.import_success`, etc. |
+O `App.jsx` tem ~1.590 linhas orquestrando ~40 estados. É um "God Component" reconhecido.
+
+**Por que não foi refatorado ainda:** a refatoração para Context API ou Zustand é trabalho de semanas sem nenhum valor visível para o usuário. Na fase atual, o gargalo não é a manutenibilidade — é chegar ao primeiro case.
+
+**Quando refatorar:** quando adicionar uma nova feature exigir mais de 1h para entender o fluxo de estado existente. Esse é o gatilho.
