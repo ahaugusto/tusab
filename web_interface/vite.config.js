@@ -10,4 +10,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(electronPkg.version),
   },
+  build: {
+    sourcemap: true,
+  },
 })

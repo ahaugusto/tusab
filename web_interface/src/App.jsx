@@ -15,7 +15,7 @@ import {
   CheckCircle2, AlertTriangle, Loader2, BarChart3, Menu, X,
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
-  Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard,
+  Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard, History,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
