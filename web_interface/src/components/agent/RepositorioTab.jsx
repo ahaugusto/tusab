@@ -1057,22 +1057,45 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   <path d="M6 9l6 6 6-6"/>
                 </svg>
               </button>
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  reloadProjetos().then(() => {
-                    setProjetoSel(canal.nome);
-                    setShowNovoProjeto(false);
-                    setMode('texto');
-                    setUploadAviso('');
-                    setShowAdd(true);
-                  });
-                }}
-                title={t('repo.add_to_project_title', { nome: canal.nome })}
-                className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${btnFocus}
-                  ${darkMode ? 'text-primary/70 hover:text-primary hover:bg-primary/10' : 'text-violet-500 hover:text-violet-700 hover:bg-violet-50'}`}>
-                {t('repo.add_btn')}
-              </button>
+              {/* Colar texto no projeto */}
+              {!readonlyMap[canal.nome] && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    reloadProjetos().then(() => {
+                      setProjetoSel(canal.nome);
+                      setShowNovoProjeto(false);
+                      setMode('texto');
+                      setUploadAviso('');
+                      setTitle('');
+                      setText('');
+                      setShowAdd(true);
+                    });
+                  }}
+                  title={t('repo.add_text_title', { nome: canal.nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-primary/60 hover:text-primary hover:bg-primary/10' : 'text-violet-400 hover:text-violet-700 hover:bg-violet-50'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </button>
+              )}
+              {/* Upload de arquivo no projeto */}
+              {!readonlyMap[canal.nome] && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    reloadProjetos().then(() => {
+                      setProjetoSel(canal.nome);
+                      setShowNovoProjeto(false);
+                      setMode('arquivo');
+                      setUploadAviso('');
+                      setFiles([]);
+                      setShowAdd(true);
+                    });
+                  }}
+                  title={t('repo.add_file_title', { nome: canal.nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-accent/60 hover:text-accent hover:bg-accent/10' : 'text-cyan-500 hover:text-cyan-700 hover:bg-cyan-50'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                </button>
+              )}
               {!readonlyMap[canal.nome] && regras?.export_tusab !== false && (
                 <button
                   onClick={e => { e.stopPropagation(); handleExportar(canal.nome); }}
