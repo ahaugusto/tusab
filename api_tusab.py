@@ -7,9 +7,10 @@ import sys
 import os
 import warnings
 
-# Suprime FutureWarning do SDK Gemini clássico (google-generativeai deprecado)
+# Suprime warnings do SDK Gemini clássico (google-generativeai deprecado pelo Google)
 # Migração para google-genai pendente — manter até atualizar o SDK
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
+warnings.filterwarnings("ignore", category=FutureWarning, module="google")
+warnings.filterwarnings("ignore", category=UserWarning, module="google")
 
 import motor_tusab
 import agent_tusab
