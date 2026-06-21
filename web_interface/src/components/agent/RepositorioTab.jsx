@@ -203,7 +203,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -240,6 +240,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [shareSnackbar,  setShareSnackbar]  = React.useState(null);
   const [readonlyMap,    setReadonlyMap]    = React.useState({});
   const importInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (openImport) {
+      importInputRef.current?.click();
+      onOpenImportHandled?.();
+    }
+  }, [openImport]);
   // ─── Project selector ────────────────────────────────────────────────────────
   const [projetos,       setProjetos]       = React.useState([]);
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo

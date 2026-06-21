@@ -8,7 +8,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onAddFiles, onToggleTheme, onChangeLang }) {
+function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onAddFiles, onToggleTheme, onChangeLang, onImportBase, regras }) {
   const { t, i18n: homeI18n } = useTranslation();
   const currentLang = homeI18n.language.startsWith('pt') ? 'pt' : homeI18n.language.startsWith('en') ? 'en' : 'es';
 
@@ -20,38 +20,107 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
   const ollamaOk     = ollamaStatus?.running && ollamaStatus?.models?.length > 0;
   const agentReady   = configured || ollamaOk;
 
+  const perfil = regras?._perfil ?? 'profissional';
+  const isEstudante   = perfil === 'estudante';
+  const isProfessor   = perfil === 'professor';
+  const isPesquisador = perfil === 'pesquisador';
+
   // ── Source cards (top, side-by-side) ──────────────────────────────────────
   const sourceBase = darkMode
     ? 'bg-white/4 border-white/10 hover:bg-white/8 hover:border-white/20'
     : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300';
 
-  const sourceCards = [
-    {
-      id:     'youtube',
-      icon:   '📺',
-      title:  t('home.source_youtube_title'),
-      sub:    'YouTube',
-      desc:   totalCanais > 0
-        ? t('home.card_extract_done', { count: totalCanais })
-        : t('home.source_youtube_desc'),
-      badge:  totalCanais > 0 ? String(totalCanais) : null,
-      action: () => onNavigate('extracao'),
-    },
-    {
-      id:     'arquivos',
-      icon:   '📁',
-      title:  t('home.source_files_title'),
-      sub:    t('home.source_files_sub'),
-      desc:   totalDocs > 0
-        ? t('home.card_repo_done', { count: totalDocs })
-        : t('home.source_files_desc'),
-      badge:  totalDocs > 0 ? String(totalDocs) : null,
-      action: onAddFiles,
-    },
-  ];
+  // Cards de fonte variam por perfil
+  let sourceCards;
+
+  if (isEstudante) {
+    // Estudante: destaque para importar base + acesso ao repositório
+    sourceCards = [
+      {
+        id:     'importar',
+        icon:   '📦',
+        title:  t('home.source_import_title'),
+        sub:    t('home.source_import_sub'),
+        desc:   totalArquivos > 0
+          ? t('home.card_repo_done', { count: totalArquivos })
+          : t('home.source_import_desc'),
+        badge:  totalArquivos > 0 ? String(totalArquivos) : null,
+        action: onImportBase,
+        highlight: true,
+      },
+      {
+        id:     'arquivos',
+        icon:   '📁',
+        title:  t('home.source_files_title'),
+        sub:    t('home.source_files_sub'),
+        desc:   totalDocs > 0
+          ? t('home.card_repo_done', { count: totalDocs })
+          : t('home.source_files_desc'),
+        badge:  totalDocs > 0 ? String(totalDocs) : null,
+        action: onAddFiles,
+        highlight: false,
+      },
+    ];
+  } else if (isProfessor) {
+    // Professor: extrair canal + exportar base
+    sourceCards = [
+      {
+        id:     'youtube',
+        icon:   '📺',
+        title:  t('home.source_youtube_title'),
+        sub:    'YouTube',
+        desc:   totalCanais > 0
+          ? t('home.card_extract_done', { count: totalCanais })
+          : t('home.source_youtube_desc'),
+        badge:  totalCanais > 0 ? String(totalCanais) : null,
+        action: () => onNavigate('extracao'),
+        highlight: false,
+      },
+      {
+        id:     'exportar',
+        icon:   '🎒',
+        title:  t('home.source_export_title'),
+        sub:    t('home.source_export_sub'),
+        desc:   totalCanais > 0
+          ? t('home.source_export_desc_ready', { count: totalCanais })
+          : t('home.source_export_desc'),
+        badge:  totalCanais > 0 ? String(totalCanais) : null,
+        action: () => onNavigate('repositorio'),
+        highlight: totalCanais > 0,
+      },
+    ];
+  } else {
+    // Pesquisador + Profissional: padrão original
+    sourceCards = [
+      {
+        id:     'youtube',
+        icon:   '📺',
+        title:  t('home.source_youtube_title'),
+        sub:    'YouTube',
+        desc:   totalCanais > 0
+          ? t('home.card_extract_done', { count: totalCanais })
+          : t('home.source_youtube_desc'),
+        badge:  totalCanais > 0 ? String(totalCanais) : null,
+        action: () => onNavigate('extracao'),
+        highlight: false,
+      },
+      {
+        id:     'arquivos',
+        icon:   '📁',
+        title:  t('home.source_files_title'),
+        sub:    t('home.source_files_sub'),
+        desc:   totalDocs > 0
+          ? t('home.card_repo_done', { count: totalDocs })
+          : t('home.source_files_desc'),
+        badge:  totalDocs > 0 ? String(totalDocs) : null,
+        action: onAddFiles,
+        highlight: false,
+      },
+    ];
+  }
 
   // ── Utility cards (below) ─────────────────────────────────────────────────
-  const utilityCards = [
+  const allUtilityCards = [
     {
       id:     'repositorio',
       icon:   '📚',
@@ -59,6 +128,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       desc:   totalArquivos > 0 ? t('home.card_repo_done', { count: totalArquivos }) : t('home.card_repo_desc'),
       badge:  totalArquivos > 0 ? String(totalArquivos) : null,
       color:  'accent',
+      perfis: ['estudante', 'professor', 'pesquisador', 'profissional'],
     },
     {
       id:     'visao-geral',
@@ -69,6 +139,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         : t('overview.subtitle'),
       badge:  null,
       color:  'secondary',
+      perfis: ['pesquisador', 'profissional'],
     },
     {
       id:     'agente',
@@ -78,12 +149,19 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       badge:  configured ? '✓' : null,
       color:  configured && indexed ? 'secondary' : 'primary',
       alert:  !agentReady,
+      perfis: ['estudante', 'professor', 'pesquisador', 'profissional'],
     },
   ];
+
+  const utilityCards = allUtilityCards.filter(c => c.perfis.includes(perfil));
 
   const badgeClass = (color) => color === 'secondary'
     ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
     : darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700';
+
+  const highlightBase = darkMode
+    ? 'bg-primary/10 border-primary/40 hover:bg-primary/15 hover:border-primary/60'
+    : 'bg-violet-50 border-violet-300 shadow-sm hover:shadow-md hover:border-violet-400';
 
   return (
     <div className={`flex-1 flex overflow-hidden ${darkMode ? 'bg-[#080C18]' : 'bg-slate-50'}`}>
@@ -122,14 +200,14 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
           {/* ── Source section ── */}
           <div>
             <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-              {t('home.section_source')}
+              {isEstudante ? t('home.section_source_estudante') : t('home.section_source')}
             </p>
             <div className="grid grid-cols-2 gap-3">
               {sourceCards.map(card => (
                 <button
                   key={card.id}
                   onClick={card.action}
-                  className={`relative p-4 rounded-2xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${btnFocus} ${sourceBase}`}>
+                  className={`relative p-4 rounded-2xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${btnFocus} ${card.highlight ? highlightBase : sourceBase}`}>
                   {card.badge && (
                     <span className={`absolute top-2.5 right-2.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeClass('primary')}`}>
                       {card.badge}
@@ -137,7 +215,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                   )}
                   <span className="text-2xl block mb-2">{card.icon}</span>
                   <div className="flex items-baseline gap-1.5">
-                    <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
+                    <p className={`text-xs font-bold leading-tight ${card.highlight ? darkMode ? 'text-primary' : 'text-violet-700' : darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeClass('primary')}`}>{card.sub}</span>
                   </div>
                   <p className={`text-[10px] mt-1 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
@@ -163,7 +241,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                   {card.alert && (
                     <span className={`absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      Configurar
+                      {t('home.card_configure')}
                     </span>
                   )}
                   {!card.alert && card.badge && (
