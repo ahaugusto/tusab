@@ -6,7 +6,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
 import { Loader2, Search, X } from 'lucide-react';
@@ -146,7 +146,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       )}
 
       {/* Modal — limpar histórico */}
-      {showLimpar && ReactDOM.createPortal(
+      {showLimpar && createPortal(
         <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({}); }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('relatorio.clear')}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
