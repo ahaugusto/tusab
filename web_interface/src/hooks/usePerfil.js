@@ -136,7 +136,8 @@ export function usePerfil() {
   }, []);
 
   // Se perfil não definido, fallback = profissional (não bloqueia nada antes do onboarding)
-  const regras = PERFIS_CONFIG[perfil] ?? PERFIS_CONFIG.profissional;
+  const regrasBase = PERFIS_CONFIG[perfil] ?? PERFIS_CONFIG.profissional;
+  const regras = { ...regrasBase, _perfil: perfil ?? 'profissional' };
 
   const perfilDefinido = perfil !== null;
 
