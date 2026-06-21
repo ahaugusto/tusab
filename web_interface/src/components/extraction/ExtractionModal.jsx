@@ -127,10 +127,12 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className={`rounded-2xl p-6 max-w-sm w-full shadow-2xl border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+        className={`rounded-2xl max-w-sm w-full shadow-2xl border flex flex-col ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+        style={{ maxHeight: 'min(90vh, 680px)' }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        {/* Header — fixo */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 shrink-0">
+
           <div>
             <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
               {stepLabel}
@@ -145,6 +147,9 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
             <X size={16} />
           </button>
         </div>
+
+        {/* Conteúdo scrollável */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6 custom-scrollbar">
 
         {/* Step indicator */}
         <div className="flex items-center gap-1.5 mb-5">
@@ -381,6 +386,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
             </div>
           </>
         )}
+        </div>{/* fim scroll */}
       </motion.div>
     </ModalWrapper>
   );

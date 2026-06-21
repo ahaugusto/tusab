@@ -884,7 +884,7 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || status.canal_url || ''} projetos={projetos} modoFila={isRunning} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalInput || status.canal_url || canalConfigurado || ''} projetos={projetos} modoFila={isRunning} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1240,15 +1240,18 @@ function App() {
               <div className="flex items-center gap-2">
                 {/* Chip de perfil — sempre visível quando Drive não autenticado */}
                 {driveStatus !== 'autenticado' && (
-                  <button
-                    onClick={() => setShowOnboarding(true)}
-                    title="Alterar perfil"
-                    aria-label="Perfil ativo — clique para alterar"
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
-                      ${darkMode ? 'border-white/15 text-slate-300 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100'}`}>
-                    <span>{PERFIS_META[perfil]?.icon ?? '🧑‍💻'}</span>
-                    <span className="hidden sm:inline">{t(PERFIS_META[perfil]?.label ?? 'perfil.especialista')}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[10px] hidden sm:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('header.perfil_acessado')}</span>
+                    <button
+                      onClick={() => setShowAlterarPerfil(true)}
+                      title="Alterar perfil"
+                      aria-label="Perfil ativo — clique para alterar"
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                        ${darkMode ? 'border-white/15 text-slate-300 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100'}`}>
+                      <span>{PERFIS_META[perfil]?.icon ?? '🧑‍💻'}</span>
+                      <span className="hidden sm:inline">{t(PERFIS_META[perfil]?.label ?? 'perfil.especialista')}</span>
+                    </button>
+                  </div>
                 )}
                 {/* Drive chip — só aparece quando autenticado */}
                 {regras.drive && driveStatus === 'autenticado' && (

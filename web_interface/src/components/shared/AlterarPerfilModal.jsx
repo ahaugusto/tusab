@@ -69,8 +69,9 @@ function AlterarPerfilModal({ darkMode, btnFocus = BTN_FOCUS, perfilAtual, onCon
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.96, y: 8, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-        className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden
+        className={`relative w-full max-w-md rounded-2xl shadow-2xl flex flex-col
           ${darkMode ? 'bg-slate-900 border border-white/10' : 'bg-white border border-slate-200'}`}
+        style={{ maxHeight: 'min(90vh, 640px)' }}
         onClick={e => e.stopPropagation()}
       >
 
@@ -91,6 +92,9 @@ function AlterarPerfilModal({ darkMode, btnFocus = BTN_FOCUS, perfilAtual, onCon
             <X size={15} aria-hidden="true" />
           </button>
         </div>
+
+        {/* Conteúdo scrollável */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
 
         {/* Subtítulo — perfil atual */}
         <div className={`px-5 pt-4 pb-2`}>
@@ -202,6 +206,7 @@ function AlterarPerfilModal({ darkMode, btnFocus = BTN_FOCUS, perfilAtual, onCon
             </button>
           </div>
         )}
+        </div>{/* fim scroll */}
 
       </motion.div>
     </ModalWrapper>
