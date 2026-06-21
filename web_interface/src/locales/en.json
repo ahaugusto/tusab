@@ -427,6 +427,8 @@
   "citation.snackbar": "Not a summary. It's a citation. — Every answer comes with the exact source where the excerpt was retrieved from.",
   "home.source_files_sub": "Local",
   "home.card_overview_done": "{{files}} file{{files, plural, one {} other {s}}} · {{projects}} project{{projects, plural, one {} other {s}}}",
+  "repo.add_text_title": "Paste text into @{{nome}}",
+  "repo.add_file_title": "Attach file to @{{nome}}",
   "repo.select_project_first": "Select or create a project above before adding content.",
   "home.source_import_title": "Import Base",
   "home.source_import_sub": "From teacher",
