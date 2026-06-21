@@ -307,10 +307,10 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-[11px] font-bold ${autoUpdate ? 'text-cyan-600' : darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    Busca automática de novos vídeos
+                    Auto-Update — novos vídeos automaticamente
                   </p>
                   <p className={`text-[10px] mt-0.5 leading-snug ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Requer conexão com a internet periodicamente
+                    Verifica e indexa novos vídeos na frequência escolhida
                   </p>
                 </div>
                 <span className="text-base shrink-0" aria-hidden="true">🌐</span>
