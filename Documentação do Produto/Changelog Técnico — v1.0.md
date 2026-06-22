@@ -585,3 +585,105 @@ Build de produção para Windows:
 
 *Para a arquitetura modular completa, ver `Blueprint de Modularização.md`.*
 *Para as decisões estratégicas que guiaram a sprint, ver `Decisões de Produto.md`.*
+
+---
+
+## Commit `355a6ea` — Modularização do App.jsx + correções de UX
+
+**Data:** 22/06/2026
+**Escopo:** Frontend
+**Branch:** main
+
+### Contexto
+
+`App.jsx` havia crescido para ~2.385 linhas ao longo da sprint de lançamento — acumulando JSX de modais, abas e lógica de orquestração no mesmo arquivo. A modularização foi executada com cautela total sobre dependências entre componentes, preservando todos os fluxos existentes sem breaking changes.
+
+---
+
+### Frontend
+
+#### Componentes extraídos do App.jsx
+
+**7 novos arquivos criados:**
+
+| Componente | Origem (linhas App.jsx) | Responsabilidade |
+|---|---|---|
+| `components/modals/CancelQueueModal.jsx` | 776–837 | Modal de cancelamento com fila pendente — opções "cancelar e continuar fila" vs "cancelar e limpar fila" |
+| `components/modals/ResetModal.jsx` | 841–930 | Modal de reset total — estado interno `confirmText`/`resetando`; `onResetDone` callback para App.jsx limpar seu próprio estado |
+| `components/modals/QueueManagerModal.jsx` | 944–1039 | Gerência de fila de extração — reordenação e remoção individual via `queueMoveItem`/`queueRemoveItem` |
+| `components/extraction/ExtractionTab.jsx` | 1288–1799 (~512 linhas) | Sub-abas Extrair / Relatório / Auto-Update com toda a lógica de canal, log, progress bar e histórico |
+| `components/tabs/AgentTab.jsx` | 1937–2173 | Configuração de provider, API key, Ollama, personas |
+| `components/tabs/AdminTab.jsx` | 2176–2273 | Telemetria, privacidade, limpeza de base, suporte |
+
+**Resultado:** App.jsx de **2.385 → 1.431 linhas** (redução de 40%).
+
+#### Padrão de props usado
+
+Todos os componentes recebem estado e handlers como props explícitas do App.jsx — sem Context API, sem estado compartilhado lateral. Componentes com lógica própria encapsulam o estado que não precisa subir:
+- `ResetModal`: `confirmText` e `resetando` são internos; `onResetDone` dispara o cleanup no App.jsx
+- `QueueManagerModal`: `handleMover`/`handleRemover` chamam a API diretamente
+- `ExtractionTab`: importa `setChannel`/`openFolder`/`saveAutoUpdateConfig` da API diretamente para o histórico e Auto-Update
+
+#### `App.jsx`
+
+Imports removidos (mortos após extração):
+- `acceptAnalytics`, `declineAnalytics` (movidos para AdminTab)
+- `PrivacidadeRede` (movido para AdminTab)
+- Estados `resetConfirmText` e `resetando` (internalizados no ResetModal)
+
+---
+
+### Correções de UX incluídas no mesmo commit
+
+#### Toast de indexação — reaparecia ao fechar
+
+**Causa:** o `useEffect` que dispara o toast usava `!indexing && index_logs.length > 0` como condição — re-executava a cada polling enquanto `index_logs` permanecia preenchido, reabrindo o toast depois de o usuário fechá-lo.
+
+**Fix:** adicionado `prevIndexingRef` para detectar a transição `true → false`. O toast só é disparado uma vez por ciclo de indexação.
+
+```js
+const wasIndexing = prevIndexingRef.current;
+prevIndexingRef.current = agentStatus.indexing;
+if (!wasIndexing || agentStatus.indexing) return; // só na borda de descida
+```
+
+Proteção dupla: o toast também não é colocado no estado quando `showHome` ou `showLanding` são `true`, e não renderiza mesmo que esteja no estado.
+
+#### Toast não aparece na HomeScreen / LandingScreen
+
+`progressToast` agora tem duas camadas de proteção:
+1. **Não entra no estado** se `showHome` ou `showLanding` estiver ativo no momento da indexação
+2. **Não renderiza** (`AnimatePresence` condicionado a `!showHome && !showLanding`)
+
+Ao clicar no logo para voltar à home, `setProgressToast(null)` é chamado explicitamente.
+
+#### ExtractionModal — não pede URL quando canal já configurado
+
+**Causa histórica:** o modal pulava o step 1 se `canalUrlInicial` viesse preenchido — mas `canalUrlInicial` dependia de `canalInput || status.canal_url`, que podia estar vazio quando o canal era restaurado pelo polling sem URL gravada.
+
+**Decisão de produto:** o usuário deve sempre confirmar o canal antes de extrair. Modal agora abre invariavelmente no step 1 com campo vazio. A URL não é pré-preenchida.
+
+```js
+// Antes
+const stepInicial = !modoFila && canalUrlInicial ? 3 : 1;
+// Depois
+const [step, setStep] = React.useState(1);
+const [canalUrl, setCanalUrl] = React.useState('');
+```
+
+#### Scroll da aba Extração travava ao cancelar/pausar
+
+**Causa:** `handleCancel` e `handlePause` chamavam `logSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })` — isso empurrava o log para o topo da viewport, tornando o resto do conteúdo inacessível.
+
+**Fix:** removidos os `scrollIntoView` de ambos os handlers.
+
+**Fix complementar:** o container raiz do `ExtractionTab` tinha `overflow-y-auto` aninhado com o container interno da sub-aba (que também tinha `overflow-y-auto`), criando scroll dentro de scroll. Container raiz alterado para `overflow-hidden`.
+
+---
+
+### Estado dos testes (22/06/2026)
+
+| Suite | Resultado |
+|---|---|
+| `pytest tests/ -v` (27 testes) | ✅ 27/27 verde |
+| Smoke test pre-commit (15 checks) | ✅ 15/15 verde |

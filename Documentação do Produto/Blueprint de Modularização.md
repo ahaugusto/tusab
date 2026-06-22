@@ -1,8 +1,9 @@
 ﻿# Blueprint de Modularização — Tusab Engine
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
-**Status:** Proposta aprovada para execução incremental
+**Status:** Backend concluído (jun/2026) · Frontend concluído (22/06/2026)
 **Criado em:** 12 de junho de 2026
+**Atualizado em:** 22 de junho de 2026
 
 ---
 
@@ -205,10 +206,26 @@ precisar listar capacidades.
 
 ## Checklist de execução
 
-- [ ] **P1** — Criar `tusab_engine/` + Passo 1 (storage) → pytest verde
-- [ ] **P2** — Passo 2 (state) → pytest verde
-- [ ] **P3** — Passo 3 (agent package) → pytest verde + smoke
-- [ ] **P4** — Passo 4 (motor package) → pytest verde + smoke + electron/package.json
-- [ ] **P5** — Passo 5 (api routers) → pytest verde + smoke + revisão manual Electron
-- [ ] Atualizar `Execução do Relatório 360.md` com entrada de modularização
-- [ ] Atualizar `README.md` com nova estrutura de pastas
+### Backend (concluído — jun/2026)
+- [x] **P1** — Criar `tusab_engine/` + Passo 1 (storage) → pytest verde
+- [x] **P2** — Passo 2 (state) → pytest verde
+- [x] **P3** — Passo 3 (agent package) → pytest verde + smoke
+- [x] **P4** — Passo 4 (motor package) → pytest verde + smoke + electron/package.json
+- [x] **P5** — Passo 5 (api routers) → pytest verde + smoke + revisão manual Electron
+
+### Frontend — App.jsx (concluído — 22/06/2026)
+
+App.jsx havia crescido para ~2.385 linhas ao longo da sprint de lançamento. Modularização executada com preservação total de dependências via props explícitas.
+
+- [x] `components/modals/CancelQueueModal.jsx` — modal de cancelamento com fila pendente
+- [x] `components/modals/ResetModal.jsx` — reset total com estado interno encapsulado
+- [x] `components/modals/QueueManagerModal.jsx` — gerência de fila (reordenar, remover)
+- [x] `components/extraction/ExtractionTab.jsx` — sub-abas Extrair / Relatório / Auto-Update (~512 linhas)
+- [x] `components/tabs/AgentTab.jsx` — configuração de provider, API key, personas
+- [x] `components/tabs/AdminTab.jsx` — telemetria, privacidade, limpeza de base
+
+**Resultado:** App.jsx de **2.385 → 1.431 linhas** (−40%). 27/27 testes + 15/15 smoke verdes.
+
+### Documentação
+- [x] Atualizar `Changelog Técnico — v1.0.md` com entrada de modularização do frontend
+- [x] Atualizar `Blueprint de Modularização.md` com status concluído
