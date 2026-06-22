@@ -227,15 +227,29 @@ function ChatDrawer({
     navigator.clipboard.writeText(texto).catch(() => {});
   }, []);
 
-  const triggerDownload = useCallback((response, filename) => {
-    response.blob().then(blob => {
+  // Tamanho mínimo para habilitar exports (chars de conteúdo de assistente)
+  const MIN_CHARS_EXPORT = 200;
+
+  const triggerDownload = useCallback(async (responsePromise, filename) => {
+    try {
+      const response = await responsePromise;
+      const contentType = response.headers.get('content-type') || '';
+      // Se o backend retornou JSON é erro (ex: "Sem histórico")
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        console.warn('[export]', data.message || 'Erro no export');
+        return;
+      }
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = filename;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
+    } catch (e) {
+      console.warn('[export] falha no download:', e);
+    }
   }, []);
 
   const prevChatInputRef = useRef(chatInput);
@@ -743,7 +757,18 @@ function ChatDrawer({
                           </div>
                         )}
                         {/* ── Action bar — aparece ao hover na mensagem do assistente ── */}
-                        {msg.role === 'assistant' && !msg.streaming && (
+                        {msg.role === 'assistant' && !msg.streaming && (() => {
+                          const canal = agentStatus?.canal_indexado || canalConfigurado;
+                          // Conteúdo total das respostas do assistente na conversa
+                          const totalChars = chatMessages
+                            .filter(m => m.role === 'assistant')
+                            .reduce((acc, m) => acc + (m.content?.length || 0), 0);
+                          const temConteudoSuficiente = totalChars >= MIN_CHARS_EXPORT;
+                          // Payload de mensagens para o backend (role + content apenas)
+                          const msgPayload = chatMessages
+                            .filter(m => m.role === 'user' || m.role === 'assistant')
+                            .map(m => ({ role: m.role, content: m.content || '', fontes: m.fontes || [] }));
+                          return (
                           <div className={`pt-2 border-t flex items-center gap-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                             {/* Copiar */}
                             <button
@@ -762,13 +787,12 @@ function ChatDrawer({
                             </button>
                             {/* Salvar como Doc */}
                             <button
-                              title="Salvar como documento Word"
+                              title={temConteudoSuficiente ? 'Salvar conversa como documento Word' : 'Conteúdo insuficiente para gerar documento'}
                               onClick={() => {
-                                const canal = agentStatus?.canal_indexado || canalConfigurado;
-                                if (!canal) return;
-                                triggerDownload(exportResumoCanalDocx(canal), `tusab_${canal}.docx`);
+                                if (!canal || !temConteudoSuficiente) return;
+                                triggerDownload(exportResumoCanalDocx(canal, msgPayload), `tusab_${canal}.docx`);
                               }}
-                              disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+                              disabled={!canal || !temConteudoSuficiente}
                               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
                                 ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
                               <FileText size={11} />
@@ -776,28 +800,26 @@ function ChatDrawer({
                             </button>
                             {/* Salvar como PDF */}
                             <button
-                              title="Salvar como PDF"
+                              title={temConteudoSuficiente ? 'Salvar conversa como PDF' : 'Conteúdo insuficiente para gerar PDF'}
                               onClick={() => {
-                                const canal = agentStatus?.canal_indexado || canalConfigurado;
-                                if (!canal) return;
-                                triggerDownload(exportRelatorioPdf(canal), `tusab_${canal}.pdf`);
+                                if (!canal || !temConteudoSuficiente) return;
+                                triggerDownload(exportRelatorioPdf(canal, msgPayload), `tusab_${canal}.pdf`);
                               }}
-                              disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+                              disabled={!canal || !temConteudoSuficiente}
                               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
                                 ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
                               <FileDown size={11} />
                               <span>PDF</span>
                             </button>
-                            {/* Salvar como Planilha — só quando resposta tem lista/tabela */}
-                            {detectaLista(msg.content) && (
+                            {/* Salvar como Planilha — só quando resposta tem lista/tabela E conteúdo suficiente */}
+                            {detectaLista(msg.content) && temConteudoSuficiente && (
                               <button
-                                title="Salvar como planilha Excel"
+                                title="Exportar tabela de vídeos do canal como planilha Excel"
                                 onClick={() => {
-                                  const canal = agentStatus?.canal_indexado || canalConfigurado;
                                   if (!canal) return;
                                   triggerDownload(exportTabelaVideosXlsx(canal), `tusab_${canal}.xlsx`);
                                 }}
-                                disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+                                disabled={!canal}
                                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
                                   ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
                                 <Sheet size={11} />
@@ -805,7 +827,8 @@ function ChatDrawer({
                               </button>
                             )}
                           </div>
-                        )}
+                          );
+                        })()}
                       </div>
                       )}
                     </div>
