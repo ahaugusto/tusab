@@ -547,5 +547,13 @@
   "privacy.updater_desc_off": "La verificación automática de versiones está desactivada. Las actualizaciones deben instalarse manualmente.",
   "privacy.updater_aria": "Activar o desactivar actualizaciones automáticas de la app",
   "privacy.updater_warning": "Con las actualizaciones automáticas desactivadas, no recibirás correcciones de seguridad automáticamente. Verifica periódicamente si hay nuevas versiones.",
-  "privacy.footer_note": "Tusab nunca recopila datos de uso, telemetría ni identificación personal sin consentimiento."
+  "privacy.footer_note": "Tusab nunca recopila datos de uso, telemetría ni identificación personal sin consentimiento.",
+  "proHint.title": "¡Estás yendo lejos!",
+  "proHint.subtitle": "Tusab Pro está llegando",
+  "proHint.body": "Ya tienes 3 o más bases indexadas. Pronto, Tusab Pro permitirá bases ilimitadas, búsqueda avanzada con reranking semántico y mucho más.",
+  "proHint.comingSoon": "En desarrollo",
+  "proHint.feature1": "Bases ilimitadas",
+  "proHint.feature2": "Búsqueda avanzada con reranking semántico",
+  "proHint.feature3": "Sincronización automática con Google Drive",
+  "proHint.cta": "Entendido, seguir usando"
 }

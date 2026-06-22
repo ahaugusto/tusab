@@ -321,7 +321,7 @@ def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keyword
 
 # ── Indexação ─────────────────────────────────────────────────────────────────
 
-FREE_MAX_CANAIS = 2
+PRO_HINT_THRESHOLD = 3
 
 
 def _contar_canais_indexados() -> list:
@@ -341,19 +341,6 @@ def _contar_canais_indexados() -> list:
 
 
 def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None) -> int:
-    config = carregar_config()
-
-    # Limite Free: máximo FREE_MAX_CANAIS canais indexados simultaneamente
-    if not config.get('pro', False):
-        existentes = _contar_canais_indexados()
-        canal_ja_indexado = canal_nome in existentes
-        if not canal_ja_indexado and len(existentes) >= FREE_MAX_CANAIS:
-            raise ValueError(
-                f"PRO_LIMIT:Você já tem {len(existentes)} canais indexados. "
-                f"O plano Free permite até {FREE_MAX_CANAIS}. "
-                f"Remova um canal ou faça upgrade para o Pro."
-            )
-
     if callback: callback("🔍 Lendo arquivos do corpus...")
 
     chunks = _parsear_todos_chunks(canal_prefixo)

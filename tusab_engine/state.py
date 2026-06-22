@@ -82,6 +82,9 @@ class AppState:
         self.extraction_queue: list = []
         self.queue_lock = threading.Lock()
 
+        # Hint Pro: True quando usuário indexou >= 3 canais (reset após leitura pelo frontend)
+        self.pro_hint: bool = False
+
 
 # Singleton — importado diretamente por api_tusab e pelos routers
 state = AppState()
@@ -101,6 +104,13 @@ class LogRedirector:
         clean = text.strip()
         noise = ["GET /", "POST /", "HTTP/1.1", "127.0.0.1", "INFO:", "WARNING:", "uvicorn"]
         if any(k in clean for k in noise):
+            return
+        # Ruído asyncio do Windows (cliente desconectou — inofensivo)
+        asyncio_noise = [
+            "WinError 10054", "ConnectionResetError", "_ProactorBasePipeTransport",
+            "_call_connection_lost", "asyncio\\events.py", "Exception in callback",
+        ]
+        if any(k in clean for k in asyncio_noise):
             return
 
         with state.state_lock:

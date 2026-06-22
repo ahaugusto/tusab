@@ -34,7 +34,7 @@ import {
   queueRemoveItem, queueMoveItem, saveAutoUpdateConfig, runAutoUpdate, getAutoUpdateConfig,
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory,
-  deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, resetTotal,
+  deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -58,6 +58,7 @@ import { DriveToggle }          from './components/sidebar/SidebarContent';
 import CancelQueueModal         from './components/modals/CancelQueueModal';
 import ResetModal               from './components/modals/ResetModal';
 import QueueManagerModal        from './components/modals/QueueManagerModal';
+import ProHintModal             from './components/modals/ProHintModal';
 import ExtractionTab            from './components/extraction/ExtractionTab';
 import AgentTab                 from './components/tabs/AgentTab';
 import AdminTab                 from './components/tabs/AdminTab';
@@ -85,6 +86,7 @@ function App() {
   const [showOnboarding,   setShowOnboarding]   = useState(false);
   const [showGuide,        setShowGuide]        = useState(false);
   const [showResetModal,   setShowResetModal]   = useState(false);
+  const [showProHint,      setShowProHint]      = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
   const [activeTab,        setActiveTab]        = useState('extracao');
@@ -138,6 +140,9 @@ function App() {
 
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [folderPickerNovoProjeto, setFolderPickerNovoProjeto] = useState('');
+  const [folderPickerCriando, setFolderPickerCriando] = useState(false);
+  const [repoProjetoInicial,  setRepoProjetoInicial]  = useState('');
 
   // ─── Agent state (via hook) ────────────────────────────────────────────────
   const [showIndexInfo,    setShowIndexInfo]    = useState(false);
@@ -154,7 +159,7 @@ function App() {
 
   // ─── Agent config hook ────────────────────────────────────────────────────
   const {
-    agentStatus,          setAgentStatus,
+    agentStatus,          setAgentStatus,     refetchAgentStatus,
     agentProvider,        setAgentProvider,
     agentApiKey,          setAgentApiKey,
     showApiKey,           setShowApiKey,
@@ -394,6 +399,8 @@ function App() {
     prevIndexingRef.current = agentStatus.indexing;
     // Only fire on the true→false transition — prevents re-triggering on every poll
     if (!wasIndexing || agentStatus.indexing) return;
+    // Refetch imediato para atualizar canais_indexados sem esperar o próximo poll (3s)
+    refetchAgentStatus();
     if (agentStatus.index_logs.length > 0) {
       setLastIndexLogs(agentStatus.index_logs);
       const hasError = agentStatus.index_logs.some(l => l.message?.includes('Erro') || l.message?.includes('erro'));
@@ -412,6 +419,14 @@ function App() {
       }
     }
   }, [agentStatus.indexing, agentStatus.index_logs]);
+
+  // Detecta pro_hint do backend (emitido uma vez após indexar >= 3 canais)
+  useEffect(() => {
+    if (agentStatus.pro_hint && !sessionStorage.getItem('tusab_pro_hint_shown')) {
+      setShowProHint(true);
+      sessionStorage.setItem('tusab_pro_hint_shown', '1');
+    }
+  }, [agentStatus.pro_hint]);
 
   /** Shows post-extraction modal and sends desktop notification when extraction finishes */
   useEffect(() => {
@@ -466,6 +481,27 @@ function App() {
   };
 
   /** Selects a previously extracted canal by URL (history quick-select) */
+  const handleFolderPickerCriar = async () => {
+    if (!folderPickerNovoProjeto.trim()) return;
+    setFolderPickerCriando(true);
+    try {
+      const res = await criarProjeto(folderPickerNovoProjeto.trim());
+      if (res.data?.ok) {
+        const nomeCriado = res.data.nome || folderPickerNovoProjeto.trim();
+        fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+        openFolder('canal_youtube', nomeCriado);
+        setFolderPickerOpen(false);
+        setFolderPickerNovoProjeto('');
+        // Abre o modal de upload com o projeto recém-criado pré-selecionado
+        setRepoProjetoInicial(nomeCriado);
+        setRepoAddOpen(true);
+        setActiveTab('repositorio');
+        setShowHome(false);
+      }
+    } catch { /* ignore */ }
+    setFolderPickerCriando(false);
+  };
+
   const handleUsarCanalHistorico = async (canalUrl, canalNomeFallback) => {
     try {
       const res = await setChannel(canalUrl);
@@ -690,17 +726,57 @@ function App() {
               className={`w-full max-w-sm rounded-2xl shadow-2xl p-5 ${darkMode ? 'bg-slate-900 border border-white/10' : 'bg-white border border-slate-200'}`}
               onClick={e => e.stopPropagation()}
             >
-              <h2 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Abrir pasta do canal</h2>
-              <div className="flex flex-col gap-1.5">
-                {history.filter(h => h.canal_nome).map((h, i) => (
-                  <button key={i}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'hover:bg-white/10 text-slate-200' : 'hover:bg-slate-100 text-slate-700'}`}
-                    onClick={() => { openFolder('canal_youtube', h.canal_nome); setFolderPickerOpen(false); }}
-                  >
-                    @{h.canal_nome}
-                  </button>
-                ))}
-              </div>
+              {(() => {
+                const canais = [
+                  ...new Set([
+                    ...(repositorio.canais || []).map(c => c.nome),
+                    ...history.filter(h => h.canal_nome).map(h => h.canal_nome),
+                  ])
+                ];
+                if (canais.length === 0) {
+                  return (
+                    <>
+                      <h2 className={`text-sm font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Criar primeiro projeto</h2>
+                      <p className={`text-xs mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Você ainda não tem projetos. Crie um para organizar seus arquivos.
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          autoFocus
+                          value={folderPickerNovoProjeto}
+                          onChange={e => setFolderPickerNovoProjeto(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleFolderPickerCriar(); }}
+                          placeholder="Nome do projeto..."
+                          className={`flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:border-primary
+                            ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`}
+                        />
+                        <button
+                          disabled={folderPickerCriando || !folderPickerNovoProjeto.trim()}
+                          onClick={handleFolderPickerCriar}
+                          className="px-4 py-2 rounded-xl text-sm font-bold bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 transition-colors"
+                        >
+                          {folderPickerCriando ? '...' : 'Criar'}
+                        </button>
+                      </div>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <h2 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Abrir pasta do projeto</h2>
+                    <div className="flex flex-col gap-1.5">
+                      {canais.map((nome, i) => (
+                        <button key={i}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'hover:bg-white/10 text-slate-200' : 'hover:bg-slate-100 text-slate-700'}`}
+                          onClick={() => { openFolder('canal_youtube', nome); setFolderPickerOpen(false); }}
+                        >
+                          @{nome}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </motion.div>
           </motion.div>
         )}
@@ -832,6 +908,8 @@ function App() {
           fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
         }}
       />
+      {showProHint && <ProHintModal onClose={() => setShowProHint(false)} />}
+
       <AnimatePresence>
         {showExtractionModal && (
           <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} />
@@ -1261,6 +1339,8 @@ function App() {
                   onOpenIndexarHandled={() => setRepoIndexarOpen(false)}
                   openImport={repoImportOpen}
                   onOpenImportHandled={() => setRepoImportOpen(false)}
+                  projetoInicial={repoProjetoInicial}
+                  onProjetoInicialHandled={() => setRepoProjetoInicial('')}
                   regras={regras}
                 />
               </div>
