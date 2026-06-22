@@ -41,14 +41,12 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   ];
 
   // Steps: 1=URL, 2=Projeto (só no modoFila), 3=Fontes
-  // Sem fila + canal já configurado → começa direto no step 3 (só fontes).
-  // Sem fila + sem canal → 1→3. Com fila → 1→2→3.
-  const totalSteps = modoFila ? 3 : (canalUrlInicial ? 1 : 2);
-  const stepInicial = !modoFila && canalUrlInicial ? 3 : 1;
-  const [step, setStep] = React.useState(stepInicial);
+  // Sempre começa no step 1 — usuário deve confirmar o canal antes de extrair.
+  const totalSteps = modoFila ? 3 : 2;
+  const [step, setStep] = React.useState(1);
 
-  // Step 1: channel URL
-  const [canalUrl, setCanalUrl] = React.useState(canalUrlInicial || '');
+  // Step 1: channel URL — começa vazio, sem pré-preenchimento
+  const [canalUrl, setCanalUrl] = React.useState('');
 
   // Step 2 (modoFila): project selection
   // Pré-seleciona o projeto do canal atual se existir na lista
@@ -108,15 +106,14 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
     const nome = modoFila
       ? (criandoNovo ? novoNome.trim() : projetoSel.trim())
       : canalNome; // sem fila: usa o canal configurado como projeto
-    const urlChanged = canalUrl.trim() && canalUrl.trim() !== canalUrlInicial.trim();
+    const urlChanged = !!canalUrl.trim();
     const autoUpdateConfig = autoUpdate && autoUpdateConsent
       ? { enabled: true, frequencia: autoUpdateFreq }
       : { enabled: false };
     onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig);
   };
 
-  // Labels adaptativos — quando começa direto no step 3, não há "voltar"
-  const temVoltar = step !== stepInicial;
+  const temVoltar = step !== 1;
   const stepVisual = step === 1 ? 1 : step === 2 ? 2 : totalSteps;
   const stepLabel = step === 1
     ? 'Canal do YouTube'
