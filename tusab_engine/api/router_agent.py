@@ -88,6 +88,10 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
             stop_event=state.agent_index_stop,
         )
         state.perguntas_sugeridas = _gerar_perguntas_sugeridas(canal_prefixo)
+        # Aviso Pro: se o usuário já tem >= 3 canais indexados, sinaliza ao frontend
+        from agent_tusab import _contar_canais_indexados, PRO_HINT_THRESHOLD
+        if len(_contar_canais_indexados()) >= PRO_HINT_THRESHOLD:
+            state.pro_hint = True
     except Exception as e:
         state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": f"❌ Erro na indexação: {e}"})
     finally:
@@ -182,6 +186,10 @@ def agent_status():
     status["dias_desde_install"] = retencao["dias_desde_install"]
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     status["bases_desatualizadas"] = _bases_com_arquivos_novos(status.get("canais_indexados", []))
+    # pro_hint é consumido uma vez e resetado — o frontend controla a frequência via sessionStorage
+    status["pro_hint"] = state.pro_hint
+    if state.pro_hint:
+        state.pro_hint = False
     return status
 
 
