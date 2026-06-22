@@ -198,6 +198,7 @@ function App() {
     chatLoading,
     chatEndRef,
     fontesFixadas, setFontesFixadas,
+    chatQueue,
     handleChatSend,
     chatHistory,
     retomar:       retomar,
@@ -1468,6 +1469,7 @@ function App() {
               chatHistory={chatHistory}
               onRetomar={retomar}
               onNovaConversa={novaConversa}
+              chatQueue={chatQueue}
             />
 
             {/* Floating chat button */}

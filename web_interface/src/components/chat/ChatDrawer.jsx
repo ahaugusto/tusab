@@ -185,6 +185,7 @@ function ChatDrawer({
   chatHistory,
   onRetomar,
   onNovaConversa,
+  chatQueue = [],
 }) {
   const { t } = useTranslation();
   const [showRepoModal,     setShowRepoModal]     = useState(false);
@@ -625,9 +626,15 @@ function ChatDrawer({
               ) : (
                 <>
                   {chatMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      {/* Mensagem de export — card especial com botão de download */}
-                      {msg.role === 'export' ? (
+                    <div key={i} className={`flex ${msg.role === 'user' || msg.role === 'queued' ? 'justify-end' : 'justify-start'}`}>
+                      {/* Mensagem enfileirada — aguardando a vez */}
+                      {msg.role === 'queued' ? (
+                        <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed rounded-br-sm flex items-start gap-2 opacity-50
+                          ${darkMode ? 'bg-primary/15 border border-primary/20 text-slate-300' : 'bg-violet-50 border border-violet-200 text-slate-500'}`}>
+                          <Loader2 size={13} className="mt-0.5 shrink-0 animate-spin" />
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      ) : msg.role === 'export' ? (
                         <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2.5 rounded-bl-sm
                           ${darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
                           <div className="flex items-center gap-2">

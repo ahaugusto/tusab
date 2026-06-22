@@ -53,12 +53,16 @@ export function useChatEngine({
   const [chatInput,       setChatInput]       = useState('');
   const [chatLoading,     setChatLoading]     = useState(false);
   const [fontesFixadas,   setFontesFixadas]   = useState([]);
+  // Fila de mensagens pendentes enquanto uma resposta está em andamento (max 5)
+  const [chatQueue,       setChatQueue]       = useState([]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const chatEndRef            = useRef(null);
   const fonteSnackbarMostrado = useRef(false);
   // id da conversa ativa — criado ao enviar a primeira mensagem
   const convIdRef             = useRef(null);
+  // ref espelho de chatQueue para uso dentro de closures async
+  const chatQueueRef          = useRef([]);
 
   // ─── Effects ───────────────────────────────────────────────────────────────
 
@@ -75,6 +79,25 @@ export function useChatEngine({
     if (!convIdRef.current) convIdRef.current = history.startNew(canal);
     history.saveMessages(convIdRef.current, chatMessages, canal);
   }, [chatMessages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Mantém chatQueueRef sincronizado com chatQueue para closures async */
+  useEffect(() => {
+    chatQueueRef.current = chatQueue;
+  }, [chatQueue]);
+
+  /** Consome próximo item da fila quando a resposta atual termina */
+  useEffect(() => {
+    if (chatLoading) return;
+    if (chatQueueRef.current.length === 0) return;
+    const [proxima, ...resto] = chatQueueRef.current;
+    setChatQueue(resto);
+    chatQueueRef.current = resto;
+    // Remove o balão "queued" da proxima mensagem e dispara o envio
+    setChatMessages(prev => prev.map(m =>
+      m.role === 'queued' && m.content === proxima ? { ...m, role: 'user', queued: false } : m
+    ));
+    _executarEnvio(proxima);
+  }, [chatLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -138,31 +161,9 @@ export function useChatEngine({
     }
   };
 
-  /** Sends the current chat message using server-sent streaming */
-  const handleChatSend = async () => {
-    const msg = chatInput.trim();
-    if (!msg || chatLoading) return;
-
-    // Detecta intenção de export antes de ir ao LLM
-    const canal = agentStatus.canal_indexado || canalConfigurado;
-    const intencao = detectarIntencaoExport(msg);
-    if (intencao && canal) {
-      handleExportDoChat(intencao, canal, msg);
-      return;
-    }
-
-    if (agentProvider === 'ollama' && !ollamaStatus.running) {
-      setChatInput('');
-      setChatMessages(prev => [...prev,
-        { role: 'user',  content: msg },
-        { role: 'error', content: t('agent.ollama_offline') },
-      ]);
-      return;
-    }
-
-    setChatInput('');
+  /** Núcleo do envio — executa a chamada de streaming para uma mensagem já confirmada */
+  const _executarEnvio = async (msg) => {
     Analytics.chatPergunta(buscaAmpla ? 'ampla' : 'restrita', useExternalProvider ? agentProvider : 'ollama');
-    setChatMessages(prev => [...prev, { role: 'user', content: msg }]);
     setChatLoading(true);
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', fontes: [], streaming: true }]);
 
@@ -181,7 +182,6 @@ export function useChatEngine({
       const reader  = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let fontes = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -201,19 +201,17 @@ export function useChatEngine({
                 return msgs;
               });
             } else if (parsed.fontes !== undefined) {
-              fontes = parsed.fontes;
+              const fontes = parsed.fontes;
               const semCtx = !!parsed.sem_contexto;
               setChatMessages(prev => {
                 const msgs = [...prev];
                 msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], fontes, sem_contexto: semCtx };
                 return msgs;
               });
-              // A2 — KPI: primeira resposta com fontes reais (não erro, não vazia)
               if (fontes.length > 0 && agentStatus.primeiro_uso) {
                 const minutos = Math.round((Date.now() / 1000 - agentStatus.primeiro_uso) / 60);
                 Analytics.primeiraRespostaUtil(minutos, useExternalProvider ? agentProvider : 'ollama');
               }
-              // Snackbar educativo: mostra uma vez por sessão na primeira resposta com fontes
               if (fontes.length > 0 && !fonteSnackbarMostrado.current && onPrimeiraFonte) {
                 fonteSnackbarMostrado.current = true;
                 onPrimeiraFonte();
@@ -226,7 +224,6 @@ export function useChatEngine({
               });
             }
           } catch {
-            // Plain text line — append to current assistant message
             setChatMessages(prev => {
               const msgs = [...prev];
               const last = msgs[msgs.length - 1];
@@ -244,6 +241,47 @@ export function useChatEngine({
       });
     }
     setChatLoading(false);
+  };
+
+  const QUEUE_LIMIT = 5;
+
+  /** Envia a mensagem atual ou enfileira se já há uma resposta em andamento */
+  const handleChatSend = async () => {
+    const msg = chatInput.trim();
+    if (!msg) return;
+
+    // Detecta intenção de export antes de ir ao LLM
+    const canal = agentStatus.canal_indexado || canalConfigurado;
+    const intencao = detectarIntencaoExport(msg);
+    if (intencao && canal) {
+      handleExportDoChat(intencao, canal, msg);
+      return;
+    }
+
+    if (agentProvider === 'ollama' && !ollamaStatus.running) {
+      setChatInput('');
+      setChatMessages(prev => [...prev,
+        { role: 'user',  content: msg },
+        { role: 'error', content: t('agent.ollama_offline') },
+      ]);
+      return;
+    }
+
+    setChatInput('');
+
+    // Se há resposta em andamento: enfileira (balão "queued" já aparece no histórico)
+    if (chatLoading) {
+      if (chatQueueRef.current.length >= QUEUE_LIMIT) return; // fila cheia, ignora silenciosamente
+      const novaFila = [...chatQueueRef.current, msg];
+      chatQueueRef.current = novaFila;
+      setChatQueue(novaFila);
+      setChatMessages(prev => [...prev, { role: 'queued', content: msg }]);
+      return;
+    }
+
+    // Caminho normal: envia imediatamente
+    setChatMessages(prev => [...prev, { role: 'user', content: msg }]);
+    await _executarEnvio(msg);
   };
 
   /**
@@ -291,6 +329,7 @@ export function useChatEngine({
     chatEndRef,
     fontesFixadas,
     setFontesFixadas,
+    chatQueue,
     detectarIntencaoExport,
     handleExportDoChat,
     handleChatSend,
