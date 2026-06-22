@@ -687,3 +687,192 @@ const [canalUrl, setCanalUrl] = React.useState('');
 |---|---|
 | `pytest tests/ -v` (27 testes) | ✅ 27/27 verde |
 | Smoke test pre-commit (15 checks) | ✅ 15/15 verde |
+
+---
+
+## Sprint 22/06/2026 — Action bar no chat + UX de bases + split card de extração + fixes de canal
+
+**Data:** 22/06/2026
+**Escopo:** Backend + Frontend
+**Branch:** main
+
+### Contexto
+
+Sprint com foco em experiência de uso: ações diretas nas mensagens do chat, visibilidade do estado das bases indexadas, seleção ágil de canais extraídos e correção de regressões na configuração de canal entre sessões.
+
+---
+
+### Backend
+
+#### `tusab_engine/api/router_status.py`
+
+**Mascaramento de `canal_nome` quando idle:**
+Quando `state.is_running` é `False`, o snapshot retornado ao frontend agora inclui `stats_snapshot["canal_nome"] = ""`. Isso evita que o polling restaure o canal automaticamente após o app ser reaberto — o frontend só deve restaurar canal se uma extração estiver de fato em andamento.
+
+#### `tusab_engine/api/router_agent.py`
+
+**Novo campo `bases_desatualizadas` em `GET /agent/status`:**
+
+```python
+def _bases_com_arquivos_novos(canais_indexados: list) -> list[str]:
+    """Retorna nomes de canais cujos arquivos em disco são mais recentes que o índice BM25."""
+```
+
+Para cada canal indexado, compara `os.path.getmtime(arquivo)` com o `indexed_at` do índice. Se qualquer arquivo em `documents/`, `texts/` ou `youtube/` for mais novo que o índice, o canal entra na lista `bases_desatualizadas`.
+
+O campo é incluído na resposta de `/agent/status`:
+```json
+{ "bases_desatualizadas": ["canal_a", "canal_b"] }
+```
+
+#### `tusab_engine/motor/extraction.py`
+
+**Fix `files_generated` — primeiro arquivo não contabilizado:**
+
+O `LogRedirector` em `state.py` detecta o emoji `📂` nos prints do motor para incrementar `files_generated`. O print com `📂` só era emitido na transição entre partes da extração — o primeiro arquivo criado na sessão não disparava o print.
+
+Fix: adicionado print ao criar arquivo novo:
+
+```python
+file_is_new = not os.path.exists(caminho_txt)
+if file_is_new:
+    print(f"      📂 NOVO ARQUIVO: {nome_arquivo_base}.txt criado.")
+```
+
+**Cache de meta-canal com TTL de 7 dias:**
+
+`coletar_meta_canal()` fazia chamada ao yt-dlp toda vez que uma extração era iniciada, mesmo para canais já extraídos. Agora persiste os metadados em `_meta.json` no diretório do canal e reutiliza os dados em extrações seguintes dentro de 7 dias:
+
+```python
+_META_CACHE_TTL_DIAS = 7
+
+# No início de coletar_meta_canal():
+if os.path.exists(meta_path):
+    idade_dias = (_time.time() - os.path.getmtime(meta_path)) / 86400
+    if idade_dias < _META_CACHE_TTL_DIAS:
+        with open(meta_path, encoding='utf-8') as f:
+            meta = json.load(f)
+        print(f"      📋 Canal: {meta.get('nome')} (cache)")
+        return meta
+```
+
+O TTL é verificado via `os.path.getmtime` — sem dependência de timestamp interno no JSON.
+
+---
+
+### Frontend
+
+#### `web_interface/src/components/chat/ChatDrawer.jsx`
+
+**Action bar em mensagens do assistente:**
+
+Após cada mensagem do assistente (quando não está em streaming), aparece uma barra de ações discreta:
+
+| Botão | Ação | Condição |
+|---|---|---|
+| Copiar | Copia texto + fontes para a área de transferência | Sempre visível |
+| Doc | `exportResumoCanalDocx` — baixa DOCX com Q&A | Sempre visível |
+| PDF | `exportRelatorioPdf` — baixa PDF com Q&A | Sempre visível |
+| Planilha | `exportTabelaVideosXlsx` — baixa XLSX da tabela | Só se `detectaLista(content)` |
+
+`detectaLista` detecta listas Markdown (`- item`, `1. item`) e tabelas (`| col |`) no conteúdo da mensagem — evita oferecer exportação de planilha para mensagens sem estrutura tabular.
+
+Feedback de cópia: ícone `Check` substitui `Copy` por 1.5s após copiar com sucesso.
+
+**Chips de bases ativas no empty state:**
+
+Quando há bases selecionadas (`canalAtivo` + `canaisExtras`), o empty state do chat exibe chips para cada base ativa. Bases não indexadas aparecem com badge de aviso `⚠️`; bases indexadas com arquivos mais novos que o índice exibem banner amarelo "Arquivos novos detectados".
+
+```jsx
+const todasAtivas = [canalAtivo, ...(canaisExtras || [])].filter(Boolean);
+const nomesIndexados = new Set(canaisIndexados.map(c => c.nome));
+const desatualizadas = new Set(agentStatus.bases_desatualizadas || []);
+const naoIndexadas = todasAtivas.filter(n => !nomesIndexados.has(n));
+const comArquivosNovos = todasAtivas.filter(n => desatualizadas.has(n));
+```
+
+#### `web_interface/src/components/agent/RepositorioTab.jsx`
+
+**Ordem das abas de upload:**
+
+Aba "Upload de arquivo" movida para primeira posição (era "Colar texto"). Padrão mais esperado: upload de arquivo é o fluxo primário.
+
+```js
+// Antes
+const [mode, setMode] = useState('texto');
+// Depois
+const [mode, setMode] = useState('arquivo');
+```
+
+#### `web_interface/src/components/extraction/ExtractionTab.jsx`
+
+**Split card quando há histórico de canais:**
+
+Quando `history.length > 0` e nenhum canal está configurado, o card de extração se divide em duas colunas:
+- **Esquerda:** input de URL para novo canal
+- **Direita:** `<select>` nativo com todos os canais extraídos anteriormente
+
+O select exibe: `@canal · N vídeos · X%` por opção. Ao selecionar, chama `handleUsarCanalHistorico` que configura o canal via `/set-channel` sem abrir a modal. O select reseta para o placeholder após a seleção para permitir re-uso.
+
+Quando não há histórico (`history.length === 0`), o card mantém o layout original com o input de URL apenas.
+
+#### `web_interface/src/App.jsx`
+
+**`handleUsarCanalHistorico`:**
+
+Handler dedicado para configurar canal a partir do histórico:
+
+```js
+const handleUsarCanalHistorico = async (canalUrl, canalNomeFallback) => {
+  const res = await setChannel(canalUrl);
+  if (!res.data.error) {
+    canalRemovidoRef.current = false;          // permite que o polling mantenha o canal
+    canalConfiguradoNaSessaoRef.current = true;  // habilita o skip do step 1 na modal
+    setCanalConfigurado(res.data.canal_nome || canalNomeFallback);
+    setCanalInput('');
+  }
+};
+```
+
+**Fix restauração automática de canal:**
+
+O polling de `/status` restaurava `canalConfigurado` sempre que `stats.canal_nome` estava preenchido no backend — mesmo depois de o usuário ter removido o canal manualmente ou após um reload sem extração ativa.
+
+Fix: adicionada condição `&& res.data.is_running` ao guard do polling:
+
+```js
+// Antes
+if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current)
+// Depois
+if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current && res.data.is_running)
+```
+
+Combinado com o mascaramento de `canal_nome` no backend quando idle, o canal agora só é restaurado automaticamente durante uma extração em andamento.
+
+#### `web_interface/src/components/extraction/ExtractionModal.jsx`
+
+**Solução definitiva para skip do step de URL:**
+
+Quando o modal é aberto com um canal já configurado (e não está em modo fila), deve ir direto para o step de fontes sem passar pela URL. Correção em dois pontos:
+
+```js
+const canalJaConfigurado = !!canalNome && !modoFila;
+const totalSteps = modoFila ? 3 : canalJaConfigurado ? 1 : 2;
+const [step, setStep] = React.useState(canalJaConfigurado ? 3 : 1);
+const temVoltar = step !== 1 && !canalJaConfigurado;
+```
+
+- `step` inicializa em `3` (fontes) quando canal está configurado
+- `temVoltar` nunca é `true` nesse caminho — usuário não pode voltar para o step de URL
+- `totalSteps = 1` garante que o indicador de progresso mostre apenas 1 passo
+
+A causa raiz das tentativas anteriores era que `useState(1)` era invariante — qualquer lógica de skip dependia de um `useEffect` posterior, que sempre chegava tarde (depois do render inicial).
+
+---
+
+### Estado dos testes (22/06/2026 — sprint)
+
+| Suite | Resultado |
+|---|---|
+| `pytest tests/ -v` (27 testes) | ✅ 27/27 verde |
+| Smoke test pre-commit (15 checks) | ✅ 15/15 verde |

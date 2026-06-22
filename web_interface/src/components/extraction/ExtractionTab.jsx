@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Zap, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2,
   Link2, XCircle, Pause, Square, Terminal, Activity, Globe,
-  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw,
+  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight,
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
@@ -41,6 +41,7 @@ export default function ExtractionTab({
   logSectionRef,
   // handlers
   handleConfigurarCanal,
+  handleUsarCanalHistorico,
   handleStart,
   handlePause,
   handleCancel,
@@ -92,28 +93,31 @@ export default function ExtractionTab({
             <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
           </div>
           <div className="p-4">
-            <div className="space-y-2">
-              <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.title')}</p>
-              {canalConfigurado ? (
-                <div role="status" aria-label={`Canal: @${canalConfigurado}`}
-                  className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
-                  <CheckCircle2 size={14} className="text-primary shrink-0" aria-hidden="true" />
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.configured')}</p>
-                    <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canalConfigurado.split('?')[0]}</p>
-                  </div>
-                  {!isRunning && (
-                    <button onClick={onRemoveCanal} aria-label={t('channel.remove')}
-                      className={`rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-400'} ${BTN_FOCUS}`}>
-                      <XCircle size={14} aria-hidden="true" />
-                    </button>
-                  )}
+            {canalConfigurado ? (
+              /* ── Canal já configurado ── */
+              <div role="status" aria-label={`Canal: @${canalConfigurado}`}
+                className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
+                <CheckCircle2 size={14} className="text-primary shrink-0" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.configured')}</p>
+                  <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canalConfigurado.split('?')[0]}</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
+                {!isRunning && (
+                  <button onClick={onRemoveCanal} aria-label={t('channel.remove')}
+                    className={`rounded-md p-0.5 transition-colors hover:text-danger ${darkMode ? 'text-slate-500' : 'text-slate-400'} ${BTN_FOCUS}`}>
+                    <XCircle size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            ) : history.length > 0 ? (
+              /* ── Split: URL à esquerda | Seletor à direita ── */
+              <div className="flex gap-4 items-stretch">
+                {/* Esquerda — nova URL */}
+                <div className="flex-1 space-y-2">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>{t('channel.title')}</p>
                   <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all
                     ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-                    <Link2 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
+                    <Link2 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
                     <input type="url" placeholder={t('channel.placeholder')} value={canalInput}
                       onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
                       onKeyDown={e => e.key === 'Enter' && handleConfigurarCanal()}
@@ -133,8 +137,67 @@ export default function ExtractionTab({
                     {configurando ? t('channel.configuring') : t('channel.confirm')}
                   </button>
                 </div>
-              )}
-            </div>
+
+                {/* Divisor */}
+                <div className="flex flex-col items-center gap-1 pt-5">
+                  <div className={`flex-1 w-px ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
+                  <span className={`text-[10px] font-bold px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ou</span>
+                  <div className={`flex-1 w-px ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
+                </div>
+
+                {/* Direita — canais anteriores */}
+                <div className="flex-1 space-y-2">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>Extraídos anteriormente</p>
+                  <div className={`relative rounded-xl border overflow-hidden ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                    <select
+                      defaultValue=""
+                      onChange={e => {
+                        const h = history.find(h => h.canal_url === e.target.value);
+                        if (h) handleUsarCanalHistorico(h.canal_url, h.canal);
+                        e.target.value = '';
+                      }}
+                      className={`w-full px-3 py-2 pr-8 text-xs bg-transparent outline-none cursor-pointer appearance-none
+                        ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                      <option value="" disabled className={darkMode ? 'bg-slate-900' : 'bg-white'}>
+                        Selecionar canal...
+                      </option>
+                      {history.map((h, i) => (
+                        <option key={i} value={h.canal_url} className={darkMode ? 'bg-slate-900' : 'bg-white'}>
+                          @{h.canal} · {h.extraidos} vídeos · {h.cobertura}%
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronRight size={12} className={`absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ── Sem histórico: só input de URL ── */
+              <div className="space-y-2">
+                <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.title')}</p>
+                <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all
+                  ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                  <Link2 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
+                  <input type="url" placeholder={t('channel.placeholder')} value={canalInput}
+                    onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleConfigurarCanal()}
+                    aria-invalid={!!canalError}
+                    className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                </div>
+                {canalError && (
+                  <p role="alert" className="text-[11px] text-danger flex items-center gap-1 font-medium">
+                    <AlertTriangle size={11} aria-hidden="true" /> {canalError}
+                  </p>
+                )}
+                <button onClick={handleConfigurarCanal} disabled={configurando || !canalInput.trim()}
+                  className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 ${BTN_FOCUS}`}>
+                  {configurando ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <CheckCircle2 size={12} aria-hidden="true" />}
+                  {configurando ? t('channel.configuring') : t('channel.confirm')}
+                </button>
+              </div>
+            )}
           </div>
           <div className={`px-4 pb-4 pt-3 border-t flex items-center gap-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
             {regras.fila && extractionQueue.length > 0 && (
