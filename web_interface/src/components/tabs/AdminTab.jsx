@@ -64,7 +64,7 @@ export default function AdminTab({
           </div>
           <div className="p-5 space-y-3">
             <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Remove permanentemente todos os dados extraídos, índices BM25 e configurações do sistema. Esta ação não pode ser desfeita.
+              Remove permanentemente todos os dados extraídos, índices de busca e configurações do sistema. Esta ação não pode ser desfeita.
             </p>
             <button
               onClick={onResetClick}

@@ -38,7 +38,7 @@ const LOADING_PHRASES = [
   'Thoth era o guardião dos Registros Akáshicos — o repositório de tudo que existiu. O Tusab guarda os seus.',
   'Thoth mediava entre os deuses com sabedoria, não com força. O Tusab medeia entre você e seus documentos.',
   'Thoth iluminava o que estava na escuridão. O Tusab ilumina o que estava esquecido em vídeos, PDFs, textos e documentos.',
-  'Thoth era "o que equilibra" — pesava com precisão. O BM25 faz o mesmo com os trechos da sua base.',
+  'Thoth era "o que equilibra" — pesava com precisão. O Tusab faz o mesmo ao selecionar os trechos mais relevantes da sua base.',
   'A pena de Maat era símbolo da verdade. O Tusab ancora cada resposta nos seus próprios documentos.',
   'Na tradição hermética, Thoth tornou-se Hermes Trismegisto — três vezes grande. O Tusab: extrai, indexa e responde.',
   'O íbis de Thoth nunca errava ao pescar — precisão era seu dom. O Tusab treina o mesmo instinto na busca.',
@@ -59,18 +59,18 @@ const LOADING_PHRASES = [
   'Nenhum dado seu sai daqui. A busca é local, a resposta é sua.',
   'Enquanto modelos genéricos treinam em bilhões de páginas, o Tusab foca só no que você escolheu.',
   'A IA mais útil não é a que sabe mais — é a que sabe o que é relevante pra você.',
-  'O BM25 ranqueia os trechos mais relevantes antes de passar pro modelo. Velocidade com precisão.',
-  'BM25 considera frequência e raridade das palavras — termos raros pesam mais na busca.',
+  'O Tusab ranqueia os trechos mais relevantes antes de passar pro modelo. Velocidade com precisão.',
+  'A busca local considera frequência e raridade das palavras — termos raros pesam mais na relevância.',
   'Quanto mais você indexa, mais preciso fica o contexto. A qualidade da resposta cresce com a base.',
-  'O yt-dlp extrai legendas diretamente do YouTube — sem gravar áudio, sem processar vídeo. PDFs e documentos entram pelo repositório.',
+  'O Tusab extrai legendas diretamente do YouTube — sem gravar áudio, sem processar vídeo. PDFs e documentos entram pelo repositório.',
   'Cada item indexado — transcrição, PDF, texto ou documento — é um fragmento de memória consultável em milissegundos.',
   'O Tusab funciona 100% offline — sem internet, sem nuvem obrigatória, sem assinatura por token.',
   'Seus documentos ficam em cerebro/ — uma pasta local que só você controla.',
   'Você pode usar Ollama localmente ou conectar a Groq, OpenAI, Gemini e Anthropic. A escolha é sua.',
   'O histórico de chat fica no servidor local — nunca no cliente. Proteção contra injeção de contexto.',
-  'A indexação BM25 é feita em Python puro, sem GPU necessária. Roda em qualquer máquina.',
+  'A indexação é feita localmente, sem GPU necessária. Roda em qualquer máquina.',
   'Chunks são pedaços de texto com sobreposição — o contexto nunca é cortado no meio de uma ideia.',
-  'Você pode fixar fontes específicas com @ no chat — o BM25 filtra só esses documentos.',
+  'Você pode fixar fontes específicas com @ no chat — a busca filtra só esses documentos.',
   'O Tusab suporta PDFs, Word, Markdown, CSV e texto colado. Qualquer conhecimento pode entrar.',
   'Playlists, Shorts, Ao Vivo, Podcasts e Cursos podem ser extraídos separadamente ou juntos.',
   'O Tusab não treina modelos com seus dados. Ele apenas consulta o que você já tem.',
@@ -919,6 +919,14 @@ function ChatDrawer({
           <Send size={13} />
         </button>
       </div>
+
+      {/* Hint: texto injetado mas sem base selecionada */}
+      {chatInput.trim() && !chatHabilitado && canaisIndexados.length > 0 && (
+        <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-500 dark:text-amber-400 px-1 -mt-1 animate-pulse">
+          <span>↑</span>
+          {t('chat.hint_select_base')}
+        </p>
+      )}
 
       {/* Barra de ações abaixo do input — Base | Histórico | Nova conversa */}
       <div className="flex items-center mt-2 px-0.5">
