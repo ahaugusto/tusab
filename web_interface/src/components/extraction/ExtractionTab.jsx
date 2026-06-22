@@ -149,7 +149,18 @@ export default function ExtractionTab({
 
                 {/* Direita — canais anteriores */}
                 <div className="flex-1 space-y-2">
-                  <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>Extraídos anteriormente</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>Extraídos anteriormente</p>
+                    <div className="relative group/hint">
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className={`cursor-default ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
+                      <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
+                        opacity-0 group-hover/hint:opacity-100 transition-opacity duration-150 z-50 shadow-xl
+                        ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-slate-900 text-white'}`}>
+                        Selecione um canal já extraído para carregá-lo como ativo e extrair novos vídeos sem redigitar a URL.
+                        <div className={`absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 rotate-45 -translate-y-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-900'}`} />
+                      </div>
+                    </div>
+                  </div>
                   <div className={`relative rounded-xl border overflow-hidden ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                     <select
                       defaultValue=""
@@ -399,55 +410,6 @@ export default function ExtractionTab({
             darkMode={darkMode} />
         </div>
 
-        {/* Canal history */}
-        {history.length > 0 && !isRunning && (
-          <section aria-label="Histórico de extrações">
-            <div className={`rounded-2xl border ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-              <div className={`px-4 lg:px-5 py-3 border-b flex items-center gap-2 rounded-t-2xl ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
-                <Globe size={14} className="text-primary" aria-hidden="true" />
-                <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('history.title')}</h3>
-                <div className="relative group/hint ml-1">
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className={`cursor-default ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
-                  <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
-                    opacity-0 group-hover/hint:opacity-100 transition-opacity duration-150 z-50 shadow-xl
-                    ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-slate-900 text-white'}`}>
-                    Use <strong>Usar</strong> para carregar um canal como ativo e extrair novos vídeos sem redigitar a URL.
-                    <div className={`absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 rotate-45 -translate-y-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-900'}`} />
-                  </div>
-                </div>
-                <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} {history.length !== 1 ? 'canais' : 'canal'}</span>
-              </div>
-              <div className="divide-y divide-white/5">
-                {history.map((h, i) => (
-                  <div key={i} className={`px-4 lg:px-5 py-3 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'} transition-colors`}>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'}`}>
-                      {h.canal[0]?.toUpperCase() || '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{h.canal}</p>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${h.cobertura >= 80 ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700' : darkMode ? 'bg-warning/20 text-warning' : 'bg-amber-100 text-amber-700'}`}>{h.cobertura}%</span>
-                      </div>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {h.extraidos}{h.total_mapeado && h.total_mapeado > h.total ? ` de ${h.total_mapeado}` : ''} vídeos · {h.ultima_extracao}
-                      </p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        setCanalInput(h.canal_url);
-                        setCanalError('');
-                        const res = await setChannel(h.canal_url).catch(() => null);
-                        if (res && !res.data.error) setCanalConfigurado(res.data.canal_nome || h.canal);
-                      }}
-                      className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-                      {t('history.use_btn')}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Activity log */}
         <section ref={logSectionRef} aria-labelledby="log-heading"
