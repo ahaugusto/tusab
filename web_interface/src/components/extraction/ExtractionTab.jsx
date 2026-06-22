@@ -45,6 +45,8 @@ export default function ExtractionTab({
   handleStart,
   handlePause,
   handleCancel,
+  // repositório (para resolver canais disponíveis no folder picker)
+  repositorio,
   // folder picker (opens modal in App)
   onOpenFolderPicker,
   // nav to monitor
@@ -383,11 +385,12 @@ export default function ExtractionTab({
           <StatCard icon={FileText} label={t('stats.files')}     value={status.stats.files_generated}
             color="accent"    sub={t('stats.parts')}
             onOpen={() => {
-              const canais = history.filter(h => h.canal_nome);
-              if (!canais.length && !canalConfigurado) return;
-              if (canais.length > 1) { onOpenFolderPicker(); return; }
-              const prefixo = canalConfigurado || canais[0].canal_nome;
-              openFolder('canal_youtube', prefixo);
+              const nomesRepo  = (repositorio?.canais || []).map(c => c.nome);
+              const nomesHist  = history.filter(h => h.canal_nome).map(h => h.canal_nome);
+              const todos = [...new Set([...nomesRepo, ...nomesHist])];
+              if (!todos.length && !canalConfigurado) return;
+              if (todos.length > 1) { onOpenFolderPicker(); return; }
+              openFolder('canal_youtube', canalConfigurado || todos[0]);
             }}
             darkMode={darkMode} />
           <StatCard icon={Database} label={t('stats.db')}        value={canalConfigurado ? t('stats.active') : t('stats.waiting_db')}
