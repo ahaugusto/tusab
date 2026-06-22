@@ -297,8 +297,12 @@ Tusab — {canal_nome_raw}/
 
 # ── Metadados do canal ────────────────────────────────────────────────────────
 
+_META_CACHE_TTL_DIAS = 7
+
 def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: str, projeto_prefixo: str = None) -> dict:
     """Coleta metadados do canal via yt-dlp e salva JSON local.
+
+    Usa cache local (_meta.json) se existir e tiver menos de _META_CACHE_TTL_DIAS dias.
 
     Args:
         canal_url: URL do canal YouTube.
@@ -306,7 +310,23 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
         canal_nome_canal: Nome sanitizado do canal (usado como subpasta).
         projeto_prefixo: Prefixo do projeto (se None, usa canal_nome_canal).
     """
+    import time as _time
     _projeto = projeto_prefixo or canal_nome_canal
+
+    # ── Tenta usar cache ───────────────────────────────────────────────────────
+    canal_yt_dir = get_canal_youtube_dir(_projeto, canal_nome_canal)
+    meta_path = os.path.join(canal_yt_dir, f'{canal_nome_canal}_meta.json')
+    if os.path.exists(meta_path):
+        try:
+            idade_dias = (_time.time() - os.path.getmtime(meta_path)) / 86400
+            if idade_dias < _META_CACHE_TTL_DIAS:
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                print(f"      📋 Canal: {meta.get('canal_nome', canal_nome_raw)} {meta.get('canal_handle', '')} (cache)")
+                return meta
+        except Exception:
+            pass
+
     meta = {
         'canal_nome':    canal_nome_raw,
         'canal_handle':  f'@{canal_nome_raw}',
@@ -347,9 +367,7 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
     except Exception:
         pass
 
-    canal_yt_dir = get_canal_youtube_dir(_projeto, canal_nome_canal)
     os.makedirs(canal_yt_dir, exist_ok=True)
-    meta_path = os.path.join(canal_yt_dir, f'{canal_nome_canal}_meta.json')
     salvar_json_atomico(meta, meta_path, indent=2)
 
     print(f"      📋 Canal: {meta['canal_nome']} {meta['canal_handle']}"
@@ -715,6 +733,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         print(f"      📂 NOVO ARQUIVO: Parte {parte_atual} iniciada.")
 
                     file_is_new = not os.path.exists(caminho_txt)
+                    if file_is_new:
+                        print(f"      📂 NOVO ARQUIVO: {nome_arquivo_base}.txt criado.")
                     with open(caminho_txt, "a", encoding="utf-8-sig") as f:
                         if file_is_new:
                             handle = meta_canal.get('canal_handle', f'@{canal_nome_raw}')

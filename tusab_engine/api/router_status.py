@@ -88,6 +88,8 @@ def get_status():
     # (para ficar consistente com o Repositório após limpeza)
     if not state.is_running:
         stats_snapshot["files_generated"] = _count_files_on_disk()
+        # canal_nome não deve ser exposto quando idle — evita restauração automática no frontend
+        stats_snapshot["canal_nome"] = ""
 
     return {
         "is_running":       state.is_running,

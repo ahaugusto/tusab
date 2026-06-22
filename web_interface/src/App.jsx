@@ -359,7 +359,7 @@ function App() {
         // Se ainda estamos no período de bloqueio pós-cancel, ignora updates de is_running
         if (Date.now() < cancelingUntilRef.current && res.data.is_running) return;
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
-        if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current) setCanalConfigurado(res.data.stats.canal_nome);
+        if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current && res.data.is_running) setCanalConfigurado(res.data.stats.canal_nome);
       } catch {
         _backendFailCount.current += 1;
         if (_backendFailCount.current >= 2) setBackendOnline(false);
@@ -463,6 +463,19 @@ function App() {
   const changeLang = (lng) => {
     i18n.changeLanguage(lng);
     document.documentElement.lang = lng === 'en' ? 'en' : lng === 'es' ? 'es' : 'pt-BR';
+  };
+
+  /** Selects a previously extracted canal by URL (history quick-select) */
+  const handleUsarCanalHistorico = async (canalUrl, canalNomeFallback) => {
+    try {
+      const res = await setChannel(canalUrl);
+      if (!res.data.error) {
+        canalRemovidoRef.current = false;
+        canalConfiguradoNaSessaoRef.current = true;
+        setCanalConfigurado(res.data.canal_nome || canalNomeFallback);
+        setCanalInput('');
+      }
+    } catch { /* silencioso */ }
   };
 
   /** Submits the canal URL to the backend and updates configured state */
@@ -1118,6 +1131,7 @@ function App() {
                 extracaoSubTab={extracaoSubTab}
                 setExtracaoSubTab={setExtracaoSubTab}
                 handleConfigurarCanal={handleConfigurarCanal}
+                handleUsarCanalHistorico={handleUsarCanalHistorico}
                 handleStart={handleStart}
                 handlePause={handlePause}
                 handleCancel={handleCancel}

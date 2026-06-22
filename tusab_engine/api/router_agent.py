@@ -139,6 +139,37 @@ class AgentChatStreamRequest(BaseModel):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+def _bases_com_arquivos_novos(canais_indexados: list) -> list[str]:
+    """Retorna nomes de canais cujo índice está desatualizado (arquivo mais novo que indexed_at)."""
+    from tusab_engine.storage import NEURAL_DIR
+    desatualizadas = []
+    for canal in canais_indexados:
+        indexed_at = canal.get("indexed_at")
+        if not indexed_at:
+            continue
+        nome = canal["nome"]
+        prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', nome).strip('_')
+        canal_dir = os.path.join(NEURAL_DIR, prefixo)
+        for sub in ['documents', 'texts', 'youtube']:
+            pasta = os.path.join(canal_dir, sub)
+            if not os.path.isdir(pasta):
+                continue
+            for fname in os.listdir(pasta):
+                if fname.startswith('_'):
+                    continue
+                fpath = os.path.join(pasta, fname)
+                try:
+                    if os.path.getmtime(fpath) > indexed_at:
+                        desatualizadas.append(nome)
+                        break
+                except OSError:
+                    pass
+            else:
+                continue
+            break
+    return desatualizadas
+
+
 @router.get("/agent/status")
 def agent_status():
     from tusab_engine.agent.config import registrar_primeiro_uso
@@ -150,6 +181,7 @@ def agent_status():
     status["primeiro_uso"]       = retencao["primeiro_uso"]
     status["dias_desde_install"] = retencao["dias_desde_install"]
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
+    status["bases_desatualizadas"] = _bases_com_arquivos_novos(status.get("canais_indexados", []))
     return status
 
 

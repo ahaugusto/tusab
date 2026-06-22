@@ -40,12 +40,13 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
     { id: 'Playlists', label: t('ops.type_playlists'), icon: '▶️' },
   ];
 
-  // Steps: 1=URL, 2=Projeto (só no modoFila), 3=Fontes
-  // Sempre começa no step 1 — usuário deve confirmar o canal antes de extrair.
-  const totalSteps = modoFila ? 3 : 2;
-  const [step, setStep] = React.useState(1);
+  // Steps: 1=URL (só sem canal), 2=Projeto (só modoFila), 3=Fontes
+  // Se já há canal configurado e não é modoFila, pula direto para o step de fontes.
+  const canalJaConfigurado = !!canalNome && !modoFila;
+  const totalSteps = modoFila ? 3 : canalJaConfigurado ? 1 : 2;
+  const [step, setStep] = React.useState(canalJaConfigurado ? 3 : 1);
 
-  // Step 1: channel URL — começa vazio, sem pré-preenchimento
+  // Step 1: channel URL — começa vazio; irrelevante quando canal já configurado
   const [canalUrl, setCanalUrl] = React.useState('');
 
   // Step 2 (modoFila): project selection
@@ -113,7 +114,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
     onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig);
   };
 
-  const temVoltar = step !== 1;
+  const temVoltar = step !== 1 && !canalJaConfigurado;
   const stepVisual = step === 1 ? 1 : step === 2 ? 2 : totalSteps;
   const stepLabel = step === 1
     ? 'Canal do YouTube'

@@ -8,10 +8,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 
@@ -208,6 +208,34 @@ function ChatDrawer({
   const [mencaoLoading,     setMencaoLoading]     = useState(false);
   const mencaoStartRef = useRef(-1);
   const textareaRef = useRef(null);
+  const [copiedIdx,         setCopiedIdx]         = useState(null);
+
+  // ─── Action bar helpers ───────────────────────────────────────────────────
+  const detectaLista = (content = '') =>
+    /^[-*+] .+|^\d+\. .+|\|.+\|/m.test(content);
+
+  const copiarComFontes = useCallback((msg) => {
+    let texto = msg.content || '';
+    if (msg.fontes?.length) {
+      texto += '\n\n---\nFontes:\n';
+      msg.fontes.forEach((f, i) => {
+        const label = f.titulo || f.arquivo?.replace('.txt', '') || 'Sem título';
+        texto += `${i + 1}. ${label}${f.link ? ' — ' + f.link : ''}\n`;
+      });
+    }
+    navigator.clipboard.writeText(texto).catch(() => {});
+  }, []);
+
+  const triggerDownload = useCallback((response, filename) => {
+    response.blob().then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  }, []);
 
   const prevChatInputRef = useRef(chatInput);
   useEffect(() => {
@@ -496,6 +524,80 @@ function ChatDrawer({
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
                         {t('agent.chat_empty_ready', { canal: canalAtivo })}
                       </p>
+
+                      {/* ── Chips das bases ativas ── */}
+                      {(() => {
+                        const todasAtivas = [canalAtivo, ...(canaisExtras || [])].filter(Boolean);
+                        const nomesIndexados = new Set(canaisIndexados.map(c => c.nome));
+                        const desatualizadas = new Set(agentStatus.bases_desatualizadas || []);
+                        // Nunca indexadas: ativas mas fora de canaisIndexados
+                        const naoIndexadas = todasAtivas.filter(n => !nomesIndexados.has(n));
+                        // Indexadas mas com arquivos mais novos
+                        const comArquivosNovos = todasAtivas.filter(n => desatualizadas.has(n));
+                        const comProblema = new Set([...naoIndexadas, ...comArquivosNovos]);
+                        return (
+                          <>
+                            {todasAtivas.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 justify-center">
+                                {todasAtivas.map(nome => {
+                                  const problema = comProblema.has(nome);
+                                  return (
+                                    <span key={nome}
+                                      title={problema ? (naoIndexadas.includes(nome) ? 'Esta base ainda não foi indexada' : 'Há arquivos novos não indexados') : ''}
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border
+                                        ${problema
+                                          ? darkMode
+                                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                                            : 'bg-amber-50 border-amber-200 text-amber-600'
+                                          : darkMode
+                                            ? 'bg-primary/15 border-primary/30 text-primary'
+                                            : 'bg-violet-50 border-violet-200 text-violet-700'
+                                        }`}>
+                                      {problema && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
+                                      @{nome}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {/* ── Aviso de bases desatualizadas ou não indexadas ── */}
+                            {comProblema.size > 0 && (
+                              <div className={`w-full flex items-start gap-2 px-3 py-2.5 rounded-xl border text-[11px]
+                                ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                                <Zap size={13} className="shrink-0 mt-0.5" />
+                                <span>
+                                  {naoIndexadas.length > 0 && (
+                                    <>
+                                      {naoIndexadas.length === 1
+                                        ? `@${naoIndexadas[0]} ainda não foi indexada.`
+                                        : `${naoIndexadas.map(n => '@' + n).join(', ')} ainda não foram indexadas.`
+                                      }
+                                      {' '}
+                                    </>
+                                  )}
+                                  {comArquivosNovos.length > 0 && (
+                                    <>
+                                      {comArquivosNovos.length === 1
+                                        ? `@${comArquivosNovos[0]} tem arquivos novos ainda não indexados.`
+                                        : `${comArquivosNovos.map(n => '@' + n).join(', ')} têm arquivos novos ainda não indexados.`
+                                      }
+                                      {' '}
+                                    </>
+                                  )}
+                                  {onAbrirIndexacaoRepositorio && (
+                                    <button
+                                      onClick={onAbrirIndexacaoRepositorio}
+                                      className="underline underline-offset-2 font-semibold hover:opacity-80">
+                                      Indexar agora
+                                    </button>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+
                       {canaisIndexados.length > 1 && (
                         <button onClick={() => setShowRepoModal(true)}
                           className={`text-[10px] underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -631,6 +733,70 @@ function ChatDrawer({
                                 </div>
                               );
                             })}
+                          </div>
+                        )}
+                        {/* ── Action bar — aparece ao hover na mensagem do assistente ── */}
+                        {msg.role === 'assistant' && !msg.streaming && (
+                          <div className={`pt-2 border-t flex items-center gap-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                            {/* Copiar */}
+                            <button
+                              title="Copiar resposta com fontes"
+                              onClick={() => {
+                                copiarComFontes(msg);
+                                setCopiedIdx(i);
+                                setTimeout(() => setCopiedIdx(null), 2000);
+                              }}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all
+                                ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
+                              {copiedIdx === i
+                                ? <Check size={11} className="text-green-500" />
+                                : <Copy size={11} />}
+                              <span>{copiedIdx === i ? 'Copiado' : 'Copiar'}</span>
+                            </button>
+                            {/* Salvar como Doc */}
+                            <button
+                              title="Salvar como documento Word"
+                              onClick={() => {
+                                const canal = agentStatus?.canal_indexado || canalConfigurado;
+                                if (!canal) return;
+                                triggerDownload(exportResumoCanalDocx(canal), `tusab_${canal}.docx`);
+                              }}
+                              disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
+                                ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
+                              <FileText size={11} />
+                              <span>Doc</span>
+                            </button>
+                            {/* Salvar como PDF */}
+                            <button
+                              title="Salvar como PDF"
+                              onClick={() => {
+                                const canal = agentStatus?.canal_indexado || canalConfigurado;
+                                if (!canal) return;
+                                triggerDownload(exportRelatorioPdf(canal), `tusab_${canal}.pdf`);
+                              }}
+                              disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
+                                ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
+                              <FileDown size={11} />
+                              <span>PDF</span>
+                            </button>
+                            {/* Salvar como Planilha — só quando resposta tem lista/tabela */}
+                            {detectaLista(msg.content) && (
+                              <button
+                                title="Salvar como planilha Excel"
+                                onClick={() => {
+                                  const canal = agentStatus?.canal_indexado || canalConfigurado;
+                                  if (!canal) return;
+                                  triggerDownload(exportTabelaVideosXlsx(canal), `tusab_${canal}.xlsx`);
+                                }}
+                                disabled={!(agentStatus?.canal_indexado || canalConfigurado)}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
+                                  ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
+                                <Sheet size={11} />
+                                <span>Planilha</span>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

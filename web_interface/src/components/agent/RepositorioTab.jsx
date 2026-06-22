@@ -208,7 +208,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
   const setShowAdd = (v) => { setShowAddLocal(v); setShowAddProp?.(v); };
-  const [mode, setMode]       = React.useState('texto');
+  const [mode, setMode]       = React.useState('arquivo');
   const [title, setTitle]     = React.useState('');
   const [text, setText]       = React.useState('');
   const [saving, setSaving]       = React.useState(false);
@@ -845,7 +845,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           )}
 
           <div className="flex gap-2">
-            {['texto', 'arquivo'].map(m => (
+            {['arquivo', 'texto'].map(m => (
               <button key={m} onClick={() => setMode(m)}
                 className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${mode === m ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
                 {m === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
@@ -1003,7 +1003,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     reloadProjetos().then(() => {
                       setProjetoSel(canal.nome);
                       setShowNovoProjeto(false);
-                      setMode('texto');
+                      setMode('arquivo');
                       setUploadAviso('');
                       setTitle('');
                       setText('');
@@ -1146,7 +1146,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               reloadProjetos().then(() => {
                 setProjetoSel('__novo__');
                 setShowNovoProjeto(true);
-                setMode('texto');
+                setMode('arquivo');
                 setUploadAviso('');
                 setShowAdd(true);
               });
