@@ -2,6 +2,14 @@
 """
 Recuperação de contexto (BM25), expansão de query e geração de resposta
 via múltiplos provedores de LLM (OpenAI, Anthropic, Gemini, Groq, Ollama).
+
+[IMPACTO] Este módulo tem dois contratos críticos com o frontend:
+1. Formato do stream em chat_stream(): o frontend (useChatEngine.js:parseMessageStream)
+   espera yield de JSON {fontes, done:False} seguido de chunks de texto e JSON {done:True}.
+   Qualquer mudança nesse protocolo congela o chat na UI.
+2. Campo `sem_contexto: True` no retorno de chat(): o ChatDrawer usa esse campo para
+   exibir o botão "Indexar base agora". Remover quebra o fluxo de onboarding do chat.
+Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §5.2
 """
 
 import os
