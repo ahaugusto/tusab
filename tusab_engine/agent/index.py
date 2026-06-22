@@ -19,15 +19,12 @@ from tusab_engine.storage import (
     DATA_DIR, NEURAL_DIR, INDEX_DIR,
     TXT_DIR, DOC_DIR, TEXT_DIR,
     salvar_json_atomico,
+    get_canal_youtube_dir,
 )
 from tusab_engine.agent.config import carregar_config, salvar_config
 
 
 # ── Helpers de path ───────────────────────────────────────────────────────────
-
-def _get_canal_youtube_dir(prefixo: str) -> str:
-    return os.path.join(NEURAL_DIR, prefixo, 'youtube')
-
 
 def _get_canal_doc_dirs(prefixo: str) -> list:
     """Retorna dirs de documentos/textos do canal + legado."""
@@ -55,14 +52,23 @@ def _invalidar_cache(canal_prefixo: str):
 
 
 def _carregar_meta_canal(canal_prefixo: str) -> dict:
-    for base in [_get_canal_youtube_dir(canal_prefixo), TXT_DIR]:
-        meta_path = os.path.join(base, f'{canal_prefixo}_meta.json')
-        if os.path.exists(meta_path):
-            try:
-                with open(meta_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception:
-                pass
+    import glob as _glob
+    # Nova estrutura: neural/{projeto}/youtube/{canal}/{canal}_meta.json
+    youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+    for meta_path in _glob.glob(os.path.join(youtube_base, '*', '*_meta.json')):
+        try:
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Legado: TXT_DIR plano
+    meta_path = os.path.join(TXT_DIR, f'{canal_prefixo}_meta.json')
+    if os.path.exists(meta_path):
+        try:
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
     return {}
 
 
@@ -117,12 +123,20 @@ def get_agent_status() -> dict:
             idx_path = _index_path(canal_prefixo)
             if os.path.exists(idx_path):
                 idx_mtime = os.path.getmtime(idx_path)
-                for youtube_dir in [_get_canal_youtube_dir(canal_prefixo),
-                                    os.path.join(NEURAL_DIR, 'youtube')]:
+                # Nova estrutura: varrer todos os subcanais de neural/{projeto}/youtube/
+                youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+                dirs_a_verificar = []
+                if os.path.isdir(youtube_base):
+                    for entry in os.scandir(youtube_base):
+                        if entry.is_dir():
+                            dirs_a_verificar.append(entry.path)
+                # Legado: data/neural/youtube/ plano
+                dirs_a_verificar.append(os.path.join(NEURAL_DIR, 'youtube'))
+                for youtube_dir in dirs_a_verificar:
                     if not os.path.exists(youtube_dir):
                         continue
                     for fname in os.listdir(youtube_dir):
-                        if fname.startswith(canal_prefixo) and fname.endswith('.txt'):
+                        if fname.endswith('.txt'):
                             fmtime = os.path.getmtime(os.path.join(youtube_dir, fname))
                             if fmtime > idx_mtime:
                                 novos_desde_indexacao += 1
@@ -228,11 +242,22 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
 
 
 def _parsear_todos_chunks(canal_prefixo: str) -> list:
-    """Lê chunks de todas as fontes: YouTube do canal + docs + avulso + legado."""
+    """Lê chunks de todas as fontes: todos os canais do projeto + docs + avulso + legado."""
     chunks = []
-    for yt_dir in [_get_canal_youtube_dir(canal_prefixo), TXT_DIR]:
-        if os.path.exists(yt_dir):
-            chunks += _parsear_chunks(yt_dir, canal_prefixo)
+    # Nova estrutura: data/neural/{projeto}/youtube/{canal}/*.txt
+    # Varre TODOS os subdiretórios de canal dentro do projeto.
+    youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+    if os.path.isdir(youtube_base):
+        for canal_entry in os.scandir(youtube_base):
+            if canal_entry.is_dir():
+                # Nova estrutura: youtube/{canal}/*.txt
+                chunks += _parsear_chunks(canal_entry.path, canal_entry.name)
+            elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
+                # Legado flat: youtube/*.txt (arquivos anteriores à migração de estrutura)
+                chunks += _parsear_chunks(youtube_base, canal_prefixo)
+    # Legado: data/neural/youtube/ plano (arquivos nomeados {canal_prefixo}_*.txt)
+    if os.path.exists(TXT_DIR):
+        chunks += _parsear_chunks(TXT_DIR, canal_prefixo)
 
     seen_files = set()
     for source_dir in _get_canal_doc_dirs(canal_prefixo):

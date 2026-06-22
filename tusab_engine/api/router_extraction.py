@@ -3,6 +3,7 @@
 Rotas de extração: configurar canal, iniciar/pausar/cancelar motor.
 """
 
+import os
 import re
 import time
 import threading
@@ -232,7 +233,8 @@ def queue_status():
 
 
 class AutoUpdateConfigRequest(BaseModel):
-    canal_prefixo: str
+    canal_prefixo: str    # CANAL (ex: CanaldoCortella)
+    projeto_prefixo: str  # PROJETO — pasta pai (ex: Filosofia)
     enabled: bool
     frequencia: str = "semanal"   # 'ao_abrir' | 'diario' | 'semanal' | 'mensal'
     fontes: list = []
@@ -241,13 +243,17 @@ class AutoUpdateConfigRequest(BaseModel):
 
 @router.post("/auto-update/config")
 def auto_update_config(req: AutoUpdateConfigRequest):
-    """Salva configuração de auto-update no summary.json do canal."""
+    """Salva configuração de auto-update no summary.json do canal dentro do projeto."""
     import json as _json
-    import glob as _glob
     from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
-    prefixo      = req.canal_prefixo.strip()
-    summary_path = os.path.join(NEURAL_DIR, prefixo, "management", f"{prefixo}_summary.json")
+    canal_prefixo   = req.canal_prefixo.strip()
+    projeto_prefixo = req.projeto_prefixo.strip()
+
+    # Caminho: neural/{projeto}/management/{canal}_summary.json
+    summary_path = os.path.join(
+        NEURAL_DIR, projeto_prefixo, "management", f"{canal_prefixo}_summary.json"
+    )
 
     summary = {}
     if os.path.exists(summary_path):
@@ -273,20 +279,48 @@ def auto_update_config(req: AutoUpdateConfigRequest):
 
 
 @router.get("/auto-update/config/{canal_prefixo}")
-def auto_update_get_config(canal_prefixo: str):
-    """Retorna configuração de auto-update do canal."""
+def auto_update_get_config(canal_prefixo: str, projeto_prefixo: str = ""):
+    """Retorna configuração de auto-update do canal.
+
+    Se projeto_prefixo fornecido, lê neural/{projeto_prefixo}/management/{canal_prefixo}_summary.json.
+    Caso contrário (comportamento legado), varre todos os projetos em NEURAL_DIR buscando
+    o primeiro summary que contenha auto_update para este canal.
+    """
     import json as _json
     from tusab_engine.storage import NEURAL_DIR
 
-    summary_path = os.path.join(NEURAL_DIR, canal_prefixo, "management", f"{canal_prefixo}_summary.json")
-    if not os.path.exists(summary_path):
-        return {"auto_update": {"enabled": False}}
+    def _ler_auto_update(path: str) -> dict | None:
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                summary = _json.load(f)
+            cfg = summary.get("auto_update")
+            return cfg if cfg is not None else None
+        except Exception:
+            return None
+
+    if projeto_prefixo:
+        # Caminho direto: neural/{projeto}/management/{canal}_summary.json
+        summary_path = os.path.join(
+            NEURAL_DIR, projeto_prefixo, "management", f"{canal_prefixo}_summary.json"
+        )
+        cfg = _ler_auto_update(summary_path)
+        return {"auto_update": cfg if cfg is not None else {"enabled": False}}
+
+    # Comportamento legado: busca em qualquer projeto dentro de NEURAL_DIR
     try:
-        with open(summary_path, 'r', encoding='utf-8') as f:
-            summary = _json.load(f)
-        return {"auto_update": summary.get("auto_update", {"enabled": False})}
+        for projeto in os.listdir(NEURAL_DIR):
+            candidate = os.path.join(
+                NEURAL_DIR, projeto, "management", f"{canal_prefixo}_summary.json"
+            )
+            cfg = _ler_auto_update(candidate)
+            if cfg is not None:
+                return {"auto_update": cfg}
     except Exception:
-        return {"auto_update": {"enabled": False}}
+        pass
+
+    return {"auto_update": {"enabled": False}}
 
 
 @router.post("/auto-update/run")
