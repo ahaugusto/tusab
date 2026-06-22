@@ -341,6 +341,10 @@ def _contar_canais_indexados() -> list:
 
 
 def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None) -> int:
+    # [IMPACTO] Mudança na estrutura dos chunks gerados aqui quebra chat.py:_recuperar_contexto().
+    # Schema esperado por chat.py: {texto, titulo, aba, data, link, tags, arquivo, canal, descricao}.
+    # Após mudança de schema, todos os índices existentes precisam ser re-gerados.
+    # Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.2
     if callback: callback("🔍 Lendo arquivos do corpus...")
 
     chunks = _parsear_todos_chunks(canal_prefixo)

@@ -40,6 +40,11 @@ def obter_caminho_assets() -> str:
 
 
 # ── Constantes de path ────────────────────────────────────────────────────────
+# [IMPACTO CRÍTICO] Estas constantes são a fonte única de verdade para todos os
+# caminhos em disco. Renomear ou alterar qualquer uma quebra agent/index.py,
+# agent/chat.py, motor/extraction.py e todos os routers simultaneamente.
+# Mudanças de path exigem migração explícita dos arquivos existentes.
+# Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.2
 DADOS_DIR        = obter_caminho_dados()
 ASSETS_DIR       = obter_caminho_assets()
 DATA_DIR         = os.path.join(DADOS_DIR, 'data')

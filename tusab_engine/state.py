@@ -26,6 +26,10 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class AppState:
+    # [IMPACTO] Este singleton é compartilhado por todos os 5 routers e pelo LogRedirector.
+    # Renomear ou remover qualquer campo de `stats` quebra o frontend silenciosamente —
+    # o polling de /status acessa os campos diretamente sem optional chaining.
+    # Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.3
     def __init__(self):
         # Locks: state_lock protege stats+logs (escritos pelo LogRedirector na
         # thread do motor e lidos pela API); hist_lock protege chat_histories.
@@ -39,6 +43,8 @@ class AppState:
         self.canal_url           = ""
         self.logs                = []
         self.stats               = {
+            # [CONTRATO] Estas chaves são acessadas diretamente pelo frontend (ExtractionTab,
+            # StatCard, ProgressBar). Não renomear sem atualizar o frontend e o reset em App.jsx.
             "videos_processed":    0,
             "videos_total":        0,
             "videos_mapeados":     0,
@@ -93,9 +99,10 @@ state = AppState()
 class LogRedirector:
     """Intercepta sys.stdout/stderr e converte prints do motor em log da UI.
 
-    ATENÇÃO: os padrões de emoji e string abaixo (✅, 📂, "Sem legenda", etc.)
-    formam um contrato implícito com motor_tusab.py. Alterar as strings de
-    print no motor sem ajustar aqui (ou vice-versa) silencia os logs na UI.
+    [CONTRATO CRÍTICO] Os padrões de emoji e string abaixo (✅, 📂, "Sem legenda", etc.)
+    formam um contrato implícito com motor/extraction.py. Alterar qualquer print()
+    no motor sem atualizar os padrões aqui congela o progresso silenciosamente na UI.
+    Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.1
     """
 
     def write(self, text):

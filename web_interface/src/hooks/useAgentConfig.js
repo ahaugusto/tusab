@@ -31,6 +31,10 @@ export function useAgentConfig({ activeTab, showError }) {
 
   // ─── State ───────────────────────────────────────────────────────────────
 
+  // [CONTRATO] Shape de agentStatus espelhado de router_agent.py:GET /agent/status.
+  // Adicionar campo aqui exige adicionar no backend. Remover campo aqui quebra
+  // RepositorioTab (canais_indexados), ChatDrawer (indexed) e App.jsx (indexing).
+  // Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.4
   const [agentStatus,          setAgentStatus]          = useState({
     configured: false,
     provider: '',
