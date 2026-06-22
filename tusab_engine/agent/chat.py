@@ -305,7 +305,12 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
 # ── Verificação de alucinação ─────────────────────────────────────────────────
 
-def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str) -> str:
+def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho_injetado: bool = False) -> str:
+    # Quando há trecho injetado, não filtramos: o usuário enviou conteúdo próprio da base
+    # e o LLM sempre vai usar vocabulário analítico diferente do corpus original.
+    if trecho_injetado:
+        return resposta
+
     FRASES_NAO_ENCONTRADO = [
         'não encontrei', 'nao encontrei', 'not found',
         'não há informação', 'nao ha informacao',
@@ -326,7 +331,9 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str) -> str
     encontradas   = sum(1 for p in palavras_resposta if p in corpus_chunks)
     cobertura     = encontradas / len(palavras_resposta)
 
-    if cobertura < 0.20:
+    # 0.12 em vez de 0.20 — LLMs legítimos usam sinônimos e paráfrases;
+    # threshold muito alto descartar respostas corretas que só parafraseiam.
+    if cobertura < 0.12:
         handle = f'@{canal_nome}' if canal_nome else 'este canal'
         return (
             f'Não encontrei informações suficientes sobre esse tema no conteúdo de {handle}. '
@@ -334,6 +341,59 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str) -> str
         )
 
     return resposta
+
+
+# ── Detecção de trecho injetado ───────────────────────────────────────────────
+
+_RE_TRECHO_INJETADO = re.compile(r'^\[([^\]]+\.(?:txt|pdf|docx|xlsx|csv|md))\]\s*\n(.+)', re.DOTALL | re.IGNORECASE)
+
+def _extrair_trecho_injetado(pergunta: str):
+    """Detecta se a mensagem é um trecho injetado do Repositório.
+
+    Formato: '[arquivo.txt]\\nconteúdo...'
+    Retorna (arquivo, conteudo) ou (None, None).
+    """
+    m = _RE_TRECHO_INJETADO.match(pergunta.strip())
+    if m:
+        return m.group(1), m.group(2).strip()
+    return None, None
+
+
+def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, historico: list = None, persona: str = '', idioma: str = 'pt') -> str:
+    """Prompt especializado para análise de trecho injetado sem pergunta explícita."""
+    handle = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
+    lang_label = _IDIOMA_LABEL.get(idioma, 'português')
+    lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}.\n\n"
+
+    instrucao_tom = ''
+    if persona and persona in PERSONAS:
+        instrucao_tom = f"TOM DE RESPOSTA: {PERSONAS[persona]}\n\n"
+
+    hist_str = ''
+    if historico:
+        trocas = []
+        for h in historico[-6:]:
+            role    = 'user' if h.get('role') == 'user' else 'assistant'
+            content = str(h.get('content', ''))[:300]
+            trocas.append(f"<{role}>{content}</{role}>")
+        if trocas:
+            hist_str = "<conversation_history>\n" + "\n".join(trocas) + "\n</conversation_history>\n\n"
+
+    return (
+        f"Você é o Tusab, assistente de gestão de conhecimento de {handle}.\n\n"
+        f"O usuário compartilhou o trecho abaixo, extraído do arquivo **{arquivo}** da sua base.\n"
+        f"Ele não fez uma pergunta explícita — isso significa que quer reflexão, análise ou aprofundamento sobre o conteúdo.\n\n"
+        f"TAREFA:\n"
+        f"1. Identifique o tema central do trecho.\n"
+        f"2. Reflita sobre as ideias apresentadas, expandindo-as com profundidade.\n"
+        f"3. Se identificar uma pergunta implícita no conteúdo, responda-a.\n"
+        f"4. Convide o usuário a continuar a conversa com uma pergunta específica sobre o tema.\n\n"
+        f"NÃO diga que não encontrou informações — o trecho É a fonte.\n\n"
+        + lang_instr
+        + instrucao_tom
+        + hist_str
+        + f"<trecho arquivo=\"{arquivo}\">\n{trecho[:3000]}\n</trecho>\n\nRESPOSTA:"
+    )
 
 
 # ── Montagem do prompt ────────────────────────────────────────────────────────
@@ -570,19 +630,28 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     if not provider or (not _api_key_valida(config) and provider != 'ollama'):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
-    n_chunks = 4 if config.get('provider') == 'ollama' else 6
-    contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
-    if not contexto:
-        resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
-        return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
-
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
     persona       = config.get('persona', '')
     idioma        = config.get('idioma', 'pt')
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
-    provider      = config['provider']
-    api_key       = config['api_key']
+
+    # Detecta trecho injetado: usa prompt especializado sem precisar do BM25
+    arq_injetado, trecho_injetado = _extrair_trecho_injetado(pergunta)
+    trecho_mode = bool(arq_injetado)
+
+    if trecho_mode:
+        contexto = []
+        prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
+    else:
+        n_chunks = 4 if config.get('provider') == 'ollama' else 6
+        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
+        if not contexto:
+            resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
+            return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
+        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
+
+    provider = config['provider']
+    api_key  = config['api_key']
 
     if provider == 'openai':
         from openai import OpenAI
@@ -644,20 +713,25 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     else:
         raise ValueError(f"Provedor desconhecido: {provider}")
 
-    resposta = _verificar_alucinacao(resposta, contexto, canal_nome)
+    resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
+
+    fontes = [{
+        'titulo':  c['titulo'],
+        'aba':     c.get('aba', 'youtube'),
+        'data':    c['data'],
+        'link':    c['link'],
+        'arquivo': c.get('arquivo', ''),
+        'canal':   c.get('canal', ''),
+        'score':   c['score'],
+    } for c in contexto]
+
+    if trecho_mode and not fontes:
+        fontes = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
 
     return {
-        'resposta': resposta,
+        'resposta':   resposta,
         'meta_canal': meta_canal,
-        'fontes': [{
-            'titulo':  c['titulo'],
-            'aba':     c.get('aba', 'youtube'),
-            'data':    c['data'],
-            'link':    c['link'],
-            'arquivo': c.get('arquivo', ''),
-            'canal':   c.get('canal', ''),
-            'score':   c['score'],
-        } for c in contexto],
+        'fontes':     fontes,
     }
 
 
@@ -670,38 +744,49 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
         yield json.dumps({'error': 'Configure a chave de API antes de usar o chat.'})
         return
 
-    try:
-        n_chunks = 4 if config.get('provider') == 'ollama' else 6
-        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
-    except Exception as e:
-        yield json.dumps({'error': str(e)})
-        return
-
-    if not contexto:
-        config_s = carregar_config()
-        resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
-        yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
-        yield resposta_vazia
-        yield json.dumps({'done': True})
-        return
-
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
     persona       = config.get('persona', '')
     idioma        = config.get('idioma', 'pt')
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
-    provider      = config['provider']
-    api_key       = config.get('api_key', '')
 
-    fontes = [{
-        'titulo':  c['titulo'],
-        'aba':     c.get('aba', 'youtube'),
-        'data':    c['data'],
-        'link':    c['link'],
-        'arquivo': c.get('arquivo', ''),
-        'canal':   c.get('canal', ''),
-        'score':   c['score'],
-    } for c in contexto]
+    # Detecta trecho injetado: bypass do BM25, prompt especializado de análise
+    arq_injetado, trecho_injetado = _extrair_trecho_injetado(pergunta)
+    trecho_mode = bool(arq_injetado)
+
+    if trecho_mode:
+        contexto = []
+        prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
+        fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
+    else:
+        try:
+            n_chunks = 4 if config.get('provider') == 'ollama' else 6
+            contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
+        except Exception as e:
+            yield json.dumps({'error': str(e)})
+            return
+
+        if not contexto:
+            config_s = carregar_config()
+            resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
+            yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
+            yield resposta_vazia
+            yield json.dumps({'done': True})
+            return
+
+        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
+        fontes = [{
+            'titulo':  c['titulo'],
+            'aba':     c.get('aba', 'youtube'),
+            'data':    c['data'],
+            'link':    c['link'],
+            'arquivo': c.get('arquivo', ''),
+            'canal':   c.get('canal', ''),
+            'score':   c['score'],
+        } for c in contexto]
+
+    provider = config['provider']
+    api_key  = config.get('api_key', '')
+
     yield json.dumps({'fontes': fontes, 'done': False})
 
     try:
