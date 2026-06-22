@@ -7,6 +7,147 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
+## Sprint 22/06/2026 — UX de chat, jargão técnico e injeção de trecho
+
+**Commits:** `c48cfa9` · `caaf1e3` · `2860220` · `cfbe5e1` · `fc70c11` · `c6d147d` · `6089b83` · `f7a4edd`
+**Escopo:** Backend + Frontend
+**Branch:** main
+
+### Contexto
+
+Sprint de qualidade focada em três frentes:
+1. **Robustez do chat** — bug crítico onde trechos injetados do Repositório disparavam "Não encontrei esse tema"
+2. **UX do Repositório** — busca por projeto inline, select para seleção de projeto no upload, remoção de card redundante
+3. **Limpeza de linguagem** — remoção de jargões técnicos (`yt-dlp`, `BM25`, `Chunks BM25`) da UI visível ao usuário
+
+---
+
+### Backend
+
+#### `tusab_engine/agent/chat.py`
+
+**Bug: trecho injetado causava falso "não encontrei"**
+
+Quando o usuário injetava um trecho do Repositório no chat (formato `[arquivo.txt]\nconteúdo...`), duas falhas encadeadas produziam a resposta errada:
+
+1. O texto longo ia pro BM25 como query — query ruim, podia não retornar contexto relevante
+2. Mesmo quando retornava fontes, `_verificar_alucinacao` com threshold `cobertura < 0.20` descartava a resposta porque o LLM usa vocabulário de análise diferente do corpus
+
+**Solução — detecção de trecho injetado:**
+
+```python
+_RE_TRECHO_INJETADO = re.compile(r'^\[([^\]]+\.(?:txt|pdf|docx|xlsx|csv|md))\]\s*\n(.+)', re.DOTALL | re.IGNORECASE)
+
+def _extrair_trecho_injetado(pergunta: str):
+    m = _RE_TRECHO_INJETADO.match(pergunta.strip())
+    if m:
+        return m.group(1), m.group(2).strip()
+    return None, None
+```
+
+Quando detectado, `chat()` e `chat_stream()` **bypassam o BM25** e usam `_montar_prompt_trecho()` — um prompt especializado que instrui o LLM a analisar/refletir sobre o trecho em vez de buscar na base.
+
+O prompt de trecho inclui:
+- Identificação do arquivo de origem
+- Instrução explícita: "NÃO diga que não encontrou informações — o trecho É a fonte"
+- Convite ao usuário para continuar com uma pergunta específica
+- Suporte a histórico, persona e idioma normalmente
+
+**`_verificar_alucinacao` — threshold reduzido:**
+
+Threshold reduzido de `0.20` → `0.12` para não descartar respostas que parafraseiam corretamente o corpus. O verificador é **desabilitado completamente** para trechos injetados (parâmetro `trecho_injetado=True`).
+
+**`tusab_engine/agent/index.py` — fix `name 'config' is not defined`:**
+
+Após remoção do bloco `PRO_LIMIT` em sprint anterior, o `config = carregar_config()` que o precedia foi removido junto. As linhas `config['canal_indexado'] = canal_nome` e `salvar_config(config)` permaneceram sem a variável. Corrigido adicionando `config = carregar_config()` de volta antes do bloco.
+
+**`tusab_engine/state.py` — filtro de ruído asyncio:**
+
+`LogRedirector.write()` agora suprime `WinError 10054` e mensagens de `asyncio` do Windows que ocorrem quando clientes SSE desconectam (harmless, mas poluíam o log da UI):
+
+```python
+asyncio_noise = ["WinError 10054", "ConnectionResetError", "_ProactorBasePipeTransport", ...]
+if any(k in clean for k in asyncio_noise):
+    return
+```
+
+---
+
+### Frontend
+
+#### `web_interface/src/components/chat/ChatDrawer.jsx`
+
+**Hint para seleção de base com texto injetado:**
+
+Quando o input tem texto mas nenhuma base está selecionada (`chatInput.trim() && !chatHabilitado && canaisIndexados.length > 0`), aparece um hint âmbar animado abaixo do textarea:
+
+```jsx
+<p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-500 animate-pulse">
+  <span>↑</span>
+  {t('chat.hint_select_base')}
+</p>
+```
+
+Resolve o caso em que o usuário injeta um trecho do Repositório mas não tem base ativa — anteriormente ficava sem feedback sobre o motivo de não conseguir enviar.
+
+#### `web_interface/src/components/agent/RepositorioTab.jsx`
+
+- **Busca inline por projeto:** substituiu busca global por campo de busca dentro de cada card de projeto, com estado `buscaState[nome]` por projeto
+- **Select para seleção de projeto no upload:** substituiu lista de botões por `<select>` nativo — escalável para 10+ projetos
+- **Remoção do card "CANAIS EXTRAÍDOS":** funcionalidade coberta pelo select no topo; hint migrado para label do select
+
+#### `web_interface/src/components/extraction/ExtractionTab.jsx`
+
+- **Botão "Arquivos Gerados"** agora usa `repositorio.canais` como fonte primária em vez de `history` — `history` só existe quando há extração na sessão atual
+
+#### Limpeza de jargão técnico (locales + componentes)
+
+Termos removidos da UI visível ao usuário e substituições adotadas:
+
+| Jargão removido | Substituição |
+|-----------------|--------------|
+| `yt-dlp` | "YouTube" / "O Tusab extrai legendas..." |
+| `BM25` (em textos de guia/onboarding) | "índice de busca" |
+| `Chunks BM25` / `BM25 Chunks` | "Fragmentos indexados" |
+| `Índice BM25` (colunas de tabela) | "Índice" |
+
+Arquivos alterados: `locales/pt.json`, `en.json`, `es.json`, `ChatDrawer.jsx`, `AdminTab.jsx`.
+
+---
+
+### Infraestrutura de qualidade
+
+#### `.github/PULL_REQUEST_TEMPLATE.md` (novo)
+
+Template de PR com:
+- Checklist de smoke tests (`15/15 verde`)
+- Seções colapsáveis de impacto por módulo (motor, state, storage, agent, router, frontend)
+- Lembrete de atualizar Mapa de Impacto e Changelog
+
+#### `Documentação do Produto/Mapa de Impacto de Dependências.md` (novo)
+
+Documento de contratos implícitos formalizados:
+- Grafo de dependências por camada
+- Contratos críticos: `state.stats`, `agent_config.json`, schema de chunks, slugs de perfil, protocolo de stream
+- Tabela de impacto A→B com severidade
+- Comentários `[CONTRATO]` / `[IMPACTO]` inseridos no código nos pontos críticos
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| Detecção por regex `^\[arquivo.ext\]\n` | Formato fixo gerado pelo botão "Injetar trecho" do Repositório — determinístico, sem falso positivo |
+| Bypass completo do BM25 para trecho injetado | Query longa e genérica produz scores ruins; o trecho já É o contexto |
+| `_verificar_alucinacao` desabilitado para trechos | LLM de análise usa vocabulário distinto do corpus — qualquer threshold derrubaria respostas corretas |
+| Threshold 0.12 (não 0.20) | 0.20 descartava respostas legítimas com paráfrase; 0.12 só pega alucinações brutas |
+| Hint âmbar com `animate-pulse` | Chama atenção sem ser intrusivo — o usuário percebe mas pode ignorar se quiser |
+| Busca inline por projeto (não global) | Com múltiplos projetos, busca global retorna resultados de contextos diferentes — busca por projeto mantém foco |
+| `<select>` para projeto no upload | Botões não escalam para 10+ projetos; select é o padrão nativo para listas longas |
+
+---
+
 ## Commit `572fd5f` — Pro groundwork v1.0
 
 **Data:** 16/06/2026
