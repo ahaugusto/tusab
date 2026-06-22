@@ -330,7 +330,9 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str) -> str
 
 # ── Montagem do prompt ────────────────────────────────────────────────────────
 
-def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '') -> str:
+_IDIOMA_LABEL = {"pt": "português", "en": "English", "es": "español"}
+
+def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt') -> str:
     pergunta = pergunta[:2000].strip()
     handle   = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
@@ -360,6 +362,9 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     if persona and persona in PERSONAS:
         instrucao_tom = f"TOM DE RESPOSTA: {PERSONAS[persona]}\n\n"
 
+    lang_label = _IDIOMA_LABEL.get(idioma, "português")
+    lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}, independentemente do idioma das fontes.\n\n"
+
     if busca_ampla:
         instrucoes = (
             f"Você é o Tusab em modo de Busca Ampla.\n\n"
@@ -368,6 +373,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"Quando forem insuficientes, você pode complementar com conhecimento geral "
             f"— mas deixe claro: use 'além do que está na base...' ou 'de forma geral...'.\n"
             f"Seja sempre honesto sobre a origem de cada informação.\n\n"
+            + lang_instr
             + instrucao_tom
         )
     else:
@@ -378,6 +384,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"CADA afirmação deve poder ser rastreada a uma das fontes.\n"
             f"Se as fontes não contiverem a informação, responda APENAS:\n"
             f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
+            + lang_instr
             + instrucao_tom
         )
 
@@ -399,52 +406,85 @@ _SAUDACOES = {
     'teste', 'test', 'ping', 'ok', 'okay',
 }
 
-_PROMPT_SEM_CONTEXTO = (
-    "Você é o Tusab, um assistente de gestão de conhecimento.\n\n"
-    "A busca na base de conhecimento não retornou trechos relevantes para a mensagem do usuário.\n\n"
-    "Regras:\n"
-    "1. Se for uma saudação, cumprimento ou teste (ex: 'oi', 'olá', 'teste'), responda de forma breve "
-    "e simpática, apresentando-se como Tusab e explicando como pode ajudar com a base de conhecimento.\n"
-    "2. Se for uma pergunta temática real, explique educadamente que não encontrou informações "
-    "relevantes no índice atual. Mencione que a base pode conter:\n"
-    "   - Transcrições de vídeos do YouTube\n"
-    "   - Documentos enviados (PDF, DOCX, planilhas, imagens, áudios)\n"
-    "   - Textos colados pelo usuário\n"
-    "   E que todos precisam estar indexados para aparecer na busca.\n"
-    "3. Convide o usuário a reformular a pergunta, verificar se o conteúdo foi indexado "
-    "ou adicionar mais arquivos à base.\n"
-    "4. Seja conciso (máximo 3 parágrafos), em português, sem mencionar BM25 ou termos técnicos.\n\n"
-    f"Mensagem do usuário: {{mensagem}}\n\nRESPOSTA:"
-)
+def _prompt_sem_contexto(idioma: str = 'pt') -> str:
+    lang_label = _IDIOMA_LABEL.get(idioma, "português")
+    return (
+        "Você é o Tusab, um assistente de gestão de conhecimento.\n\n"
+        "A busca na base de conhecimento não retornou trechos relevantes para a mensagem do usuário.\n\n"
+        "Regras:\n"
+        "1. Se for uma saudação, cumprimento ou teste (ex: 'oi', 'olá', 'teste'), responda de forma breve "
+        "e simpática, apresentando-se como Tusab e explicando como pode ajudar com a base de conhecimento.\n"
+        "2. Se for uma pergunta temática real, explique educadamente que não encontrou informações "
+        "relevantes no índice atual. Mencione que a base pode conter:\n"
+        "   - Transcrições de vídeos do YouTube\n"
+        "   - Documentos enviados (PDF, DOCX, planilhas, imagens, áudios)\n"
+        "   - Textos colados pelo usuário\n"
+        "   E que todos precisam estar indexados para aparecer na busca.\n"
+        "3. Convide o usuário a reformular a pergunta, verificar se o conteúdo foi indexado "
+        "ou adicionar mais arquivos à base.\n"
+        f"4. Seja conciso (máximo 3 parágrafos), responda SEMPRE em {lang_label}, sem mencionar BM25 ou termos técnicos.\n\n"
+        "{mensagem}\n\nRESPOSTA:"
+    )
 
 
 def _responder_sem_contexto(pergunta: str, config: dict, canal_nome: str) -> str:
     """Gera resposta inteligente quando o BM25 não retorna contexto relevante."""
     pergunta_lower = pergunta.strip().lower().rstrip('!?.')
+    idioma = config.get('idioma', 'pt')
 
-    # Saudação simples: responde sem chamar LLM
+    # Saudação simples: responde sem chamar LLM (via LLM seria overkill para um "oi")
     if pergunta_lower in _SAUDACOES:
-        return (
+        _saudacoes_i18n = {
+            'en': (
+                "Hi! I'm Tusab, your knowledge base assistant. "
+                "I can answer questions about the videos, documents, and texts you've added to your repository. "
+                "To get started, make sure your content is indexed and ask a specific question."
+            ),
+            'es': (
+                "¡Hola! Soy Tusab, tu asistente de base de conocimiento. "
+                "Puedo responder preguntas sobre los videos, documentos y textos que agregaste a tu repositorio. "
+                "Para comenzar, asegúrate de que el contenido esté indexado y haz una pregunta específica."
+            ),
+        }
+        return _saudacoes_i18n.get(idioma, (
             "Olá! Sou o Tusab, seu assistente de base de conhecimento. "
             "Posso responder perguntas sobre os vídeos, documentos e textos que você adicionou ao repositório. "
             "Para começar, certifique-se de que o conteúdo está indexado e faça uma pergunta específica."
-        )
+        ))
 
     provider = config.get('provider', '')
     api_key  = config.get('api_key', '')
 
     # Sem LLM configurado: mensagem estática melhorada
     if not provider or (not api_key and provider != 'ollama'):
-        return (
+        _sem_llm_i18n = {
+            'en': (
+                "No relevant content found for this question in the knowledge base.\n\n"
+                "This may happen because:\n"
+                "• Content hasn't been indexed yet — use the **Index Now** button in agent settings\n"
+                "• The question uses different terms than those in your files — try rephrasing\n"
+                "• The topic isn't covered by your videos, documents, or texts\n\n"
+                "Remember: the base can include YouTube transcripts, PDFs, spreadsheets, and pasted texts."
+            ),
+            'es': (
+                "No encontré contenido relevante para esta pregunta en la base de conocimiento.\n\n"
+                "Esto puede suceder porque:\n"
+                "• El contenido aún no fue indexado — usa el botón **Indexar Ahora** en la configuración del agente\n"
+                "• La pregunta usa términos distintos a los de tus archivos — intenta reformularla\n"
+                "• El tema no está cubierto por tus videos, documentos o textos\n\n"
+                "Recuerda: la base puede incluir transcripciones de YouTube, PDFs, planillas y textos pegados."
+            ),
+        }
+        return _sem_llm_i18n.get(idioma, (
             f"Não encontrei conteúdo relevante para essa pergunta na base de conhecimento.\n\n"
             f"Isso pode acontecer porque:\n"
             f"• O conteúdo ainda não foi indexado — use o botão **Indexar Agora** nas configurações do agente\n"
             f"• A pergunta usa termos diferentes dos que aparecem nos seus arquivos — tente reformular\n"
             f"• O tema não está coberto pelos vídeos, documentos ou textos da sua base\n\n"
             f"Lembre-se: a base pode incluir transcrições do YouTube, PDFs, planilhas, imagens e textos colados."
-        )
+        ))
 
-    prompt = _PROMPT_SEM_CONTEXTO.format(mensagem=pergunta[:1000])
+    prompt = _prompt_sem_contexto(idioma).format(mensagem=pergunta[:1000])
 
     try:
         if provider == 'ollama':
@@ -531,7 +571,8 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
     persona       = config.get('persona', '')
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona)
+    idioma        = config.get('idioma', 'pt')
+    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
     provider      = config['provider']
     api_key       = config['api_key']
 
@@ -639,7 +680,8 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
     meta_canal    = _carregar_meta_canal(canal_prefixo)
     persona       = config.get('persona', '')
-    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona)
+    idioma        = config.get('idioma', 'pt')
+    prompt        = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
     provider      = config['provider']
     api_key       = config.get('api_key', '')
 

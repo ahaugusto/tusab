@@ -401,8 +401,8 @@ def export_base_compartilhavel(projeto: str):
 
     return StreamingResponse(
         buf,
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
 

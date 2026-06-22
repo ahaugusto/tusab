@@ -17,4 +17,8 @@ contextBridge.exposeInMainWorld('tusab', {
   getApiKey:    (provider)           => ipcRenderer.invoke('get-api-key',    provider),
   setApiKey:    (provider, key)      => ipcRenderer.invoke('set-api-key',    provider, key),
   deleteApiKey: (provider)           => ipcRenderer.invoke('delete-api-key', provider),
+
+  // Preferência de auto-update do Electron (persiste no keystore local)
+  getUpdatePref: ()        => ipcRenderer.invoke('get-update-pref'),
+  setUpdatePref: (enabled) => ipcRenderer.invoke('set-update-pref', enabled),
 })

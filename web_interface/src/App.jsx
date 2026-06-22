@@ -49,6 +49,7 @@ import OllamaSetup              from './components/agent/OllamaSetup';
 import RepositorioTab           from './components/agent/RepositorioTab';
 import RelatorioTab             from './components/agent/RelatorioTab';
 import VisaoGeralTab            from './components/agent/VisaoGeralTab';
+import PrivacidadeRede          from './components/agent/PrivacidadeRede';
 import MonitorTab               from './components/agent/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
 import LandingScreen            from './components/home/LandingScreen';
@@ -128,6 +129,8 @@ function App() {
   const canalRemovidoRef = useRef(false);
   // Marca que o canal foi configurado nesta sessão (não apenas restaurado pelo polling)
   const canalConfiguradoNaSessaoRef = useRef(false);
+  // Bloqueia o polling de sobrescrever o estado otimista após cancelamento
+  const cancelingUntilRef = useRef(0);
 
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
@@ -349,6 +352,8 @@ function App() {
         const res = await axios.get(`${API_BASE}/status`);
         _backendFailCount.current = 0;
         setBackendOnline(true);
+        // Se ainda estamos no período de bloqueio pós-cancel, ignora updates de is_running
+        if (Date.now() < cancelingUntilRef.current && res.data.is_running) return;
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
         if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current) setCanalConfigurado(res.data.stats.canal_nome);
       } catch {
@@ -383,8 +388,11 @@ function App() {
   useEffect(() => {
     if (!agentStatus.indexing && agentStatus.index_logs.length > 0) {
       setLastIndexLogs(agentStatus.index_logs);
-      if (!seen(KEYS.indexDone)) {
-        markSeen(KEYS.indexDone);
+      const hasError = agentStatus.index_logs.some(l => l.message?.includes('Erro') || l.message?.includes('erro'));
+      if (hasError) {
+        const errLog = agentStatus.index_logs.find(l => l.message?.includes('Erro') || l.message?.includes('erro'));
+        showError(errLog?.message || t('error.index_failed'));
+      } else {
         Analytics.baseIndexada(agentStatus.index_count);
         setProgressToast({
           message: t('toast.base_indexed', { count: agentStatus.index_count }),
@@ -427,7 +435,7 @@ function App() {
     if (extracaoSubTab === 'relatorio') Analytics.relatorioAcessado();
     if (extracaoSubTab === 'periodicidade' && history.length > 0) {
       Promise.all(
-        history.map(h => getAutoUpdateConfig(h.canal)
+        history.map(h => getAutoUpdateConfig(h.canal, h.projeto || '')
           .then(r => ({ canal: h.canal, cfg: r.data.auto_update || { enabled: false } }))
           .catch(() => ({ canal: h.canal, cfg: { enabled: false } }))
         )
@@ -521,24 +529,29 @@ function App() {
     setExtractionTypes(fontes);
     const urlEfetiva = novaUrl || canalInput.trim() || status.canal_url;
     if (novaUrl) { canalRemovidoRef.current = false; setCanalInput(novaUrl); setCanalConfigurado(''); }
-    // Persist auto-update preference per canal
-    const prefixo = projetoNome || canalConfigurado;
-    if (prefixo && autoUpdateConfig !== undefined) {
-      saveAutoUpdateConfig(
-        prefixo,
-        autoUpdateConfig?.enabled ?? false,
-        autoUpdateConfig?.frequencia ?? 'semanal',
-        fontes,
-        urlEfetiva,
-      ).catch(() => {});
-    }
     if (isRunning) {
       queueAdd(urlEfetiva, fontes, projetoNome).catch(() => {});
       return;
     }
     Analytics.extracaoIniciada(fontes);
     setChannel(urlEfetiva, projetoNome)
-      .then(r => { if (!r.data.error) setCanalConfigurado(r.data.canal_nome || ''); })
+      .then(r => {
+        const canalPrefixo = r.data.canal_nome || '';
+        const projetoPrefixo = r.data.projeto_nome || projetoNome || '';
+        const nomeFinal = projetoPrefixo || canalPrefixo;
+        if (!r.data.error) setCanalConfigurado(canalPrefixo || projetoPrefixo);
+        // Persiste config de auto-update: canal_prefixo = canal YouTube, projeto_prefixo = projeto
+        if (canalPrefixo && autoUpdateConfig !== undefined) {
+          saveAutoUpdateConfig(
+            canalPrefixo,
+            autoUpdateConfig?.enabled ?? false,
+            autoUpdateConfig?.frequencia ?? 'semanal',
+            fontes,
+            urlEfetiva,
+            projetoPrefixo,
+          ).catch(() => {});
+        }
+      })
       .then(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }))
       .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
@@ -552,14 +565,28 @@ function App() {
   };
 
   /** Cancels the running extraction — if queue has items, asks what to do first */
+  /** Applies an optimistic UI reset so the interface doesn't freeze waiting for the next poll */
+  const _applyOptimisticCancel = () => {
+    // Mostra "Cancelando..." sem colapsar o layout — mantém is_running true
+    // O polling fica bloqueado por 20s; quando o backend confirmar is_running=false,
+    // ele passa pelo bloqueio (pois res.data.is_running será false) e atualiza normalmente.
+    cancelingUntilRef.current = Date.now() + 20_000;
+    setStatus(prev => ({
+      ...prev,
+      is_paused: false,
+      stats: { ...prev.stats, status: 'Cancelando...', progress: 0 },
+    }));
+    setCancelFlash(true);
+    setTimeout(() => setCancelFlash(false), 1200);
+  };
+
   const handleCancel = () => {
     if (extractionQueue.length > 0) {
       setShowCancelQueueModal(true);
       return;
     }
     cancelExtraction();
-    setCancelFlash(true);
-    setTimeout(() => setCancelFlash(false), 1200);
+    _applyOptimisticCancel();
     setTimeout(() => {
       logSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
@@ -571,16 +598,14 @@ function App() {
     cancelExtraction();
     queueClear();
     setExtractionQueue([]);
-    setCancelFlash(true);
-    setTimeout(() => setCancelFlash(false), 1200);
+    _applyOptimisticCancel();
   };
 
   /** Cancels current extraction but keeps the queue — next item starts automatically */
   const handleCancelAndKeepQueue = () => {
     setShowCancelQueueModal(false);
     cancelExtraction();
-    setCancelFlash(true);
-    setTimeout(() => setCancelFlash(false), 1200);
+    _applyOptimisticCancel();
   };
 
   /** Initiates Drive OAuth flow — shows one-time security warning first */
@@ -702,15 +727,20 @@ function App() {
       <AnimatePresence>
         {showOnboarding && (
           <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
-            <Onboarding key="onboarding" onDone={(perfilEscolhido) => {
-              setPerfil(perfilEscolhido);
-              setShowOnboarding(false);
-              if (getConsent() === null) {
-                setShowConsent(true); // consent aparece após o onboarding
-              } else {
-                setShowLanding(false);
-              }
-            }} />
+            <Onboarding key="onboarding"
+              onSkip={() => {
+                // Pular no step 0: fecha o onboarding e mantém a landing
+                setShowOnboarding(false);
+              }}
+              onDone={(perfilEscolhido) => {
+                setPerfil(perfilEscolhido);
+                setShowOnboarding(false);
+                if (getConsent() === null) {
+                  setShowConsent(true);
+                } else {
+                  setShowLanding(false);
+                }
+              }} />
           </div>
         )}
       </AnimatePresence>
@@ -900,7 +930,7 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={canalConfiguradoNaSessaoRef.current ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1071,28 +1101,7 @@ function App() {
               ))}
             </div>
             <div className="flex flex-col items-center gap-0.5 w-full px-1.5 mb-1">
-              {/* Botão de perfil — fixo no bottom do nav rail */}
-              {perfilDefinido && (
-                <button
-                  onClick={() => setShowAlterarPerfil(true)}
-                  aria-label={t('perfil.trocar')}
-                  title={t('perfil.trocar')}
-                  className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors group ${BTN_FOCUS}
-                    ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                  <div className="relative">
-                    <span className="text-sm leading-none" aria-hidden="true">
-                      {PERFIS_META[perfil]?.icon ?? '👤'}
-                    </span>
-                    <span className={`absolute -top-1 -right-2 opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-primary' : 'text-primary'}`}>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-semibold leading-none truncate max-w-full px-0.5">
-                    {t(PERFIS_META[perfil]?.label ?? 'perfil.profissional')}
-                  </span>
-                </button>
-              )}
-<button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
+              <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
                 className={`w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                 <HelpCircle size={15} aria-hidden="true" />
@@ -1157,19 +1166,6 @@ function App() {
                   </button>
                 ))}
               </div>
-              {/* Botão de perfil no rodapé do drawer mobile */}
-              {perfilDefinido && (
-                <button
-                  onClick={() => { setShowAlterarPerfil(true); setSidebarOpen(false); }}
-                  aria-label={t('perfil.trocar')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
-                    ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
-                  <span className="text-base leading-none" aria-hidden="true">
-                    {PERFIS_META[perfil]?.icon ?? '👤'}
-                  </span>
-                  {t(PERFIS_META[perfil]?.label ?? 'perfil.profissional')}
-                </button>
-              )}
               <button onClick={() => { setShowGuide(true); setSidebarOpen(false); }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
@@ -1737,18 +1733,21 @@ function App() {
                       ) : history.map((h) => {
                         const cfg = autoUpdateConfigs[h.canal] || { enabled: false, frequencia: 'semanal' };
                         const FREQ_LABELS = { ao_abrir: 'Ao abrir', diario: 'Diária', semanal: 'Semanal', mensal: 'Mensal' };
+                        const canalUrl = h.canal_url || '';
+                        const projetoPrefixo = h.projeto || '';
+                        const rowKey = projetoPrefixo ? `${h.canal}__${projetoPrefixo}` : h.canal;
                         const toggleEnabled = (canal, currentCfg) => {
                           const next = { ...currentCfg, enabled: !currentCfg.enabled };
                           setAutoUpdateConfigs(prev => ({ ...prev, [canal]: next }));
-                          saveAutoUpdateConfig(canal, next.enabled, next.frequencia || 'semanal', next.fontes || [], '').catch(() => {});
+                          saveAutoUpdateConfig(canal, next.enabled, next.frequencia || 'semanal', next.fontes || [], canalUrl, projetoPrefixo).catch(() => {});
                         };
                         const changeFreq = (canal, currentCfg, freq) => {
                           const next = { ...currentCfg, frequencia: freq };
                           setAutoUpdateConfigs(prev => ({ ...prev, [canal]: next }));
-                          saveAutoUpdateConfig(canal, next.enabled, freq, next.fontes || [], '').catch(() => {});
+                          saveAutoUpdateConfig(canal, next.enabled, freq, next.fontes || [], canalUrl, projetoPrefixo).catch(() => {});
                         };
                         return (
-                          <div key={h.canal} className={`px-5 py-3.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/3' : 'hover:bg-slate-50'} transition-colors`}>
+                          <div key={rowKey} className={`px-5 py-3.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/3' : 'hover:bg-slate-50'} transition-colors`}>
                             {/* Avatar */}
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${darkMode ? 'bg-white/8 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
                               {(h.canal || '?')[0].toUpperCase()}
@@ -1756,7 +1755,10 @@ function App() {
                             {/* Info */}
                             <div className="flex-1 min-w-0">
                               <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>@{h.canal}</p>
-                              <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{h.videos_count ?? 0} vídeos</p>
+                              <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                                {h.extraidos ?? h.total ?? 0} vídeos extraídos
+                                {projetoPrefixo && <> · Projeto: <span className="font-medium">{projetoPrefixo}</span></>}
+                              </p>
                             </div>
                             {/* Frequência — só visível quando ativo */}
                             {cfg.enabled && (
@@ -2208,6 +2210,9 @@ function App() {
                     </div>
                   </div>
                 </section>
+
+                {/* Privacidade e Rede */}
+                <PrivacidadeRede darkMode={darkMode} />
 
                 {/* Limpeza de bases — only shown for profiles with reset_total permission */}
                 {regras.reset_total && (
