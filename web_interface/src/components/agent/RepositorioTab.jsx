@@ -227,9 +227,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [limparCanalNome, setLimparCanalNome] = React.useState(null); // canal sendo limpo
   const [limpandoCanal, setLimpandoCanal]   = React.useState(false);
   const [dragging, setDragging]             = React.useState(false);
-  const [buscaQuery,     setBuscaQuery]     = React.useState('');
-  const [buscaResultados, setBuscaResultados] = React.useState(null);
-  const [buscando,       setBuscando]       = React.useState(false);
+  // busca por projeto: { [nome]: { query, resultados, buscando } }
+  const [buscaState, setBuscaState] = React.useState({});
   const [showIndexar,    setShowIndexar]    = React.useState(false);
   const [indexarSel,     setIndexarSel]     = React.useState({});   // { nome: bool }
   const [indexando,      setIndexando]      = React.useState(false);
@@ -541,19 +540,19 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     }
   };
 
-  const handleBuscar = async (e) => {
-    e?.preventDefault();
-    const q = buscaQuery.trim();
+  const _getBusca = (nome) => buscaState[nome] || { query: '', resultados: null, buscando: false };
+  const _setBusca = (nome, patch) => setBuscaState(prev => ({ ...prev, [nome]: { ..._getBusca(nome), ...patch } }));
+
+  const handleBuscarCanal = async (nome) => {
+    const q = _getBusca(nome).query.trim();
     if (!q) return;
-    setBuscando(true);
-    setBuscaResultados(null);
+    _setBusca(nome, { buscando: true, resultados: null });
     try {
-      const res = await buscarBase(q, _canalEfetivo());
-      setBuscaResultados(res.data);
+      const res = await buscarBase(q, nome);
+      _setBusca(nome, { resultados: res.data, buscando: false });
     } catch {
-      setBuscaResultados({ resultados: [], total: 0, query: q });
+      _setBusca(nome, { resultados: { resultados: [], total: 0, query: q }, buscando: false });
     }
-    setBuscando(false);
   };
 
   const canais    = repositorio.canais      || [];
@@ -587,24 +586,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
             <h2 className={`text-sm font-bold shrink-0 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.title')}</h2>
-            {total > 0 && (
-              <div className={`flex items-center gap-1.5 flex-1 min-w-0 rounded-xl border px-2.5 py-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30
-                ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input
-                  type="text"
-                  placeholder={_canalEfetivo() ? t('repo.search_in_canal', { canal: _canalEfetivo() }) : t('repo.search_all_projects')}
-                  value={buscaQuery}
-                  onChange={e => { setBuscaQuery(e.target.value); if (!e.target.value.trim()) setBuscaResultados(null); }}
-                  onKeyDown={e => e.key === 'Enter' && handleBuscar()}
-                  className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 min-w-0 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-                {buscaQuery.trim() && (
-                  buscando
-                    ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                    : <button onClick={handleBuscar} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 transition-colors ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>{t('repo.search_btn')}</button>
-                )}
-              </div>
-            )}
           </div>
           <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
             {t('repo.file_count', { files: total, bases: canais.length })}
@@ -667,58 +648,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         </div>
       )}
 
-      {/* ── Resultados de busca ── */}
-      {buscaResultados && (
-        <div className={`rounded-2xl border p-4 space-y-2 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
-            {buscaResultados.total === 0
-              ? t('repo.search_no_results', { query: buscaResultados.query })
-              : t('repo.search_results', { count: buscaResultados.total, query: buscaResultados.query })}
-          </p>
-          {buscaResultados.resultados.map((r, i) => (
-            <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className={`text-[11px] font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    {r.tipo === 'youtube' ? '🎬' : r.tipo === 'documento' ? '📄' : '📝'} {r.arquivo}
-                  </p>
-                  {r.canal && (
-                    <span className={`text-[9px] px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-500' : 'bg-slate-200 text-slate-500'}`}>@{r.canal}</span>
-                  )}
-                </div>
-                {onInjetarContexto && (
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
-                      title={t('repo.inject_excerpt_title')}
-                      className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
-                        ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                      {t('repo.inject_excerpt_btn')}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await lerArquivo(r.caminho);
-                          if (res.data?.ok) {
-                            onInjetarContexto(res.data.conteudo, r.arquivo);
-                          }
-                        } catch { /* silently ignore */ }
-                      }}
-                      title={t('repo.inject_file_title')}
-                      className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors
-                        ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
-                      {t('repo.inject_file_btn')}
-                    </button>
-                  </div>
-                )}
-              </div>
-              <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                …{r.trecho}…
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Modal — limpar base */}
       {showLimpar && createPortal(
@@ -1126,35 +1055,105 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               )}
             </div>
 
-            {isOpen && (
-              <div className="divide-y divide-white/5">
-                {canal.youtube.map((f, i) => (
-                  <div key={`yt-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                    <span className="text-sm shrink-0">🎬</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+            {isOpen && (() => {
+              const b = _getBusca(canal.nome);
+              return (
+                <div>
+                  {/* Campo de busca inline */}
+                  <div className={`px-4 py-2 border-b ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                    <div className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30
+                      ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                      <input
+                        type="text"
+                        placeholder={t('repo.search_in_canal', { canal: canal.nome })}
+                        value={b.query}
+                        onChange={e => {
+                          _setBusca(canal.nome, { query: e.target.value });
+                          if (!e.target.value.trim()) _setBusca(canal.nome, { query: '', resultados: null });
+                        }}
+                        onKeyDown={e => e.key === 'Enter' && handleBuscarCanal(canal.nome)}
+                        className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 min-w-0 ${darkMode ? 'text-white' : 'text-slate-800'}`}
+                      />
+                      {b.query.trim() && (
+                        b.buscando
+                          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-primary shrink-0"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                          : <button onClick={() => handleBuscarCanal(canal.nome)} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 transition-colors ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>{t('repo.search_btn')}</button>
+                      )}
+                      {b.resultados && (
+                        <button onClick={() => _setBusca(canal.nome, { query: '', resultados: null })} className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
+                      )}
                     </div>
                   </div>
-                ))}
-                {[...canal.documentos.map(d => ({...d, _tipo: 'documents'})),
-                  ...canal.textos.map(d => ({...d, _tipo: 'texts'}))
-                ].map((item, i) => (
-                  <div key={`doc-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                    <span className="text-sm shrink-0">{_emojiTipo(item)}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+
+                  {/* Resultados de busca (quando ativos) */}
+                  {b.resultados && (
+                    <div className={`px-4 py-3 space-y-2 border-b ${darkMode ? 'border-white/8 bg-white/2' : 'border-slate-100 bg-slate-50/50'}`}>
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+                        {b.resultados.total === 0
+                          ? t('repo.search_no_results', { query: b.resultados.query })
+                          : t('repo.search_results', { count: b.resultados.total, query: b.resultados.query })}
+                      </p>
+                      {b.resultados.resultados.map((r, i) => (
+                        <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${darkMode ? 'bg-white/4 border-white/8' : 'bg-white border-slate-200'}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={`text-[11px] font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                              {r.tipo === 'youtube' ? '🎬' : r.tipo === 'documento' ? '📄' : '📝'} {r.arquivo}
+                            </p>
+                            {onInjetarContexto && (
+                              <div className="flex gap-1 shrink-0">
+                                <button onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
+                                  title={t('repo.inject_excerpt_title')}
+                                  className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                                  {t('repo.inject_excerpt_btn')}
+                                </button>
+                                <button onClick={async () => {
+                                    try { const res = await lerArquivo(r.caminho); if (res.data?.ok) onInjetarContexto(res.data.conteudo, r.arquivo); } catch {}
+                                  }}
+                                  title={t('repo.inject_file_title')}
+                                  className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
+                                  {t('repo.inject_file_btn')}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>…{r.trecho}…</p>
+                        </div>
+                      ))}
                     </div>
-                    <button onClick={() => handleDelete(item._tipo, item.id)}
-                      className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
-                      aria-label={t('repo.remove_item_label', { name: item.titulo || item.nome_original || 'arquivo' })}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
-                    </button>
+                  )}
+
+                  {/* Lista de arquivos */}
+                  <div className="divide-y divide-white/5">
+                    {canal.youtube.map((f, i) => (
+                      <div key={`yt-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                        <span className="text-sm shrink-0">🎬</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</p>
+                          <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{f.data} · {(f.tamanho / 1024).toFixed(0)} KB</p>
+                        </div>
+                      </div>
+                    ))}
+                    {[...canal.documentos.map(d => ({...d, _tipo: 'documents'})),
+                      ...canal.textos.map(d => ({...d, _tipo: 'texts'}))
+                    ].map((item, i) => (
+                      <div key={`doc-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                        <span className="text-sm shrink-0">{_emojiTipo(item)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
+                          <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                        </div>
+                        <button onClick={() => handleDelete(item._tipo, item.id)}
+                          className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
+                          aria-label={t('repo.remove_item_label', { name: item.titulo || item.nome_original || 'arquivo' })}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2"/></svg>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              );
+            })()}
           </div>
         );
       })}
