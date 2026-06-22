@@ -16,7 +16,7 @@ from tusab_engine.storage import (
     DATA_DIR, NEURAL_DIR, LOCAL_TXT_DIR,
     GESTAO_DIR, TEMP_DIR,
     salvar_csv_atomico, salvar_json_atomico,
-    gestao_canal_dir,
+    gestao_canal_dir, get_canal_youtube_dir,
 )
 from tusab_engine.motor.drive import (
     get_drive_status, get_drive_service,
@@ -25,29 +25,6 @@ from tusab_engine.motor.drive import (
 )
 
 MAX_WORDS_PER_FILE = 40000
-
-
-# ── Helpers de path ───────────────────────────────────────────────────────────
-
-def get_canal_youtube_dir(prefixo: str) -> str:
-    """Diretório de transcrições YouTube por canal: data/neural/{prefixo}/youtube/"""
-    return os.path.join(NEURAL_DIR, prefixo, 'youtube')
-
-
-def migrar_canal_para_subdir(prefixo: str):
-    """Move arquivos legados de cerebro/youtube/ para cerebro/{prefixo}/youtube/."""
-    import shutil
-    if not os.path.exists(LOCAL_TXT_DIR):
-        return
-    nova_dir = get_canal_youtube_dir(prefixo)
-    os.makedirs(nova_dir, exist_ok=True)
-    migrados = 0
-    for fname in os.listdir(LOCAL_TXT_DIR):
-        if fname.startswith(prefixo) and not os.path.exists(os.path.join(nova_dir, fname)):
-            shutil.move(os.path.join(LOCAL_TXT_DIR, fname), os.path.join(nova_dir, fname))
-            migrados += 1
-    if migrados:
-        print(f"✅ Migração: {migrados} arquivo(s) de '{prefixo}' → cerebro/{prefixo}/youtube/")
 
 
 def migrar_cerebro_txt():
@@ -320,8 +297,16 @@ Tusab — {canal_nome_raw}/
 
 # ── Metadados do canal ────────────────────────────────────────────────────────
 
-def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dict:
-    """Coleta metadados do canal via yt-dlp e salva JSON local."""
+def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: str, projeto_prefixo: str = None) -> dict:
+    """Coleta metadados do canal via yt-dlp e salva JSON local.
+
+    Args:
+        canal_url: URL do canal YouTube.
+        canal_nome_raw: Nome bruto do canal (para exibição).
+        canal_nome_canal: Nome sanitizado do canal (usado como subpasta).
+        projeto_prefixo: Prefixo do projeto (se None, usa canal_nome_canal).
+    """
+    _projeto = projeto_prefixo or canal_nome_canal
     meta = {
         'canal_nome':    canal_nome_raw,
         'canal_handle':  f'@{canal_nome_raw}',
@@ -362,9 +347,9 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, prefixo: str) -> dic
     except Exception:
         pass
 
-    canal_yt_dir = get_canal_youtube_dir(prefixo)
+    canal_yt_dir = get_canal_youtube_dir(_projeto, canal_nome_canal)
     os.makedirs(canal_yt_dir, exist_ok=True)
-    meta_path = os.path.join(canal_yt_dir, f'{prefixo}_meta.json')
+    meta_path = os.path.join(canal_yt_dir, f'{canal_nome_canal}_meta.json')
     salvar_json_atomico(meta, meta_path, indent=2)
 
     print(f"      📋 Canal: {meta['canal_nome']} {meta['canal_handle']}"
@@ -381,9 +366,10 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         prefixo = sanitizar_nome(projeto_nome)
     else:
         prefixo = canal_nome_safe
-    canal_youtube_dir = get_canal_youtube_dir(prefixo)
+    canal_nome_canal = canal_nome_safe  # sempre o nome do canal YouTube
+    canal_youtube_dir = get_canal_youtube_dir(prefixo, canal_nome_canal)
     drive_folder_name = f"Tusab — {canal_nome_raw}"
-    db_file = os.path.join(gestao_canal_dir(prefixo), f'{prefixo}_base.csv')
+    db_file = os.path.join(gestao_canal_dir(prefixo), f'{canal_nome_canal}_base.csv')
 
     _ytdlp_update()
 
@@ -391,6 +377,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     print("🧠 Tusab — Indexe. Aprenda. Consulte.")
     print(f"   Canal: {canal_url}")
     print(f"   Prefixo: {prefixo}")
+    print(f"   Canal: {canal_nome_canal}")
     print("=" * 70 + "\n")
 
     _obs_start_time = time.time()
@@ -419,11 +406,10 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         os.makedirs(d, exist_ok=True)
 
     migrar_cerebro_txt()
-    migrar_canal_para_subdir(prefixo)
 
     # --- 0. METADADOS DO CANAL ---
     print("📋 Coletando metadados do canal...")
-    meta_canal = coletar_meta_canal(canal_url, canal_nome_raw, prefixo)
+    meta_canal = coletar_meta_canal(canal_url, canal_nome_raw, canal_nome_canal, prefixo)
 
     FONTES = gerar_fontes(canal_url)
     if fontes_filtro:
@@ -450,6 +436,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         continue
                     cmd_v = [
                         'yt-dlp', '--flat-playlist', '--ignore-errors',
+                        '--extractor-args', 'youtube:lang=pt',
                         '--print', '%(id)s|||%(upload_date)s|||%(view_count)s|||%(title)s',
                         f"https://www.youtube.com/playlist?list={playlist_id}"
                     ]
@@ -475,6 +462,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         else:
             cmd = [
                 'yt-dlp', '--flat-playlist', '--ignore-errors',
+                '--extractor-args', 'youtube:lang=pt',
                 '--print', '%(id)s|||%(upload_date)s|||%(view_count)s|||%(title)s', url
             ]
             stdout = executar_comando(cmd)
@@ -506,7 +494,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     print(f"✅ {total_liquido} vídeos mapeados no canal.\n")
 
     # Persiste total mapeado para cálculo correto de cobertura no relatório
-    summary_path = os.path.join(gestao_canal_dir(prefixo), f'{prefixo}_summary.json')
+    summary_path = os.path.join(gestao_canal_dir(prefixo), f'{canal_nome_canal}_summary.json')
     existing_summary = {}
     if os.path.exists(summary_path):
         try:
@@ -515,6 +503,15 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         except Exception:
             pass
     existing_summary['total_mapeado'] = total_liquido
+    existing_summary['canal_nome_canal'] = canal_nome_canal
+    # Garante que a URL do canal fique registrada no summary para o auto-update
+    # Um projeto pode agregar múltiplos canais; mantém lista de URLs
+    urls_registradas = existing_summary.get('canal_urls', [])
+    if canal_url and canal_url not in urls_registradas:
+        urls_registradas.append(canal_url)
+    existing_summary['canal_urls'] = urls_registradas
+    # Compat: mantém canal_url como a mais recente para leituras simples
+    existing_summary['canal_url'] = canal_url
     salvar_json_atomico(existing_summary, summary_path)
 
     # --- 1b. IDIOMAS ---
@@ -528,7 +525,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     ids_nos_txts = set()
     arquivos_existentes = [
         f for f in os.listdir(canal_youtube_dir)
-        if f.startswith(f"{prefixo}_Parte_") and f.endswith(".txt")
+        if f.startswith(f"{canal_nome_canal}_Parte_") and f.endswith(".txt")
     ]
     for f_txt in arquivos_existentes:
         try:
@@ -600,11 +597,11 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         ]
         if numeros:
             parte_atual = max(numeros)
-            caminho_retomada = os.path.join(canal_youtube_dir, f"{prefixo}_Parte_{parte_atual}.txt")
+            caminho_retomada = os.path.join(canal_youtube_dir, f"{canal_nome_canal}_Parte_{parte_atual}.txt")
             with open(caminho_retomada, 'r', encoding='utf-8-sig', errors='ignore') as f:
                 palavras_atuais = len(f.read().split())
 
-    nome_arquivo_base = f"{prefixo}_Parte_{parte_atual}"
+    nome_arquivo_base = f"{canal_nome_canal}_Parte_{parte_atual}"
     caminho_txt = os.path.join(canal_youtube_dir, f"{nome_arquivo_base}.txt")
 
     pendentes = total_liquido - len(ids_ja_minerados)
@@ -713,7 +710,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     if palavras_atuais + num_palavras > MAX_WORDS_PER_FILE:
                         parte_atual += 1
                         palavras_atuais = 0
-                        nome_arquivo_base = f"{prefixo}_Parte_{parte_atual}"
+                        nome_arquivo_base = f"{canal_nome_canal}_Parte_{parte_atual}"
                         caminho_txt = os.path.join(canal_youtube_dir, f"{nome_arquivo_base}.txt")
                         print(f"      📂 NOVO ARQUIVO: Parte {parte_atual} iniciada.")
 
@@ -866,7 +863,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
 
         print("\n☁️ [SINCRONIZANDO COM O DRIVE]...")
         for f in sorted(os.listdir(canal_youtube_dir)):
-            if f.endswith(".txt") and f.startswith(prefixo):
+            if f.endswith(".txt") and f.startswith(canal_nome_canal):
                 upload_txt_como_gdoc_seguro(service, os.path.join(canal_youtube_dir, f), id_docs)
 
         print("\n📊 Sincronizando metadados...")

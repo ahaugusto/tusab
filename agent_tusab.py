@@ -10,7 +10,7 @@ from tusab_engine.agent.config import carregar_config, salvar_config           #
 from tusab_engine.agent.index import (                                          # noqa: F401
     indexar, get_agent_status,
     _invalidar_cache, _index_path, _carregar_meta_canal,
-    _get_canal_youtube_dir, _get_canal_doc_dirs,
+    _get_canal_doc_dirs,
     _bm25_cache, _bm25_lock,
 )
 from tusab_engine.agent.chat import (                                           # noqa: F401

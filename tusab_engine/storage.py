@@ -49,6 +49,11 @@ GESTAO_DIR       = os.path.join(DATA_DIR, 'gestao')   # legado — preferir gest
 TEMP_DIR         = os.path.join(DATA_DIR, 'temp')
 
 
+def get_canal_youtube_dir(projeto: str, canal: str) -> str:
+    """Diretório de transcrições YouTube: data/neural/{projeto}/youtube/{canal}/"""
+    return os.path.join(NEURAL_DIR, projeto, 'youtube', canal)
+
+
 def gestao_canal_dir(prefixo: str) -> str:
     """Retorna (e cria) data/neural/{prefixo}/management/ — novo local canônico."""
     path = os.path.join(NEURAL_DIR, prefixo, 'management')

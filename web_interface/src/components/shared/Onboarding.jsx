@@ -22,7 +22,7 @@ import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
  * @param {Function} props.onDone - callback invoked with the selected profile slug when user finishes or skips
  * @returns {JSX.Element}
  */
-function Onboarding({ onDone }) {
+function Onboarding({ onDone, onSkip }) {
   const { t } = useTranslation();
   // step 0 = profile selection; steps 1–7 = content steps (mapped from index 0 in STEPS array)
   const [step, setStep] = useState(0);
@@ -72,10 +72,16 @@ function Onboarding({ onDone }) {
     onDone(finalPerfil);
   };
 
+  /** Fecha o onboarding sem gravar no localStorage — retorna à landing */
+  const skip = () => {
+    if (onSkip) { onSkip(); return; }
+    finish(true); // fallback se onSkip não fornecido
+  };
+
   // ── Step 0 — Profile picker ───────────────────────────────────────────────
   if (isProfileStep) {
     return (
-      <ModalWrapper onClose={() => finish(true)} disableBackdrop disableEscape label="Introdução ao Tusab">
+      <ModalWrapper onClose={skip} disableBackdrop disableEscape label="Introdução ao Tusab">
         <motion.div
           key="profile-step"
           initial={{ opacity: 0, y: 12 }}
@@ -93,12 +99,15 @@ function Onboarding({ onDone }) {
                 <div key={i} className="h-1.5 rounded-full w-1.5 bg-white/20" />
               ))}
             </div>
-            <button
-              onClick={() => finish(true)}
-              className={`text-[11px] text-slate-500 hover:text-slate-300 transition-colors ${BTN_FOCUS}`}
-            >
-              {t('onboarding.skip')}
-            </button>
+            {/* Pular só aparece após o perfil ser escolhido */}
+            {perfilSelecionado && (
+              <button
+                onClick={skip}
+                className={`text-[11px] text-slate-500 hover:text-slate-300 transition-colors ${BTN_FOCUS}`}
+              >
+                {t('onboarding.skip')}
+              </button>
+            )}
           </div>
 
           {/* Titles */}

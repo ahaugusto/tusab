@@ -52,10 +52,15 @@ def _count_files_on_disk() -> int:
                 continue
             yt_dir = os.path.join(canal_dir.path, "youtube")
             if os.path.isdir(yt_dir):
-                count += sum(
-                    1 for f in os.listdir(yt_dir)
-                    if f.endswith(".txt") and not f.startswith("_")
-                )
+                # nova estrutura: youtube/{canal}/*.txt (um nível abaixo)
+                for sub in os.scandir(yt_dir):
+                    if sub.is_dir():
+                        count += sum(
+                            1 for f in os.listdir(sub.path)
+                            if f.endswith(".txt") and not f.startswith("_")
+                        )
+                    elif sub.name.endswith(".txt") and not sub.name.startswith("_"):
+                        count += 1  # legado flat dentro de youtube/
     # Legado: neural/youtube/ flat
     legacy = os.path.join(NEURAL_DIR, "youtube")
     if os.path.isdir(legacy):
@@ -135,12 +140,20 @@ def get_history():
     for csv_path in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         try:
             df = pd.read_csv(csv_path, encoding="utf-8-sig")
-            prefixo = os.path.basename(csv_path).replace("_base.csv", "")
+
+            # Extrai projeto e canal separados da estrutura de paths
+            # neural/{projeto}/management/{canal}_base.csv
+            rel = csv_path.replace(motor_tusab.NEURAL_DIR, '').strip(os.sep)
+            parts = rel.split(os.sep)
+            # parts = [projeto, 'management', '{canal}_base.csv']
+            projeto    = parts[0] if len(parts) >= 1 else ""
+            canal_base = os.path.basename(csv_path).replace("_base.csv", "")
+
             total   = len(df)
             sucesso = int((df["Status"] == "Sucesso").sum()) if "Status" in df.columns else 0
             sem_leg = int((df["Status"] == "Sem Legenda").sum()) if "Status" in df.columns else 0
             ultima  = df["Data_Extracao"].max() if "Data_Extracao" in df.columns else ""
-            canal_url = f"https://www.youtube.com/@{prefixo}"
+            canal_url = f"https://www.youtube.com/@{canal_base}"
 
             if "Link" in df.columns:
                 link = df["Link"].dropna().iloc[0] if len(df) > 0 else ""
@@ -158,7 +171,8 @@ def get_history():
                     pass
 
             history.append({
-                "canal":           prefixo,
+                "canal":           canal_base,   # nome do canal YouTube
+                "projeto":         projeto,       # nome do projeto/pasta pai
                 "canal_url":       canal_url,
                 "total":           total,
                 "total_mapeado":   total_mapeado,

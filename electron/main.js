@@ -324,6 +324,20 @@ function registerIpcHandlers () {
     writeKeystore(store)
     return true
   })
+
+  // Preferência de auto-update do Electron (salva no keystore como flag simples)
+  ipcMain.handle('get-update-pref', () => {
+    const store = readKeystore()
+    // Padrão: habilitado (true) — só retorna false se explicitamente desativado
+    return store['electron_auto_update'] !== false
+  })
+
+  ipcMain.handle('set-update-pref', (_e, enabled) => {
+    const store = readKeystore()
+    store['electron_auto_update'] = !!enabled
+    writeKeystore(store)
+    return true
+  })
 }
 
 // ─── Janela principal ──────────────────────────────────────────────────────
@@ -373,6 +387,13 @@ async function createWindow () {
 function setupAutoUpdater () {
   if (!IS_PACKED) return  // só verifica em produção
   try {
+    // Respeita a preferência do usuário salva no keystore
+    const store = readKeystore()
+    if (store['electron_auto_update'] === false) {
+      console.log('[update] atualização automática desativada pelo usuário')
+      return
+    }
+
     const { autoUpdater } = require('electron-updater')
     autoUpdater.autoDownload    = true
     autoUpdater.autoInstallOnAppQuit = true

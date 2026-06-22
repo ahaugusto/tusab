@@ -27,7 +27,7 @@ import { Analytics } from '../services/analytics';
  * @returns {Object} Agent config state and handlers
  */
 export function useAgentConfig({ activeTab, showError }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // ─── State ───────────────────────────────────────────────────────────────
 
@@ -82,12 +82,19 @@ export function useAgentConfig({ activeTab, showError }) {
       } else {
         setAgentProvider('ollama');
         setUseExternalProvider(false);
-        saveAgentConfig({ provider: 'ollama', api_key: '' })
+        saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language })
           .then(() => loadAgentConfig())
           .catch(() => {});
       }
     }).catch(() => {});
   }, []);
+
+  /** Syncs UI language to agent_config.json whenever the user changes the language */
+  useEffect(() => {
+    if (!i18n.language) return;
+    const provider = useExternalProvider ? agentProvider : 'ollama';
+    saveAgentConfig({ provider, api_key: '', idioma: i18n.language }).catch(() => {});
+  }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Polls agent status every 3 seconds (indexing progress, canal_indexado, etc.) */
   useEffect(() => {
@@ -120,7 +127,7 @@ export function useAgentConfig({ activeTab, showError }) {
   /** Saves selected Ollama model to config */
   const handleOllamaModelChange = async (model) => {
     setOllamaModel(model);
-    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona })
+    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona, idioma: i18n.language })
       .catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
   };
 
@@ -128,7 +135,7 @@ export function useAgentConfig({ activeTab, showError }) {
   const handlePersonaChange = async (novaPersona) => {
     setPersona(novaPersona);
     const provider = useExternalProvider ? agentProvider : 'ollama';
-    await saveAgentConfig({ provider, api_key: '', persona: novaPersona })
+    await saveAgentConfig({ provider, api_key: '', persona: novaPersona, idioma: i18n.language })
       .catch(() => {});
   };
 
@@ -142,7 +149,7 @@ export function useAgentConfig({ activeTab, showError }) {
     if (agentProvider && window.tusab?.deleteApiKey) {
       window.tusab.deleteApiKey(agentProvider).catch(() => {});
     }
-    await saveAgentConfig({ provider: 'ollama', api_key: '' })
+    await saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language })
       .catch(() => showError('Erro ao remover chave. Tente novamente.'));
     setUseExternalProvider(false);
     setAgentProvider('ollama');
@@ -169,7 +176,7 @@ export function useAgentConfig({ activeTab, showError }) {
         const stored = await window.tusab.setApiKey(provider, apiKey).catch(() => false);
         if (stored) backendKey = '__encrypted__';
       }
-      const res = await saveAgentConfig({ provider, api_key: backendKey, persona });
+      const res = await saveAgentConfig({ provider, api_key: backendKey, persona, idioma: i18n.language });
       if (res.data.error) {
         setAgentKeyError(res.data.message);
       } else {

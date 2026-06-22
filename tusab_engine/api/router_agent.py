@@ -105,6 +105,7 @@ class AgentConfigRequest(BaseModel):
     groq_model:    str  = Field(default="", max_length=80)
     ollama_model:  str  = Field(default="", max_length=80)
     persona:       str  = Field(default="", max_length=30)
+    idioma:        str  = Field(default="pt", max_length=10)
 
 class AgentChatRequest(BaseModel):
     mensagem:       str  = Field(max_length=4000)
@@ -369,6 +370,8 @@ def agent_config(req: AgentConfigRequest):
         config["ollama_model"] = req.ollama_model
     if req.persona in _PERSONAS_VALIDAS:
         config["persona"] = req.persona
+    if req.idioma in ("pt", "en", "es"):
+        config["idioma"] = req.idioma
     agent_tusab.salvar_config(config)
     return {"message": "Configuração salva com sucesso."}
 

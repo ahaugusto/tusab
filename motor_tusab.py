@@ -13,7 +13,7 @@ from tusab_engine.motor.drive import (                        # noqa: F401
 from tusab_engine.motor.extraction import (                   # noqa: F401
     sanitizar_nome, extrair_nome_canal, formatar_data, limpar_vtt,
     executar_comando, detectar_idiomas_canal, gerar_fontes,
-    get_canal_youtube_dir, migrar_canal_para_subdir, migrar_cerebro_txt,
+    migrar_cerebro_txt,
     coletar_meta_canal, gerar_relatorio_checkup, gerar_readme,
     tusab_engine,
 )
@@ -23,5 +23,5 @@ from tusab_engine.storage import (                            # noqa: F401
     GESTAO_DIR, TEMP_DIR, TOKEN_PATH, CREDENTIALS_PATH,
     salvar_csv_atomico, salvar_json_atomico,
     obter_caminho_dados, obter_caminho_assets,
-    gestao_canal_dir,
+    gestao_canal_dir, get_canal_youtube_dir,
 )

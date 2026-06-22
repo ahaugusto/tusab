@@ -69,15 +69,18 @@ def get_repositorio():
         arquivos = []
         if not os.path.exists(yt_dir):
             return arquivos
-        for fname in sorted(os.listdir(yt_dir)):
-            if fname.endswith('.txt') and not fname.startswith('_'):
-                fpath = os.path.join(yt_dir, fname)
-                stat = os.stat(fpath)
-                arquivos.append({
-                    "nome": fname, "canal": canal_nome,
-                    "tamanho": stat.st_size,
-                    "data": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y"),
-                })
+        # Nova estrutura: youtube/{canal_slug}/*.txt — varre um nível de subpastas
+        txts = glob.glob(os.path.join(yt_dir, '**', '*.txt'), recursive=True)
+        for fpath in sorted(txts):
+            fname = os.path.basename(fpath)
+            if fname.startswith('_'):
+                continue
+            stat = os.stat(fpath)
+            arquivos.append({
+                "nome": fname, "canal": canal_nome,
+                "tamanho": stat.st_size,
+                "data": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y"),
+            })
         return arquivos
 
     def _count_csv_videos(canal_prefixo, mgmt_dir):
@@ -717,7 +720,18 @@ def cerebro_limpar(req: LimparRequest):
 
     for canal_path in canal_paths:
         if req.youtube:
-            deletados['youtube']    += _limpar_dir(os.path.join(canal_path, 'youtube'))
+            # Nova estrutura: youtube/{canal_slug}/*.txt — apaga em cada subpasta de canal
+            yt_base = os.path.join(canal_path, 'youtube')
+            if os.path.exists(yt_base):
+                for sub in os.scandir(yt_base):
+                    if sub.is_dir():
+                        deletados['youtube'] += _limpar_dir(sub.path)
+                    elif sub.is_file() and sub.name.endswith('.txt') and not sub.name.startswith('_'):
+                        try:
+                            os.remove(sub.path)
+                            deletados['youtube'] += 1
+                        except Exception:
+                            pass
         if req.documentos:
             deletados['documentos'] += _limpar_dir(os.path.join(canal_path, 'documents'))
         if req.textos:
@@ -934,9 +948,10 @@ def cerebro_listar_projetos():
             continue
         # Tipo: youtube = tem subdir youtube/ com arquivos; projeto = criado manualmente
         yt_dir = os.path.join(entry.path, "youtube")
-        has_youtube = os.path.isdir(yt_dir) and any(
-            f.is_file() for f in os.scandir(yt_dir)
-        ) if os.path.isdir(yt_dir) else False
+        # Nova estrutura: youtube/{canal_slug}/*.txt — verifica recursivamente
+        has_youtube = bool(
+            os.path.isdir(yt_dir) and glob.glob(os.path.join(yt_dir, '**', '*.txt'), recursive=True)
+        )
         tipo = "youtube" if has_youtube else "projeto"
         projetos.append({"nome": entry.name, "tipo": tipo})
     return {"projetos": projetos}

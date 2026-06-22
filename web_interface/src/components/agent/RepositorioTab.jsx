@@ -833,92 +833,16 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           </div>
           <div className={`rounded-2xl border-0 p-0 space-y-3`}>
 
-          {/* Project selector */}
-          <div className="space-y-1.5">
-            <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>
-
-            {/* Canal ativo (pré-selecionado) */}
-            {canalAtivo && (
-              <button
-                onClick={() => { setProjetoSel(''); setShowNovoProjeto(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
-                  ${projetoSel === ''
-                    ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
-                    : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
-                  ${projetoSel === '' ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-                  {projetoSel === '' && <span className="w-2 h-2 rounded-full bg-white block" />}
-                </div>
-                <span className="text-base shrink-0">🧠</span>
-                <span className={`text-xs font-semibold truncate ${projetoSel === '' ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  @{canalAtivo} <span className={`font-normal text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>({t('repo.current_label')})</span>
-                </span>
-              </button>
-            )}
-
-            {/* Projetos existentes */}
-            {projetos.filter(p => p.nome !== canalAtivo).map(p => (
-              <button
-                key={p.nome}
-                onClick={() => { setProjetoSel(p.nome); setShowNovoProjeto(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
-                  ${projetoSel === p.nome
-                    ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
-                    : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
-                  ${projetoSel === p.nome ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-                  {projetoSel === p.nome && <span className="w-2 h-2 rounded-full bg-white block" />}
-                </div>
-                <span className="text-base shrink-0">🧠</span>
-                <span className={`text-xs font-semibold truncate ${projetoSel === p.nome ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
-                </span>
-              </button>
-            ))}
-
-
-            {/* Novo projeto */}
-            <button
-              onClick={() => { setShowNovoProjeto(true); setProjetoSel('__novo__'); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${btnFocus}
-                ${showNovoProjeto
-                  ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
-                  : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0
-                ${showNovoProjeto ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-                {showNovoProjeto && <span className="w-2 h-2 rounded-full bg-white block" />}
-              </div>
-              <span className="text-base shrink-0">✨</span>
-              <span className={`text-xs font-semibold ${showNovoProjeto ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                {t('repo.new_project')}
+          {/* Chip do projeto de destino */}
+          {canalAtivo && (
+            <div className="flex items-center gap-2">
+              <p className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>
+              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+                ${darkMode ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>
+                🧠 @{canalAtivo}
               </span>
-            </button>
-
-            {/* Input de nome — aparece quando "Novo projeto" selecionado */}
-            {showNovoProjeto && (
-              <div className="flex gap-2 pl-1">
-                <input
-                  type="text"
-                  placeholder={t('repo.project_name_placeholder')}
-                  value={novoProjNome}
-                  onChange={e => setNovoProjNome(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleCriarProjeto()}
-                  autoFocus
-                  className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
-                <button
-                  onClick={handleCriarProjeto}
-                  disabled={criandoProj || !novoProjNome.trim()}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
-                  {criandoProj ? '…' : t('repo.create_btn')}
-                </button>
-                <button
-                  onClick={() => { setShowNovoProjeto(false); setProjetoSel(canalAtivo ? '' : ''); setNovoProjNome(''); }}
-                  className={`px-2 py-2 rounded-xl text-xs font-bold transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'} ${btnFocus}`}>
-                  ✕
-                </button>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="flex gap-2">
             {['texto', 'arquivo'].map(m => (
@@ -929,13 +853,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             ))}
           </div>
 
-          {/* Aviso bloqueante: projeto obrigatório */}
-          {projetoSel === '' && !showNovoProjeto ? (
-            <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs ${darkMode ? 'bg-amber-500/8 border-amber-500/25 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              {t('repo.select_project_first')}
-            </div>
-          ) : mode === 'texto' ? (
+          {mode === 'texto' ? (
             <>
               <input placeholder={t('repo.title_placeholder')} value={title} onChange={e => setTitle(e.target.value)}
                 className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />

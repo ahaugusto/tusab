@@ -1,0 +1,92 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+# Release pipeline: builda o instalador Windows e publica como GitHub Release
+# Acionado por push de tag vX.Y.Z (ex: git tag v1.2.0 && git push --tags)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  # ── 1. Testes antes de qualquer build ────────────────────────────────────────
+  tests:
+    name: Testes (pytest + vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Instalar dependências Python
+        run: pip install -r requirements.txt pytest httpx
+
+      - name: Dist mínimo para testes
+        run: |
+          mkdir -p web_interface/dist/assets
+          echo '<!doctype html><html><body>Tusab CI</body></html>' > web_interface/dist/index.html
+
+      - name: Pytest
+        run: pytest tests/ -v --tb=short
+
+      - name: Build frontend
+        working-directory: web_interface
+        run: npm ci && npx vite build
+
+  # ── 2. Build do instalador Windows ───────────────────────────────────────────
+  build-windows:
+    name: Build Windows (.exe)
+    runs-on: windows-latest
+    needs: tests
+    permissions:
+      contents: write   # necessário para publicar a release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      # Extrai a versão da tag (v1.2.0 → 1.2.0) e atualiza package.json do Electron
+      - name: Sincronizar versão do package.json com a tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Versão: $VERSION"
+          cd electron
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      # Build do frontend (dist/ que vai dentro do instalador)
+      - name: Build frontend
+        working-directory: web_interface
+        run: npm ci && npx vite build
+
+      # Instala dependências do Electron
+      - name: Instalar dependências Electron
+        working-directory: electron
+        run: npm ci
+
+      # electron-builder lê GH_TOKEN para publicar na release
+      - name: Build e publicar instalador
+        working-directory: electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build -- --publish always

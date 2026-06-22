@@ -56,6 +56,8 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   const [projetoSel,  setProjetoSel]  = React.useState(projetoExistente ? canalNome : '');
   const [novoNome,    setNovoNome]    = React.useState(canalNome || '');
   const [criandoNovo, setCriandoNovo] = React.useState(!projetoExistente);
+  // Controla se o handle da URL já foi pré-preenchido (evita sobrescrever edição manual)
+  const [handlePreenchido, setHandlePreenchido] = React.useState(!!canalNome);
 
   // Step fontes
   const [selected, setSelected] = React.useState(ALL_TYPES.map(t => t.id));
@@ -85,9 +87,15 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   // Avança para a próxima etapa (pula projeto se não for modoFila)
   const avancar = () => {
     if (step === 1) {
-      // Ao avançar do step 1, atualiza o nome do novo projeto com o handle da URL nova
-      const handle = extrairHandleUrl(canalUrl);
-      if (handle) setNovoNome(handle);
+      // Pré-preenche o nome do projeto com o handle da URL, mas apenas se o usuário
+      // ainda não editou manualmente o campo (handlePreenchido === false)
+      if (!handlePreenchido) {
+        const handle = extrairHandleUrl(canalUrl);
+        if (handle) {
+          setNovoNome(handle);
+          setHandlePreenchido(true);
+        }
+      }
       setStep(modoFila ? 2 : 3);
     } else if (step === 2) { setStep(3); }
   };
@@ -209,14 +217,26 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
               </button>
 
               {criandoNovo && (
-                <input
-                  type="text"
-                  value={novoNome}
-                  onChange={e => setNovoNome(e.target.value)}
-                  placeholder="Nome do projeto"
-                  autoFocus
-                  className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`}
-                />
+                <div>
+                  <label className={`text-[10px] font-bold block mb-1 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Nome do projeto <span className="text-red-500" aria-label="obrigatório">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={novoNome}
+                    onChange={e => {
+                      setNovoNome(e.target.value);
+                      // Marca que o usuário editou manualmente — não sobrescrever mais
+                      setHandlePreenchido(true);
+                    }}
+                    placeholder="Nome do projeto (obrigatório)"
+                    autoFocus
+                    className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`}
+                  />
+                  {!novoNome.trim() && (
+                    <p className="text-[10px] text-red-500 mt-1 px-1">Campo obrigatório</p>
+                  )}
+                </div>
               )}
 
               {/* Existing projects */}
@@ -249,7 +269,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
               </button>
               <button
                 onClick={avancar}
-                disabled={criandoNovo && !novoNome.trim()}
+                disabled={criandoNovo ? !novoNome.trim() : !projetoSel.trim()}
                 className={`flex-2 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                 Próximo
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

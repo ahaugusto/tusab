@@ -80,11 +80,11 @@ export const queueRemoveItem = (index) => axios.delete(`${API_BASE}/queue/item/$
 export const queueMoveItem = (from_index, to_index) => axios.post(`${API_BASE}/queue/move`, { from_index, to_index });
 
 /** Saves auto-update config for a channel */
-export const saveAutoUpdateConfig = (canal_prefixo, enabled, frequencia, fontes, canal_url) =>
-  axios.post(`${API_BASE}/auto-update/config`, { canal_prefixo, enabled, frequencia, fontes, canal_url });
+export const saveAutoUpdateConfig = (canal_prefixo, enabled, frequencia, fontes, canal_url, projeto_prefixo = '') =>
+  axios.post(`${API_BASE}/auto-update/config`, { canal_prefixo, projeto_prefixo, enabled, frequencia, fontes, canal_url });
 
 /** Gets auto-update config for a channel */
-export const getAutoUpdateConfig = (canal_prefixo) => axios.get(`${API_BASE}/auto-update/config/${canal_prefixo}`);
+export const getAutoUpdateConfig = (canal_prefixo, projeto_prefixo = '') => axios.get(`${API_BASE}/auto-update/config/${canal_prefixo}?projeto_prefixo=${projeto_prefixo}`);
 
 /** Triggers an immediate auto-update check for all configured channels */
 export const runAutoUpdate = () => axios.post(`${API_BASE}/auto-update/run`);
