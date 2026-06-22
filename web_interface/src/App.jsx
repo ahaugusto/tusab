@@ -1213,6 +1213,7 @@ function App() {
                 handleStart={handleStart}
                 handlePause={handlePause}
                 handleCancel={handleCancel}
+                repositorio={repositorio}
                 onOpenFolderPicker={() => setFolderPickerOpen(true)}
                 onNavigateMonitor={() => { setActiveTab('monitor'); setShowHome(false); }}
                 onRemoveCanal={() => {
