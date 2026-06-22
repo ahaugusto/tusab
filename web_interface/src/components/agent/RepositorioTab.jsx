@@ -203,7 +203,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled, projetoInicial, onProjetoInicialHandled }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -255,6 +255,20 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [criandoProj,    setCriandoProj]    = React.useState(false);
   const fileRef  = React.useRef(null);
   const dropRef  = React.useRef(null);
+
+  // Pré-seleciona projeto quando vindo de fora (ex: criação no folder picker)
+  React.useEffect(() => {
+    if (projetoInicial) {
+      setProjetoSel(projetoInicial);
+      onProjetoInicialHandled?.();
+    }
+  }, [projetoInicial]);
+
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setProjetoSel('');
+    setNovoProjNome('');
+  };
 
   const reload = () => {
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
@@ -334,7 +348,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     if (ok) {
       Analytics.documentoAdicionado('texto');
       reload();
-      setShowAdd(false);
+      closeAddModal();
       setTitle('');
       setText('');
       _triggerReindex(canal);
@@ -396,7 +410,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     if (!hasError) {
       setFiles([]);
       setUploadProgress({});
-      setShowAdd(false);
+      closeAddModal();
     }
     _triggerReindex(canal);
   };
@@ -814,7 +828,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       {/* Add modal */}
       {showAdd_ && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={() => setShowAdd(false)}>
+          onClick={() => closeAddModal()}>
           <div
             className={`w-full max-w-lg rounded-2xl border shadow-2xl p-4 space-y-3 overflow-y-auto
               ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}
@@ -824,36 +838,87 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           {/* Modal header */}
           <div className="flex items-center justify-between pb-2 border-b border-white/8">
             <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-              {mode === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
+              {!_canalEfetivo() ? t('repo.select_project', 'Selecionar projeto') : mode === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
             </h3>
-            <button onClick={() => setShowAdd(false)}
+            <button onClick={() => closeAddModal()}
               className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div className={`rounded-2xl border-0 p-0 space-y-3`}>
 
-          {/* Chip do projeto de destino */}
-          {canalAtivo && (
-            <div className="flex items-center gap-2">
-              <p className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>
-              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
-                ${darkMode ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>
-                🧠 @{canalAtivo}
-              </span>
+          {/* Step de seleção de projeto quando nenhum está definido */}
+          {!_canalEfetivo() ? (
+            <div className="space-y-3 py-2">
+              <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                {t('repo.select_project_prompt', 'Selecione o projeto de destino para o arquivo:')}
+              </p>
+              {(() => {
+                // Usa repositorio.canais como fonte primária (sempre disponível),
+                // complementado por projetos carregados via listarProjetos
+                const nomesRepo = (repositorio?.canais || []).map(c => c.nome);
+                const nomesProjetos = projetos.map(p => typeof p === 'string' ? p : p.nome);
+                const todos = [...new Set([...nomesRepo, ...nomesProjetos])];
+                return todos.length > 0 ? (
+                  <div className="space-y-2">
+                    {todos.map(nome => (
+                      <button key={nome} onClick={() => setProjetoSel(nome)}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors
+                          ${darkMode ? 'bg-white/5 border-white/10 text-white hover:bg-primary/15 hover:border-primary/30' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-violet-50 hover:border-violet-200'}`}>
+                        🧠 @{nome}
+                      </button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+              <div className={`border-t pt-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+                <p className={`text-[10px] mb-2 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {t('repo.or_create_project', 'Ou crie um novo projeto:')}
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    value={novoProjNome}
+                    onChange={e => setNovoProjNome(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCriarProjeto()}
+                    placeholder={t('repo.project_name_placeholder', 'Nome do projeto...')}
+                    className={`flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary
+                      ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`}
+                  />
+                  <button onClick={handleCriarProjeto} disabled={criandoProj || !novoProjNome.trim()}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 transition-colors ${btnFocus}`}>
+                    {criandoProj ? '...' : t('repo.create', 'Criar')}
+                  </button>
+                </div>
+              </div>
             </div>
+          ) : (
+            <>
+              {/* Chip do projeto de destino */}
+              <div className="flex items-center gap-2">
+                <p className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>
+                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+                  ${darkMode ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>
+                  🧠 @{_canalEfetivo()}
+                </span>
+                {/* Trocar projeto */}
+                <button onClick={() => setProjetoSel('')}
+                  className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'} transition-colors`}>
+                  {t('repo.change', 'Trocar')}
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                {['arquivo', 'texto'].map(m => (
+                  <button key={m} onClick={() => setMode(m)}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${mode === m ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
+                    {m === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
-          <div className="flex gap-2">
-            {['arquivo', 'texto'].map(m => (
-              <button key={m} onClick={() => setMode(m)}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${mode === m ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
-                {m === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
-              </button>
-            ))}
-          </div>
-
-          {mode === 'texto' ? (
+          {_canalEfetivo() && mode === 'texto' ? (
             <>
               <input placeholder={t('repo.title_placeholder')} value={title} onChange={e => setTitle(e.target.value)}
                 className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />

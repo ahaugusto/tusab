@@ -31,17 +31,18 @@ const DEFAULT_AGENT_STATUS = {
 export function useAgentStatus() {
   const [agentStatus, setAgentStatus] = useState(DEFAULT_AGENT_STATUS);
 
+  const refetchAgentStatus = async () => {
+    try {
+      const res = await fetchAgentStatus();
+      setAgentStatus(res.data);
+    } catch {}
+  };
+
   useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await fetchAgentStatus();
-        setAgentStatus(res.data);
-      } catch {}
-    };
-    poll(); // fetch imediato na montagem
-    const interval = setInterval(poll, 3000);
+    refetchAgentStatus(); // fetch imediato na montagem
+    const interval = setInterval(refetchAgentStatus, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  return { agentStatus, setAgentStatus };
+  return { agentStatus, setAgentStatus, refetchAgentStatus };
 }

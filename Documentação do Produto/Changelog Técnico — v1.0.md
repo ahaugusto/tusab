@@ -876,3 +876,193 @@ A causa raiz das tentativas anteriores era que `useState(1)` era invariante — 
 |---|---|
 | `pytest tests/ -v` (27 testes) | ✅ 27/27 verde |
 | Smoke test pre-commit (15 checks) | ✅ 15/15 verde |
+
+---
+
+## Commit — Pro hint informativo + seleção de projeto no upload + folder picker + filtro de ruído asyncio
+
+**Data:** 22/06/2026
+**Escopo:** Backend + Frontend
+**Branch:** main
+
+### Contexto
+
+Sprint com quatro linhas de entrega:
+1. Substituição do bloqueio freemium por modal informativo (hint) após 3+ bases indexadas
+2. Correção do estado obsoleto ("Não indexado") após indexação concluída
+3. Fluxo completo de seleção/criação de projeto para upload e abertura de pasta
+4. Filtro de ruído técnico do asyncio do Windows no log da UI
+
+---
+
+### Backend
+
+#### `tusab_engine/agent/index.py`
+
+Removido o bloqueio hard `PRO_LIMIT` que impedia indexação além de 2 canais no plano free.
+
+**Antes:**
+```python
+FREE_MAX_CANAIS = 2
+
+# Em indexar():
+if not config.get('pro', False):
+    existentes = _contar_canais_indexados()
+    if canal_nome not in existentes and len(existentes) >= FREE_MAX_CANAIS:
+        raise ValueError("PRO_LIMIT:Você já tem N canais indexados...")
+```
+
+**Depois:**
+```python
+PRO_HINT_THRESHOLD = 3
+# indexar() inicia diretamente sem verificação de limite
+```
+
+A constante `_contar_canais_indexados()` foi mantida — é usada pelo router para disparar o hint.
+
+#### `tusab_engine/state.py`
+
+Adicionado flag ao `AppState`:
+```python
+self.pro_hint: bool = False  # True quando >= PRO_HINT_THRESHOLD bases indexadas; reset após leitura
+```
+
+Adicionado filtro no `LogRedirector.write()` para suprimir ruído asyncio do Windows:
+```python
+asyncio_noise = [
+    "WinError 10054", "ConnectionResetError", "_ProactorBasePipeTransport",
+    "_call_connection_lost", "asyncio\\events.py", "Exception in callback",
+]
+if any(k in clean for k in asyncio_noise):
+    return
+```
+
+O erro `[WinError 10054]` ocorre quando o cliente fecha a conexão (aba fechada, streaming cancelado) — é inofensivo e não indica bug. Continua registrado no stderr do processo, mas não polui o log da UI.
+
+#### `tusab_engine/api/router_agent.py`
+
+Em `_run_indexacao`, após indexação bem-sucedida:
+```python
+from agent_tusab import _contar_canais_indexados, PRO_HINT_THRESHOLD
+if len(_contar_canais_indexados()) >= PRO_HINT_THRESHOLD:
+    state.pro_hint = True
+```
+
+Em `GET /agent/status`, o flag é consumido (one-shot) e resetado:
+```python
+status["pro_hint"] = state.pro_hint
+if state.pro_hint:
+    state.pro_hint = False
+```
+
+---
+
+### Frontend
+
+#### `web_interface/src/components/modals/ProHintModal.jsx` (novo)
+
+Modal informativo exibido uma vez por sessão quando o usuário indexa 3 ou mais bases.
+
+- Ícone Sparkles (âmbar), sem bloqueio de fluxo
+- Lista features do plano Pro: bases ilimitadas, busca avançada com reranking semântico, sincronização automática com Google Drive
+- CTA único: "Entendido, continuar usando" — fecha a modal
+- Chave `sessionStorage`: `tusab_pro_hint_shown` — garante exibição única por sessão
+
+#### `web_interface/src/hooks/useAgentConfig.js`
+
+Extraída e exposta função `refetchAgentStatus`:
+```js
+const refetchAgentStatus = () =>
+  fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
+```
+
+Exposta no return do hook: `agentStatus, setAgentStatus, refetchAgentStatus`.
+
+#### `web_interface/src/App.jsx`
+
+**Correção "Não indexado" após indexação:**
+
+Adicionada chamada imediata a `refetchAgentStatus()` na transição `indexing true → false`:
+```js
+useEffect(() => {
+  if (!agentStatus.indexing && prevIndexing.current) {
+    refetchAgentStatus();  // evita esperar 3s do poll para atualizar canais_indexados
+  }
+  prevIndexing.current = agentStatus.indexing;
+}, [agentStatus.indexing]);
+```
+
+**Pro hint:**
+```js
+useEffect(() => {
+  if (agentStatus.pro_hint && !sessionStorage.getItem('tusab_pro_hint_shown')) {
+    setShowProHint(true);
+    sessionStorage.setItem('tusab_pro_hint_shown', '1');
+  }
+}, [agentStatus.pro_hint]);
+```
+
+**Folder picker sem projeto selecionado:**
+
+Quando o usuário clica "Abrir pasta do projeto" sem ter um projeto ativo, abre um picker que:
+- Lista projetos existentes a partir de `repositorio.canais` + `history` (deduplicado)
+- Se não há projetos, exibe formulário "Criar primeiro projeto" inline
+
+Após criar um projeto via picker:
+```js
+const handleFolderPickerCriar = async () => {
+  const res = await criarProjeto(folderPickerNovoProjeto.trim());
+  if (res.data?.ok) {
+    openFolder('canal_youtube', nomeCriado);    // abre a pasta do projeto novo
+    setRepoProjetoInicial(nomeCriado);          // pré-seleciona no modal de upload
+    setRepoAddOpen(true);                       // abre modal de upload automaticamente
+    setActiveTab('repositorio');
+  }
+};
+```
+
+Prop `projetoInicial` passada ao `RepositorioTab` para pré-selecionar o projeto recém-criado.
+
+#### `web_interface/src/components/agent/RepositorioTab.jsx`
+
+**Seleção de projeto no modal de upload:**
+
+Quando nenhum projeto/canal está ativo (`!_canalEfetivo()`), o modal de upload exibe uma etapa de seleção de projeto antes de mostrar o formulário de upload.
+
+Lista de projetos disponíveis prioriza `repositorio.canais` (sempre carregado) como fonte primária:
+```js
+const nomesRepo = (repositorio?.canais || []).map(c => c.nome);
+const nomesProjetos = projetos.map(p => typeof p === 'string' ? p : p.nome);
+const todos = [...new Set([...nomesRepo, ...nomesProjetos])];
+```
+
+Quando projeto já está selecionado, exibe chip com nome e botão "Trocar".
+
+`closeAddModal()` helper garante reset de `projetoSel` e `novoProjNome` ao fechar o modal.
+
+`useEffect` para `projetoInicial` (prop de App.jsx):
+```js
+React.useEffect(() => {
+  if (projetoInicial) {
+    setProjetoSel(projetoInicial);
+    onProjetoInicialHandled?.();
+  }
+}, [projetoInicial]);
+```
+
+#### `web_interface/src/locales/pt.json`, `en.json`, `es.json`
+
+Adicionadas chaves `proHint.*` nos três idiomas para o ProHintModal.
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| `PRO_HINT_THRESHOLD = 3` (não 2) | 2 canais é pouco — usuário ainda está explorando; 3 indica uso consistente |
+| Flag `pro_hint` one-shot no backend | Evita que o hint reapareça em cada poll de 3s; estado consumido uma vez e resetado |
+| `refetchAgentStatus()` imediato | Sem isso, UI mostra "Não indexado" por até 3s após indexação concluída (lag do poll) |
+| `repositorio.canais` como fonte primária | `projetos` só é carregado ao abrir `openIndexar`; `repositorio.canais` está sempre disponível no estado App |
+| `closeAddModal()` helper | Resetar apenas `setShowAdd(false)` deixava `projetoSel` e `novoProjNome` com valores obsoletos na reabertura |
+| Filtro asyncio no `LogRedirector` | Suppressão na camada de redirect (antes de entrar nos logs) — zero custo em produção, sem alterar o event loop do asyncio |

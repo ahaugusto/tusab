@@ -96,12 +96,13 @@ export function useAgentConfig({ activeTab, showError }) {
     saveAgentConfig({ provider, api_key: '', idioma: i18n.language }).catch(() => {});
   }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const refetchAgentStatus = () =>
+    fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
+
   /** Polls agent status every 3 seconds (indexing progress, canal_indexado, etc.) */
   useEffect(() => {
-    const iv = setInterval(() => {
-      fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
-    }, 3000);
-    fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
+    const iv = setInterval(refetchAgentStatus, 3000);
+    refetchAgentStatus();
     return () => clearInterval(iv);
   }, []);
 
@@ -210,7 +211,7 @@ export function useAgentConfig({ activeTab, showError }) {
 
   return {
     // state
-    agentStatus,          setAgentStatus,
+    agentStatus,          setAgentStatus,     refetchAgentStatus,
     agentProvider,        setAgentProvider,
     agentApiKey,          setAgentApiKey,
     showApiKey,           setShowApiKey,

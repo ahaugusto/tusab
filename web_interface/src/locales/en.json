@@ -547,5 +547,13 @@
   "privacy.updater_desc_off": "Automatic version checking is disabled. Updates must be installed manually.",
   "privacy.updater_aria": "Enable or disable automatic app updates",
   "privacy.updater_warning": "With automatic updates disabled, you will not receive security fixes automatically. Check for new versions periodically.",
-  "privacy.footer_note": "Tusab never collects usage data, telemetry or personal identification without consent."
+  "privacy.footer_note": "Tusab never collects usage data, telemetry or personal identification without consent.",
+  "proHint.title": "You're going far!",
+  "proHint.subtitle": "Tusab Pro is coming",
+  "proHint.body": "You already have 3 or more indexed bases. Soon, Tusab Pro will allow unlimited bases, advanced search with semantic reranking, and much more.",
+  "proHint.comingSoon": "In development",
+  "proHint.feature1": "Unlimited bases",
+  "proHint.feature2": "Advanced search with semantic reranking",
+  "proHint.feature3": "Automatic sync with Google Drive",
+  "proHint.cta": "Got it, keep using"
 }
