@@ -110,6 +110,7 @@ def export_historico(req: ExportHistoricoRequest):
 
 class ExportResumoCanalRequest(BaseModel):
     canal_nome: str = Field(default="", max_length=120)
+    mensagens:  list = Field(default_factory=list)  # histórico do frontend (fallback ao state)
 
 
 @router.post("/export/resumo-canal")
@@ -126,8 +127,12 @@ def export_resumo_canal(req: ExportResumoCanalRequest):
 
     canal = req.canal_nome or state.stats.get("canal_nome", "") or "chat"
 
-    with state.hist_lock:
-        hist = list(state.chat_histories.get(canal, []))
+    # Prioriza mensagens enviadas pelo frontend; fallback ao histórico server-side
+    if req.mensagens:
+        hist = req.mensagens
+    else:
+        with state.hist_lock:
+            hist = list(state.chat_histories.get(canal, []))
 
     if not hist:
         return JSONResponse({"error": True, "message": "Sem histórico para exportar"})
@@ -256,6 +261,7 @@ def export_tabela_videos(req: ExportTabelaVideosRequest):
 
 class ExportRelatorioPdfRequest(BaseModel):
     canal_nome: str = Field(default="", max_length=120)
+    mensagens:  list = Field(default_factory=list)  # histórico do frontend (fallback ao state)
 
 
 @router.post("/export/relatorio-pdf")
@@ -275,8 +281,12 @@ def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
 
     canal = req.canal_nome or state.stats.get("canal_nome", "") or "chat"
 
-    with state.hist_lock:
-        hist = list(state.chat_histories.get(canal, []))
+    # Prioriza mensagens enviadas pelo frontend; fallback ao histórico server-side
+    if req.mensagens:
+        hist = req.mensagens
+    else:
+        with state.hist_lock:
+            hist = list(state.chat_histories.get(canal, []))
 
     if not hist:
         return JSONResponse({"error": True, "message": "Sem histórico para exportar"})

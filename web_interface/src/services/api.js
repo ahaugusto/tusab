@@ -236,12 +236,12 @@ export const exportHistorico = (canal_nome = '') =>
     body: JSON.stringify({ canal_nome }),
   });
 
-/** Downloads canal summary as Word .docx */
-export const exportResumoCanalDocx = (canal_nome) =>
+/** Downloads canal summary as Word .docx — sends frontend messages to avoid empty server-side history */
+export const exportResumoCanalDocx = (canal_nome, mensagens = []) =>
   fetch(`${API_BASE}/export/resumo-canal`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ canal_nome }),
+    body: JSON.stringify({ canal_nome, mensagens }),
   });
 
 /** Downloads video table as Excel .xlsx */
@@ -252,10 +252,10 @@ export const exportTabelaVideosXlsx = (canal) =>
     body: JSON.stringify({ canal }),
   });
 
-/** Downloads research report as PDF */
-export const exportRelatorioPdf = (canal_nome) =>
+/** Downloads research report as PDF — sends frontend messages to avoid empty server-side history */
+export const exportRelatorioPdf = (canal_nome, mensagens = []) =>
   fetch(`${API_BASE}/export/relatorio-pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ canal_nome }),
+    body: JSON.stringify({ canal_nome, mensagens }),
   });
