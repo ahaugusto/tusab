@@ -357,6 +357,7 @@ def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None)
     import time as _time
     salvar_json_atomico({'canal_nome': canal_nome, 'chunks': chunks, 'indexed_at': int(_time.time())}, _index_path(canal_prefixo))
 
+    config = carregar_config()
     config['canal_indexado'] = canal_nome
     salvar_config(config)
 
