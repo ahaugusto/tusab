@@ -65,7 +65,7 @@ const LOADING_PHRASES = [
   'O Tusab extrai legendas diretamente do YouTube — sem gravar áudio, sem processar vídeo. PDFs e documentos entram pelo repositório.',
   'Cada item indexado — transcrição, PDF, texto ou documento — é um fragmento de memória consultável em milissegundos.',
   'O Tusab funciona 100% offline — sem internet, sem nuvem obrigatória, sem assinatura por token.',
-  'Seus documentos ficam em cerebro/ — uma pasta local que só você controla.',
+  'Seus documentos ficam em data/neural/ — uma pasta local que só você controla.',
   'Você pode usar Ollama localmente ou conectar a Groq, OpenAI, Gemini e Anthropic. A escolha é sua.',
   'O histórico de chat fica no servidor local — nunca no cliente. Proteção contra injeção de contexto.',
   'A indexação é feita localmente, sem GPU necessária. Roda em qualquer máquina.',
