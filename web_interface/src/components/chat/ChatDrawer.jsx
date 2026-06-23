@@ -202,6 +202,9 @@ function ChatDrawer({
   const [showBuscaModal,    setShowBuscaModal]    = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
   const [indexSnackbar,     setIndexSnackbar]     = useState(null); // { msg, type }
+  // Modal de confirmação ao trocar base com conversa ativa
+  const [showTrocarBaseModal, setShowTrocarBaseModal] = useState(false);
+  const trocaBaseAlvoRef = useRef(null); // nome da base escolhida, aguardando confirmação
   const prevIndexing = useRef(false);
   const [mencaoQuery,       setMencaoQuery]       = useState('');
   const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
@@ -504,7 +507,15 @@ function ChatDrawer({
                       <div className="w-full mt-1 space-y-2">
                         {canaisIndexados.map(canal => (
                           <button key={canal.nome}
-                            onClick={() => { onSelectCanal?.(canal.nome); setShowRepoModal(false); }}
+                            onClick={() => {
+                              if (chatMessages.length > 0) {
+                                trocaBaseAlvoRef.current = canal.nome;
+                                setShowTrocarBaseModal(true);
+                              } else {
+                                onSelectCanal?.(canal.nome);
+                                setShowRepoModal(false);
+                              }
+                            }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99]
                               ${darkMode ? 'bg-white/5 border-white/15 hover:bg-primary/15 hover:border-primary/30' : 'bg-slate-50 border-slate-200 hover:bg-violet-50 hover:border-violet-200'}`}>
                             <Database size={14} className="text-primary shrink-0" />
@@ -542,7 +553,7 @@ function ChatDrawer({
 
                       {/* ── Chips das bases ativas ── */}
                       {(() => {
-                        const todasAtivas = [canalAtivo, ...(canaisExtras || [])].filter(Boolean);
+                        const todasAtivas = [...new Set([canalAtivo, ...(canaisExtras || [])].filter(Boolean))];
                         const nomesIndexados = new Set(canaisIndexados.map(c => c.nome));
                         const desatualizadas = new Set(agentStatus.bases_desatualizadas || []);
                         // Nunca indexadas: ativas mas fora de canaisIndexados
@@ -1350,6 +1361,73 @@ function ChatDrawer({
       })()}
     </AnimatePresence>
 
+    {/* Modal de confirmação: trocar base com conversa ativa */}
+    <AnimatePresence>
+      {showTrocarBaseModal && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 z-50 flex items-center justify-center p-6"
+          style={{ background: darkMode ? 'rgba(12,17,34,0.92)' : 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)' }}>
+          <motion.div
+            initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }}
+            className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl
+              ${darkMode ? 'bg-[#0f1222] border-white/10' : 'bg-white border-slate-200'}`}>
+            {/* Ícone + título */}
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+                ${darkMode ? 'bg-primary/15' : 'bg-violet-50'}`}>
+                <Database size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  Trocar base de conhecimento
+                </p>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Esta conversa será salva no histórico
+                </p>
+              </div>
+            </div>
+
+            {/* Bases */}
+            <div className={`rounded-xl border p-3 space-y-2 text-[11px] ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-100'}`}>
+              <div className="flex items-center justify-between">
+                <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Base atual</span>
+                <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  @{canalAtivo}{canaisExtras?.length > 0 ? ` +${canaisExtras.length}` : ''}
+                </span>
+              </div>
+              <div className={`border-t ${darkMode ? 'border-white/8' : 'border-slate-200'}`} />
+              <div className="flex items-center justify-between">
+                <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Nova base</span>
+                <span className="font-semibold text-primary">@{trocaBaseAlvoRef.current}</span>
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  onNovaConversa?.();
+                  onSelectCanal?.(trocaBaseAlvoRef.current);
+                  setShowTrocarBaseModal(false);
+                  setShowRepoModal(false);
+                  trocaBaseAlvoRef.current = null;
+                }}
+                className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
+                Iniciar nova conversa com @{trocaBaseAlvoRef.current}
+              </button>
+              <button
+                onClick={() => { setShowTrocarBaseModal(false); trocaBaseAlvoRef.current = null; }}
+                className={`w-full py-2 rounded-xl text-xs font-medium transition-colors
+                  ${darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`}>
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
     {/* Modal de histórico de conversas */}
     <AnimatePresence>
       {showHistModal && (
@@ -1448,7 +1526,7 @@ function ChatDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t('agent.chat_title')}
-        onKeyDown={e => { if (e.key === 'Escape') { if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
+        onKeyDown={e => { if (e.key === 'Escape') { if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
         className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
         {conteudo(() => setExpandido(false))}
       </div>
