@@ -619,7 +619,7 @@ function ChatDrawer({
                           {t('chat.switch_base')}
                         </button>
                       )}
-                      {agentStatus?.perguntas_sugeridas?.length > 0 && (
+                      {agentStatus?.perguntas_sugeridas?.length > 0 && (!canaisExtras || canaisExtras.length === 0) && (
                         <div className="w-full mt-3 space-y-1.5">
                           <p className={`text-[10px] font-semibold text-center uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                             {t('chat.suggested_questions')}
