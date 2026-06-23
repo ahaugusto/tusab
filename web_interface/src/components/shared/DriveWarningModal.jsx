@@ -85,8 +85,8 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
                 <FolderOpen size={15} className="text-emerald-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-xs font-semibold text-emerald-600">Seguro para sincronizar</p>
-                  <p className={`text-xs mt-0.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>cerebro/</p>
-                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Só contém texto extraído — sem dados sensíveis</p>
+                  <p className={`text-xs mt-0.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>data/neural/</p>
+                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Transcrições, documentos e textos extraídos — sem dados sensíveis</p>
                 </div>
               </div>
 
@@ -94,15 +94,15 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
                 <FolderX size={15} className="text-red-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-xs font-semibold text-red-600">Não sincronize</p>
-                  <p className={`text-xs mt-0.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>config/</p>
-                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Contém suas chaves de API em texto simples</p>
+                  <p className={`text-xs mt-0.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>data/config/</p>
+                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Contém suas chaves de API e credenciais do Google em texto simples</p>
                 </div>
               </div>
             </div>
 
             <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
               O Tusab usa o Drive apenas para salvar a pasta{' '}
-              <span className="font-mono">cerebro/</span>.
+              <span className="font-mono">data/neural/</span>.
               Este aviso é exibido uma única vez.
             </p>
 
