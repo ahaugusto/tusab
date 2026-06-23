@@ -567,10 +567,10 @@ function App() {
   };
 
   /** Starts the knowledge base indexing for the configured canal */
-  const handleAgentIndex = async () => {
+  const handleAgentIndex = async (canalOverride) => {
     setAgentIndexError('');
     setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
-    const canal = agentStatus.canal_indexado || canalConfigurado;
+    const canal = canalOverride || agentStatus.canal_indexado || canalConfigurado;
     try {
       const res = await startIndexing(canal || '');
       if (res.data?.error) setAgentIndexError(res.data.message);
