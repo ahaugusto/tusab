@@ -239,7 +239,7 @@ function App() {
     if (chatSnackFiredRef.current) return;
     chatSnackFiredRef.current = true;
     setShowChatSnack(true);
-    const t = setTimeout(() => setShowChatSnack(false), 4000);
+    const t = setTimeout(() => setShowChatSnack(false), 10000);
     return () => clearTimeout(t);
   }, [agentStatus.indexed, chatJaAberto]);
 
