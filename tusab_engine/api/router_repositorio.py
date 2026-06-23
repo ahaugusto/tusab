@@ -820,7 +820,7 @@ def reset_total():
         state.extraction_queue.clear()
 
     # 7. Reseta estado do agente RAG em memória
-    state.perguntas_sugeridas = []
+    state.perguntas_sugeridas = {}
     state.agent_index_logs    = []
 
     return {"ok": True, "removidos": removidos}
