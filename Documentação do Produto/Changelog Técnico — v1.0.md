@@ -1207,3 +1207,203 @@ Adicionadas chaves `proHint.*` nos três idiomas para o ProHintModal.
 | `repositorio.canais` como fonte primária | `projetos` só é carregado ao abrir `openIndexar`; `repositorio.canais` está sempre disponível no estado App |
 | `closeAddModal()` helper | Resetar apenas `setShowAdd(false)` deixava `projetoSel` e `novoProjNome` com valores obsoletos na reabertura |
 | Filtro asyncio no `LogRedirector` | Suppressão na camada de redirect (antes de entrar nos logs) — zero custo em produção, sem alterar o event loop do asyncio |
+
+---
+
+## Sprint 22–23/06/2026 — Chat avançado, exports, UX de bases e limpeza de log
+
+**Commits:** `7d95400` · `095f7f2` · `a79db41` · `ca6b764` · `2ded4e0` · `4aafc0b` · `a9a5bdf` · `7f77dfc` · `e08a1ed` · `7d4def3`
+**Escopo:** Backend + Frontend
+**Branch:** main
+
+### Contexto
+
+Sprint de robustez e discovery. Foco em três frentes:
+1. **Chat** — fila de mensagens, exports funcionais, destaque do botão, anexo de arquivo
+2. **UX de bases** — modal de confirmação ao trocar base, deduplicação de chips, alerta correto de desatualização
+3. **Limpeza operacional** — filtro de ruído no log, botão Limpar, paths corretos no modal do Drive
+
+---
+
+### Backend
+
+#### `tusab_engine/state.py` — Filtro de ruído de bibliotecas externas
+
+O painel "Log em Tempo Real" exibia avisos de dependências que não têm ação possível para o usuário: `FutureWarning` do `google.generativeai` (SDK deprecado mas ainda funcional), aviso de `HF_TOKEN` da HuggingFace (CrossEncoder funciona sem autenticação) e barra de progresso `tqdm` do download de pesos do modelo.
+
+Adicionado bloco `lib_noise` no `LogRedirector.write()`:
+
+```python
+lib_noise = [
+    "FutureWarning", "google.generativeai", "google-gemini/deprecated",
+    "no longer be receiving updates", "switch to the `google.genai`",
+    "unauthenticated requests to the HF Hub", "HF_TOKEN",
+    "Loading weights:", "[00:00<", "it/s]", "it/s,",
+    "DeprecationWarning", "UserWarning", "warnings.warn",
+]
+if any(k in clean for k in lib_noise):
+    return
+```
+
+#### `tusab_engine/api/router_status.py` — Endpoint `POST /log/clear`
+
+Novo endpoint que zera `state.logs` imediatamente. Usado pelo botão "Limpar" no painel de log.
+
+```python
+@router.post("/log/clear")
+def clear_log():
+    with state.state_lock:
+        state.logs.clear()
+    return {"ok": True}
+```
+
+#### `tusab_engine/api/router_agent.py` — Fix import + tolerância de `mtime`
+
+**Import quebrado:** `_contar_canais_indexados` era importada de `agent_tusab` (shim) que não a re-exporta. Corrigido para `from tusab_engine.agent.index import _contar_canais_indexados, PRO_HINT_THRESHOLD`.
+
+**Falso positivo de base desatualizada:** `_bases_com_arquivos_novos()` comparava `os.path.getmtime(fpath) > indexed_at`. Como `indexed_at` é `int(time.time())` e arquivos gerados durante a extração têm `mtime` do momento da escrita (poucos segundos antes), a comparação marcava a base como desatualizada imediatamente após indexar. Adicionada tolerância de 5 s:
+
+```python
+if os.path.getmtime(fpath) > indexed_at + 5:
+```
+
+#### `tusab_engine/api/router_exports.py` — Exports com mensagens do frontend + PDF funcional
+
+**Problema raiz:** endpoints `/export/resumo-canal` e `/export/relatorio-pdf` liam `state.chat_histories` server-side, que fica vazio após restart do backend. Adicionado campo `mensagens` ao body dos dois requests — frontend envia o histórico completo; server-side é usado apenas como fallback:
+
+```python
+class ExportResumoCanalRequest(BaseModel):
+    canal_nome: str = Field(default="", max_length=120)
+    mensagens:  list = Field(default_factory=list)
+
+# No handler:
+if req.mensagens:
+    hist = req.mensagens
+else:
+    with state.hist_lock:
+        hist = list(state.chat_histories.get(canal, []))
+```
+
+**`reportlab` ausente:** dependência necessária para geração de PDF não estava em `requirements.txt`. Adicionada e instalada (`reportlab==5.0.0`).
+
+---
+
+### Frontend
+
+#### `web_interface/src/App.jsx` — Destaque do botão de chat
+
+Implementado sistema de discovery para o botão flutuante de chat, ativo enquanto a base estiver indexada e o usuário nunca tiver aberto o chat:
+
+- **Anel pulsante** (`animate-ping`): dois anéis concêntricos em violet com delay escalonado, visíveis ao redor do botão
+- **Snack flutuante**: bolha "Pergunte à sua base" aparece à esquerda do botão por 10 s na primeira sessão após indexação; clicável (abre o chat direto)
+- **Persistência**: `localStorage.tusab_chat_ja_aberto = '1'` ao primeiro clique — ambos os efeitos somem permanentemente
+
+```jsx
+// Anel ping — visível enquanto indexado e chat nunca aberto
+{agentStatus.indexed && !chatJaAberto && (
+  <>
+    <span className="absolute inset-0 rounded-full animate-ping opacity-50
+      bg-violet-500 dark:bg-violet-500" />
+    <span className="absolute inset-0 rounded-full animate-ping opacity-25"
+      style={{ animationDelay: '0.4s' }} />
+  </>
+)}
+```
+
+#### `web_interface/src/components/extraction/ExtractionTab.jsx` — Botão Limpar log
+
+Botão "Limpar" adicionado no cabeçalho do painel de log em tempo real. Visível quando `status.logs.length > 0`. Chama `DELETE /log/clear` e o poll do `/status` a cada 2 s atualiza a UI com lista vazia.
+
+#### `web_interface/src/components/chat/ChatDrawer.jsx` — Múltiplas melhorias
+
+**Fix `triggerDownload`:** função era síncrona e chamava `.blob()` em `Promise<Response>` em vez de `Response`. Reescrita como `async`:
+
+```js
+const triggerDownload = useCallback(async (responsePromise, filename) => {
+  const response = await responsePromise;
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await response.json();
+    console.warn('[export]', data.message || 'Erro no export');
+    return;
+  }
+  const blob = await response.blob();
+  // ... cria link e dispara download
+}, []);
+```
+
+**Threshold mínimo de export:** botões Doc e PDF desabilitados quando total de conteúdo das respostas do assistente na conversa é menor que 200 caracteres. Planilha também exige o threshold além de detectar lista/tabela:
+
+```jsx
+const totalChars = chatMessages
+  .filter(m => m.role === 'assistant')
+  .reduce((acc, m) => acc + (m.content?.length || 0), 0);
+const temConteudoSuficiente = totalChars >= MIN_CHARS_EXPORT; // 200
+```
+
+**Mensagens passadas ao backend nos exports:** `exportResumoCanalDocx(canal, msgPayload)` e `exportRelatorioPdf(canal, msgPayload)` recebem o payload filtrado `{ role, content, fontes }` de cada mensagem.
+
+**Deduplicação de bases:** `todasAtivas` usava spread direto, permitindo que um canal em `canalAtivo` e `canaisExtras` aparecesse duas vezes nos chips:
+
+```js
+// Antes
+const todasAtivas = [canalAtivo, ...(canaisExtras || [])].filter(Boolean);
+// Depois
+const todasAtivas = [...new Set([canalAtivo, ...(canaisExtras || [])].filter(Boolean))];
+```
+
+**Perguntas sugeridas ocultadas com múltiplas bases:** sugestões geradas para o canal principal são irrelevantes em contexto multi-base:
+
+```jsx
+{agentStatus?.perguntas_sugeridas?.length > 0 && (!canaisExtras || canaisExtras.length === 0) && (
+```
+
+**Modal de confirmação ao trocar base:** ao clicar numa base diferente com conversa ativa, em vez de trocar silenciosamente, abre modal explicando que a conversa vai pro histórico. Mostra base atual e nova, botão "Iniciar nova conversa" executa `onNovaConversa()` → `onSelectCanal(alvo)`.
+
+**Anexo de arquivo no chat (📎):** botão de clipe aparece à esquerda do textarea quando há base ativa. Fluxo:
+1. Abre file picker (`.pdf`, `.docx`, `.txt`, `.md`, `.xlsx`, `.csv`)
+2. Envia via `POST /neural/upload` com o `canal` ativo (salva em `documents/`)
+3. Chama `POST /agent/index` para re-indexação automática
+4. Injeta três mensagens `role: 'system'` no chat como feedback visual (enviando → adicionado → re-indexado)
+
+**Mensagens `role: 'system'`:** novo tipo de mensagem renderizado como bolha neutra discreta (fundo `white/5` no dark, `slate-50` no light).
+
+#### `web_interface/src/components/shared/DriveWarningModal.jsx` — Paths corretos
+
+Atualizado para refletir a estrutura real de pastas:
+
+| Antes | Depois |
+|-------|--------|
+| `cerebro/` | `data/neural/` |
+| `config/` | `data/config/` |
+
+Descrição da pasta segura atualizada: "Transcrições, documentos e textos extraídos — sem dados sensíveis". Descrição da pasta sensível atualizada: "Contém suas chaves de API e credenciais do Google em texto simples".
+
+#### `web_interface/src/components/shared/ConsentModal.jsx`
+
+Mesma atualização de paths: `cerebro/` → `data/neural/`, `config/` → `data/config/`.
+
+#### `web_interface/src/locales/pt.json`, `en.json`, `es.json`
+
+Todas as referências a `cerebro/` visíveis ao usuário substituídas por `data/neural/`. Adicionadas chaves:
+- `chat.snack_hint` — texto do snack flutuante ("Pergunte à sua base" / "Ask your knowledge base" / "Pregunta a tu base")
+- `log.clear` — label do botão de limpar log ("Limpar" / "Clear" / "Limpiar")
+
+#### `web_interface/src/services/api.js`
+
+- `clearLog()` — `POST /log/clear`
+- `exportResumoCanalDocx(canal, mensagens)` — aceita e envia `mensagens`
+- `exportRelatorioPdf(canal, mensagens)` — aceita e envia `mensagens`
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| Tolerância de 5 s no `mtime vs indexed_at` | Extração e indexação na mesma sessão produzem arquivos com mtime ≤ 5 s antes do `indexed_at` — sem tolerância, o aviso aparecia sempre |
+| `reportlab` adicionado ao `requirements.txt` | Estava sendo importado lazily no endpoint mas nunca declarado — instalação em novo ambiente falhava silenciosamente retornando JSON de erro |
+| Snack de 10 s (não 4 s) | 4 s era curto demais para o usuário ler e agir; 10 s mantém presença sem ser intrusivo |
+| `role: 'system'` no chat para feedback de upload | Evita poluir o histórico real (user/assistant) com mensagens de operação; renderização separada permite estilo neutro e pode ser filtrada nos exports |
+| Modal de troca de base em vez de troca silenciosa | A troca silenciosa perdia o contexto da conversa sem aviso — comportamento destrutivo inadvertido |
+| Threshold de 200 chars para exports | Exports de 2–3 linhas não têm valor como documento; o threshold garante que o PDF/DOCX gerado seja minimamente substantivo |
