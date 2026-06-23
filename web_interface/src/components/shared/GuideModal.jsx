@@ -17,8 +17,10 @@ const SHORTCUTS = [
   {
     group: 'Chat',
     items: [
-      { keys: ['Shift', 'C'],   desc: 'Abrir chat RAG'       },
-      { keys: ['Esc'],          desc: 'Fechar chat'           },
+      { keys: ['Shift', 'C'],   desc: 'Abrir chat'                      },
+      { keys: ['Shift', '<'],   desc: 'Expandir chat (tela cheia)'       },
+      { keys: ['Shift', '>'],   desc: 'Recolher chat (modo drawer)'      },
+      { keys: ['Esc'],          desc: 'Recolher se expandido, senão fechar' },
     ],
   },
   {

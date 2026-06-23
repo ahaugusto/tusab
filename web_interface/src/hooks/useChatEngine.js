@@ -195,9 +195,10 @@ export function useChatEngine({
           try {
             const parsed = JSON.parse(line);
             if (parsed.error) {
+              const isModeloLento = /timeout|timed out|read timeout|connection.*reset|model.*load/i.test(parsed.error);
               setChatMessages(prev => {
                 const msgs = [...prev];
-                msgs[msgs.length - 1] = { role: 'error', content: parsed.error };
+                msgs[msgs.length - 1] = { role: 'error', content: parsed.error, modelo_lento: isModeloLento };
                 return msgs;
               });
             } else if (parsed.fontes !== undefined) {
@@ -233,10 +234,12 @@ export function useChatEngine({
           }
         }
       }
-    } catch {
+    } catch (err) {
+      const msg = err?.message || '';
+      const isModeloLento = /timeout|timed out/i.test(msg);
       setChatMessages(prev => {
         const msgs = [...prev];
-        msgs[msgs.length - 1] = { role: 'error', content: 'Erro ao conectar com o servidor.' };
+        msgs[msgs.length - 1] = { role: 'error', content: 'Erro ao conectar com o servidor.', modelo_lento: isModeloLento };
         return msgs;
       });
     }

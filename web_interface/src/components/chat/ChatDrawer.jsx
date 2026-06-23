@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -737,7 +737,9 @@ function ChatDrawer({
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         </div>
                       ) : msg.role === 'export' ? (
-                        <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2.5 rounded-bl-sm
+                        <div
+                          style={darkMode ? { boxShadow: '0 6px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.18)' } : undefined}
+                          className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2.5 rounded-bl-sm
                           ${darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
                           <div className="flex items-center gap-2">
                             <Sparkles size={13} className="text-primary shrink-0" />
@@ -756,7 +758,15 @@ function ChatDrawer({
                           </a>
                         </div>
                       ) : (
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2
+                      <div
+                        style={darkMode ? {
+                          boxShadow: msg.role === 'user'
+                            ? '0 6px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.22)'
+                            : msg.role === 'error'
+                            ? '0 6px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,120,120,0.20)'
+                            : '0 6px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.18)'
+                        } : undefined}
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-2
                         ${msg.role === 'user'
                           ? darkMode
                             ? 'bg-primary/25 border border-primary/35 text-white rounded-br-sm'
@@ -802,6 +812,13 @@ function ChatDrawer({
                             <RefreshCw size={9} aria-hidden="true" />
                             {t('agent.rebuild_index')}
                           </button>
+                        )}
+                        {msg.role === 'error' && msg.modelo_lento && (
+                          <div className={`mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded-lg border text-[10px] leading-relaxed
+                            ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                            <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+                            <span>Este modelo pode ser pesado demais para o seu hardware. Tente um modelo menor como <strong>Llama 3.2 1B</strong> ou <strong>Llama 3.2 3B</strong> na aba <strong>Agente</strong>.</span>
+                          </div>
                         )}
                         {msg.sem_contexto && !msg.streaming && onAbrirIndexacaoRepositorio && !agentStatus.indexed && (
                           <button
