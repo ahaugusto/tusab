@@ -8,10 +8,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 
@@ -205,6 +205,9 @@ function ChatDrawer({
   // Modal de confirmação ao trocar base com conversa ativa
   const [showTrocarBaseModal, setShowTrocarBaseModal] = useState(false);
   const trocaBaseAlvoRef = useRef(null); // nome da base escolhida, aguardando confirmação
+  // Anexo no chat
+  const [anexoLoading, setAnexoLoading] = useState(false);
+  const anexoInputRef = useRef(null);
   const prevIndexing = useRef(false);
   const [mencaoQuery,       setMencaoQuery]       = useState('');
   const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
@@ -232,6 +235,41 @@ function ChatDrawer({
 
   // Tamanho mínimo para habilitar exports (chars de conteúdo de assistente)
   const MIN_CHARS_EXPORT = 200;
+
+  const handleAnexo = useCallback(async (arquivo) => {
+    const canal = agentStatus?.canal_indexado || canalConfigurado;
+    if (!canal) return;
+    setAnexoLoading(true);
+    // Mensagem de status no chat
+    setChatMessages(prev => [...prev, {
+      role: 'system',
+      content: `📎 Enviando **${arquivo.name}** para a base @${canal}…`,
+    }]);
+    try {
+      const fd = new FormData();
+      fd.append('arquivo', arquivo);
+      fd.append('canal', canal);
+      const res = await uploadDocument(fd);
+      if (res.data?.error) throw new Error(res.data.message);
+      // Confirma upload e dispara re-indexação automática
+      setChatMessages(prev => [...prev, {
+        role: 'system',
+        content: `✅ **${arquivo.name}** adicionado à base @${canal}. Indexando automaticamente…`,
+      }]);
+      await startIndexing(canal);
+      setChatMessages(prev => [...prev, {
+        role: 'system',
+        content: `🔍 Base @${canal} re-indexada. Agora você pode perguntar sobre o conteúdo de **${arquivo.name}**.`,
+      }]);
+    } catch (e) {
+      setChatMessages(prev => [...prev, {
+        role: 'error',
+        content: `Erro ao enviar arquivo: ${e?.response?.data?.message || e.message || 'Tente novamente.'}`,
+      }]);
+    } finally {
+      setAnexoLoading(false);
+    }
+  }, [agentStatus, canalConfigurado, setChatMessages]);
 
   const triggerDownload = useCallback(async (responsePromise, filename) => {
     try {
@@ -652,8 +690,13 @@ function ChatDrawer({
                 <>
                   {chatMessages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' || msg.role === 'queued' ? 'justify-end' : 'justify-start'}`}>
-                      {/* Mensagem enfileirada — aguardando a vez */}
-                      {msg.role === 'queued' ? (
+                      {/* Mensagem de sistema (upload de anexo, re-indexação) */}
+                      {msg.role === 'system' ? (
+                        <div className={`max-w-[90%] rounded-xl px-3 py-2 text-[11px] leading-relaxed
+                          ${darkMode ? 'bg-white/5 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : msg.role === 'queued' ? (
                         <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed rounded-br-sm flex items-start gap-2 opacity-50
                           ${darkMode ? 'bg-primary/15 border border-primary/20 text-slate-300' : 'bg-violet-50 border border-violet-200 text-slate-500'}`}>
                           <Loader2 size={13} className="mt-0.5 shrink-0 animate-spin" />
@@ -937,7 +980,27 @@ function ChatDrawer({
         )}
       </AnimatePresence>
 
+      {/* Input de arquivo oculto para anexo */}
+      <input
+        ref={anexoInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.docx,.txt,.md,.xlsx,.csv"
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleAnexo(f); e.target.value = ''; }}
+      />
+
       <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+        {/* Botão de anexo */}
+        {(agentStatus?.canal_indexado || canalConfigurado) && (
+          <button
+            onClick={() => anexoInputRef.current?.click()}
+            disabled={anexoLoading}
+            title="Anexar arquivo à base ativa (PDF, DOCX, TXT…)"
+            className={`shrink-0 p-1.5 rounded-lg transition-colors disabled:opacity-40
+              ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+            {anexoLoading ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+          </button>
+        )}
         <textarea
           ref={textareaRef}
           rows={1}
