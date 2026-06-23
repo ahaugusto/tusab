@@ -223,6 +223,36 @@ function App() {
     if (!regras.busca_ampla && buscaAmpla) setBuscaAmpla(false);
   }, [regras.busca_ampla, buscaAmpla]);
 
+  // ─── Chat highlight: anel pulsante + snack ────────────────────────────────
+  // Persiste se o usuário já abriu o chat ao menos uma vez (some com o anel)
+  const [chatJaAberto, setChatJaAberto] = useState(
+    () => localStorage.getItem('tusab_chat_ja_aberto') === '1'
+  );
+  // Snack lateral "Pergunte à sua base →" — aparece 4 s após indexação ficar pronta
+  const [showChatSnack, setShowChatSnack] = useState(false);
+  const chatSnackFiredRef = useRef(false); // dispara no máximo uma vez por sessão
+
+  // Quando o índice fica pronto pela primeira vez na sessão, exibe o snack
+  useEffect(() => {
+    if (!agentStatus.indexed) return;
+    if (chatJaAberto) return;
+    if (chatSnackFiredRef.current) return;
+    chatSnackFiredRef.current = true;
+    setShowChatSnack(true);
+    const t = setTimeout(() => setShowChatSnack(false), 4000);
+    return () => clearTimeout(t);
+  }, [agentStatus.indexed, chatJaAberto]);
+
+  // Marca como "já aberto" quando o usuário abre o chat pela primeira vez
+  const handleOpenChat = () => {
+    setChatOpen(true);
+    if (!chatJaAberto) {
+      setChatJaAberto(true);
+      setShowChatSnack(false);
+      localStorage.setItem('tusab_chat_ja_aberto', '1');
+    }
+  };
+
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const logContainerRef = useRef(null);
   const logSectionRef   = useRef(null);
@@ -1474,29 +1504,67 @@ function App() {
 
             {/* Floating chat button */}
             {!chatOpen && (
-              <motion.button
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
-                onClick={() => setChatOpen(true)}
-                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
-                style={{ boxShadow: darkMode
-                  ? '0 8px 24px 0 rgba(0,0,0,0.55), 0 2px 8px 0 rgba(0,0,0,0.35)'
-                  : '0 8px 24px 0 rgba(0,0,0,0.22), 0 2px 8px 0 rgba(0,0,0,0.12)' }}
-                aria-label="Abrir chat com o agente">
-                <img
-                  src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-                {agentStatus.indexed && (
-                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-secondary border-2 border-white" />
-                )}
-                {chatMessages.filter(m => m.role === 'assistant').length > 0 && (
-                  <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-primary border-2 border-white flex items-center justify-center text-[9px] font-bold text-white">
-                    {chatMessages.filter(m => m.role === 'assistant').length}
-                  </span>
-                )}
-              </motion.button>
+              <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+                {/* Snack lateral */}
+                <AnimatePresence>
+                  {showChatSnack && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 16, scale: 0.92 }}
+                      animate={{ opacity: 1, x: 0,  scale: 1 }}
+                      exit={{    opacity: 0, x: 16, scale: 0.92 }}
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
+                      onClick={handleOpenChat}
+                      className={`cursor-pointer select-none flex items-center gap-2 px-3.5 py-2 rounded-2xl text-[13px] font-semibold shadow-xl whitespace-nowrap
+                        ${darkMode
+                          ? 'bg-[#1e1b2e] border border-violet-500/40 text-violet-200'
+                          : 'bg-white border border-violet-200 text-violet-700'}`}
+                      style={{ boxShadow: darkMode
+                        ? '0 4px 20px 0 rgba(124,58,237,0.35)'
+                        : '0 4px 20px 0 rgba(124,58,237,0.18)' }}>
+                      <span className="text-base">✨</span>
+                      {t('chat.snack_hint')}
+                      <span className="opacity-60">→</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Botão + anel pulsante */}
+                <div className="relative">
+                  {/* Anel ping — visível enquanto indexado e chat nunca aberto */}
+                  {agentStatus.indexed && !chatJaAberto && (
+                    <>
+                      <span className={`absolute inset-0 rounded-full animate-ping opacity-50
+                        ${darkMode ? 'bg-violet-500' : 'bg-violet-400'}`} />
+                      <span className={`absolute inset-0 rounded-full animate-ping opacity-25 animation-delay-300
+                        ${darkMode ? 'bg-violet-400' : 'bg-violet-300'}`}
+                        style={{ animationDelay: '0.4s' }} />
+                    </>
+                  )}
+                  <motion.button
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+                    onClick={handleOpenChat}
+                    className="relative w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
+                    style={{ boxShadow: darkMode
+                      ? '0 8px 24px 0 rgba(0,0,0,0.55), 0 2px 8px 0 rgba(0,0,0,0.35)'
+                      : '0 8px 24px 0 rgba(0,0,0,0.22), 0 2px 8px 0 rgba(0,0,0,0.12)' }}
+                    aria-label="Abrir chat com o agente">
+                    <img
+                      src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    {agentStatus.indexed && (
+                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-secondary border-2 border-white" />
+                    )}
+                    {chatMessages.filter(m => m.role === 'assistant').length > 0 && (
+                      <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-primary border-2 border-white flex items-center justify-center text-[9px] font-bold text-white">
+                        {chatMessages.filter(m => m.role === 'assistant').length}
+                      </span>
+                    )}
+                  </motion.button>
+                </div>
+              </div>
             )}
 
             {/* Scroll-to-top button */}
