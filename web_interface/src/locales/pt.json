@@ -207,6 +207,7 @@
   "chat.select_base_title": "Selecione uma base",
   "chat.select_base_desc": "Escolha qual base de conhecimento usar nesta conversa",
   "chat.hint_select_base": "Selecione uma base acima para enviar esta mensagem",
+  "chat.snack_hint": "Pergunte à sua base",
   "chat.chunks_indexed": "chunks indexados",
   "chat.switch_base": "Trocar base",
   "chat.clear": "Limpar",
