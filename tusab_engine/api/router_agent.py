@@ -163,7 +163,7 @@ def _bases_com_arquivos_novos(canais_indexados: list) -> list[str]:
                     continue
                 fpath = os.path.join(pasta, fname)
                 try:
-                    if os.path.getmtime(fpath) > indexed_at:
+                    if os.path.getmtime(fpath) > indexed_at + 5:
                         desatualizadas.append(nome)
                         break
                 except OSError:
