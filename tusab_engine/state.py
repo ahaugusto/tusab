@@ -119,6 +119,20 @@ class LogRedirector:
         ]
         if any(k in clean for k in asyncio_noise):
             return
+        # Avisos de bibliotecas externas que não têm valor para o usuário final
+        lib_noise = [
+            # google-generativeai deprecado em favor de google-genai
+            "FutureWarning", "google.generativeai", "google-gemini/deprecated",
+            "no longer be receiving updates", "switch to the `google.genai`",
+            # HuggingFace sem token (CrossEncoder carrega sem autenticação — ok)
+            "unauthenticated requests to the HF Hub", "HF_TOKEN",
+            # barra de progresso tqdm do download de pesos do modelo
+            "Loading weights:", "[00:00<", "it/s]", "it/s,",
+            # warnings genéricos de libs
+            "DeprecationWarning", "UserWarning", "warnings.warn",
+        ]
+        if any(k in clean for k in lib_noise):
+            return
 
         with state.state_lock:
             state.logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": clean})
