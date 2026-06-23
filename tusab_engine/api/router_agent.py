@@ -89,7 +89,7 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
         )
         state.perguntas_sugeridas = _gerar_perguntas_sugeridas(canal_prefixo)
         # Aviso Pro: se o usuário já tem >= 3 canais indexados, sinaliza ao frontend
-        from agent_tusab import _contar_canais_indexados, PRO_HINT_THRESHOLD
+        from tusab_engine.agent.index import _contar_canais_indexados, PRO_HINT_THRESHOLD
         if len(_contar_canais_indexados()) >= PRO_HINT_THRESHOLD:
             state.pro_hint = True
     except Exception as e:
