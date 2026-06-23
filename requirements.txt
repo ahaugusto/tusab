@@ -17,6 +17,7 @@ google-generativeai  # SDK usado pelo chat Gemini (import google.generativeai)
 pdfplumber
 python-docx
 python-multipart
+reportlab  # geração de PDF no export /export/relatorio-pdf
 
 # --- Imagens e áudio (opcional — instalação separada) ---
 # pytesseract   # OCR fallback para imagens (requer binário Tesseract no sistema)
