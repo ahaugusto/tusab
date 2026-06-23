@@ -34,7 +34,7 @@ const FLOWS = [
     color: 'text-emerald-500',
     bg:    'bg-emerald-500/10',
     title: 'Google Drive (só se autenticar)',
-    desc:  'Se você conectar o Drive, a pasta cerebro/ é sincronizada na sua conta Google. A pasta config/ (chaves de API) nunca é sincronizada.',
+    desc:  'Se você conectar o Drive, a pasta data/neural/ é sincronizada na sua conta Google. A pasta data/config/ (chaves de API) nunca é sincronizada.',
   },
 ];
 
