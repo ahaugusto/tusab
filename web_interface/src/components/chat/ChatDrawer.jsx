@@ -797,7 +797,7 @@ function ChatDrawer({
                         )}
                         {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && (
                           <button
-                            onClick={onRecriarIndice}
+                            onClick={() => onRecriarIndice(canalAtivo)}
                             className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100 transition-opacity">
                             <RefreshCw size={9} aria-hidden="true" />
                             {t('agent.rebuild_index')}

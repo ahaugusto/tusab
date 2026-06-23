@@ -706,7 +706,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         resp = _req.post(
             'http://localhost:11434/api/generate',
             json={'model': modelo, 'prompt': prompt, 'stream': False},
-            timeout=120,
+            timeout=300,
         )
         resp.raise_for_status()
         resposta = resp.json().get('response', '')
@@ -796,7 +796,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
             modelo = config.get('ollama_model', 'llama3.2:1b')
             with _req.post('http://localhost:11434/api/generate',
                     json={'model': modelo, 'prompt': prompt, 'stream': True},
-                    stream=True, timeout=120) as r:
+                    stream=True, timeout=300) as r:
                 for line in r.iter_lines():
                     if line:
                         data = json.loads(line)
