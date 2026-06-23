@@ -188,6 +188,13 @@ def get_history():
     return history
 
 
+@router.post("/log/clear")
+def clear_log():
+    with state.state_lock:
+        state.logs.clear()
+    return {"ok": True}
+
+
 @router.get("/open-folder")
 def open_folder(name: str, prefixo: str = ""):
     import subprocess

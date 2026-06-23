@@ -4,14 +4,14 @@ import { useTranslation } from 'react-i18next';
 import {
   Zap, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2,
   Link2, XCircle, Pause, Square, Terminal, Activity, Globe,
-  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight,
+  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight, Trash2,
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
 import RelatorioTab from '../agent/RelatorioTab';
 import { BTN_FOCUS } from '../../constants';
 import {
-  fetchHistory, setChannel, saveAutoUpdateConfig, runAutoUpdate, openFolder,
+  fetchHistory, setChannel, saveAutoUpdateConfig, runAutoUpdate, openFolder, clearLog,
 } from '../../services/api';
 
 export default function ExtractionTab({
@@ -427,6 +427,16 @@ export default function ExtractionTab({
                 </div>
               )}
             </div>
+            {status.logs.length > 0 && (
+              <button
+                onClick={() => clearLog().catch(() => {})}
+                title={t('log.clear')}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all shrink-0
+                  ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+                <Trash2 size={11} />
+                {t('log.clear')}
+              </button>
+            )}
             {isRunning && (
               <div className="flex items-center gap-1.5 shrink-0" role="group" aria-label={t('ops.controls')}>
                 <button onClick={handlePause} aria-pressed={isPaused}

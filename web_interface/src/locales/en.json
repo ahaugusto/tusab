@@ -73,6 +73,7 @@
   "guide.step6": "Click Index Now to build the search index. Re-index whenever you add new content.",
   "log.title": "Real-Time Log",
   "log.live": "Live",
+  "log.clear": "Clear",
   "log.ready": "Welcome to Tusab! Waiting for the extraction engine to start.",
   "log.complete_steps": "Complete the steps on the side to begin.",
   "summary.finished": "Extraction Complete",
