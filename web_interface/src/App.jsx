@@ -307,11 +307,12 @@ function App() {
   /** Syncs dark class on html element */
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); }, [darkMode]);
 
-  /** Keyboard shortcuts: Esc closes chat; Shift+key navigates tabs / opens chat */
+  /** Keyboard shortcuts: Esc closes/collapses chat; Shift+key navigates tabs / opens chat */
   useEffect(() => {
     const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral', H: 'historico' };
     const onKey = (e) => {
       if (e.key === 'Escape' && chatOpen) {
+        if (chatExpandido) { setChatExpandido(false); return; }
         setChatOpen(false);
         return;
       }
@@ -319,14 +320,17 @@ function App() {
       const tag = document.activeElement?.tagName?.toLowerCase();
       const editable = document.activeElement?.isContentEditable;
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
-      if (e.key === 'C' && !chatOpen) { setChatOpen(true); return; }
-      if (e.key === 'R' && regras.abas?.includes('extracao')) { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
-      const tab = NAV_KEYS[e.key];
+      const key = e.key.toUpperCase();
+      if (e.key === '>' && chatOpen && chatExpandido) { setChatExpandido(false); return; }
+      if (e.key === '<' && chatOpen && !chatExpandido) { setChatExpandido(true); return; }
+      if (key === 'C' && !chatOpen) { e.preventDefault(); setChatOpen(true); return; }
+      if (key === 'R' && regras.abas?.includes('extracao')) { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
+      const tab = NAV_KEYS[key];
       if (tab && regras.abas?.includes(tab)) { setActiveTab(tab); setShowHome(false); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [chatOpen, setChatOpen, regras]);
+  }, [chatOpen, chatExpandido, setChatOpen, setChatExpandido, regras]);
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 

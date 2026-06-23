@@ -404,6 +404,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     pergunta = pergunta[:2000].strip()
     handle   = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
+    _max_chunk = 1500 if (carregar_config().get('provider') == 'ollama') else 3000
     blocos = []
     for i, c in enumerate(contexto, 1):
         blocos.append(
@@ -411,7 +412,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"<title>{c['titulo']}</title>\n"
             f"<date>{c['data']}</date>\n"
             f"<link>{c['link']}</link>\n"
-            f"<content>{c['texto'][:3000]}</content>\n"
+            f"<content>{c['texto'][:_max_chunk]}</content>\n"
             f"</source>"
         )
     contexto_str = "\n".join(blocos)
@@ -705,7 +706,17 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         modelo = config.get('ollama_model', 'llama3.2:1b')
         resp = _req.post(
             'http://localhost:11434/api/generate',
-            json={'model': modelo, 'prompt': prompt, 'stream': False},
+            json={
+                'model':   modelo,
+                'prompt':  prompt,
+                'stream':  False,
+                'options': {
+                    'num_ctx':     2048,
+                    'num_predict': 512,
+                    'num_thread':  8,
+                    'temperature': 0.3,
+                },
+            },
             timeout=300,
         )
         resp.raise_for_status()
@@ -795,7 +806,17 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
             import requests as _req
             modelo = config.get('ollama_model', 'llama3.2:1b')
             with _req.post('http://localhost:11434/api/generate',
-                    json={'model': modelo, 'prompt': prompt, 'stream': True},
+                    json={
+                        'model':   modelo,
+                        'prompt':  prompt,
+                        'stream':  True,
+                        'options': {
+                            'num_ctx':     2048,
+                            'num_predict': 512,
+                            'num_thread':  8,
+                            'temperature': 0.3,
+                        },
+                    },
                     stream=True, timeout=300) as r:
                 for line in r.iter_lines():
                     if line:
