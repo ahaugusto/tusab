@@ -76,8 +76,6 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
         state.agent_indexing   = True
         state.agent_index_logs = []
         state.agent_index_stop.clear()
-        state.perguntas_sugeridas = []
-
         def cb(msg):
             state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": msg})
 
@@ -87,11 +85,7 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
             callback=cb,
             stop_event=state.agent_index_stop,
         )
-        state.perguntas_sugeridas = _gerar_perguntas_sugeridas(canal_prefixo)
-        # Aviso Pro: se o usuário já tem >= 3 canais indexados, sinaliza ao frontend
-        from tusab_engine.agent.index import _contar_canais_indexados, PRO_HINT_THRESHOLD
-        if len(_contar_canais_indexados()) >= PRO_HINT_THRESHOLD:
-            state.pro_hint = True
+        state.perguntas_sugeridas[canal_prefixo] = _gerar_perguntas_sugeridas(canal_prefixo)
     except Exception as e:
         state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": f"❌ Erro na indexação: {e}"})
     finally:
@@ -175,21 +169,22 @@ def _bases_com_arquivos_novos(canais_indexados: list) -> list[str]:
 
 
 @router.get("/agent/status")
-def agent_status():
+def agent_status(canal: str = ""):
     from tusab_engine.agent.config import registrar_primeiro_uso
+    import re as _re
     status = agent_tusab.get_agent_status()
-    status["indexing"]            = state.agent_indexing
-    status["index_logs"]          = state.agent_index_logs[-30:]
-    status["perguntas_sugeridas"] = state.perguntas_sugeridas if not state.agent_indexing else []
+    status["indexing"]   = state.agent_indexing
+    status["index_logs"] = state.agent_index_logs[-30:]
+    if not state.agent_indexing and canal:
+        prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal).strip('_')
+        status["perguntas_sugeridas"] = state.perguntas_sugeridas.get(prefixo, [])
+    else:
+        status["perguntas_sugeridas"] = []
     retencao = registrar_primeiro_uso()
     status["primeiro_uso"]       = retencao["primeiro_uso"]
     status["dias_desde_install"] = retencao["dias_desde_install"]
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     status["bases_desatualizadas"] = _bases_com_arquivos_novos(status.get("canais_indexados", []))
-    # pro_hint é consumido uma vez e resetado — o frontend controla a frequência via sessionStorage
-    status["pro_hint"] = state.pro_hint
-    if state.pro_hint:
-        state.pro_hint = False
     return status
 
 
@@ -325,19 +320,23 @@ def ollama_status():
         return {'running': False, 'models': []}
 
 
-@router.post("/agent/ollama/pull")
-async def ollama_pull(background_tasks: BackgroundTasks):
-    """Inicia o download do modelo padrão llama3.2:1b em background."""
-    if not hasattr(state, 'ollama_pull_progress'):
-        state.ollama_pull_progress = {'status': 'idle', 'pct': 0, 'message': ''}
+class OllamaPullRequest(BaseModel):
+    model: str = 'llama3.2:1b'
 
-    def _pull():
+@router.post("/agent/ollama/pull")
+async def ollama_pull(payload: OllamaPullRequest = None, background_tasks: BackgroundTasks = None):
+    """Inicia o download de um modelo Ollama em background."""
+    model_name = (payload.model if payload else None) or 'llama3.2:1b'
+    if not hasattr(state, 'ollama_pull_progress'):
+        state.ollama_pull_progress = {'status': 'idle', 'pct': 0, 'message': '', 'model': ''}
+
+    def _pull(name: str):
         import requests as _req
-        state.ollama_pull_progress = {'status': 'pulling', 'pct': 0, 'message': 'Iniciando download...'}
+        state.ollama_pull_progress = {'status': 'pulling', 'pct': 0, 'message': 'Iniciando download...', 'model': name}
         try:
             with _req.post(
                 'http://localhost:11434/api/pull',
-                json={'name': 'llama3.2:1b', 'stream': True},
+                json={'name': name, 'stream': True},
                 stream=True, timeout=600
             ) as resp:
                 for line in resp.iter_lines():
@@ -351,14 +350,15 @@ async def ollama_pull(background_tasks: BackgroundTasks):
                     pct = int(completed / total * 100) if total > 0 else 0
                     state.ollama_pull_progress = {
                         'status': 'pulling', 'pct': pct,
-                        'message': status[:80] if status else ''
+                        'message': status[:80] if status else '',
+                        'model': name,
                     }
-            state.ollama_pull_progress = {'status': 'done', 'pct': 100, 'message': 'Modelo pronto!'}
+            state.ollama_pull_progress = {'status': 'done', 'pct': 100, 'message': 'Modelo pronto!', 'model': name}
         except Exception as e:
-            state.ollama_pull_progress = {'status': 'error', 'pct': 0, 'message': str(e)[:120]}
+            state.ollama_pull_progress = {'status': 'error', 'pct': 0, 'message': str(e)[:120], 'model': name}
 
-    background_tasks.add_task(_pull)
-    return {'message': 'Download iniciado.'}
+    background_tasks.add_task(_pull, model_name)
+    return {'message': 'Download iniciado.', 'model': model_name}
 
 
 @router.get("/agent/ollama/pull-progress")

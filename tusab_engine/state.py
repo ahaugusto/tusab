@@ -71,7 +71,7 @@ class AppState:
         self.agent_index_logs     = []
         self.agent_index_stop     = threading.Event()
         self.agent_chat_lock      = threading.Lock()
-        self.perguntas_sugeridas: list = []
+        self.perguntas_sugeridas: dict = {}  # canal_prefixo -> list[str]
         # Histórico server-side: canal_nome -> list[{role, content}]
         self.chat_histories: dict = {}
 
@@ -88,8 +88,6 @@ class AppState:
         self.extraction_queue: list = []
         self.queue_lock = threading.Lock()
 
-        # Hint Pro: True quando usuário indexou >= 3 canais (reset após leitura pelo frontend)
-        self.pro_hint: bool = False
 
 
 # Singleton — importado diretamente por api_tusab e pelos routers

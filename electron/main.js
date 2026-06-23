@@ -338,6 +338,22 @@ function registerIpcHandlers () {
     writeKeystore(store)
     return true
   })
+
+  // Abre terminal com comando ollama pull pré-preenchido
+  ipcMain.handle('open-terminal', (_e, command) => {
+    const { exec } = require('child_process')
+    const safe = (command || '').replace(/[;&|`$]/g, '').trim()
+    if (process.platform === 'win32') {
+      exec(`start cmd /K "${safe}"`)
+    } else if (process.platform === 'darwin') {
+      exec(`osascript -e 'tell app "Terminal" to do script "${safe}"' -e 'tell app "Terminal" to activate'`)
+    } else {
+      // Linux: tenta terminais comuns
+      const terms = ['gnome-terminal -- bash -c', 'xterm -e', 'konsole -e']
+      exec(`${terms[0]} '${safe}; exec bash'`)
+    }
+    return true
+  })
 }
 
 // ─── Janela principal ──────────────────────────────────────────────────────

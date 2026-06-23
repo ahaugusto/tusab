@@ -446,11 +446,12 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
         )
     else:
         instrucoes = (
-            f"Você é o Tusab, um assistente que responde EXCLUSIVAMENTE com base nas fontes abaixo.\n\n"
-            f"TAREFA: leia as fontes e extraia as informações que respondam à pergunta.\n"
-            f"NÃO use nenhum conhecimento próprio, externo ou de treinamento.\n"
-            f"CADA afirmação deve poder ser rastreada a uma das fontes.\n"
-            f"Se as fontes não contiverem a informação, responda APENAS:\n"
+            f"Você é o Tusab, um assistente que responde com base nas fontes abaixo.\n\n"
+            f"TAREFA: leia TODAS as fontes com atenção e extraia as informações que respondam à pergunta.\n"
+            f"IMPORTANTE: se qualquer fonte contiver informação relevante — mesmo parcialmente — USE-A para responder.\n"
+            f"NÃO use conhecimento externo ou de treinamento além do que está nas fontes.\n"
+            f"CADA afirmação deve poder ser rastreada a uma das fontes pelo campo <title> ou <content>.\n"
+            f"SOMENTE se nenhuma fonte contiver absolutamente nenhuma informação relevante, responda:\n"
             f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
             + lang_instr
             + instrucao_tom

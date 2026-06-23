@@ -27,6 +27,7 @@ const SHORTCUTS = [
       { keys: ['Shift', 'E'],   desc: 'Aba Extração'         },
       { keys: ['Shift', 'R'],   desc: 'Sub-aba Relatório'    },
       { keys: ['Shift', 'B'],   desc: 'Aba Repositório'      },
+      { keys: ['Shift', 'H'],   desc: 'Aba Histórico'        },
       { keys: ['Shift', 'V'],   desc: 'Aba Visão Geral'      },
       { keys: ['Shift', 'M'],   desc: 'Aba Monitor'          },
       { keys: ['Shift', 'I'],   desc: 'Aba Agente'           },
