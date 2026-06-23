@@ -34,7 +34,7 @@ export const clearLog = () => axios.post(`${API_BASE}/log/clear`);
 export const fetchMetrics = () => axios.get(`${API_BASE}/metrics`);
 
 /** Fetches agent/RAG status */
-export const fetchAgentStatus = () => axios.get(`${API_BASE}/agent/status`);
+export const fetchAgentStatus = (canal = '') => axios.get(`${API_BASE}/agent/status${canal ? `?canal=${encodeURIComponent(canal)}` : ''}`);
 
 /** Fetches extraction history (all canals) */
 export const fetchHistory = () => axios.get(`${API_BASE}/history`);
@@ -164,8 +164,8 @@ export const fetchMencoes = (canal_nome) => axios.get(`${API_BASE}/agent/mencoes
 /** Fetches Ollama service status and installed models */
 export const fetchOllamaStatus = () => axios.get(`${API_BASE}/agent/ollama/status`);
 
-/** Triggers Ollama model download */
-export const pullOllamaModel = () => axios.post(`${API_BASE}/agent/ollama/pull`);
+/** Triggers Ollama model download — pass model name or omit for default */
+export const pullOllamaModel = (model = '') => axios.post(`${API_BASE}/agent/ollama/pull`, model ? { model } : {});
 
 /** Fetches Ollama model download progress */
 export const fetchOllamaPullProgress = () => axios.get(`${API_BASE}/agent/ollama/pull-progress`);

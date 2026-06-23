@@ -58,7 +58,6 @@ import { DriveToggle }          from './components/sidebar/SidebarContent';
 import CancelQueueModal         from './components/modals/CancelQueueModal';
 import ResetModal               from './components/modals/ResetModal';
 import QueueManagerModal        from './components/modals/QueueManagerModal';
-import ProHintModal             from './components/modals/ProHintModal';
 import ExtractionTab            from './components/extraction/ExtractionTab';
 import AgentTab                 from './components/tabs/AgentTab';
 import AdminTab                 from './components/tabs/AdminTab';
@@ -86,7 +85,6 @@ function App() {
   const [showOnboarding,   setShowOnboarding]   = useState(false);
   const [showGuide,        setShowGuide]        = useState(false);
   const [showResetModal,   setShowResetModal]   = useState(false);
-  const [showProHint,      setShowProHint]      = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
   const [activeTab,        setActiveTab]        = useState('extracao');
@@ -181,6 +179,7 @@ function App() {
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleTestKey,
+    setCanalAtivo,
   } = useAgentConfig({ activeTab, showError });
 
   const { seen, markSeen, KEYS } = useOnboarding();
@@ -259,6 +258,7 @@ function App() {
   const mainScrollRef   = useRef(null);
   const agentScrollRef  = useRef(null);
   const isVisibleRef    = useRef(true);
+  const cleanupRef      = useRef(null);
 
   // ─── Derived values ────────────────────────────────────────────────────────
   const progress        = status.stats.progress || 0;
@@ -309,7 +309,7 @@ function App() {
 
   /** Keyboard shortcuts: Esc closes chat; Shift+key navigates tabs / opens chat */
   useEffect(() => {
-    const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral' };
+    const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral', H: 'historico' };
     const onKey = (e) => {
       if (e.key === 'Escape' && chatOpen) {
         setChatOpen(false);
@@ -404,6 +404,11 @@ function App() {
     return () => clearInterval(interval);
   }, [canalConfigurado]);
 
+  // Sincroniza canal ativo com o hook para que o polling de /agent/status passe o canal correto
+  useEffect(() => {
+    setCanalAtivo(canalConfigurado || agentStatus.canal_indexado || '');
+  }, [canalConfigurado, agentStatus.canal_indexado]);
+
   /** Auto-scrolls log container to the bottom while extraction runs */
   useEffect(() => {
     if (status.is_running && status.logs.length > 0 && logContainerRef.current) {
@@ -413,15 +418,24 @@ function App() {
 
   /** Tracks scroll position to show/hide scroll-to-top button */
   useEffect(() => {
+    setShowScrollTop(false);
     const attach = (el) => {
       if (!el) return () => {};
       const onScroll = () => setShowScrollTop(el.scrollTop > 300);
       el.addEventListener('scroll', onScroll, { passive: true });
       return () => el.removeEventListener('scroll', onScroll);
     };
-    const d1 = attach(mainScrollRef.current);
-    const d2 = attach(agentScrollRef.current);
-    return () => { d1(); d2(); };
+    // rAF garante que os divs já estão montados antes de ler .current
+    const id = requestAnimationFrame(() => {
+      const d1 = attach(mainScrollRef.current);
+      const d2 = attach(agentScrollRef.current);
+      cleanupRef.current = () => { d1(); d2(); };
+    });
+    return () => {
+      cancelAnimationFrame(id);
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+    };
   }, [activeTab]);
 
   /** Snapshots the last set of index logs for display after indexing completes */
@@ -451,13 +465,6 @@ function App() {
     }
   }, [agentStatus.indexing, agentStatus.index_logs]);
 
-  // Detecta pro_hint do backend (emitido uma vez após indexar >= 3 canais)
-  useEffect(() => {
-    if (agentStatus.pro_hint && !sessionStorage.getItem('tusab_pro_hint_shown')) {
-      setShowProHint(true);
-      sessionStorage.setItem('tusab_pro_hint_shown', '1');
-    }
-  }, [agentStatus.pro_hint]);
 
   /** Shows post-extraction modal and sends desktop notification when extraction finishes */
   useEffect(() => {
@@ -887,6 +894,11 @@ function App() {
                 saveAgentConfig({ persona: personaPadrao }).catch(() => {});
                 setPersona(personaPadrao);
               }
+              // Redireciona para a primeira aba permitida se a aba atual não estiver disponível no novo perfil
+              const abasNovoPerfil = PERFIS_CONFIG[novoPerfil]?.abas ?? [];
+              if (!abasNovoPerfil.includes(activeTab)) {
+                setActiveTab(abasNovoPerfil[0] ?? 'repositorio');
+              }
               setShowAlterarPerfil(false);
             }}
             onFechar={() => setShowAlterarPerfil(false)}
@@ -939,7 +951,6 @@ function App() {
           fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
         }}
       />
-      {showProHint && <ProHintModal onClose={() => setShowProHint(false)} />}
 
       <AnimatePresence>
         {showExtractionModal && (
@@ -1281,7 +1292,7 @@ function App() {
 
             {/* ── TAB: REPOSITÓRIO ── */}
             {activeTab === 'repositorio' && (
-              <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio"
+              <div id="panel-repositorio" role="tabpanel" aria-labelledby="tab-repositorio" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
 
                 {/* ── Drive toggle — topo ── */}
@@ -1345,13 +1356,35 @@ function App() {
 
                 {/* ── Onboarding hint ── */}
                 {!seen(KEYS.repositorio) && (
-                  <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
-                    <span className="text-base shrink-0">💡</span>
-                    <div className="flex-1">
-                      <p className={`text-xs font-bold mb-0.5 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
-                      <p className={`text-[11px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Aqui ficam os arquivos do YouTube. Use <strong>+ Adicionar</strong> para incluir PDFs, Word, Markdown ou colar texto.</p>
+                  <div className={`p-4 rounded-xl border flex items-start gap-3 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
+                    <span className="text-lg shrink-0 mt-0.5">💡</span>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
+                        <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                          Aqui ficam os arquivos do YouTube e tudo que você adicionar. Após adicionar conteúdo, clique em <strong>Indexar base</strong> para o chat conseguir responder perguntas sobre ele.
+                        </p>
+                      </div>
+                      <div className={`grid grid-cols-2 gap-2 text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
+                          <span className="shrink-0 mt-0.5">📄</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Documentos</strong><br/>PDF, Word, Excel, Markdown, TXT</span>
+                        </div>
+                        <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
+                          <span className="shrink-0 mt-0.5">💬</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Conversas</strong><br/>WhatsApp, Zoom, Teams, Otter</span>
+                        </div>
+                        <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
+                          <span className="shrink-0 mt-0.5">✏️</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Textos</strong><br/>Cole qualquer texto diretamente</span>
+                        </div>
+                        <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
+                          <span className="shrink-0 mt-0.5">📦</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Compartilhar</strong><br/>Exporte e importe bases <code className={`px-1 rounded ${darkMode ? 'bg-white/10' : 'bg-slate-100'}`}>.tusab</code></span>
+                        </div>
+                      </div>
                     </div>
-                    <button onClick={() => markSeen(KEYS.repositorio)} className={`p-1 rounded text-xs shrink-0 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
+                    <button onClick={() => markSeen(KEYS.repositorio)} className={`p-1 rounded text-xs shrink-0 mt-0.5 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
                   </div>
                 )}
 
@@ -1434,7 +1467,7 @@ function App() {
               />
             )}
 {/* ── Admin tab ── */}
-            {activeTab === 'admin' && !showHome && (
+            {activeTab === 'admin' && !showHome && regras.admin && (
               <AdminTab
                 darkMode={darkMode}
                 mainScrollRef={mainScrollRef}
@@ -1449,13 +1482,17 @@ function App() {
             <ChatDrawer
               darkMode={darkMode}
               persona={persona}
-              onOpenPersona={() => {
+              onOpenPersona={PERFIS_CONFIG[perfil]?.config_api !== false ? () => {
                 setActiveTab('agente');
                 setChatOpen(false);
                 setTimeout(() => {
                   document.getElementById('agent-persona-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 120);
-              }}
+              } : undefined}
+              onPersonaChange={PERFIS_CONFIG[perfil]?.config_api === false ? (novaPersona) => {
+                handlePersonaChange(novaPersona);
+              } : undefined}
+              agentProvider={useExternalProvider ? agentProvider : 'ollama'}
               onAbrirIndexacaoRepositorio={() => {
                 setChatOpen(false);
                 setActiveTab('repositorio');
@@ -1567,20 +1604,26 @@ function App() {
               </div>
             )}
 
-            {/* Scroll-to-top button */}
+            {/* Scroll-to-top button — liquid glass */}
             <AnimatePresence>
               {showScrollTop && !chatOpen && (
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.7, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.7, y: 8 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                   onClick={() => {
                     mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                     agentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   aria-label="Voltar ao topo"
-                  className={`fixed z-30 p-3 rounded-full shadow-lg transition-colors ${BTN_FOCUS}
+                  style={{ backdropFilter: 'blur(16px) saturate(1.8)', WebkitBackdropFilter: 'blur(16px) saturate(1.8)' }}
+                  className={`fixed z-30 p-3 rounded-full transition-all duration-200 ${BTN_FOCUS}
                     bottom-24 right-6
-                    ${darkMode ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/35' : 'bg-primary text-white hover:bg-primary/85 shadow-primary/30'}`}>
+                    ${darkMode
+                      ? 'bg-white/10 text-white border border-white/20 shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.15)] hover:bg-white/18 hover:border-white/35 hover:shadow-[0_6px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.2)]'
+                      : 'bg-white/60 text-primary border border-white/80 shadow-[0_4px_24px_rgba(99,102,241,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] hover:bg-white/80 hover:border-white hover:shadow-[0_6px_32px_rgba(99,102,241,0.28),inset_0_1px_0_rgba(255,255,255,1)]'
+                    }`}>
                   <ArrowUp size={18} aria-hidden="true" />
                 </motion.button>
               )}

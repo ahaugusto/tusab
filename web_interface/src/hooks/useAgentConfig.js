@@ -6,7 +6,7 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   saveAgentConfig,
@@ -100,8 +100,11 @@ export function useAgentConfig({ activeTab, showError }) {
     saveAgentConfig({ provider, api_key: '', idioma: i18n.language }).catch(() => {});
   }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const canalAtivoRef = useRef('');
+  const setCanalAtivo = (canal) => { canalAtivoRef.current = canal || ''; };
+
   const refetchAgentStatus = () =>
-    fetchAgentStatus().then(r => setAgentStatus(r.data)).catch(() => {});
+    fetchAgentStatus(canalAtivoRef.current).then(r => setAgentStatus(r.data)).catch(() => {});
 
   /** Polls agent status every 3 seconds (indexing progress, canal_indexado, etc.) */
   useEffect(() => {
@@ -238,5 +241,6 @@ export function useAgentConfig({ activeTab, showError }) {
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleTestKey,
+    setCanalAtivo,
   };
 }

@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
@@ -181,6 +182,8 @@ function ChatDrawer({
   setFontesFixadas,
   persona,
   onOpenPersona,
+  onPersonaChange,
+  agentProvider,
   onAbrirIndexacaoRepositorio,
   chatHistory,
   onRetomar,
@@ -205,6 +208,8 @@ function ChatDrawer({
   // Modal de confirmação ao trocar base com conversa ativa
   const [showTrocarBaseModal, setShowTrocarBaseModal] = useState(false);
   const trocaBaseAlvoRef = useRef(null); // nome da base escolhida, aguardando confirmação
+  // Modal de persona inline (para perfis sem acesso à aba Agente)
+  const [showPersonaModal, setShowPersonaModal] = useState(false);
   // Anexo no chat
   const [anexoLoading, setAnexoLoading] = useState(false);
   const anexoInputRef = useRef(null);
@@ -408,10 +413,28 @@ function ChatDrawer({
               </div>
             </div>
           ) : (
-            <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>@{principal}</p>
+            <p className={`text-[10px] truncate max-w-[140px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`} title={`@${principal}`}>@{principal}</p>
           );
         })()}
       </div>
+      {/* Chip de provider */}
+      {agentProvider && agentProvider !== 'ollama' && (() => {
+        const LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini', google: 'Gemini' };
+        const COLORS = {
+          groq:      darkMode ? 'bg-orange-500/15 text-orange-400 border-orange-500/25' : 'bg-orange-50 text-orange-600 border-orange-200',
+          openai:    darkMode ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          anthropic: darkMode ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' : 'bg-amber-50 text-amber-700 border-amber-200',
+          gemini:    darkMode ? 'bg-blue-500/15 text-blue-400 border-blue-500/25' : 'bg-blue-50 text-blue-700 border-blue-200',
+          google:    darkMode ? 'bg-blue-500/15 text-blue-400 border-blue-500/25' : 'bg-blue-50 text-blue-700 border-blue-200',
+        };
+        const label = LABELS[agentProvider] || agentProvider;
+        const color = COLORS[agentProvider] || (darkMode ? 'bg-white/10 text-slate-300 border-white/15' : 'bg-slate-100 text-slate-600 border-slate-200');
+        return (
+          <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${color}`}>
+            {label}
+          </span>
+        );
+      })()}
       {/* Busca Ampla toggle */}
       <div className="flex items-center gap-1 shrink-0">
         <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
@@ -586,7 +609,9 @@ function ChatDrawer({
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {t('agent.chat_empty_ready', { canal: canalAtivo })}
+                        {(canaisExtras || []).length > 0
+                          ? t('agent.chat_empty_ready_multi', { count: (canaisExtras || []).length + 1 })
+                          : t('agent.chat_empty_ready', { canal: canalAtivo })}
                       </p>
 
                       {/* ── Chips das bases ativas ── */}
@@ -605,6 +630,7 @@ function ChatDrawer({
                               <div className="flex flex-wrap gap-1.5 justify-center">
                                 {todasAtivas.map(nome => {
                                   const problema = comProblema.has(nome);
+                                  const isExtra = (canaisExtras || []).includes(nome);
                                   return (
                                     <span key={nome}
                                       title={problema ? (naoIndexadas.includes(nome) ? 'Esta base ainda não foi indexada' : 'Há arquivos novos não indexados') : ''}
@@ -619,6 +645,14 @@ function ChatDrawer({
                                         }`}>
                                       {problema && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
                                       @{nome}
+                                      {isExtra && (
+                                        <button
+                                          onClick={() => setCanaisExtras(prev => (prev || []).filter(n => n !== nome))}
+                                          title={`Remover @${nome}`}
+                                          className={`ml-0.5 rounded-full hover:opacity-80 transition-opacity leading-none ${problema ? 'text-amber-400' : 'text-primary'}`}>
+                                          ×
+                                        </button>
+                                      )}
                                     </span>
                                   );
                                 })}
@@ -694,7 +728,7 @@ function ChatDrawer({
                       {msg.role === 'system' ? (
                         <div className={`max-w-[90%] rounded-xl px-3 py-2 text-[11px] leading-relaxed
                           ${darkMode ? 'bg-white/5 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.content}</ReactMarkdown>
                         </div>
                       ) : msg.role === 'queued' ? (
                         <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed rounded-br-sm flex items-start gap-2 opacity-50
@@ -707,7 +741,7 @@ function ChatDrawer({
                           ${darkMode ? 'bg-white/8 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
                           <div className="flex items-center gap-2">
                             <Sparkles size={13} className="text-primary shrink-0" />
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}
                               children={msg.content}
                               components={{ p: ({children}) => <span>{children}</span>, strong: ({children}) => <strong className="font-bold">{children}</strong> }}
                             />
@@ -737,7 +771,7 @@ function ChatDrawer({
                             <ReactMarkdown
                               // Normaliza \n simples entre parágrafos para \n\n (padrão Markdown)
                               // preservando blocos de código e listas que já têm estrutura própria
-                              remarkPlugins={[remarkGfm]}
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
                               children={msg.content.replace(/(?<!\n)\n(?!\n)(?![-*+\d])/g, '\n\n')}
                               components={{
                                 p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
@@ -769,7 +803,7 @@ function ChatDrawer({
                             {t('agent.rebuild_index')}
                           </button>
                         )}
-                        {msg.sem_contexto && !msg.streaming && onAbrirIndexacaoRepositorio && (
+                        {msg.sem_contexto && !msg.streaming && onAbrirIndexacaoRepositorio && !agentStatus.indexed && (
                           <button
                             onClick={onAbrirIndexacaoRepositorio}
                             className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
@@ -1116,9 +1150,9 @@ function ChatDrawer({
         </div>
 
         {/* Tom do agente */}
-        {onOpenPersona && (
+        {(onOpenPersona || onPersonaChange) && (
           <button
-            onClick={onOpenPersona}
+            onClick={() => onPersonaChange ? setShowPersonaModal(true) : onOpenPersona?.()}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors
               ${persona
                 ? darkMode ? 'text-primary bg-primary/15 hover:bg-primary/25' : 'text-violet-600 bg-violet-100 hover:bg-violet-200'
@@ -1276,10 +1310,25 @@ function ChatDrawer({
                 return (
                   <div key={base.nome}
                     onClick={() => {
-                      if (isAtivo) return;
-                      setCanaisExtras?.(prev =>
-                        isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
-                      );
+                      if (isAtivo) {
+                        // já é a principal — nada a fazer
+                        return;
+                      }
+                      if (isExtra) {
+                        // remove dos extras
+                        setCanaisExtras?.(prev => prev.filter(c => c !== base.nome));
+                        return;
+                      }
+                      // Trocar base principal
+                      if (chatMessages.length > 0) {
+                        trocaBaseAlvoRef.current = base.nome;
+                        setShowBaseModal(false);
+                        setShowTrocarBaseModal(true);
+                      } else {
+                        onSelectCanal?.(base.nome);
+                        setCanaisExtras?.([]);
+                        setShowBaseModal(false);
+                      }
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
                       ${selecionado
@@ -1345,9 +1394,17 @@ function ChatDrawer({
                           {indexandoEsta ? <Loader2 size={10} className="animate-spin" /> : t('chat.index_btn')}
                         </button>
                       )}
-                      {/* Checkbox */}
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
-                        ${selecionado ? 'border-primary bg-primary' : darkMode ? 'border-white/20' : 'border-slate-300'}`}>
+                      {/* Checkbox — para extras; base principal sempre marcada sem toggle */}
+                      <div
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (isAtivo) return; // principal não pode ser desmarcada pelo checkbox
+                          setCanaisExtras?.(prev =>
+                            isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
+                          );
+                        }}
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
+                          ${isAtivo ? 'border-primary bg-primary cursor-default' : isExtra ? 'border-primary bg-primary cursor-pointer' : darkMode ? 'border-white/20 cursor-pointer hover:border-primary/60' : 'border-slate-300 cursor-pointer hover:border-primary/60'}`}>
                         {selecionado && <span className="text-white text-[8px] font-bold">✓</span>}
                       </div>
                     </div>
@@ -1356,9 +1413,31 @@ function ChatDrawer({
               })}
             </div>
 
-            {(canaisExtras || []).length > 0 && !agentStatus.indexing && (
-              <div className={`px-4 py-2.5 border-t text-[10px] ${darkMode ? 'border-white/10 text-primary/70' : 'border-slate-100 text-violet-500'}`}>
-                {t('chat.searching_bases', { count: (canaisExtras || []).length + 1 })}
+            {/* Rodapé: seleção ativa + botão confirmar */}
+            {!agentStatus.indexing && canalAtualAtivo && (
+              <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[10px] font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {(canaisExtras || []).length > 0 ? t('chat.bases_selected', { count: (canaisExtras || []).length + 1 }) : t('chat.base_selected_one')}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {[canalAtualAtivo, ...(canaisExtras || [])].map(nome => (
+                        <span key={nome} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
+                          ${nome === canalAtualAtivo
+                            ? darkMode ? 'bg-primary/25 text-primary' : 'bg-violet-100 text-violet-700'
+                            : darkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
+                          @{nome}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowBaseModal(false)}
+                    className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
+                    {t('chat.confirm_bases')}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1451,7 +1530,7 @@ function ChatDrawer({
               </div>
             </div>
 
-            {/* Bases */}
+            {/* Info das bases */}
             <div className={`rounded-xl border p-3 space-y-2 text-[11px] ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-100'}`}>
               <div className="flex items-center justify-between">
                 <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Base atual</span>
@@ -1459,26 +1538,58 @@ function ChatDrawer({
                   @{canalAtivo}{canaisExtras?.length > 0 ? ` +${canaisExtras.length}` : ''}
                 </span>
               </div>
-              <div className={`border-t ${darkMode ? 'border-white/8' : 'border-slate-200'}`} />
-              <div className="flex items-center justify-between">
-                <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Nova base</span>
-                <span className="font-semibold text-primary">@{trocaBaseAlvoRef.current}</span>
-              </div>
+              {trocaBaseAlvoRef.current && (
+                <>
+                  <div className={`border-t ${darkMode ? 'border-white/8' : 'border-slate-200'}`} />
+                  <div className="flex items-center justify-between">
+                    <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Nova base</span>
+                    <span className="font-semibold text-primary">@{trocaBaseAlvoRef.current}</span>
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Lista de bases para escolher (quando não há base alvo pré-definida) */}
+            {!trocaBaseAlvoRef.current && canaisIndexados.length > 0 && (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Escolha a nova base
+                </p>
+                {canaisIndexados.filter(c => c.nome !== canalAtivo).map(c => (
+                  <button
+                    key={c.nome}
+                    onClick={() => {
+                      onNovaConversa?.();
+                      onSelectCanal?.(c.nome);
+                      setCanaisExtras?.([]);
+                      setShowTrocarBaseModal(false);
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-left text-xs transition-all hover:scale-[1.01]
+                      ${darkMode ? 'bg-white/5 border-white/10 hover:bg-primary/15 hover:border-primary/30 text-white' : 'bg-slate-50 border-slate-200 hover:bg-violet-50 hover:border-violet-200 text-slate-800'}`}>
+                    <Database size={12} className="text-primary shrink-0" />
+                    <span className="font-semibold">@{c.nome}</span>
+                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{c.chunks} chunks</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Ações */}
             <div className="flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  onNovaConversa?.();
-                  onSelectCanal?.(trocaBaseAlvoRef.current);
-                  setShowTrocarBaseModal(false);
-                  setShowRepoModal(false);
-                  trocaBaseAlvoRef.current = null;
-                }}
-                className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
-                Iniciar nova conversa com @{trocaBaseAlvoRef.current}
-              </button>
+              {trocaBaseAlvoRef.current && (
+                <button
+                  onClick={() => {
+                    onNovaConversa?.();
+                    onSelectCanal?.(trocaBaseAlvoRef.current);
+                    setCanaisExtras?.([]);
+                    setShowTrocarBaseModal(false);
+                    setShowRepoModal(false);
+                    trocaBaseAlvoRef.current = null;
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
+                  Iniciar nova conversa com @{trocaBaseAlvoRef.current}
+                </button>
+              )}
               <button
                 onClick={() => { setShowTrocarBaseModal(false); trocaBaseAlvoRef.current = null; }}
                 className={`w-full py-2 rounded-xl text-xs font-medium transition-colors
@@ -1486,6 +1597,73 @@ function ChatDrawer({
                 Cancelar
               </button>
             </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* Modal inline: seleção de persona/tom (para perfis sem aba Agente) */}
+    <AnimatePresence>
+      {showPersonaModal && onPersonaChange && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 z-50 flex items-center justify-center p-6"
+          style={{ background: darkMode ? 'rgba(12,17,34,0.92)' : 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowPersonaModal(false); }}>
+          <motion.div
+            initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }}
+            className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl
+              ${darkMode ? 'bg-[#0f1222] border-white/10' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+                ${darkMode ? 'bg-primary/15' : 'bg-violet-50'}`}>
+                <SlidersHorizontal size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  {t('agent.persona_title')}
+                </p>
+                <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {t('chat.persona_modal_desc')}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { key: '',            icon: '⚖️' },
+                { key: 'objetivo',    icon: '🎯' },
+                { key: 'tecnico',     icon: '🔧' },
+                { key: 'didatico',    icon: '📖' },
+                { key: 'descontraido',icon: '😊' },
+                { key: 'socratico',   icon: '🤔' },
+              ].map(({ key, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => { onPersonaChange(key); setShowPersonaModal(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all hover:scale-[1.01]
+                    ${persona === key
+                      ? darkMode ? 'bg-primary/20 border-primary/40 text-white' : 'bg-violet-50 border-violet-300 text-violet-800'
+                      : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20 text-slate-300' : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}>
+                  <span className="text-base shrink-0">{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold">{t(`persona.${key || 'default'}`)}</p>
+                    <p className={`text-[10px] truncate ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {t(`persona.${key || 'default'}_desc`)}
+                    </p>
+                  </div>
+                  {persona === key && (
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${darkMode ? 'bg-primary' : 'bg-violet-500'}`} />
+                  )}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowPersonaModal(false)}
+              className={`w-full py-2 rounded-xl text-xs font-medium transition-colors
+                ${darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`}>
+              {t('repo.cancel')}
+            </button>
           </motion.div>
         </motion.div>
       )}
@@ -1523,7 +1701,7 @@ function ChatDrawer({
             {histSelecionado ? (
               /* Visualização de uma conversa */
               <div className={`text-xs leading-relaxed markdown-body ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}
                   components={{
                     p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                     strong: ({children}) => <strong className="font-bold">{children}</strong>,
@@ -1589,7 +1767,7 @@ function ChatDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t('agent.chat_title')}
-        onKeyDown={e => { if (e.key === 'Escape') { if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
+        onKeyDown={e => { if (e.key === 'Escape') { if (showPersonaModal) setShowPersonaModal(false); else if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
         className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
         {conteudo(() => setExpandido(false))}
       </div>
@@ -1613,7 +1791,7 @@ function ChatDrawer({
             role="dialog"
             aria-modal="true"
             aria-label={t('agent.chat_title')}
-            onKeyDown={e => { if (e.key === 'Escape') { if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
+            onKeyDown={e => { if (e.key === 'Escape') { if (showPersonaModal) setShowPersonaModal(false); else if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
             className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
             {conteudo(() => setChatOpen(false))}
           </motion.div>

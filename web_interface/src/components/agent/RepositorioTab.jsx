@@ -574,6 +574,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     { key: 'orp-textos',     label: t('repo.orphan_texts'),     emoji: '📝', items: orphanTexts, tipo: 'texts' },
   ].filter(g => g.items.length > 0);
 
+  const allAccordionKeys = [...canais.map(c => c.nome), ...orphanGroups.map(g => g.key)];
+  const anyExpanded = allAccordionKeys.some(k => expandedCanais[k] !== false);
+  const collapseAll = () => {
+    const collapsed = {};
+    allAccordionKeys.forEach(k => { collapsed[k] = false; });
+    setExpandedCanais(collapsed);
+  };
+
   return (
     <div
       className="space-y-4"
@@ -584,14 +592,37 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2.5">
-            <h2 className={`text-sm font-bold shrink-0 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.title')}</h2>
-          </div>
+          <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.title')}</h2>
           <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
             {t('repo.file_count', { files: total, bases: canais.length })}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Expandir / Recolher tudo */}
+          {allAccordionKeys.length > 1 && (
+            <>
+              <button
+                onClick={() => {
+                  const expanded = {};
+                  allAccordionKeys.forEach(k => { expanded[k] = true; });
+                  setExpandedCanais(expanded);
+                }}
+                disabled={allAccordionKeys.every(k => expandedCanais[k] !== false)}
+                className={`text-[10px] transition-colors disabled:opacity-30 disabled:cursor-default
+                  ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                {t('repo.expand_all')}
+              </button>
+              <span className={`text-[10px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>·</span>
+              <button
+                onClick={collapseAll}
+                disabled={allAccordionKeys.every(k => expandedCanais[k] === false)}
+                className={`text-[10px] transition-colors disabled:opacity-30 disabled:cursor-default
+                  ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                {t('repo.collapse_all')}
+              </button>
+              <span className={`w-px h-4 ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
+            </>
+          )}
           {/* Indexar base */}
           <button
             onClick={async () => {
@@ -635,6 +666,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           </button>
         </div>
       </div>
+
 
       {/* ── Snackbar exportar/importar ── */}
       {shareSnackbar && (

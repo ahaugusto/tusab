@@ -21,4 +21,7 @@ contextBridge.exposeInMainWorld('tusab', {
   // Preferência de auto-update do Electron (persiste no keystore local)
   getUpdatePref: ()        => ipcRenderer.invoke('get-update-pref'),
   setUpdatePref: (enabled) => ipcRenderer.invoke('set-update-pref', enabled),
+
+  // Abre terminal com comando pré-preenchido (ex: ollama pull llama3.2:3b)
+  openTerminal: (command) => ipcRenderer.invoke('open-terminal', command),
 })
