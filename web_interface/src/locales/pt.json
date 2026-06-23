@@ -73,6 +73,7 @@
   "guide.step6": "Clique em Indexar Agora para construir o índice de busca. Reindexe sempre que adicionar conteúdo novo.",
   "log.title": "Log em Tempo Real",
   "log.live": "Ao vivo",
+  "log.clear": "Limpar",
   "log.ready": "Bem-vind@ ao Tusab! Aguardando start do motor de extração.",
   "log.complete_steps": "Complete os passos ao lado para começar.",
   "summary.finished": "Extração Concluída",
