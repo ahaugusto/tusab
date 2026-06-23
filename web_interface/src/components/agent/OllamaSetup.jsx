@@ -37,13 +37,17 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
   const [pullProgress, setPullProgress] = React.useState(null);
   const [pulling,      setPulling]      = React.useState(false);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
-  const [pullingModel, setPullingModel] = React.useState(null); // id do modelo sendo baixado
+  const [pullingModel, setPullingModel] = React.useState(null);
+  const [refreshing,   setRefreshing]   = React.useState(false);
 
   const hasModel  = ollamaStatus.models && ollamaStatus.models.length > 0;
   const modelName = ollamaModel || (hasModel ? ollamaStatus.models[0] : 'llama3.2:1b');
 
-  const refresh = () =>
-    fetchOllamaStatus().then(r => setOllamaStatus(r.data)).catch(() => {});
+  const refresh = async () => {
+    setRefreshing(true);
+    try { const r = await fetchOllamaStatus(); setOllamaStatus(r.data); } catch {}
+    setRefreshing(false);
+  };
 
   React.useEffect(() => { refresh(); }, []);
 
@@ -87,14 +91,16 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
         setPullProgress(p);
         if (p.status === 'done' || p.status === 'error') {
           clearInterval(iv);
-          // Refresh imediato + segundo refresh após 3s para garantir que o modelo aparece
+          // Refresh imediato
           const s = await fetchOllamaStatus().catch(() => null);
           if (s?.data) setOllamaStatus(s.data);
+          // Segundo refresh após 3s e só então limpa o estado de download
           setTimeout(async () => {
             const s2 = await fetchOllamaStatus().catch(() => null);
             if (s2?.data) setOllamaStatus(s2.data);
+            setPullingModel(null);
+            setPullProgress(null);
           }, 3000);
-          setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 2500);
         }
       } catch {}
     }, 800);
@@ -199,11 +205,11 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
                   Trocar modelo
                   <ChevronDown size={10} className={`transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} />
                 </button>
-                <button onClick={refresh} title="Atualizar lista de modelos"
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-colors
+                <button onClick={refresh} disabled={refreshing} title="Atualizar lista de modelos"
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-colors disabled:opacity-60
                     ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/10 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`}>
-                  <RefreshCw size={10} />
-                  Atualizar
+                  <RefreshCw size={10} className={refreshing ? 'animate-spin' : ''} />
+                  {refreshing ? 'Atualizando…' : 'Atualizar'}
                 </button>
               </div>
             </div>

@@ -132,9 +132,11 @@ export function useAgentConfig({ activeTab, showError }) {
 
   // ─── Handlers ────────────────────────────────────────────────────────────
 
-  /** Saves selected Ollama model to config */
+  /** Saves selected Ollama model to config and switches provider to Ollama */
   const handleOllamaModelChange = async (model) => {
     setOllamaModel(model);
+    setUseExternalProvider(false);
+    setAgentProvider('ollama');
     await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona, idioma: i18n.language })
       .catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
   };
