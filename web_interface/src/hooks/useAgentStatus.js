@@ -5,7 +5,7 @@
  * @author CriAugu <augusto.brasil@saude.gov.br>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchAgentStatus } from '../services/api';
 
 // ─── Default state ────────────────────────────────────────────────────────────
@@ -30,19 +30,27 @@ const DEFAULT_AGENT_STATUS = {
  */
 export function useAgentStatus() {
   const [agentStatus, setAgentStatus] = useState(DEFAULT_AGENT_STATUS);
+  const [indexingDoneCount, setIndexingDoneCount] = useState(0);
+  const prevIndexingRef = useRef(false);
 
   const refetchAgentStatus = async () => {
     try {
       const res = await fetchAgentStatus();
-      setAgentStatus(res.data);
+      const next = res.data;
+      // Detecta transição indexing: true → false aqui, na fonte de verdade
+      if (prevIndexingRef.current && !next.indexing) {
+        setIndexingDoneCount(c => c + 1);
+      }
+      prevIndexingRef.current = next.indexing;
+      setAgentStatus(next);
     } catch {}
   };
 
   useEffect(() => {
-    refetchAgentStatus(); // fetch imediato na montagem
+    refetchAgentStatus();
     const interval = setInterval(refetchAgentStatus, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  return { agentStatus, setAgentStatus, refetchAgentStatus };
+  return { agentStatus, setAgentStatus, refetchAgentStatus, indexingDoneCount };
 }

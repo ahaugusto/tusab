@@ -157,7 +157,7 @@ function App() {
 
   // ─── Agent config hook ────────────────────────────────────────────────────
   const {
-    agentStatus,          setAgentStatus,     refetchAgentStatus,
+    agentStatus,          setAgentStatus,     refetchAgentStatus,  indexingDoneCount,
     agentProvider,        setAgentProvider,
     agentApiKey,          setAgentApiKey,
     showApiKey,           setShowApiKey,
@@ -861,7 +861,7 @@ function App() {
       <AnimatePresence>
         {showOnboarding && (
           <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
-            <Onboarding key="onboarding"
+            <Onboarding key="onboarding" darkMode={darkMode}
               onSkip={() => {
                 // Pular no step 0: fecha o onboarding e mantém a landing
                 setShowOnboarding(false);
@@ -1515,6 +1515,7 @@ function App() {
                 if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
               }}
               agentStatus={agentStatus}
+              indexingDoneCount={indexingDoneCount}
               canalConfigurado={canalConfigurado}
               onSelectCanal={setCanalConfigurado}
               canalMeta={canalMeta}

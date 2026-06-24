@@ -189,6 +189,7 @@ function ChatDrawer({
   onRetomar,
   onNovaConversa,
   chatQueue = [],
+  indexingDoneCount = 0,
 }) {
   const { t } = useTranslation();
   const [showRepoModal,     setShowRepoModal]     = useState(false);
@@ -213,7 +214,7 @@ function ChatDrawer({
   // Anexo no chat
   const [anexoLoading, setAnexoLoading] = useState(false);
   const anexoInputRef = useRef(null);
-  const prevIndexing = useRef(false);
+
   const [mencaoQuery,       setMencaoQuery]       = useState('');
   const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
   const [showMencao,        setShowMencao]        = useState(false);
@@ -312,15 +313,13 @@ function ChatDrawer({
     prevChatInputRef.current = chatInput;
   }, [chatInput]);
 
-  // Detecta fim da indexação e exibe snackbar
+  // Exibe snackbar sempre que uma indexação terminar (detectado no hook, via contador)
   useEffect(() => {
-    const agora = agentStatus.indexing;
-    if (prevIndexing.current && !agora) {
-      setIndexSnackbar({ msg: t('chat.index_success'), type: 'ok' });
-      setTimeout(() => setIndexSnackbar(null), 4000);
-    }
-    prevIndexing.current = agora;
-  }, [agentStatus.indexing, t]);
+    if (indexingDoneCount === 0) return;
+    setIndexSnackbar({ msg: t('chat.index_success'), type: 'ok' });
+    const timer = setTimeout(() => setIndexSnackbar(null), 7000);
+    return () => clearTimeout(timer);
+  }, [indexingDoneCount, t]);
 
   const loadingPhrase = useLoadingPhrase(chatLoading);
   const canaisIndexados = agentStatus.canais_indexados || [];
@@ -780,16 +779,14 @@ function ChatDrawer({
                           <div className="markdown-body">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
-                              children={
-                                msg.content
-                                  // Quebra antes de **Título** que vem colado ao texto anterior (padrão Ollama sem \n)
-                                  .replace(/([^\n])\*\*([^*]+)\*\*/g, (_, pre, title) =>
-                                    // Só quebra se parece título (começa com maiúscula, sem pontuação antes)
-                                    /[a-záéíóúàâêôãõçA-Z]/.test(title[0]) ? `${pre}\n\n**${title}**` : `${_}`
-                                  )
-                                  // Normaliza \n simples para \n\n preservando listas e código
-                                  .replace(/(?<!\n)\n(?!\n)(?![-*+\d`])/g, '\n\n')
-                              }
+                              children={(() => {
+                                let t = msg.content;
+                                // Todo ** que não esteja no início de linha → nova linha antes
+                                t = t.replace(/([^\n])(\*\*)/g, '$1\n\n$2');
+                                // Remove excesso de linhas em branco
+                                t = t.replace(/\n{3,}/g, '\n\n');
+                                return t;
+                              })()}
                               components={{
                                 p:      ({children}) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
@@ -1513,12 +1510,14 @@ function ChatDrawer({
             <AnimatePresence>
               {indexSnackbar && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.2 }}
-                  className={`absolute bottom-4 left-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-xs font-bold
-                    ${darkMode ? 'bg-secondary/90 text-white' : 'bg-emerald-600 text-white'}`}>
-                  <CheckCircle2 size={14} />
-                  {indexSnackbar.msg}
+                  initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 16, scale: 0.97 }} transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className={`absolute bottom-4 left-3 right-3 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border-l-4 text-sm font-semibold
+                    ${darkMode
+                      ? 'bg-[#0f2a1a] border-emerald-400 text-emerald-100 shadow-black/60'
+                      : 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-emerald-100'}`}>
+                  <CheckCircle2 size={20} className={darkMode ? 'text-emerald-400 shrink-0' : 'text-emerald-500 shrink-0'} />
+                  <span>{indexSnackbar.msg}</span>
                 </motion.div>
               )}
             </AnimatePresence>
