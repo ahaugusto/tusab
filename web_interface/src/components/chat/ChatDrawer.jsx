@@ -855,9 +855,9 @@ function ChatDrawer({
                             <span>Este modelo pode ser pesado demais para o seu hardware. Tente um modelo menor como <strong>Llama 3.2 1B</strong> ou <strong>Llama 3.2 3B</strong> na aba <strong>Agente</strong>.</span>
                           </div>
                         )}
-                        {msg.sem_contexto && !msg.streaming && onAbrirIndexacaoRepositorio && !agentStatus.indexed && (
+                        {msg.sem_contexto && !msg.streaming && !agentStatus.indexed && (
                           <button
-                            onClick={onAbrirIndexacaoRepositorio}
+                            onClick={() => setShowBaseModal(true)}
                             className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
                               ${darkMode ? 'bg-accent/20 text-accent hover:bg-accent/30' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
                             <Zap size={11} aria-hidden="true" />
@@ -1334,7 +1334,8 @@ function ChatDrawer({
                 <button
                   onClick={async () => {
                     setIndexandoBase('__todos__');
-                    await onIndexar?.('__todos__').catch?.(() => {});
+                    const selecionadas = [canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean);
+                    await onIndexar?.(selecionadas);
                     setIndexandoBase(null);
                   }}
                   disabled={!!indexandoBase || agentStatus.indexing}
@@ -1362,25 +1363,10 @@ function ChatDrawer({
                 return (
                   <div key={base.nome}
                     onClick={() => {
-                      if (isAtivo) {
-                        // já é a principal — nada a fazer
-                        return;
-                      }
-                      if (isExtra) {
-                        // remove dos extras
-                        setCanaisExtras?.(prev => prev.filter(c => c !== base.nome));
-                        return;
-                      }
-                      // Trocar base principal
-                      if (chatMessages.length > 0) {
-                        trocaBaseAlvoRef.current = base.nome;
-                        setShowBaseModal(false);
-                        setShowTrocarBaseModal(true);
-                      } else {
-                        onSelectCanal?.(base.nome);
-                        setCanaisExtras?.([]);
-                        setShowBaseModal(false);
-                      }
+                      if (isAtivo) return;
+                      setCanaisExtras?.(prev =>
+                        isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
+                      );
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
                       ${selecionado
@@ -1466,7 +1452,7 @@ function ChatDrawer({
             </div>
 
             {/* Rodapé: seleção ativa + botão confirmar */}
-            {!agentStatus.indexing && canalAtualAtivo && (
+            {!agentStatus.indexing && todasBases.length > 0 && (
               <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
@@ -1474,7 +1460,7 @@ function ChatDrawer({
                       {(canaisExtras || []).length > 0 ? t('chat.bases_selected', { count: (canaisExtras || []).length + 1 }) : t('chat.base_selected_one')}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {[canalAtualAtivo, ...(canaisExtras || [])].map(nome => (
+                      {[canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean).map(nome => (
                         <span key={nome} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
                           ${nome === canalAtualAtivo
                             ? darkMode ? 'bg-primary/25 text-primary' : 'bg-violet-100 text-violet-700'
