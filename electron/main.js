@@ -15,9 +15,10 @@ const fs         = require('fs')
 // detectamos via process.resourcesPath (só existe em produção empacotada)
 const IS_PACKED   = typeof process.resourcesPath === 'string' && !process.resourcesPath.includes('node_modules')
 const RESOURCES   = IS_PACKED ? process.resourcesPath : path.join(__dirname, '..')
-const BACKEND_DIR = path.join(RESOURCES, IS_PACKED ? 'app'        : '.')
-const PYTHON_EXE  = path.join(RESOURCES, IS_PACKED ? 'python_env' : '..', 'python_env', 'python.exe')
-const BIN_DIR     = path.join(RESOURCES, IS_PACKED ? 'bin'        : '..', 'bin')
+const BACKEND_DIR = IS_PACKED ? path.join(RESOURCES, 'app')            : RESOURCES
+const PYTHON_EXE  = IS_PACKED ? path.join(RESOURCES, 'python_env', 'python.exe')
+                               : path.join(RESOURCES, 'electron', 'python_env', 'python.exe')
+const BIN_DIR     = IS_PACKED ? path.join(RESOURCES, 'bin')            : path.join(RESOURCES, 'electron', 'bin')
 
 // Em desenvolvimento usa o .venv local se existir, depois python_env, depois python do sistema
 const VENV_PYTHON = path.join(RESOURCES, '..', '.venv', 'Scripts', 'python.exe')
