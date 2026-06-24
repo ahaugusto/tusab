@@ -118,7 +118,7 @@ function App() {
     logs: [],
   });
   const [history,          setHistory]          = useState([]);
-  const [repositorio,      setRepositorio]      = useState({ youtube: [], documentos: [], textos: [] });
+  const [repositorio,      setRepositorio]      = useState({ youtube: [], documentos: [], textos: [], canais: [] });
   const prevExtractionStatus = useRef('');
   const prevIndexingRef      = useRef(false);
   const [backendOnline,    setBackendOnline]    = useState(true);
@@ -399,7 +399,11 @@ function App() {
         // Se ainda estamos no período de bloqueio pós-cancel, ignora updates de is_running
         if (Date.now() < cancelingUntilRef.current && res.data.is_running) return;
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
-        if (res.data.stats?.canal_nome && !canalConfigurado && !canalRemovidoRef.current && res.data.is_running) setCanalConfigurado(res.data.stats.canal_nome);
+        // Atualiza canal configurado quando motor está rodando — cobre troca da fila
+        const nomeDoMotor = res.data.stats?.canal_nome;
+        if (nomeDoMotor && !canalRemovidoRef.current && res.data.is_running && nomeDoMotor !== canalConfigurado) {
+          setCanalConfigurado(nomeDoMotor);
+        }
       } catch {
         _backendFailCount.current += 1;
         if (_backendFailCount.current >= 2) setBackendOnline(false);
@@ -495,7 +499,10 @@ function App() {
 
   /** Tracks tab visits for the activation funnel (repositório / relatório) */
   useEffect(() => {
-    if (activeTab === 'repositorio') Analytics.repositorioAcessado();
+    if (activeTab === 'repositorio') {
+      Analytics.repositorioAcessado();
+      fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+    }
   }, [activeTab]);
 
   useEffect(() => {
