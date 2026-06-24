@@ -65,26 +65,33 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
       : [...prev, id]
   );
 
-  // Deriva handle da URL para pré-preencher projeto
+  // Deriva handle da URL — funciona com ou sem https://
   const extrairHandle = (url) => {
+    const s = url.trim();
+    // Tenta regex direto antes de usar URL parser (cobre casos sem protocolo)
+    const m = s.match(/[@/]([a-zA-Z0-9_.\-]{2,100})\/?$/);
+    if (m) return m[1].replace(/^@/, '');
     try {
-      const u = new URL(url.trim());
+      const u = new URL(s.startsWith('http') ? s : 'https://' + s);
       const partes = u.pathname.split('/').filter(Boolean);
       if (partes.length > 0) return partes[partes.length - 1].replace(/^@/, '');
     } catch (_) {}
     return '';
   };
 
+  // Atualiza sugestão de nome do projeto em tempo real conforme URL muda (só se não editado manualmente)
+  React.useEffect(() => {
+    if (step === 'url' && !nomeEditadoManual && canalUrl.trim()) {
+      const handle = extrairHandle(canalUrl);
+      if (handle) setProjetoNome(handle);
+    }
+  }, [canalUrl, step, nomeEditadoManual]);
+
   const avancar = () => {
     if (step === 'url') {
-      // Pré-preenche projeto com handle da URL se ainda não foi editado manualmente
-      if (!nomeEditadoManual && canalUrl.trim()) {
-        const handle = extrairHandle(canalUrl);
-        if (handle) setProjetoNome(handle);
-      }
       setStep('projeto');
     } else if (step === 'projeto') {
-      setStep(canalJaConfigurado && !modoFila ? 'fontes' : 'fontes');
+      setStep('fontes');
     }
   };
 
@@ -208,6 +215,11 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                     maxLength={120}
                     className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                   />
+                  {modoFila && projetoNome.trim() && !nomeEditadoManual && (
+                    <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Sugerido pela URL — edite à vontade
+                    </p>
+                  )}
                   {!projetoNome.trim() && (
                     <p className="text-[10px] text-red-500 mt-1 px-1">Campo obrigatório</p>
                   )}
