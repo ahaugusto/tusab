@@ -4,7 +4,7 @@
 **Data de vigência:** 24 de junho de 2026  
 **Responsável:** CriAugu — CNPJ 65.131.075/0001-57  
 **Site:** https://tusab.solutions  
-**Contato:** criaugu.tec.design@gmail.com
+**Contato:** tusab@tusab.solutions
 
 ---
 
@@ -113,7 +113,7 @@ Nos termos do Art. 18 da LGPD e Art. 17 do GDPR:
 - **Revogação do consentimento:** Disponível nas configurações do aplicativo. Dados de telemetria históricos anonimizados podem ser mantidos por até 12 meses para fins de melhoria do produto.
 - **Oposição ao tratamento:** Como o processamento é local, o usuário pode interromper qualquer tratamento simplesmente desinstalando o aplicativo.
 
-Para exercer direitos ou em caso de dúvidas: **criaugu.tec.design@gmail.com**
+Para exercer direitos ou em caso de dúvidas: **tusab@tusab.solutions**
 
 ---
 
@@ -164,7 +164,7 @@ Esta política pode ser atualizada. Em caso de alterações materiais, o usuári
 
 **CriAugu — CNPJ 65.131.075/0001-57**  
 **Encarregado:** Augusto Brasil  
-**E-mail:** criaugu.tec.design@gmail.com  
+**E-mail:** tusab@tusab.solutions  
 **Site:** https://tusab.solutions  
 **LinkedIn:** https://linkedin.com/in/augustoalvesbrasil
 
