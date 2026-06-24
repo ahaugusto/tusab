@@ -623,6 +623,24 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <span className={`w-px h-4 ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
             </>
           )}
+          {/* Novo Projeto */}
+          <button
+            onClick={() => {
+              reloadProjetos().then(() => {
+                setProjetoSel('__novo__');
+                setShowNovoProjeto(true);
+                setMode('arquivo');
+                setUploadAviso('');
+                setNovoProjNome('');
+                setShowAdd(true);
+              });
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
+              ${darkMode ? 'text-slate-300 border-white/15 hover:bg-white/8' : 'text-slate-600 border-slate-300 bg-white hover:bg-slate-50'}`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 5v14M5 12h14"/></svg>
+            {t('repo.create_project_btn')}
+          </button>
+
           {/* Indexar base */}
           <button
             onClick={async () => {
