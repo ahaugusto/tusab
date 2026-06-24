@@ -251,6 +251,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
   const [showNovoProjeto, setShowNovoProjeto] = React.useState(false);
   const [novoProjNome,   setNovoProjNome]   = React.useState('');
+  const [showCriarProjetoModal, setShowCriarProjetoModal] = React.useState(false);
+  const [criarProjetoNome,      setCriarProjetoNome]      = React.useState('');
   const [criandoProj,    setCriandoProj]    = React.useState(false);
   const fileRef  = React.useRef(null);
   const dropRef  = React.useRef(null);
@@ -625,16 +627,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           )}
           {/* Novo Projeto */}
           <button
-            onClick={() => {
-              reloadProjetos().then(() => {
-                setProjetoSel('__novo__');
-                setShowNovoProjeto(true);
-                setMode('arquivo');
-                setUploadAviso('');
-                setNovoProjNome('');
-                setShowAdd(true);
-              });
-            }}
+            onClick={() => { setCriarProjetoNome(''); setShowCriarProjetoModal(true); }}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${btnFocus}
               ${darkMode ? 'text-slate-300 border-white/15 hover:bg-white/8' : 'text-slate-600 border-slate-300 bg-white hover:bg-slate-50'}`}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 5v14M5 12h14"/></svg>
@@ -1272,6 +1265,73 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             {t('repo.create_project_btn')}
           </button>
         </div>
+      )}
+
+      {/* Modal — criar novo projeto */}
+      {showCriarProjetoModal && createPortal(
+        <ModalWrapper onClose={() => setShowCriarProjetoModal(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Novo projeto">
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+            <div>
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Novo projeto</h3>
+              <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Dê um nome ao projeto. Depois você poderá adicionar arquivos e textos a ele.
+              </p>
+            </div>
+            <div>
+              <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Nome do projeto <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={criarProjetoNome}
+                onChange={e => setCriarProjetoNome(e.target.value)}
+                onKeyDown={async e => {
+                  if (e.key === 'Enter' && criarProjetoNome.trim() && !criandoProj) {
+                    setCriandoProj(true);
+                    try {
+                      const res = await criarProjeto(criarProjetoNome.trim());
+                      if (res.data?.ok) {
+                        await reloadProjetos();
+                        await reload();
+                        setShowCriarProjetoModal(false);
+                      }
+                    } catch { /* ignore */ }
+                    setCriandoProj(false);
+                  }
+                }}
+                placeholder="Ex: FGV, Marketing Digital, Estudos 2026…"
+                autoFocus
+                maxLength={120}
+                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowCriarProjetoModal(false)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
+                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                Cancelar
+              </button>
+              <button
+                disabled={!criarProjetoNome.trim() || criandoProj}
+                onClick={async () => {
+                  setCriandoProj(true);
+                  try {
+                    const res = await criarProjeto(criarProjetoNome.trim());
+                    if (res.data?.ok) {
+                      await reloadProjetos();
+                      await reload();
+                      setShowCriarProjetoModal(false);
+                    }
+                  } catch { /* ignore */ }
+                  setCriandoProj(false);
+                }}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-40 bg-primary text-white hover:bg-primary/85 ${btnFocus}`}>
+                {criandoProj ? 'Criando…' : 'Criar projeto'}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>,
+        document.body
       )}
 
       {/* Modal — limpar canal individual */}
