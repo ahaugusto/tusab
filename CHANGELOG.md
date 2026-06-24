@@ -1,4 +1,4 @@
-﻿# Changelog — Brain'IAC
+﻿# Changelog — Tusab
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
 
 Todas as mudanças relevantes do projeto são documentadas aqui.
@@ -16,6 +16,81 @@ Versionamento via [Semantic Versioning](https://semver.org).
 - Busca web via Brave Search API
 - Entrada por voz (AI Edge Eloquent como referência)
 - LiteRT-LM CLI como provider adicional (aguardar API pública)
+- Embeddings Ollama + ChromaDB (próxima versão pós-feedback CrossEncoder)
+
+---
+
+## [0.5.0] — 2026-06-24
+
+### Added
+- **Fila de extração com UI completa** — adicionar canais à fila antes ou durante uma extração;
+  gerenciador inline com remoção individual e limpeza total; card de extração atualiza automaticamente
+  para o canal que assume a posição quando o atual termina ou é cancelado.
+- **Sistema de projetos desacoplado do canal** — usuário nomeia o repositório independentemente do canal.
+  Pasta `data/neural/{projeto}/` agrupa YouTube + documents + texts sob um nome escolhido.
+  Um canal pode ser importado para qualquer projeto sem renomear pasta.
+- **Modal "Criar Projeto" standalone** no header do Repositório — cria projeto antes de qualquer upload.
+  Contrato documentado em código (`[CONTRATO CRÍTICO]`) e na documentação de dependências.
+- **ExtractionModal refatorado para steps por string** (`'url' | 'projeto' | 'fontes'`).
+  Modo fila: URL → Projeto (handle sugerido em tempo real ao digitar) → Fontes.
+  Modo canal já configurado: começa em Projeto → Fontes (URL omitida).
+- **CrossEncoder na Busca Ampla** — BM25 recupera top-12 → `ms-marco-MiniLM-L-6-v2` reordena
+  semanticamente → top-6 vão ao prompt (+236ms medido vs. BM25 puro). Lazy load; degradação graciosa.
+- **Sistema de perfis de usuário** com HomeScreen personalizada por perfil (Pesquisador, Estudante, Especialista).
+  LandingScreen animada com seletor de idioma + tema antes do onboarding.
+  `CircuitBackground` interativo (glow do mouse na HomeScreen) e passivo (landing).
+- **i18n completo** em pt/en/es — todos os componentes, modais, toasts, personas, relatório e chat drawer.
+- **Base Compartilhável** (`.tusab`) — exportar e importar base de conhecimento entre máquinas; readonly mode.
+- **Histórico de conversas persistente** — salvar, listar e restaurar conversas anteriores.
+- **Parser WhatsApp / Reuniões** — detecta e estrutura automaticamente exportações Android/iOS e
+  transcrições Zoom/Otter/Teams antes de indexar (melhora recall BM25).
+- **Personas de tom de voz** — Objetivo, Técnico, Didático, Descontraído, Socrático; injetadas no prompt.
+- **Seletor multi-canal no chat** — chips de bases, busca ampla/restrita com toggle; `@mention` de canal.
+- **Download de modelos Ollama via backend** com controle de acesso por perfil.
+- **Auto-Update por canal** — aba com configuração de periodicidade real por canal.
+- **Fila de mensagens no chat** (máx. 5 balões simultâneos) com export de arquivos pelo chat.
+- **Anexo de arquivo direto no chat** com indexação automática.
+- **Busca inline no Repositório** por projeto e arquivo.
+- **Monitor de sistema** com ETA de extração e relatório de observabilidade.
+- **PostHog analytics opt-in** — ConsentModal na primeira abertura; zero coleta sem consentimento.
+- **Onboarding contextual** — dicas por feature em localStorage; ProgressToast após indexação.
+
+### Changed
+- **Upload de arquivo exige projeto existente** — botão bloqueado até `POST /neural/projeto` confirmar.
+  Alias `"documentos"`/`"textos"` → `"documents"`/`"texts"` no DELETE mantido para backward-compat.
+- **Indexação usa canal explícito do modal** — `req.canal_nome` tem prioridade sobre `state.stats.canal_nome`;
+  fix de regressão onde a última extração sobrescrevia a seleção do usuário no modal de indexação.
+- **Repositório carrega ao abrir a aba** (não só no mount) — `useEffect` em `activeTab`.
+- **App.jsx modularizado** — extraídos 7+ componentes e 4 custom hooks; de ~2.500 → ~1.600 linhas.
+- **Chunking de docs com overlap** — janelas de 2.000 chars com overlap de 200 chars; evita corte de ideias na borda.
+- **Ollama com parâmetros de performance** — `num_ctx`/`num_predict`/`num_thread`; contexto reduzido para modelos locais.
+- **Timeout Ollama** aumentado de 120s → 300s.
+- Pastas internas renomeadas para inglês (`documents/`, `texts/`, `management/`); aliases de backward-compat mantidos.
+- Subpastas por projeto sob `data/neural/{projeto}/` em vez de pasta plana.
+- Branding definitivo: Brain'IAC → Sebayt → **Tusab** (nome final; slug `profissional` preservado para backward-compat localStorage).
+
+### Fixed
+- `canalConfigurado` não atualizava quando canal da fila assumia a extração.
+- Repositório mostrava vazio mesmo com projetos no backend (estado inicial sem `canais: []`; sem refresh ao abrir aba).
+- modoFila step Projeto herdava nome do canal em extração em vez do handle da URL digitada.
+- `ExtractionModal` pulava step de URL em reloads — agora só pula se canal configurado na *sessão atual*.
+- `createPortal` para modais standalone (fix `ReactDOM` default import quebra React 19).
+- Drive: `credentials.json` e `token.json` movidos para `data/config/` (fora do bundle PyInstaller).
+- Path traversal → fallback seguro para `index.html` (SPA routing).
+- XSS via `dangerouslySetInnerHTML` removido.
+- `RLock` no `state_lock` — `print()` dentro de região bloqueada reentrava no `LogRedirector` causando deadlock.
+- Scroll interno em `ExtractionModal`, `AlterarPerfilModal` e `Onboarding`.
+- Query expansion desativada para Ollama local (latência 15-25s → 3-8s).
+- `sub_langs = 'pt'` fixo — tentativas duplas causavam rate limit 429 no YouTube.
+- `skip=translated_subs` + sleep entre requests para eliminar 429 adicionais.
+
+### Docs
+- **Mapa de Impacto de Dependências** — documento formal com contratos críticos, regras de dependência
+  e histórico de decisões técnicas não óbvias.
+- **Blueprint de Modularização** — guia de referência da arquitetura do frontend.
+- **CLAUDE.md** expandido — semântica de módulos, onde encontrar o quê, decisões técnicas não óbvias.
+- Smoke tests expandidos (15 checks) com hook pre-commit obrigatório.
+- Workflow de release GitHub Actions (`.github/workflows/release.yml`) — CI + build Windows + publicação.
 
 ---
 
