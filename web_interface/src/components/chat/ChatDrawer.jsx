@@ -779,27 +779,34 @@ function ChatDrawer({
                         ) : (
                           <div className="markdown-body">
                             <ReactMarkdown
-                              // Normaliza \n simples entre parágrafos para \n\n (padrão Markdown)
-                              // preservando blocos de código e listas que já têm estrutura própria
                               remarkPlugins={[remarkGfm, remarkBreaks]}
-                              children={msg.content.replace(/(?<!\n)\n(?!\n)(?![-*+\d])/g, '\n\n')}
+                              children={
+                                msg.content
+                                  // Quebra antes de **Título** que vem colado ao texto anterior (padrão Ollama sem \n)
+                                  .replace(/([^\n])\*\*([^*]+)\*\*/g, (_, pre, title) =>
+                                    // Só quebra se parece título (começa com maiúscula, sem pontuação antes)
+                                    /[a-záéíóúàâêôãõçA-Z]/.test(title[0]) ? `${pre}\n\n**${title}**` : `${_}`
+                                  )
+                                  // Normaliza \n simples para \n\n preservando listas e código
+                                  .replace(/(?<!\n)\n(?!\n)(?![-*+\d`])/g, '\n\n')
+                              }
                               components={{
-                                p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                                p:      ({children}) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 em:     ({children}) => <em className="italic">{children}</em>,
                                 del:    ({children}) => <del className="line-through opacity-70">{children}</del>,
                                 a:      ({href, children}) => <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-2 opacity-80 hover:opacity-100 break-all">{children}</a>,
-                                ul:     ({children}) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
-                                ol:     ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
+                                ul:     ({children}) => <ul className="list-disc pl-4 mb-3 space-y-1">{children}</ul>,
+                                ol:     ({children}) => <ol className="list-decimal pl-4 mb-3 space-y-1">{children}</ol>,
                                 li:     ({children}) => <li className="leading-relaxed">{children}</li>,
-                                h1:     ({children}) => <p className="font-bold text-sm mb-1 mt-2">{children}</p>,
-                                h2:     ({children}) => <p className="font-bold text-xs mb-1 mt-2">{children}</p>,
-                                h3:     ({children}) => <p className="font-semibold text-xs mb-1 mt-1.5">{children}</p>,
+                                h1:     ({children}) => <p className="font-bold text-sm mb-2 mt-3">{children}</p>,
+                                h2:     ({children}) => <p className="font-bold text-xs mb-2 mt-3">{children}</p>,
+                                h3:     ({children}) => <p className="font-semibold text-xs mb-1.5 mt-2">{children}</p>,
                                 code:   ({inline, children}) => inline
                                   ? <code className={`px-1 py-0.5 rounded text-[10px] font-mono ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}>{children}</code>
                                   : <pre className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto mb-2 ${darkMode ? 'bg-black/30' : 'bg-slate-100'}`}><code>{children}</code></pre>,
-                                blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-1 opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
-                                hr:     () => <hr className={`my-2 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
+                                blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-2 opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
+                                hr:     () => <hr className={`my-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
                               }}
                             />
                             {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}

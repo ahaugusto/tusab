@@ -434,6 +434,8 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}, independentemente do idioma das fontes.\n\n"
 
+    fmt_instr = "FORMATO: use parágrafos separados por linha em branco. Cada seção deve começar em uma nova linha.\n\n"
+
     if busca_ampla:
         instrucoes = (
             f"Você é o Tusab em modo de Busca Ampla.\n\n"
@@ -442,6 +444,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"Quando forem insuficientes, você pode complementar com conhecimento geral "
             f"— mas deixe claro: use 'além do que está na base...' ou 'de forma geral...'.\n"
             f"Seja sempre honesto sobre a origem de cada informação.\n\n"
+            + fmt_instr
             + lang_instr
             + instrucao_tom
         )
@@ -454,6 +457,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             f"CADA afirmação deve poder ser rastreada a uma das fontes pelo campo <title> ou <content>.\n"
             f"SOMENTE se nenhuma fonte contiver absolutamente nenhuma informação relevante, responda:\n"
             f"'Não encontrei esse tema no conteúdo do {handle}.'\n\n"
+            + fmt_instr
             + lang_instr
             + instrucao_tom
         )
