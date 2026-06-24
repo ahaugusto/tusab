@@ -70,9 +70,9 @@ No Repositório, no projeto "Economia 2026" → menu de exportação → **Expor
 
 **Momento "aha!":** Carlos descobre que pode atualizar a base ao longo do semestre e mandar arquivos atualizados. Os alunos importam a versão nova sem precisar fazer nada além de clicar em "Importar".
 
-### Passo 6 — Configurar o agente (opcional)
+### Passo 6 — Persona do agente
 
-Carlos vai para a aba Agente. Configura Groq como provedor (gratuito, sem cartão internacional) — o modelo é mais potente que o Ollama local. Escolhe a persona **Didático** — terminologia acessível, exemplos concretos. A configuração persiste entre sessões.
+O perfil Professor usa a persona **Didático** por padrão — terminologia acessível, exemplos concretos. A persona é configurável na aba Admin. Configuração de provedor de API externo (Groq, OpenAI) não está disponível para o perfil Professor — o chat usa Ollama local ou o provedor configurado pelo administrador da máquina.
 
 ---
 
@@ -95,7 +95,7 @@ Constrói corpus de pesquisa sobre vigilância epidemiológica. Tem fontes de Yo
 4. No chat, seleciona múltiplos projetos para busca cruzada
 5. Exporta o histórico de chat como Markdown para documentar o raciocínio analítico
 
-**Evolução futura:** re-rankeamento CrossEncoder (re-ordena os chunks por relevância semântica antes de montar o prompt) está mapeado como próxima melhoria e beneficia principalmente perfis Pesquisador e Especialista, cujos corpora tendem a ser maiores e mais especializados.
+**Busca Ampla com CrossEncoder:** quando Débora ativa a busca ampla, o BM25 recupera os top-12 chunks candidatos e o CrossEncoder (`ms-marco-MiniLM-L-6-v2`) os reordena semanticamente — os top-6 mais relevantes vão ao prompt. Latência adicional de ~236ms, mas com recall significativamente superior em corpora densos.
 
 ---
 
@@ -139,7 +139,8 @@ Após a configuração inicial, o fluxo é simples para qualquer perfil:
 |------|-----------|-----------|-------------|--------------|
 | Nova base disponível | Importar `.tusab` | Extrair canal / adicionar docs | Extrair + indexar por projeto | Idem + monitorar sistema |
 | Novo documento | — | Repositório → botão 📎 do projeto | Idem | Idem |
-| Dúvida pontual | Chat | Chat | Chat (busca ampla disponível) | Chat (busca ampla + multi-base) |
+| Dúvida pontual | Chat | Chat | Chat (busca ampla + CrossEncoder) | Chat (busca ampla + multi-base) |
+| Mudar persona/tom do agente | Admin | Admin | Aba Agente | Aba Agente ou Admin |
 | Compartilhar base | — | Exportar `.tusab` | Exportar `.tusab` | Exportar `.tusab` |
 | Ver cobertura | — | Aba Relatório | Aba Relatório + Visão Geral | Tudo |
 
@@ -147,20 +148,28 @@ Após a configuração inicial, o fluxo é simples para qualquer perfil:
 
 ## Mapa de funcionalidades por perfil (junho 2026)
 
+> Fonte canônica: `web_interface/src/hooks/usePerfil.js:PERFIS_CONFIG`
+
 | Funcionalidade | Estudante | Professor | Pesquisador | Especialista |
 |---------------|-----------|-----------|-------------|--------------|
 | Chat RAG com streaming e fontes | ✅ | ✅ | ✅ | ✅ |
-| Repositório (visualizar base) | ✅ | ✅ | ✅ | ✅ |
+| Repositório (visualizar + upload) | ✅ | ✅ | ✅ | ✅ |
 | Importar base `.tusab` | ✅ | ✅ | ✅ | ✅ |
+| Histórico de conversas | ✅ | ✅ | ✅ | ✅ |
+| Painel Admin (persona, config geral) | ✅ | ✅ | — | ✅ |
+| Deletar arquivos do repositório | — | ✅ | ✅ | ✅ |
+| Limpar canal (apagar base de um projeto) | — | ✅ | ✅ | ✅ |
 | Extrair canal YouTube | — | ✅ | ✅ | ✅ |
 | Fila de extração múltipla | — | ✅ | ✅ | ✅ |
+| Google Drive (sync) | — | ✅ | ✅ | ✅ |
 | Relatório de cobertura | — | ✅ | ✅ | ✅ |
 | Exportar base `.tusab` | — | ✅ | ✅ | ✅ |
-| Google Drive (sync) | — | ✅ | ✅ | ✅ |
+| Aba Agente (config provider/API key) | — | — | ✅ | ✅ |
 | Configurar API key (Groq/OpenAI/etc.) | — | — | ✅ | ✅ |
-| Busca Ampla no chat | — | — | ✅ | ✅ |
+| Busca Ampla + CrossEncoder no chat | — | — | ✅ | ✅ |
 | Visão Geral (analytics do projeto) | — | — | ✅ | ✅ |
 | Monitor de sistema | — | — | — | ✅ |
-| Painel Admin | — | — | — | ✅ |
 | Reset total | — | — | — | ✅ |
 | Persona padrão do agente | Didático | Didático | Técnico | Objetivo |
+
+**Nota sobre Admin:** O perfil Pesquisador não tem a aba Admin — acessa configurações de agente diretamente pela aba Agente. Estudante e Professor têm aba Admin (persona e configurações básicas) mas não têm aba Agente (sem acesso a API key ou provider externo).
