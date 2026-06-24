@@ -271,6 +271,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   // ─── Project selector ────────────────────────────────────────────────────────
   const [projetos,       setProjetos]       = React.useState([]);
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
+  const [forceSelecionarProjeto, setForceSelecionarProjeto] = React.useState(false); // volta ao step de seleção mesmo com canalAtivo
   const [showNovoProjeto, setShowNovoProjeto] = React.useState(false);
   const [novoProjNome,   setNovoProjNome]   = React.useState('');
   const [showCriarProjetoModal, setShowCriarProjetoModal] = React.useState(false);
@@ -291,6 +292,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     setShowAdd(false);
     setProjetoSel('');
     setNovoProjNome('');
+    setForceSelecionarProjeto(false);
   };
 
   const reload = () => {
@@ -350,7 +352,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   };
 
   // Resolve which canal/project name to use for uploads
-  const _canalEfetivo = () => projetoSel || canalAtivo || '';
+  // Se forceSelecionarProjeto=true, ignora canalAtivo e força o step de seleção
+  const _canalEfetivo = () => forceSelecionarProjeto ? (projetoSel || '') : (projetoSel || canalAtivo || '');
 
   const handleCriarProjeto = async () => {
     const nome = novoProjNome.trim();
@@ -361,6 +364,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       if (res.data?.ok) {
         await reloadProjetos();
         setProjetoSel(res.data.nome);
+        setForceSelecionarProjeto(false);
         setShowNovoProjeto(false);
         setNovoProjNome('');
       }
@@ -862,7 +866,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                         </label>
                         <select
                           value=""
-                          onChange={e => { if (e.target.value) setProjetoSel(e.target.value); }}
+                          onChange={e => { if (e.target.value) { setProjetoSel(e.target.value); setForceSelecionarProjeto(false); } }}
                           className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary cursor-pointer
                             ${darkMode ? 'bg-[#0C1122] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
                         >
@@ -903,8 +907,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               {/* [CONTRATO] Projeto deve existir antes do upload — _canalEfetivo() não pode ser vazio aqui.
                   O modal só chega neste branch quando projetoSel ou canalAtivo está preenchido.
                   Ver: router_repositorio.py:/neural/upload e Mapa de Impacto §5 */}
-              {/* Chip do projeto de destino */}
+              {/* Chip do projeto de destino + botão voltar */}
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setForceSelecionarProjeto(true); setProjetoSel(''); }}
+                  title="Trocar projeto"
+                  className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                </button>
                 <p className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>
                 <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
                   ${darkMode ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>

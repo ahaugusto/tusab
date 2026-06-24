@@ -19,10 +19,15 @@ const BACKEND_DIR = path.join(RESOURCES, IS_PACKED ? 'app'        : '.')
 const PYTHON_EXE  = path.join(RESOURCES, IS_PACKED ? 'python_env' : '..', 'python_env', 'python.exe')
 const BIN_DIR     = path.join(RESOURCES, IS_PACKED ? 'bin'        : '..', 'bin')
 
-// Em desenvolvimento usa o Python do sistema se python_env ainda não existe
-const PYTHON = (IS_PACKED || require('fs').existsSync(PYTHON_EXE))
+// Em desenvolvimento usa o .venv local se existir, depois python_env, depois python do sistema
+const VENV_PYTHON = path.join(RESOURCES, '..', '.venv', 'Scripts', 'python.exe')
+const PYTHON = IS_PACKED
   ? PYTHON_EXE
-  : 'python'
+  : (require('fs').existsSync(VENV_PYTHON)
+      ? VENV_PYTHON
+      : require('fs').existsSync(PYTHON_EXE)
+        ? PYTHON_EXE
+        : 'python')
 
 const PORT = 8001
 
@@ -193,14 +198,14 @@ function spawnBackend () {
     ...process.env,
     PYTHONUNBUFFERED:  '1',
     ELECTRON_RUN:      '1',
-    TUSAB_DATA_DIR: app.getPath('userData'),
+    TUSAB_DATA_DIR: IS_PACKED ? app.getPath('userData') : BACKEND_DIR,
     // Coloca yt-dlp.exe e node.exe no PATH para o processo Python
     PATH: `${BIN_DIR}${path.delimiter}${process.env.PATH}`,
   }
 
   pythonProcess = spawn(
     PYTHON,
-    [path.join(BACKEND_DIR, 'api_tusab.py')],
+    ['-X', 'utf8', path.join(BACKEND_DIR, 'api_tusab.py')],
     { cwd: BACKEND_DIR, env, windowsHide: true }
   )
 

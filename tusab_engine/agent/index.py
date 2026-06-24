@@ -99,16 +99,17 @@ def get_agent_status() -> dict:
                     # Conta arquivos fonte para detectar índices órfãos
                     prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', nome).strip('_')
                     import glob as _glob
-                    yt_dir = get_canal_youtube_dir(prefixo)
-                    yt_txts = _glob.glob(os.path.join(yt_dir, '**', '*.txt'), recursive=True) if os.path.isdir(yt_dir) else []
+                    # Conta todos os .txt em neural/{prefixo}/youtube/** (qualquer subcanal)
+                    youtube_base = os.path.join(NEURAL_DIR, prefixo, 'youtube')
+                    yt_txts = _glob.glob(os.path.join(youtube_base, '**', '*.txt'), recursive=True) if os.path.isdir(youtube_base) else []
                     doc_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'documents', '*.txt'))
                     txt_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'texts', '*.txt'))
                     n_fonte = len([f for f in doc_txts + txt_txts if not os.path.basename(f).startswith('_')]) + len(yt_txts)
                     canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at, 'n_arquivos_fonte': n_fonte})
                     if nome == canal_nome:
                         index_count = count
-                except Exception:
-                    # Índice corrompido — remove o arquivo e invalida o cache
+                except (json.JSONDecodeError, ValueError):
+                    # Índice corrompido (JSON inválido) — remove e invalida cache
                     try:
                         os.remove(fpath)
                         canal_corrompido = fname.replace('_index.json', '')
@@ -116,6 +117,9 @@ def get_agent_status() -> dict:
                         indices_corrompidos.append(canal_corrompido)
                     except Exception:
                         pass
+                except Exception:
+                    # Erro ao contar arquivos fonte — não apagar o índice, só ignorar n_fonte
+                    pass
 
     if not index_count and canais_indexados:
         index_count = sum(c['chunks'] for c in canais_indexados)

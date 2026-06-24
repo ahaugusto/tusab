@@ -7,6 +7,23 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.1] — 2026-06-24
+
+### Fixed
+- **Índices BM25 apagados após indexação bem-sucedida** — `get_agent_status()` chamava `get_canal_youtube_dir(prefixo)` com um argumento (assinatura exige dois); o `TypeError` era capturado pelo `except Exception` que deletava o arquivo como "corrompido". Separados os handlers: `json.JSONDecodeError`/`ValueError` apagam o índice; demais exceções apenas ignoram o `n_arquivos_fonte`.
+- **Fontes erradas no chat multi-base** — `useChatEngine.js` enviava `agentStatus.canal_indexado` (último canal indexado globalmente) em vez de `canalConfigurado` (escolha do usuário). Invertida a precedência: `canalConfigurado || agentStatus.canal_indexado`.
+- **Seletor de base ocupando o corpo do chat** — com 2+ bases indexadas, os cards de seleção apareciam no corpo da área de mensagens. Removidos; a modal `showBaseModal` (botão "Base" na barra inferior) abre automaticamente ao entrar no chat com múltiplas bases disponíveis.
+- **Backend crashando ao servir JS grande no Windows** — `print()` do banner ASCII usava caracteres Unicode (`█`, `©`, `—`) incompatíveis com `cp1252` (encoding padrão do Windows), causando `UnicodeEncodeError` antes do servidor subir. Adicionado `-X utf8` ao spawn do Python no Electron e `sys.stdout.reconfigure(encoding='utf-8')` no `api_tusab.py`.
+- **Electron em dev apontando para `AppData` em vez do projeto** — `TUSAB_DATA_DIR` era sempre `app.getPath('userData')` independente do ambiente; em dev os dados ficavam em `AppData\Roaming\Tusab` enquanto os índices estavam em `Desktop\Tusab\data`. Corrigido: em dev usa a raiz do projeto; em produção empacotada mantém `userData`.
+- **Electron em dev usando Python do sistema** — adicionada detecção do `.venv\Scripts\python.exe` local antes de tentar `python_env` ou `python` do sistema.
+- **Voltar para seleção de projeto no modal de upload** — ao abrir upload pelo card da home com projeto pré-selecionado, não havia como trocar. Adicionado botão `←` no chip do projeto que força o step de seleção/criação via `forceSelecionarProjeto`.
+- **`useEffect` com referência antes de inicialização** — `precisaSelecionarBase` era usado no `useEffect` antes de ser declarado no componente, causando `ReferenceError` em runtime. Movido para após as declarações das constantes derivadas.
+
+### Changed
+- Botão "Selecionar base" no header do chat destacado em âmbar quando seleção é obrigatória.
+
+---
+
 ## [0.5.2] — 2026-06-24
 
 ### Fixed
