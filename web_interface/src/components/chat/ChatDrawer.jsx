@@ -185,6 +185,7 @@ function ChatDrawer({
   onPersonaChange,
   agentProvider,
   ollamaStatus,
+  onConfigIA,
   onAbrirIndexacaoRepositorio,
   chatHistory,
   onRetomar,
@@ -506,9 +507,17 @@ function ChatDrawer({
                           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
                         </svg>
                       </a>
-                      <p className={`text-[10px] text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                        {t('chat.ollama_or_provider')}
-                      </p>
+                      {onConfigIA ? (
+                        <button
+                          onClick={onConfigIA}
+                          className={`text-[11px] font-bold underline underline-offset-2 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                          {t('chat.ollama_or_provider')}
+                        </button>
+                      ) : (
+                        <p className={`text-[10px] text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                          {t('chat.ollama_or_provider')}
+                        </p>
+                      )}
                     </>
                   ) : !temBase ? (
                     <>
