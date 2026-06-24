@@ -18,34 +18,6 @@ from tusab_engine.state import state
 router = APIRouter()
 
 
-@router.get("/_debug/paths")
-def debug_paths():
-    from tusab_engine.storage import DATA_DIR, NEURAL_DIR, INDEX_DIR
-    from tusab_engine.agent.index import _index_path, indexar
-    import os, json, traceback
-    test_path = _index_path("_debug_test")
-    test_error = None
-    try:
-        os.makedirs(INDEX_DIR, exist_ok=True)
-        tmp = test_path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"test": True}, f)
-        os.replace(tmp, test_path)
-        exists_after = os.path.exists(test_path)
-        os.remove(test_path)
-    except Exception as e:
-        test_error = traceback.format_exc()
-        exists_after = False
-    return {
-        "cwd": os.getcwd(),
-        "DATA_DIR": DATA_DIR,
-        "NEURAL_DIR": NEURAL_DIR,
-        "INDEX_DIR": INDEX_DIR,
-        "index_files": os.listdir(INDEX_DIR) if os.path.exists(INDEX_DIR) else [],
-        "write_test_ok": exists_after,
-        "write_test_error": test_error,
-    }
-
 
 # ── Background helper ─────────────────────────────────────────────────────────
 
