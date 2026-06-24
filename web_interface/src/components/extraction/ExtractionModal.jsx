@@ -36,7 +36,8 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   // Steps: 1=Projeto, 2=URL (se necessário), 3=Fontes
   const totalSteps = canalJaConfigurado ? 2 : 3;
 
-  const [step, setStep] = React.useState(1);
+  // modoFila começa no step 2 (URL) — projeto é preenchido depois com handle da URL
+  const [step, setStep] = React.useState(modoFila ? 2 : 1);
 
   // Step 1: project name — pré-preenchido com handle do canal
   const [projetoNome,       setProjetoNome]       = React.useState(canalNome || '');
