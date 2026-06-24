@@ -1,24 +1,49 @@
-fastapi
-uvicorn[standard]
-yt-dlp>=2026.3.17
-pandas
-google-auth
-google-auth-oauthlib
-google-api-python-client
+# Tusab — dependências Python
+# Gerado em 2026-06-24 · Python 3.12
+# Instalar sempre via: .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# --- Agente RAG ---
-rank_bm25
-sentence-transformers  # CrossEncoder para re-rankeamento semântico pós-BM25
-openai
-anthropic
-google-generativeai  # SDK usado pelo chat Gemini (import google.generativeai)
+# ── API / servidor ──────────────────────────────────────────────────────────
+fastapi>=0.136.3
+uvicorn[standard]>=0.48.0
+python-multipart>=0.0.32
+starlette>=1.1.0
 
-# --- Processamento de documentos ---
-pdfplumber
-python-docx
-python-multipart
-reportlab  # geração de PDF no export /export/relatorio-pdf
+# ── Agente RAG ──────────────────────────────────────────────────────────────
+rank-bm25>=0.2.2
+sentence-transformers>=5.6.0     # CrossEncoder ms-marco-MiniLM-L-6-v2
+torch>=2.12.1                    # backend do sentence-transformers
+scikit-learn>=1.9.0              # usado internamente pelo sentence-transformers
 
-# --- Imagens e áudio (opcional — instalação separada) ---
-# pytesseract   # OCR fallback para imagens (requer binário Tesseract no sistema)
-# faster-whisper  # transcrição de áudio local (CPU, ~150 MB modelo base)
+# ── Provedores de IA ────────────────────────────────────────────────────────
+openai>=2.41.1                   # OpenAI + Groq (Groq usa client OpenAI)
+anthropic>=0.109.1
+google-generativeai>=0.8.6       # SDK legado google.generativeai (Gemini chat)
+google-genai>=2.6.0              # SDK novo google-genai (Gemini avançado)
+
+# ── Google Drive ────────────────────────────────────────────────────────────
+google-auth>=2.53.0
+google-auth-oauthlib>=1.4.0
+google-auth-httplib2>=0.4.0
+google-api-python-client>=2.196.0
+
+# ── Extração e processamento de documentos ──────────────────────────────────
+yt-dlp>=2026.6.9
+pdfplumber>=0.11.9
+python-docx>=1.2.0
+openpyxl>=3.1.5                  # leitura de XLSX no upload + export de tabela
+pandas>=3.0.3
+reportlab>=5.0.0                 # geração de PDF no /export/relatorio-pdf
+
+# ── Sistema / utilitários ───────────────────────────────────────────────────
+psutil>=7.2.2                    # métricas de CPU/memória no router_metrics
+python-dotenv>=1.2.2
+requests>=2.34.2
+cryptography>=48.0.0             # safeStorage / DPAPI via Electron
+
+# ── Testes ──────────────────────────────────────────────────────────────────
+pytest>=9.0.3
+
+# ── Opcional — imagens e áudio (não instalados por padrão) ──────────────────
+# pytesseract    # OCR fallback para imagens (requer binário Tesseract no sistema)
+# faster-whisper # transcrição de áudio local (CPU, modelo base ~150 MB)
+# Pillow         # pré-processamento de imagem para OCR
