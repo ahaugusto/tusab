@@ -457,14 +457,15 @@ function App() {
     refetchAgentStatus();
     if (agentStatus.index_logs.length > 0) {
       setLastIndexLogs(agentStatus.index_logs);
+      // Em modo lote, suprimir todo feedback intermediário — handleIndexarDoChat controla o toast final
+      if (indexacaoLoteRef.current) return;
       const hasError = agentStatus.index_logs.some(l => l.message?.includes('Erro') || l.message?.includes('erro'));
       if (hasError) {
         const errLog = agentStatus.index_logs.find(l => l.message?.includes('Erro') || l.message?.includes('erro'));
         showError(errLog?.message || t('error.index_failed'));
       } else {
         Analytics.baseIndexada(agentStatus.index_count);
-        // Em modo lote, suprimir toasts intermediários — o toast final é disparado pelo handleIndexarDoChat
-        if (!indexacaoLoteRef.current && !showHome && !showLanding) {
+        if (!showHome && !showLanding) {
           setProgressToast({
             message: t('toast.base_indexed', { count: agentStatus.index_count }),
             nextStep: t('toast.open_chat'),
@@ -610,25 +611,35 @@ function App() {
     setTimeout(tick, 1500);
   });
 
-  /** Triggered from the chat drawer — indexes a list of canals or a single one */
-  const handleIndexarDoChat = async (canaisParam) => {
+  /**
+   * Indexes a list (or single) of canals sequentially.
+   * onStatusChange(nome, 'aguardando'|'indexando'|'ok'|'erro') — called per item for live card feedback.
+   */
+  const handleIndexarDoChat = async (canaisParam, onStatusChange) => {
     setAgentIndexError('');
     const lista = Array.isArray(canaisParam) ? canaisParam : [canaisParam];
     const isLote = lista.length > 1;
     if (isLote) indexacaoLoteRef.current = { total: lista.length, done: 0 };
+    // Mark all items as waiting before starting
+    lista.forEach(nome => onStatusChange?.(nome, 'aguardando'));
     setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
     let indexadas = 0;
     let comErro = 0;
     try {
       for (const nome of lista) {
+        onStatusChange?.(nome, 'indexando');
         const res = await startIndexing(nome).catch(() => null);
-        if (res?.data?.error) { comErro++; continue; }
+        if (res?.data?.error) {
+          onStatusChange?.(nome, 'erro');
+          comErro++;
+          continue;
+        }
         await _aguardarIndexacao();
-        // Verifica se a indexação terminou com erro lendo o status atual
         const statusRes = await fetchAgentStatus().catch(() => null);
         const logs = statusRes?.data?.index_logs || [];
         const temErro = logs.some(l => l.message?.includes('Erro') || l.message?.includes('erro') || l.message?.includes('❌'));
-        if (temErro) comErro++; else indexadas++;
+        if (temErro) { onStatusChange?.(nome, 'erro'); comErro++; }
+        else { onStatusChange?.(nome, 'ok'); indexadas++; }
       }
     } catch (err) {
       setAgentIndexError(extrairMensagemErro(err));
