@@ -423,7 +423,9 @@ def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None
     if state.is_running:
         return {"error": True, "message": "Aguarde a extração terminar antes de indexar."}
 
-    canal_nome = state.stats.get("canal_nome", "") or (req.canal_nome if req else "")
+    # req.canal_nome tem prioridade — usuário escolheu explicitamente no modal.
+    # Fallback para state.stats só quando o request não especifica canal.
+    canal_nome = (req.canal_nome if req and req.canal_nome else "") or state.stats.get("canal_nome", "")
     if not canal_nome:
         canal_nome = "repositorio"
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
