@@ -457,6 +457,8 @@
   "home.card_configure": "Configure",
   "nav.help": "Help",
   "toast.base_indexed": "Base indexed — {{count}} chunks ready!",
+  "toast.bases_indexed": "{{count}} bases indexed successfully!",
+  "toast.bases_indexed_partial": "{{ok}} of {{total}} bases indexed (others have no content).",
   "toast.open_chat": "Open chat",
   "toast.reset_success": "All data has been successfully deleted.",
   "error.remove_canal": "Error removing channel. Please try again.",

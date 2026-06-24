@@ -33,7 +33,7 @@ import {
   fetchHistory, fetchRepositorio, fetchQueue, setChannel, startExtraction, pauseExtraction, queueAdd, queueClear,
   queueRemoveItem, queueMoveItem, saveAutoUpdateConfig, runAutoUpdate, getAutoUpdateConfig,
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
-  startIndexing, cancelIndexing, clearChatHistory,
+  startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
 } from './services/api';
 
@@ -121,6 +121,7 @@ function App() {
   const [repositorio,      setRepositorio]      = useState({ youtube: [], documentos: [], textos: [], canais: [] });
   const prevExtractionStatus = useRef('');
   const prevIndexingRef      = useRef(false);
+  const indexacaoLoteRef     = useRef(null); // null = sem lote; { total, done } = lote em andamento
   const [backendOnline,    setBackendOnline]    = useState(true);
   const _backendFailCount  = useRef(0);
 
@@ -462,7 +463,8 @@ function App() {
         showError(errLog?.message || t('error.index_failed'));
       } else {
         Analytics.baseIndexada(agentStatus.index_count);
-        if (!showHome && !showLanding) {
+        // Em modo lote, suprimir toasts intermediários — o toast final é disparado pelo handleIndexarDoChat
+        if (!indexacaoLoteRef.current && !showHome && !showLanding) {
           setProgressToast({
             message: t('toast.base_indexed', { count: agentStatus.index_count }),
             nextStep: t('toast.open_chat'),
@@ -594,26 +596,55 @@ function App() {
   /** Cancels ongoing indexing */
   const handleAgentIndexCancel = () => cancelIndexing();
 
-  /** Triggered from the chat drawer — indexes a specific canal or all extracted canals */
-  const handleIndexarDoChat = async (canalNome) => {
+  /** Aguarda o backend terminar a indexação em andamento via polling (max 5 min). */
+  const _aguardarIndexacao = () => new Promise((resolve) => {
+    const MAX = 300_000;
+    const start = Date.now();
+    const tick = () => {
+      if (Date.now() - start > MAX) { resolve(); return; }
+      fetchAgentStatus().then(r => {
+        if (!r.data?.indexing) resolve();
+        else setTimeout(tick, 1500);
+      }).catch(() => setTimeout(tick, 2000));
+    };
+    setTimeout(tick, 1500);
+  });
+
+  /** Triggered from the chat drawer — indexes a list of canals or a single one */
+  const handleIndexarDoChat = async (canaisParam) => {
     setAgentIndexError('');
-    // Sinaliza loading imediatamente sem esperar o próximo ciclo de polling (3s)
+    const lista = Array.isArray(canaisParam) ? canaisParam : [canaisParam];
+    const isLote = lista.length > 1;
+    if (isLote) indexacaoLoteRef.current = { total: lista.length, done: 0 };
     setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
+    let indexadas = 0;
+    let comErro = 0;
     try {
-      if (canalNome === '__todos__') {
-        const canaisRepo = (repositorio.canais || []).map(c => c.nome);
-        const canaisHist = history.filter(h => h.canal_nome).map(h => h.canal_nome);
-        const todos = [...new Set([...canaisRepo, ...canaisHist])];
-        for (const nome of todos) {
-          await startIndexing(nome).catch(() => {});
-        }
-      } else {
-        await startIndexing(canalNome).catch((err) => {
-          setAgentIndexError(extrairMensagemErro(err));
-        });
+      for (const nome of lista) {
+        const res = await startIndexing(nome).catch(() => null);
+        if (res?.data?.error) { comErro++; continue; }
+        await _aguardarIndexacao();
+        // Verifica se a indexação terminou com erro lendo o status atual
+        const statusRes = await fetchAgentStatus().catch(() => null);
+        const logs = statusRes?.data?.index_logs || [];
+        const temErro = logs.some(l => l.message?.includes('Erro') || l.message?.includes('erro') || l.message?.includes('❌'));
+        if (temErro) comErro++; else indexadas++;
       }
     } catch (err) {
       setAgentIndexError(extrairMensagemErro(err));
+    } finally {
+      indexacaoLoteRef.current = null;
+      if (isLote && !showHome && !showLanding) {
+        const total = indexadas + comErro;
+        setProgressToast({
+          message: comErro > 0
+            ? t('toast.bases_indexed_partial', { ok: indexadas, total })
+            : t('toast.bases_indexed', { count: indexadas }),
+          nextStep: indexadas > 0 ? t('toast.open_chat') : undefined,
+          onNext: indexadas > 0 ? () => setChatOpen(true) : undefined,
+        });
+      }
+      refetchAgentStatus();
     }
   };
 
