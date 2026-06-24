@@ -43,9 +43,10 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   const stepInicial = modoFila ? 'url' : canalJaConfigurado ? 'projeto' : 'projeto';
   const [step, setStep] = React.useState(stepInicial);
 
-  // Step 1: project name — pré-preenchido com handle do canal
-  const [projetoNome,       setProjetoNome]       = React.useState(canalNome || '');
-  const [nomeEditadoManual, setNomeEditadoManual] = React.useState(!!canalNome);
+  // modoFila: começa vazio — nome vem do handle da URL inserida
+  // Normal: pré-preenchido com canalNome do canal já configurado
+  const [projetoNome,       setProjetoNome]       = React.useState(modoFila ? '' : (canalNome || ''));
+  const [nomeEditadoManual, setNomeEditadoManual] = React.useState(!modoFila && !!canalNome);
 
   // Step URL: channel URL
   const [canalUrl, setCanalUrl] = React.useState('');
