@@ -36,7 +36,7 @@ function _fileIsAccepted(file) {
 
 // ─── IndexarModal ────────────────────────────────────────────────────────────
 
-function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel, indexando, agentStatus, onConfirmar, onFechar }) {
+function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel, indexando, filaStatus = {}, agentStatus, onConfirmar, onFechar }) {
   const { t } = useTranslation();
   const [busca, setBusca] = React.useState('');
   const inputRef = React.useRef(null);
@@ -102,27 +102,8 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
         </div>
       </div>
 
-      {/* Progresso — visível imediatamente ao confirmar, antes do 1º poll */}
-      {(indexando || agentStatus?.indexing) && (
-        <div className={`mx-5 mt-4 mb-1 rounded-xl p-3 space-y-2 shrink-0 ${darkMode ? 'bg-black/30 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
-            <p className={`text-[11px] font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>{t('repo.indexing')}</p>
-          </div>
-          {(agentStatus?.index_logs || []).length > 0 && (
-            <div className="max-h-24 overflow-y-auto space-y-0.5">
-              {[...(agentStatus.index_logs)].reverse().slice(0, 8).map((log, i) => (
-                <p key={i} className={`text-[10px] font-mono leading-snug ${i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {log.message}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Lista — oculta durante indexação */}
-      <div className={`flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar ${(indexando || agentStatus?.indexing) ? 'opacity-30 pointer-events-none' : ''}`}>
+      {/* Lista */}
+      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar">
         {/* Selecionar todos (da lista filtrada) */}
         {listaFiltrada.length > 0 && (
           <button
@@ -146,23 +127,55 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
               : <><p className="text-sm mb-1">📭</p><p className="text-xs">{t('repo.indexar_empty')}</p></>
             }
           </div>
-        ) : listaFiltrada.map(p => (
-          <button key={p.nome}
-            onClick={() => setIndexarSel(prev => ({ ...prev, [p.nome]: !prev[p.nome] }))}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
-              ${indexarSel[p.nome]
-                ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
-                : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200'}`}>
-            <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
-              ${indexarSel[p.nome] ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
-              {indexarSel[p.nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            </span>
-            <span className="shrink-0">{p.tipo === 'youtube' ? '🎬' : '🧠'}</span>
-            <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-              {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
-            </span>
-          </button>
-        ))}
+        ) : listaFiltrada.map(p => {
+          const st = filaStatus[p.nome]; // 'aguardando'|'indexando'|'ok'|'erro'|undefined
+          const emFila = !!st;
+          const borderColor = st === 'ok'
+            ? darkMode ? 'border-emerald-500/50 bg-emerald-500/8' : 'border-emerald-300 bg-emerald-50'
+            : st === 'erro'
+              ? darkMode ? 'border-red-500/50 bg-red-500/8' : 'border-red-300 bg-red-50'
+              : st === 'indexando'
+                ? darkMode ? 'border-accent/50 bg-accent/8' : 'border-cyan-300 bg-cyan-50'
+                : st === 'aguardando'
+                  ? darkMode ? 'border-white/15 bg-white/4' : 'border-slate-200 bg-slate-50'
+                  : indexarSel[p.nome]
+                    ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
+                    : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200';
+          return (
+            <button key={p.nome}
+              onClick={() => !emFila && setIndexarSel(prev => ({ ...prev, [p.nome]: !prev[p.nome] }))}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${borderColor} ${emFila ? 'cursor-default' : ''}`}>
+              {/* Checkbox / status indicator */}
+              <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all
+                ${st === 'ok' ? 'bg-emerald-500 border-emerald-500'
+                  : st === 'erro' ? 'bg-red-500 border-red-500'
+                  : st === 'indexando' ? 'bg-accent border-accent'
+                  : st === 'aguardando' ? darkMode ? 'border-white/20' : 'border-slate-300'
+                  : indexarSel[p.nome] ? 'bg-primary border-primary'
+                  : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                {st === 'ok' && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                {st === 'erro' && <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+                {st === 'indexando' && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
+                {st === 'aguardando' && <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />}
+                {!st && indexarSel[p.nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </span>
+              <span className="shrink-0">{p.tipo === 'youtube' ? '🎬' : '🧠'}</span>
+              <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
+              </span>
+              {/* Status label */}
+              {st && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0
+                  ${st === 'ok' ? darkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700'
+                    : st === 'erro' ? darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600'
+                    : st === 'indexando' ? darkMode ? 'bg-accent/20 text-accent' : 'bg-cyan-100 text-cyan-700'
+                    : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {st === 'ok' ? '✓ ok' : st === 'erro' ? '✗ erro' : st === 'indexando' ? 'indexando…' : 'aguardando'}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Footer */}
@@ -226,6 +239,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [showIndexar,    setShowIndexar]    = React.useState(false);
   const [indexarSel,     setIndexarSel]     = React.useState({});   // { nome: bool }
   const [indexando,      setIndexando]      = React.useState(false);
+  const [filaStatus,     setFilaStatus]     = React.useState({});   // { nome: 'aguardando'|'indexando'|'ok'|'erro' }
   const [indexSnackbar,  setIndexSnackbar]  = React.useState(null);
   const prevIndexingRef = React.useRef(false);
   const [exportando,     setExportando]     = React.useState(false);
@@ -309,10 +323,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     const selecionados = Object.entries(indexarSel).filter(([, v]) => v).map(([k]) => k);
     if (selecionados.length === 0 || !onIndexar) return;
     setIndexando(true);
-    // onIndexar processa sequencialmente aguardando o backend entre cada item
-    await onIndexar(selecionados).catch?.(() => {});
+    setFilaStatus({});
+    await onIndexar(selecionados, (nome, status) =>
+      setFilaStatus(prev => ({ ...prev, [nome]: status }))
+    ).catch?.(() => {});
     setIndexando(false);
-    setShowIndexar(false);
+    // Fecha o modal após 1s para o usuário ver o estado final dos cards
+    setTimeout(() => { setShowIndexar(false); setFilaStatus({}); }, 1000);
   };
 
   // Resolve which canal/project name to use for uploads
@@ -1415,6 +1432,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             indexarSel={indexarSel}
             setIndexarSel={setIndexarSel}
             indexando={indexando}
+            filaStatus={filaStatus}
             agentStatus={agentStatus}
             onConfirmar={handleIndexarConfirmar}
             onFechar={() => setShowIndexar(false)}
