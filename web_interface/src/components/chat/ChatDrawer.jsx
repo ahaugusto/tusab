@@ -778,7 +778,7 @@ function ChatDrawer({
                         ) : (
                           <div className="markdown-body">
                             <ReactMarkdown
-                              remarkPlugins={[remarkGfm, remarkBreaks]}
+                              remarkPlugins={[remarkGfm]}
                               children={(() => {
                                 let t = msg.content;
                                 // Todo ** que não esteja no início de linha → nova linha antes
