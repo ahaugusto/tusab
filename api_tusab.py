@@ -15,6 +15,18 @@ warnings.filterwarnings("ignore", category=UserWarning, module="google")
 import motor_tusab
 import agent_tusab
 
+# Garante UTF-8 no stdout/stderr do Windows (evita UnicodeEncodeError no banner)
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 import logging
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
@@ -26,7 +38,7 @@ print(r"""
      ██║   ██║   ██║╚════██║██╔══██║██╔══██╗
      ██║   ╚██████╔╝███████║██║  ██║██████╔╝
      ╚═╝    ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝
-  v1.0.0 · Indexe. Aprenda. Consulte.
+  v1.0.1 · Indexe. Aprenda. Consulte.
   © 2026 CriAugu — CNPJ 65.131.075/0001-57
 """)
 

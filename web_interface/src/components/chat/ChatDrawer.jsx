@@ -334,6 +334,13 @@ function ChatDrawer({
   // Requer seleção explícita quando há mais de uma base disponível com fonte
   const precisaSelecionarBase = !canalConfigurado && canaisIndexados.length > 1;
   const chatHabilitado = temBase && !!canalAtivo && !precisaSelecionarBase;
+
+  // Abre modal de seleção de base automaticamente quando há mais de uma disponível e nenhuma selecionada
+  useEffect(() => {
+    if (precisaSelecionarBase && chatOpen) {
+      setShowBaseModal(true);
+    }
+  }, [precisaSelecionarBase, chatOpen]);
   // Ollama selecionado mas não detectado — sem provider externo configurado
   const ollamaNaoDisponivel = agentProvider === 'ollama' && !ollamaStatus?.running;
 
@@ -402,8 +409,8 @@ function ChatDrawer({
         {precisaSelecionarBase ? (
           <button
             onClick={() => setShowBaseModal(true)}
-            className={`text-[10px] font-semibold flex items-center gap-1 transition-colors
-              ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-primary/70 hover:text-primary'}`}>
+            className={`text-[10px] font-semibold flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-colors
+              ${darkMode ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}>
             <Database size={9} />
             {t('chat.select_base_link')}
           </button>
@@ -602,37 +609,6 @@ function ChatDrawer({
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </>
-                  ) : (precisaSelecionarBase || showRepoModal) && canaisIndexados.length > 0 ? (
-                    <>
-                      <Database size={28} className="text-primary" aria-hidden="true" />
-                      <p className={`text-xs font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.select_base_title')}</p>
-                      <p className={`text-[11px] text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {t('chat.select_base_desc')}
-                      </p>
-                      <div className="w-full mt-1 space-y-2">
-                        {canaisIndexados.map(canal => (
-                          <button key={canal.nome}
-                            onClick={() => {
-                              if (chatMessages.length > 0) {
-                                trocaBaseAlvoRef.current = canal.nome;
-                                setShowTrocarBaseModal(true);
-                              } else {
-                                onSelectCanal?.(canal.nome);
-                                setShowRepoModal(false);
-                              }
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99]
-                              ${darkMode ? 'bg-white/5 border-white/15 hover:bg-primary/15 hover:border-primary/30' : 'bg-slate-50 border-slate-200 hover:bg-violet-50 hover:border-violet-200'}`}>
-                            <Database size={14} className="text-primary shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
-                              <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{canal.chunks} {t('chat.chunks_indexed')}</p>
-                            </div>
-                            <ChevronRight size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
-                          </button>
-                        ))}
-                      </div>
                     </>
                   ) : canaisIndexados.length === 0 && !canalAtivo ? (
                     <>

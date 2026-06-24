@@ -73,7 +73,7 @@ export function useChatEngine({
 
   /** Auto-save: persiste após cada resposta completa (não durante streaming) */
   useEffect(() => {
-    const canal = agentStatus?.canal_indexado || canalConfigurado || '';
+    const canal = canalConfigurado || agentStatus?.canal_indexado || '';
     const hasFinished = chatMessages.length > 0 && !chatMessages.some(m => m.streaming);
     if (!hasFinished || chatMessages.length === 0) return;
     if (!convIdRef.current) convIdRef.current = history.startNew(canal);
@@ -172,7 +172,7 @@ export function useChatEngine({
       setFontesFixadas([]);
       const response = await sendChatStream({
         mensagem:       msg,
-        canal_nome:     agentStatus.canal_indexado || canalConfigurado,
+        canal_nome:     canalConfigurado || agentStatus.canal_indexado,
         canais_extras:  canaisExtras,
         busca_ampla:    buscaAmpla,
         fontes_fixadas: idsFixados,
@@ -254,7 +254,7 @@ export function useChatEngine({
     if (!msg) return;
 
     // Detecta intenção de export antes de ir ao LLM
-    const canal = agentStatus.canal_indexado || canalConfigurado;
+    const canal = canalConfigurado || agentStatus.canal_indexado;
     const intencao = detectarIntencaoExport(msg);
     if (intencao && canal) {
       handleExportDoChat(intencao, canal, msg);
