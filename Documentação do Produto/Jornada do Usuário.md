@@ -1,6 +1,6 @@
 # Jornada do Usuário — Tusab
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
-Atualizado: Junho 2026 · v0.5.0
+Atualizado: Junho 2026 · v0.5.2
 
 ---
 
@@ -153,7 +153,7 @@ Após a configuração inicial, o fluxo é simples para qualquer perfil:
 
 ---
 
-## Mapa de funcionalidades por perfil (v0.5.0)
+## Mapa de funcionalidades por perfil (v0.5.2)
 
 > Fonte canônica: `web_interface/src/hooks/usePerfil.js:PERFIS_CONFIG`
 
@@ -184,3 +184,28 @@ Após a configuração inicial, o fluxo é simples para qualquer perfil:
 **Nota sobre Visão Geral:** exibida para Pesquisador e Especialista — painel de gestão de corpus (projetos, cobertura, indexação, interações). Estudante não vê porque não produz base; Professor tem Relatório que cobre o essencial.
 
 **Nota sobre Ollama:** o chat exibe aviso âmbar quando Ollama não está rodando e nenhum provedor externo está configurado — com link direto para `ollama.com/download` e instrução para configurar na aba Agente. Válido para todos os perfis.
+
+---
+
+## Painel "Base de Conhecimento" no chat (v0.5.2)
+
+O painel é acessado pelo ícone de banco de dados no cabeçalho do chat. Permite selecionar quais bases participam de cada conversa e indexar bases que ainda não têm índice.
+
+### Comportamento de seleção
+- **Card click** ou **checkbox** — adiciona/remove a base das "extras" (bases consultadas além da principal)
+- A base principal (configurada na sessão) fica sempre marcada e não pode ser desmarcada pelo painel
+- A seleção só é confirmada ao clicar **"Confirmar"** no rodapé — o botão aparece sempre que há bases listadas
+
+### Botão "Reindexar" (topo do painel)
+Indexa **todas as bases selecionadas** sequencialmente. O backend processa uma por vez — o frontend aguarda cada conclusão antes de disparar a próxima. Bases sem conteúdo (sem extração e sem documentos) geram erro individual mas não travam a fila.
+
+### Toast de resultado
+- 1 base indexada → "Base indexada — N chunks prontos!"
+- Múltiplas, todas ok → "X bases indexadas com sucesso!"
+- Parcial com erro → "X de Y bases indexadas (outras sem conteúdo)"
+
+### "Indexar agora" nas mensagens
+Quando o chat responde sem contexto BM25 (`sem_contexto: true`), aparece o botão **"Indexar agora"** na mensagem. Ele abre o painel Base de Conhecimento diretamente no chat — não navega para o Repositório.
+
+### Indexação pelo Repositório
+O botão **"Indexar base"** no header do Repositório abre um modal com checkboxes por projeto. Ao confirmar, o modal permanece aberto mostrando o progresso em tempo real (logs do backend) até todas as bases serem processadas. O mesmo `handleIndexarDoChat` do chat é usado — um único fluxo de backend para ambas as entradas.
