@@ -1540,7 +1540,7 @@ Sprint de polimento pós-release: correção de branding, UX do modal de nomeaç
 - `electron/package.json` — campo `author.email`
 - `web_interface/src/components/shared/ProSnackbar.jsx` — link mailto CTA do Pro
 - `Documentação do Produto/Política de Privacidade.md` — todos os contatos
-- Cabeçalhos `@author` de todos os 29 arquivos fonte do frontend (era `augusto.brasil@saude.gov.br`)
+- Cabeçalhos `@author` de todos os 29 arquivos fonte do frontend
 
 **Link de download** — `README.md` atualizado para usar URL direta do asset:
 ```
