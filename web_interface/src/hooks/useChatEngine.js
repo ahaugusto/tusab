@@ -2,7 +2,7 @@
  * @file useChatEngine.js
  * @description Custom hook that encapsulates all chat/RAG state and handlers
  * @module hooks/useChatEngine
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import { useState, useEffect, useRef, useCallback } from 'react';

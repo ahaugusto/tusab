@@ -2,7 +2,7 @@
  * @file App.jsx
  * @description Root application shell — orchestrates state, routing and layout
  * @module App
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useEffect, useRef } from 'react';

@@ -2,7 +2,7 @@
  * @file DriveWarningModal.jsx
  * @description One-time security warning modal shown before first Google Drive authentication
  * @module components/shared/DriveWarningModal
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';

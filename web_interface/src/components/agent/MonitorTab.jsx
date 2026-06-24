@@ -2,7 +2,7 @@
  * @file MonitorTab.jsx
  * @description Painel de observabilidade — RAM, CPU e histórico do processo Tusab
  * @module components/agent/MonitorTab
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useEffect, useRef } from 'react';

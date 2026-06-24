@@ -2,7 +2,7 @@
  * @file api.js
  * @description Centralized API service layer for Tusab backend communication
  * @module services/api
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import axios from 'axios';

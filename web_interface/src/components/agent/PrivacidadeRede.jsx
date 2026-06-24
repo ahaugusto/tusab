@@ -4,7 +4,7 @@
  *   Exibe transparência sobre quando/por que o app usa internet,
  *   e oferece toggle para desabilitar o electron-updater.
  * @module components/agent/PrivacidadeRede
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useEffect } from 'react';

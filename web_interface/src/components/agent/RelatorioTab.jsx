@@ -2,7 +2,7 @@
  * @file RelatorioTab.jsx
  * @description Extraction report tab: channel selector, stats, dynamic filters and video table
  * @module components/agent/RelatorioTab
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
