@@ -1,0 +1,13 @@
+{
+  "total_mapeado": 2178,
+  "canal_nome_canal": "investidorsardinha",
+  "canal_urls": [
+    "https://www.youtube.com/@investidorsardinha"
+  ],
+  "canal_url": "https://www.youtube.com/@investidorsardinha",
+  "auto_update": {
+    "enabled": true,
+    "frequencia": "diario",
+    "fontes": []
+  }
+}
