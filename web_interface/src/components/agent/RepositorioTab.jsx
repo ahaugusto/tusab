@@ -161,12 +161,6 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
             <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
               {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
             </span>
-            {p.tipo === 'youtube' && (
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0
-                ${darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-500'}`}>
-                YouTube
-              </span>
-            )}
           </button>
         ))}
       </div>
