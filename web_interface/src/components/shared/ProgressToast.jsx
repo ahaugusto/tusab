@@ -3,7 +3,7 @@
  * @description Contextual progress toast — shown after key actions to guide
  *   the user to the next step in the onboarding flow.
  * @module components/shared/ProgressToast
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useEffect } from 'react';

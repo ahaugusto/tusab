@@ -2,7 +2,7 @@
  * @file OllamaSetup.jsx
  * @description Ollama local model status card with download, refresh and advanced model selector
  * @module components/agent/OllamaSetup
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';

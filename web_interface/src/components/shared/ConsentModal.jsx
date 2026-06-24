@@ -4,7 +4,7 @@
  *   Covers all three data flows: analytics (opt-in), external APIs, Drive OAuth.
  *   Serves as the product's lightweight privacy notice until a formal policy is published.
  * @module components/shared/ConsentModal
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useEffect, useRef } from 'react';

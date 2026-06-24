@@ -3,7 +3,7 @@
  * @description Modal para alterar o perfil do usuário (Estudante / Professor / Pesquisador / Profissional).
  *   Inclui alerta especial ao sair do perfil Estudante.
  * @module components/shared/AlterarPerfilModal
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState } from 'react';

@@ -2,7 +2,7 @@
  * @file PostExtractionModal.jsx
  * @description Success modal shown after extraction completes; prompts Drive or Agent next steps
  * @module components/extraction/PostExtractionModal
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';

@@ -6,7 +6,7 @@
  *   - Máximo de 100 conversas (FIFO sobre as mais antigas não-favoritadas)
  *   - Estrutura compatível com MCP resource future
  * @module hooks/useChatHistory
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import { useState, useCallback, useRef } from 'react';

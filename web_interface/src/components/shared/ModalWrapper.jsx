@@ -4,7 +4,7 @@
  *   Drop-in replacement for the `fixed inset-0 … bg-black/75` outer div used
  *   across all modal components.
  * @module components/shared/ModalWrapper
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useEffect, useRef } from 'react';

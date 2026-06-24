@@ -2,7 +2,7 @@
  * @file RepositorioTab.jsx
  * @description Knowledge repository tab: lists YouTube files, documents and texts; supports add/delete
  * @module components/agent/RepositorioTab
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';

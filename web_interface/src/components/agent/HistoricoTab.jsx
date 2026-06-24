@@ -2,7 +2,7 @@
  * @file HistoricoTab.jsx
  * @description Aba de histórico de conversas — lista, busca, favoritos, retomada e exclusão
  * @module components/agent/HistoricoTab
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useMemo } from 'react';

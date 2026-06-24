@@ -4,7 +4,7 @@
  *   All tracking is gated behind explicit user consent stored in localStorage.
  *   If no consent or no API key, every call is a no-op.
  * @module services/analytics
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 
