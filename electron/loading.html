@@ -5,8 +5,9 @@
   <title>Tusab</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      background: #0f172a;
+      background: #080C18;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -15,54 +16,99 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: #e2e8f0;
       user-select: none;
+      overflow: hidden;
     }
-    .logo {
-      font-size: 2.8rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #a78bfa, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.4rem;
+
+    /* Grid de circuito estático no fundo */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
     }
-    .sub {
-      font-size: 0.85rem;
-      color: #64748b;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      margin-bottom: 3rem;
-    }
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid #1e293b;
-      border-top-color: #a78bfa;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    .status-box {
-      margin-top: 2rem;
+
+    .center {
+      position: relative;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
-      min-height: 3.5rem;
+      gap: 0;
     }
+
+    /* Logo com glow pulsante */
+    .logo-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-glow {
+      position: absolute;
+      inset: -24px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%);
+      opacity: 0;
+      animation: pulse-glow 3s ease-in-out 1.2s infinite;
+    }
+
+    .logo {
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+
+    .sub {
+      font-size: 0.72rem;
+      color: #475569;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 3.5rem;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2.5px solid rgba(139,92,246,0.15);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Status */
     .status {
-      font-size: 0.82rem;
-      color: #94a3b8;
-      transition: opacity 0.3s;
+      font-size: 0.78rem;
+      color: #64748b;
+      transition: color 0.3s, opacity 0.3s;
+      text-align: center;
+      min-height: 1.2em;
     }
     .status.highlight {
       color: #a78bfa;
       font-weight: 600;
     }
+
+    /* Barra de progresso */
     .progress-wrap {
-      width: 220px;
-      height: 3px;
-      background: #1e293b;
+      width: 200px;
+      height: 2px;
+      background: rgba(139,92,246,0.12);
       border-radius: 99px;
       overflow: hidden;
+      margin-top: 1rem;
       display: none;
     }
     .progress-wrap.visible { display: block; }
@@ -73,27 +119,43 @@
       width: 0%;
       transition: width 0.4s ease;
     }
+
+    /* Aviso rodapé */
     .notice {
       position: fixed;
       bottom: 2rem;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 0.7rem;
-      color: #475569;
+      font-size: 0.65rem;
+      color: #334155;
       text-align: center;
-      max-width: 380px;
-      line-height: 1.6;
+      max-width: 360px;
+      line-height: 1.7;
+      transition: color 0.4s;
     }
-    .notice.visible { color: #94a3b8; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .notice.visible { color: #475569; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse-glow {
+      0%   { opacity: 0;    transform: scale(0.95); }
+      15%  { opacity: 1;    transform: scale(1.025); }
+      40%  { opacity: 0.85; transform: scale(1.018); }
+      65%  { opacity: 0.5;  transform: scale(1.01); }
+      100% { opacity: 0;    transform: scale(0.95); }
+    }
   </style>
 </head>
 <body>
-  <div class="logo">Tusab</div>
-  <div class="sub">Indexe. Aprenda. Consulte.</div>
-  <div class="spinner"></div>
+  <div class="center">
+    <div class="logo-wrap">
+      <div class="logo-glow"></div>
+      <div class="logo">Tusab</div>
+    </div>
+    <div class="sub">Indexe. Aprenda. Consulte.</div>
 
-  <div class="status-box">
+    <div class="spinner"></div>
     <div class="status" id="status">Iniciando backend...</div>
     <div class="progress-wrap" id="progress-wrap">
       <div class="progress-bar" id="progress-bar"></div>
@@ -101,8 +163,9 @@
   </div>
 
   <div class="notice" id="notice">
-    Na primeira execução, componentes adicionais podem ser baixados automaticamente
-    para habilitar o Agente IA local. Isso acontece apenas uma vez.
+    Na primeira execucao, componentes adicionais podem ser baixados
+    automaticamente para habilitar o Agente IA local.
+    Isso acontece apenas uma vez.
   </div>
 
   <script>
