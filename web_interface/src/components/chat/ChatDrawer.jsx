@@ -184,6 +184,7 @@ function ChatDrawer({
   onOpenPersona,
   onPersonaChange,
   agentProvider,
+  ollamaStatus,
   onAbrirIndexacaoRepositorio,
   chatHistory,
   onRetomar,
@@ -326,6 +327,8 @@ function ChatDrawer({
   const temBase = agentStatus.indexed || canaisIndexados.length > 0;
   const canalAtivo = canalConfigurado || agentStatus.canal_indexado;
   const chatHabilitado = temBase && !!canalAtivo;
+  // Ollama selecionado mas não detectado — sem provider externo configurado
+  const ollamaNaoDisponivel = agentProvider === 'ollama' && !ollamaStatus?.running;
 
   // Handler de @mention: detecta @ no input e busca itens mencionáveis
   const handleInputChange = async (e) => {
@@ -479,7 +482,35 @@ function ChatDrawer({
       role="log" aria-label={t('agent.chat_title')} aria-live="polite">
               {chatMessages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 px-4">
-                  {!temBase ? (
+                  {ollamaNaoDisponivel ? (
+                    <>
+                      <div className={`p-3 rounded-2xl ${darkMode ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
+                          className="text-amber-400" aria-hidden="true">
+                          <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                      </div>
+                      <p className={`text-xs font-bold text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                        {t('chat.ollama_required_title')}
+                      </p>
+                      <p className={`text-[11px] text-center max-w-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {t('chat.ollama_required_body')}
+                      </p>
+                      <a
+                        href="https://ollama.com/download"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
+                        {t('chat.ollama_download_btn')}
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+                        </svg>
+                      </a>
+                      <p className={`text-[10px] text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                        {t('chat.ollama_or_provider')}
+                      </p>
+                    </>
+                  ) : !temBase ? (
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
