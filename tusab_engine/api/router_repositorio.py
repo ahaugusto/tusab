@@ -969,10 +969,15 @@ def cerebro_listar_projetos():
         n_docs = len([f for f in doc_files if not os.path.basename(f).startswith('_')])
         n_txts = len([f for f in txt_files if not os.path.basename(f).startswith('_')])
         n_youtube = len(yt_files)
+        # Canais extraídos: subpastas de youtube/ (cada uma é um slug de canal)
+        canais = []
+        if os.path.isdir(yt_dir):
+            canais = [e.name for e in os.scandir(yt_dir) if e.is_dir()]
         projetos.append({
             "nome": entry.name,
             "tipo": tipo,
             "n_arquivos": n_docs + n_txts + n_youtube,
+            "canais": canais,
         })
     return {"projetos": projetos}
 

@@ -140,6 +140,15 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   const podeAvancarUrl = canalUrl.trim().length > 0;
   const podeAvancarProjeto = projetoNome.trim().length > 0;
 
+  // Detecta se o canal já existe em algum projeto (para exibir alerta)
+  const canalHandle = (canalNome || extrairHandle(canalUrl)).toLowerCase().replace(/^@/, '');
+  const projetoComCanalExistente = projetos.find(p =>
+    p.canais && p.canais.some(c => c.toLowerCase().replace(/^@/, '') === canalHandle)
+  );
+
+  // Chips vs select: mais de 4 projetos vira select
+  const usarSelect = projetos.length > 4;
+
   return (
     <ModalWrapper onClose={onClose} label={stepLabel}>
       <motion.div
@@ -231,6 +240,17 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                   )}
                 </div>
 
+                {/* Alerta: canal já extraído anteriormente */}
+                {projetoComCanalExistente && (
+                  <div className={`rounded-xl p-3 border text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                    <p className="font-bold mb-0.5">⚠️ Canal já extraído</p>
+                    <p>
+                      <strong>@{canalHandle}</strong> já está no projeto <strong>{projetoComCanalExistente.nome}</strong>.
+                      Você pode adicionar ao mesmo projeto (vídeos novos serão extraídos) ou criar um projeto com outro nome.
+                    </p>
+                  </div>
+                )}
+
                 {/* Hint sobre estrutura de pastas */}
                 <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                   <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Estrutura de pastas</p>
@@ -238,25 +258,44 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                   <p className="opacity-70">O projeto agrupa canais e documentos. Um projeto pode conter vários canais.</p>
                 </div>
 
-                {/* Projetos existentes como sugestão */}
+                {/* Projetos existentes: chips (≤4) ou select (>4) */}
                 {projetos.length > 0 && (
                   <div>
                     <p className={`text-[10px] font-bold mb-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                       Ou adicionar a um projeto existente:
                     </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {projetos.map(p => (
-                        <button
-                          key={p.nome}
-                          onClick={() => { setProjetoNome(p.nome); setNomeEditadoManual(true); }}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${BTN_FOCUS}
-                            ${projetoNome === p.nome
-                              ? 'bg-primary/15 border-primary/30 text-primary'
-                              : darkMode ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'}`}>
-                          {p.nome}
-                        </button>
-                      ))}
-                    </div>
+                    {usarSelect ? (
+                      <select
+                        value={projetos.some(p => p.nome === projetoNome) ? projetoNome : ''}
+                        onChange={e => { if (e.target.value) { setProjetoNome(e.target.value); setNomeEditadoManual(true); } }}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
+                          ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                        <option value="">— selecione um projeto —</option>
+                        {projetos.map(p => (
+                          <option key={p.nome} value={p.nome}>{p.nome}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {projetos.map(p => {
+                          const ativo = projetoNome === p.nome;
+                          return (
+                            <button
+                              key={p.nome}
+                              onClick={() => { setProjetoNome(p.nome); setNomeEditadoManual(true); }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${BTN_FOCUS}
+                                ${ativo
+                                  ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.03]'
+                                  : darkMode ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30 hover:bg-white/8' : 'bg-white border-slate-200 text-slate-600 hover:border-primary/40 hover:bg-primary/5'}`}>
+                              {ativo && (
+                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              )}
+                              {p.nome}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
