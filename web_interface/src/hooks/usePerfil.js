@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react';
 // ---------------------------------------------------------------------------
 export const PERFIS_CONFIG = {
   estudante: {
-    abas: ['repositorio', 'historico', 'admin'],
+    abas: ['repositorio', 'historico', 'agente', 'admin'],
     persona_padrao: 'didatico',
     busca_ampla: false,
     config_api: false,
@@ -22,7 +22,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: false,
   },
   professor: {
-    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'admin'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'agente', 'admin'],
     persona_padrao: 'didatico',
     busca_ampla: false,
     config_api: false,
