@@ -470,7 +470,9 @@ Use este checklist antes de qualquer PR que toque um módulo crítico:
 | Formato do stream de chat | `tusab_engine/api/router_agent.py:_gen()` |
 | Shape de agentStatus | `web_interface/src/hooks/useAgentConfig.js:34-43` |
 | Detecção de fim de indexação (`indexingDoneCount`) | `web_interface/src/hooks/useAgentConfig.js:refetchAgentStatus()` → prop `indexingDoneCount` no ChatDrawer |
-| Shape de repositorio | `web_interface/src/App.jsx:123` |
+| Shape de repositorio | `web_interface/src/App.jsx:121` (estado inicial inclui `canais: []`) |
+| Fetch de repositorio ao abrir aba | `web_interface/src/App.jsx` — `useEffect([activeTab])` dispara `fetchRepositorio` ao entrar em `'repositorio'` |
+| Atualização de `canalConfigurado` ao trocar da fila | `web_interface/src/App.jsx` — polling `/status` atualiza `canalConfigurado` sempre que `canal_nome` muda enquanto `is_running` |
 | Chaves de localStorage | `web_interface/src/hooks/usePerfil.js`, `useOnboarding.js`, `App.jsx` |
 | Slugs de perfil | `web_interface/src/hooks/usePerfil.js:PERFIS_META` |
 | Formato do stream no frontend | `web_interface/src/hooks/useChatEngine.js:parseMessageStream()` |
@@ -491,3 +493,5 @@ Estes cenários não produzem erro de compilação nem log de erro — falham si
 6. **Modelo LLM deprecado**: chat retorna erro genérico de API, sem diagnóstico claro
 7. **Schema de chunk mudado sem re-indexar**: BM25 usa estrutura antiga do cache, chat degrada gradualmente
 8. **Pro hint `state.pro_hint` não resetado**: modal ProHint aparece em toda resposta de `/agent/status`
+9. ~~**`repositorio` sem `canais: []` no estado inicial**~~: RepositorioTab renderizava vazio até o primeiro fetch completar. **Corrigido** em `App.jsx:121` — estado inicial agora inclui `canais: []`; fetch também disparado ao entrar na aba.
+10. ~~**`canalConfigurado` não atualizado ao trocar canal da fila**~~: card "Configurado" mostrava o canal anterior mesmo após troca. **Corrigido** em `App.jsx` — polling atualiza `canalConfigurado` sempre que `stats.canal_nome !== canalConfigurado` enquanto `is_running`.
