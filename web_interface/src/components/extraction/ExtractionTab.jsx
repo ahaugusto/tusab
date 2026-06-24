@@ -55,6 +55,8 @@ export default function ExtractionTab({
   onRemoveCanal,
   // regras
   regras,
+  // abre modal de gerência de fila
+  onOpenQueueModal,
 }) {
   const { t } = useTranslation();
 
@@ -214,10 +216,11 @@ export default function ExtractionTab({
           </div>
           <div className={`px-4 pb-4 pt-3 border-t flex items-center gap-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
             {regras.fila && extractionQueue.length > 0 && (
-              <span className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border ${darkMode ? 'border-white/15 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+              <button onClick={onOpenQueueModal}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${BTN_FOCUS} ${darkMode ? 'border-white/15 text-slate-400 hover:border-white/30 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 Fila ({extractionQueue.length})
-              </span>
+              </button>
             )}
             <button onClick={handleStart} disabled={!canalConfigurado && !isRunning}
               className={`ml-auto flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
@@ -243,6 +246,10 @@ export default function ExtractionTab({
                 <span className={`text-[11px] font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                   Na fila · {extractionQueue.length} {extractionQueue.length === 1 ? 'canal' : 'canais'}
                 </span>
+                <button onClick={onOpenQueueModal}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-lg transition-colors ${BTN_FOCUS} ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'}`}>
+                  Gerenciar
+                </button>
               </div>
               <div className="divide-y divide-white/5">
                 {extractionQueue.slice(0, 3).map((item, i) => {
