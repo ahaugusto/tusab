@@ -304,7 +304,8 @@ data/
 | Renomear chave de localStorage | Hook correspondente | **MÉDIO** | Configuração do usuário reseta para default na próxima sessão |
 | Mudar slug de perfil em `PERFIS_META` | localStorage + regras de exibição de abas | **CRÍTICO** | Usuários com perfil salvo ficam sem perfil → redirecionados para onboarding |
 | Mudar `repositorio.canais[n]` shape | `RepositorioTab`, folder picker, `ExtractionTab` | **ALTO** | Projetos somem da UI; upload modal não lista projetos |
-| Mudar `agentStatus.indexing` | Modal de indexação, `refetchAgentStatus` | **ALTO** | Modal não detecta fim de indexação → spinner eterno |
+| Mudar `agentStatus.indexing` | `useAgentConfig.refetchAgentStatus`, `indexingDoneCount`, snackbar do ChatDrawer | **ALTO** | Transição true→false não detectada → contador não incrementa → snackbar nunca aparece |
+| Remover prop `indexingDoneCount` do ChatDrawer | Snackbar de sucesso pós-indexação | **MÉDIO** | Snackbar some silenciosamente; indexação funciona normalmente |
 | Mudar formato do stream `/agent/chat/stream` | `useChatEngine.js:parseMessageStream()` | **CRÍTICO** | Chat fica "enviando..." eternamente ou resposta não renderiza |
 | Mudar `state.extraction_queue` sem `queue_lock` | Motor de extração (thread) | **MÉDIO** | Race condition em CPython (GIL mitiga, mas não garante) |
 | Modelo LLM hardcoded deprecado | `chat.py` (OpenAI: gpt-4o-mini, Anthropic: claude-sonnet-4-6) | **MÉDIO** | API retorna 404/400 → chat com erro genérico |
@@ -386,11 +387,21 @@ RepositorioTab "Indexar base"
   GET /agent/status → get_agent_status()  ← CONTRATO: shape agentStatus
        │
        ▼
-  useAgentConfig.setAgentStatus()
+  useAgentConfig.refetchAgentStatus()
+       │ detecta transição indexing: true→false
+       │ setIndexingDoneCount(c => c + 1)   ← CONTRATO: contador incremental
+       │ setAgentStatus(next)
        │
-       ├─ refetchAgentStatus() (imediato na transição indexing true→false)
-       └─ RepositorioTab, ChatDrawer atualizam estado
+       ├─ RepositorioTab atualiza lista de bases
+       └─ ChatDrawer recebe indexingDoneCount via prop
+              │ useEffect([indexingDoneCount]) → exibe snackbar 7s
+              └─ CONTRATO: prop indexingDoneCount obrigatória no App.jsx
 ```
+
+**Nota importante (jun/2026):** A detecção de fim de indexação foi centralizada em
+`useAgentConfig.refetchAgentStatus()`, não mais no ChatDrawer. Isso elimina a race
+condition onde indexações curtas (< 3s) terminavam entre dois ciclos de polling e o
+ChatDrawer nunca via a transição — o snackbar não aparecia na primeira indexação.
 
 ---
 
@@ -458,6 +469,7 @@ Use este checklist antes de qualquer PR que toque um módulo crítico:
 | Enum de personas válidas | `tusab_engine/agent/chat.py:PERSONAS` + `router_agent.py:_PERSONAS_VALIDAS` |
 | Formato do stream de chat | `tusab_engine/api/router_agent.py:_gen()` |
 | Shape de agentStatus | `web_interface/src/hooks/useAgentConfig.js:34-43` |
+| Detecção de fim de indexação (`indexingDoneCount`) | `web_interface/src/hooks/useAgentConfig.js:refetchAgentStatus()` → prop `indexingDoneCount` no ChatDrawer |
 | Shape de repositorio | `web_interface/src/App.jsx:123` |
 | Chaves de localStorage | `web_interface/src/hooks/usePerfil.js`, `useOnboarding.js`, `App.jsx` |
 | Slugs de perfil | `web_interface/src/hooks/usePerfil.js:PERFIS_META` |
