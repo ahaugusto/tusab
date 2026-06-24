@@ -33,20 +33,24 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   // Canal já configurado e não é modoFila — step de URL é pulado
   const canalJaConfigurado = !!canalNome && !modoFila;
 
-  // Steps: 1=Projeto, 2=URL (se necessário), 3=Fontes
-  const totalSteps = canalJaConfigurado ? 2 : 3;
+  // Sequência de steps por modo:
+  //   Normal sem canal:   URL(2) → Projeto(1) → Fontes(3)  — não, ordem original: Projeto(1) → URL(2) → Fontes(3)
+  //   Normal com canal:   Projeto(1) → Fontes(3)
+  //   modoFila:           URL(2) → Projeto(1) → Fontes(3)
+  const totalSteps = 3;
 
-  // modoFila começa no step 2 (URL) — projeto é preenchido depois com handle da URL
-  const [step, setStep] = React.useState(modoFila ? 2 : 1);
+  // Step interno: 'url' | 'projeto' | 'fontes'
+  const stepInicial = modoFila ? 'url' : canalJaConfigurado ? 'projeto' : 'projeto';
+  const [step, setStep] = React.useState(stepInicial);
 
   // Step 1: project name — pré-preenchido com handle do canal
   const [projetoNome,       setProjetoNome]       = React.useState(canalNome || '');
   const [nomeEditadoManual, setNomeEditadoManual] = React.useState(!!canalNome);
 
-  // Step 2: channel URL
+  // Step URL: channel URL
   const [canalUrl, setCanalUrl] = React.useState('');
 
-  // Step 3: content types
+  // Step fontes: content types
   const [selected, setSelected] = React.useState(ALL_TYPES.map(t => t.id));
   const allSelected = selected.length === ALL_TYPES.length;
 
@@ -72,21 +76,21 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   };
 
   const avancar = () => {
-    if (step === 1) {
-      setStep(canalJaConfigurado ? 3 : 2);
-    } else if (step === 2) {
-      // Pré-preenche nome do projeto com handle da URL se usuário não editou
+    if (step === 'url') {
+      // Pré-preenche projeto com handle da URL se ainda não foi editado manualmente
       if (!nomeEditadoManual && canalUrl.trim()) {
         const handle = extrairHandle(canalUrl);
         if (handle) setProjetoNome(handle);
       }
-      setStep(3);
+      setStep('projeto');
+    } else if (step === 'projeto') {
+      setStep(canalJaConfigurado && !modoFila ? 'fontes' : 'fontes');
     }
   };
 
   const voltar = () => {
-    if (step === 3) setStep(canalJaConfigurado ? 1 : 2);
-    else if (step === 2) setStep(1);
+    if (step === 'fontes') setStep(canalJaConfigurado ? 'projeto' : 'projeto');
+    else if (step === 'projeto') { if (modoFila || !canalJaConfigurado) setStep('url'); }
   };
 
   const handleConfirm = () => {
@@ -99,23 +103,29 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   };
 
   // Step visual para a barra de progresso
-  const stepVisual = step === 1 ? 1 : step === 2 ? 2 : totalSteps;
+  const stepVisualMap = modoFila
+    ? { url: 1, projeto: 2, fontes: 3 }
+    : canalJaConfigurado
+      ? { projeto: 1, fontes: 2 }
+      : { projeto: 1, url: 2, fontes: 3 };
+  const stepVisual = stepVisualMap[step] || 1;
+  const totalStepsVisual = canalJaConfigurado && !modoFila ? 2 : 3;
 
-  const stepLabel = step === 1
-    ? 'Nome do projeto'
-    : step === 2
+  const stepLabel = step === 'url'
     ? 'Canal do YouTube'
+    : step === 'projeto'
+    ? 'Nome do projeto'
     : t('ops.types_modal_title');
 
-  const stepSub = step === 1
+  const stepSub = step === 'url'
+    ? 'Informe a URL do canal que deseja adicionar à fila.'
+    : step === 'projeto'
     ? 'Dê um nome ao projeto. Pode ser o canal ou algo mais amplo.'
-    : step === 2
-    ? 'Informe a URL do canal que deseja extrair.'
     : t('ops.types_modal_subtitle');
 
-  const temVoltar = step > 1;
-  const podeAvancar1 = projetoNome.trim().length > 0;
-  const podeAvancar2 = canalUrl.trim().length > 0;
+  const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado) : step === 'fontes';
+  const podeAvancarUrl = canalUrl.trim().length > 0;
+  const podeAvancarProjeto = projetoNome.trim().length > 0;
 
   return (
     <ModalWrapper onClose={onClose} label={stepLabel}>
@@ -148,13 +158,40 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
 
           {/* Step indicator */}
           <div className="flex items-center gap-1.5 mb-5">
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map(n => (
+            {Array.from({ length: totalStepsVisual }, (_, i) => i + 1).map(n => (
               <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= stepVisual ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`} />
             ))}
           </div>
 
-          {/* ── Step 1: Nome do projeto ── */}
-          {step === 1 && (
+          {/* ── Step URL ── */}
+          {step === 'url' && (
+            <>
+              <div className="mb-5">
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  URL do canal
+                </label>
+                <input
+                  type="url"
+                  value={canalUrl}
+                  onChange={e => setCanalUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && podeAvancarUrl) avancar(); }}
+                  placeholder="https://www.youtube.com/@canal"
+                  autoFocus
+                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
+                />
+              </div>
+              <button
+                onClick={avancar}
+                disabled={!podeAvancarUrl}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                Próximo
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </>
+          )}
+
+          {/* ── Step Projeto ── */}
+          {step === 'projeto' && (
             <>
               <div className="mb-4 space-y-3">
                 <div>
@@ -165,6 +202,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                     type="text"
                     value={projetoNome}
                     onChange={e => { setProjetoNome(e.target.value); setNomeEditadoManual(true); }}
+                    onKeyDown={e => { if (e.key === 'Enter' && podeAvancarProjeto) avancar(); }}
                     placeholder="Ex: FGV, Marketing Digital, Estudos 2026…"
                     autoFocus
                     maxLength={120}
@@ -205,46 +243,17 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                 )}
               </div>
 
-              <button
-                onClick={avancar}
-                disabled={!podeAvancar1}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
-                Próximo
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </button>
-            </>
-          )}
-
-          {/* ── Step 2: Canal URL ── */}
-          {step === 2 && (
-            <>
-              <div className="mb-5">
-                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  URL do canal
-                </label>
-                <input
-                  type="url"
-                  value={canalUrl}
-                  onChange={e => setCanalUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/@canal"
-                  autoFocus
-                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
-                />
-                {canalUrlInicial && (
-                  <p className={`text-[10px] mt-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Canal atual: <span className={`font-mono ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{canalUrlInicial}</span>
-                  </p>
-                )}
-              </div>
               <div className="flex gap-2">
-                <button onClick={voltar}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
-                    ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                  Voltar
-                </button>
+                {temVoltar && (
+                  <button onClick={voltar}
+                    className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                      ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    Voltar
+                  </button>
+                )}
                 <button
                   onClick={avancar}
-                  disabled={!podeAvancar2}
+                  disabled={!podeAvancarProjeto}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                   Próximo
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -253,8 +262,8 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
             </>
           )}
 
-          {/* ── Step 3: Content types ── */}
-          {step === 3 && (
+          {/* ── Step Fontes ── */}
+          {step === 'fontes' && (
             <>
               {/* Select-all toggle */}
               <button
