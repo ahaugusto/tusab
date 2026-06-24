@@ -7,6 +7,24 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [0.5.2] — 2026-06-24
+
+### Fixed
+- **Indexação sequencial de múltiplas bases** — o loop anterior disparava todos os POSTs simultaneamente; o backend rejeitava a partir do segundo ("indexação já em andamento"). Agora `handleIndexarDoChat` processa a lista sequencialmente, aguardando o backend terminar cada item via polling (`_aguardarIndexacao`) antes de iniciar o próximo.
+- **Modal de indexação (Repositório) com feedback imediato** — ao clicar "Indexar", o bloco de progresso aparece no topo da modal antes do primeiro poll (via `setIndexando(true)` síncrono); lista de projetos fica opaca/desabilitada durante o processo.
+- **Toast de lote inteligente** — ao indexar múltiplas bases: se todas ok → "X bases indexadas com sucesso"; se erros parciais → "X de Y bases indexadas (outras sem conteúdo)". Toasts intermediários suprimidos durante lote.
+- **Botão "Confirmar" da Base de Conhecimento sempre visível** — rodapé do painel estava condicionado a `canalAtivo`; agora aparece sempre que há bases listadas.
+- **"Indexar agora" em mensagens sem contexto** — antes abria o modal de indexação do Repositório (comportamento errado); agora abre o painel Base de Conhecimento no chat diretamente.
+- **Card click no painel Base de Conhecimento** — clique no card não troca mais a base principal imediatamente; apenas adiciona/remove das extras. Confirmação exclusiva pelo botão "Confirmar".
+- **Tag "YouTube" redundante removida** do modal de indexação — ícone 🎬 já comunica a fonte; a tag textual gerava confusão.
+- **`package-lock.json` sincronizado** — `@emnapi` deps transitivas faltando causavam falha no `npm ci` do CI.
+
+### Changed
+- `handleIndexarDoChat` (App.jsx) agora aceita string ou array de nomes de canal, consolidando a lógica de indexação de ambos os fluxos (ChatDrawer e RepositorioTab).
+- `RepositorioTab.handleIndexarConfirmar` delega toda a fila ao `handleIndexarDoChat` em vez de fazer loop próprio.
+
+---
+
 ## [Unreleased]
 ### Planned
 - Fila de extração com retry e backoff exponencial
