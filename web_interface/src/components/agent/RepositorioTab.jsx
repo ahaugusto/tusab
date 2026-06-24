@@ -873,6 +873,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             </div>
           ) : (
             <>
+              {/* [CONTRATO] Projeto deve existir antes do upload — _canalEfetivo() não pode ser vazio aqui.
+                  O modal só chega neste branch quando projetoSel ou canalAtivo está preenchido.
+                  Ver: router_repositorio.py:/neural/upload e Mapa de Impacto §5 */}
               {/* Chip do projeto de destino */}
               <div className="flex items-center gap-2">
                 <p className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.folder_project')}</p>

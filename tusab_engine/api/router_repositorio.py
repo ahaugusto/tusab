@@ -443,7 +443,14 @@ async def cerebro_upload(
     arquivo: UploadFile = File(...),
     canal: str = Form(default="")
 ):
-    """Recebe arquivo (PDF, DOCX, MD, TXT, imagem ou áudio) e converte para .txt no neural/{canal}/documentos/."""
+    """Recebe arquivo (PDF, DOCX, MD, TXT, imagem ou áudio) e converte para .txt no neural/{canal}/documentos/.
+
+    [CONTRATO CRÍTICO] O projeto (canal_prefixo) DEVE existir antes de chamar este endpoint.
+    Upload sem projeto registrado cria a pasta em disco mas o arquivo NÃO aparece no /repositorio
+    porque o scan em get_repositorio() só lista pastas com CSV de gestão, docs ou textos via manifest.
+    A UI deve bloquear o botão de upload até POST /neural/projeto retornar ok:true.
+    Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §5
+    """
     import uuid as _uuid
 
     neural_dir = motor_tusab.NEURAL_DIR
@@ -580,7 +587,11 @@ async def cerebro_upload(
 
 @router.post("/neural/texto")
 def cerebro_texto(req: TextoRequest):
-    """Salva texto colado pelo usuário no neural/{canal}/textos/."""
+    """Salva texto colado pelo usuário no neural/{canal}/textos/.
+
+    [CONTRATO CRÍTICO] Mesma restrição de /neural/upload — projeto deve existir previamente.
+    Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §5
+    """
     import uuid as _uuid
 
     neural_dir = motor_tusab.NEURAL_DIR
