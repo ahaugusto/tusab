@@ -98,7 +98,7 @@ os importam pelo nome antigo, sem breaking change.
 `salvar_csv_atomico(df, path)`, `salvar_json_atomico(obj, path, indent)`,
 `gestao_canal_dir(prefixo) → str`.
 **Aliases de compatibilidade:** `CEREBRO_DIR = NEURAL_DIR`; `DOCUMENTOS_DIR`, `TEXTOS_DIR` apontam para dentro de `NEURAL_DIR`.
-**Funções de migração (idempotentes):** `migrar_gestao_para_cerebro()`, `migrar_pastas_para_ingles()` — chamadas no startup.
+**Funções de migração (idempotentes):** `migrar_cerebro_para_neural()`, `migrar_gestao_para_cerebro()`, `migrar_pastas_para_ingles()` — chamadas no startup; executam apenas se houver estrutura legada em disco.
 **Padrão atômico:** write-to-`.tmp` + `os.replace()` — mesmo volume, substituição atômica pelo SO.
 **Override:** `TUSAB_DATA_DIR` env var substitui o root de dados (usado em testes e Electron packaged).
 
