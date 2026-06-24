@@ -2,7 +2,7 @@
 ## Roteiro de Vídeo: Funcionalidades Completas
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
-**Versão:** v1.1 · Junho 2026
+**Versão:** v1.2 · Junho 2026 · atualizado para v0.5.0
 
 ---
 
@@ -81,9 +81,9 @@ Canal configurado. João clica em **Iniciar Extração**.
 
 ### Caminho Feliz (enfileirar segundo canal)
 1. Extração do primeiro canal ainda rodando → João cola nova URL de outro canal
-2. Clica **Iniciar Extração** → modal abre em **3 etapas**: URL → Projeto → Fontes
-3. Na etapa de projeto: pode usar projeto existente ou criar novo com nome pré-preenchido do canal
-4. Canal é adicionado à fila → badge de fila aparece com contagem
+2. Clica **Iniciar Extração** → modal abre em **3 etapas** (modoFila): URL → Projeto → Fontes
+3. Na etapa Projeto: nome pré-preenchido com o handle da URL digitada em tempo real; editável; pode escolher projeto existente ou criar novo
+4. Canal é adicionado à fila → badge de fila aparece com contagem; card de extração atualiza automaticamente quando o canal da fila assume
 
 ### Caminho Triste
 - João tenta iniciar sem canal configurado → botão bloqueado, erro inline
@@ -198,7 +198,7 @@ João quer escolher qual IA vai responder no chat.
 3. Clica **Salvar** → configuração persiste entre sessões (chave criptografada no keychain do OS)
 
 ### Caminho Triste
-- Ollama não está rodando → status vermelho, aviso com link para download
+- Ollama não está rodando e nenhum provedor configurado → chat exibe painel âmbar de aviso com link direto para `ollama.com/download` e instrução para configurar na aba Agente. Válido para **todos os perfis**.
 - API key inválida → erro inline ao testar; não deixa salvar
 - João salva sem testar → chat falhará na primeira pergunta com erro descritivo
 
@@ -364,19 +364,19 @@ João quer começar do zero ou apagar um canal específico.
 
 ---
 
-## Mapa de funcionalidades por bloco
+## Mapa de funcionalidades por bloco (v0.5.0)
 
 | Bloco | Funcionalidade | Status |
 |-------|---------------|--------|
-| 1 | Onboarding contextual + consentimento | ✅ |
+| 1 | Onboarding contextual + consentimento + aviso Ollama obrigatório | ✅ |
 | 2 | Configurar canal do YouTube | ✅ |
-| 3 | Extração (canal único e fila) | ✅ |
-| 4 | Fila de extração | ✅ |
-| 5 | Repositório: upload multi-arquivo, texto, WhatsApp/Reuniões | ✅ |
+| 3 | Extração (canal único e fila com modoFila URL→Projeto→Fontes) | ✅ |
+| 4 | Fila de extração + card atualiza automaticamente ao trocar canal | ✅ |
+| 5 | Repositório: criar projeto, upload multi-arquivo, texto, WhatsApp/Reuniões | ✅ |
 | 6 | Indexação com seleção de projetos | ✅ |
-| 7 | Configurar provedor de IA (Ollama / Groq / OpenAI / Gemini / Anthropic) | ✅ |
+| 7 | Configurar provedor de IA (Ollama / Groq / OpenAI / Gemini / Anthropic) — todos os perfis | ✅ |
 | 8 | Persona / tom do agente (5 modos) | ✅ |
-| 9 | Chat RAG com streaming, fontes, busca ampla/restrita, @menção, histórico | ✅ |
+| 9 | Chat RAG com streaming, fontes, busca ampla+CrossEncoder, @menção, histórico | ✅ |
 | 10 | Export Pro (DOCX, XLSX, PDF, Markdown) | ✅ |
 | 11 | Relatório de cobertura do canal | ✅ |
 | 12 | Integração Google Drive | ✅ |
