@@ -1505,6 +1505,7 @@ function App() {
                 handlePersonaChange(novaPersona);
               } : undefined}
               agentProvider={useExternalProvider ? agentProvider : 'ollama'}
+              ollamaStatus={ollamaStatus}
               onAbrirIndexacaoRepositorio={() => {
                 setChatOpen(false);
                 setActiveTab('repositorio');
