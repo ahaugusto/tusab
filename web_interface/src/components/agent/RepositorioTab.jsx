@@ -102,8 +102,27 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
         </div>
       </div>
 
-      {/* Lista */}
-      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar">
+      {/* Progresso — visível imediatamente ao confirmar, antes do 1º poll */}
+      {(indexando || agentStatus?.indexing) && (
+        <div className={`mx-5 mt-4 mb-1 rounded-xl p-3 space-y-2 shrink-0 ${darkMode ? 'bg-black/30 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
+            <p className={`text-[11px] font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>{t('repo.indexing')}</p>
+          </div>
+          {(agentStatus?.index_logs || []).length > 0 && (
+            <div className="max-h-24 overflow-y-auto space-y-0.5">
+              {[...(agentStatus.index_logs)].reverse().slice(0, 8).map((log, i) => (
+                <p key={i} className={`text-[10px] font-mono leading-snug ${i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {log.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Lista — oculta durante indexação */}
+      <div className={`flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar ${(indexando || agentStatus?.indexing) ? 'opacity-30 pointer-events-none' : ''}`}>
         {/* Selecionar todos (da lista filtrada) */}
         {listaFiltrada.length > 0 && (
           <button
@@ -151,25 +170,6 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
           </button>
         ))}
       </div>
-
-      {/* Progresso */}
-      {(indexando || agentStatus?.indexing) && (
-        <div className={`mx-5 mb-3 rounded-xl p-3 space-y-2 shrink-0 ${darkMode ? 'bg-black/30 border border-white/8' : 'bg-slate-50 border border-slate-200'}`}>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
-            <p className={`text-[11px] font-bold ${darkMode ? 'text-accent' : 'text-cyan-700'}`}>{t('repo.indexing')}</p>
-          </div>
-          {(agentStatus?.index_logs || []).length > 0 && (
-            <div className="max-h-20 overflow-y-auto space-y-0.5">
-              {[...(agentStatus.index_logs)].reverse().slice(0, 6).map((log, i) => (
-                <p key={i} className={`text-[10px] font-mono leading-snug ${i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {log.message}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Footer */}
       <div className={`px-5 pb-5 pt-3 flex gap-2 shrink-0 border-t ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
@@ -315,9 +315,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     const selecionados = Object.entries(indexarSel).filter(([, v]) => v).map(([k]) => k);
     if (selecionados.length === 0 || !onIndexar) return;
     setIndexando(true);
-    for (const nome of selecionados) {
-      await onIndexar(nome).catch?.(() => {});
-    }
+    // onIndexar processa sequencialmente aguardando o backend entre cada item
+    await onIndexar(selecionados).catch?.(() => {});
     setIndexando(false);
     setShowIndexar(false);
   };
