@@ -1,59 +1,59 @@
-Tusab — TERMOS DE USO E INFORMAÇÕES DE INSTALAÇÃO
+Tusab -- TERMOS DE USO E INFORMACOES DE INSTALACAO
 ============================================================
 
-DOWNLOADS ADICIONAIS NECESSÁRIOS
+DOWNLOADS ADICIONAIS NECESSARIOS
 ----------------------------------
-O Tusab requer componentes adicionais que serão baixados
-automaticamente na primeira execução:
+O Tusab requer componentes adicionais que serao baixados
+automaticamente na primeira execucao:
 
-  • Ollama (~50 MB)
-    Motor de inteligência artificial local. Permite usar o Agente IA
-    sem custos e sem conexão com servidores externos.
+  * Ollama (~50 MB)
+    Motor de inteligencia artificial local. Permite usar o Agente IA
+    sem custos e sem conexao com servidores externos.
 
-  • Modelo de linguagem llama3.2:1b (~1,3 GB)
+  * Modelo de linguagem llama3.2:1b (~1,3 GB)
     Baixado apenas na primeira vez que o Agente IA for utilizado.
-    O download é exibido com barra de progresso dentro do aplicativo.
+    O download e exibido com barra de progresso dentro do aplicativo.
 
-Uma conexão com a internet é necessária apenas para esses downloads
-iniciais. Após a configuração, o Tusab funciona completamente offline.
+Uma conexao com a internet e necessaria apenas para esses downloads
+iniciais. Apos a configuracao, o Tusab funciona completamente offline.
 
 ------------------------------------------------------------
 
 TERMOS DE USO
 --------------
-Ao instalar o Tusab, você concorda com os seguintes termos:
+Ao instalar o Tusab, voce concorda com os seguintes termos:
 
 1. USO PERMITIDO
    O Tusab destina-se a uso pessoal, educacional e de pesquisa.
-   O usuário é responsável por garantir que seu uso esteja em
-   conformidade com os Termos de Serviço do YouTube e as leis de
-   direitos autorais aplicáveis.
+   O usuario e responsavel por garantir que seu uso esteja em
+   conformidade com os Termos de Servico do YouTube e as leis de
+   direitos autorais aplicaveis.
 
 2. USO PROIBIDO
-   É proibido utilizar o Tusab para redistribuição comercial de
-   conteúdo extraído sem o consentimento do criador original.
+   E proibido utilizar o Tusab para redistribuicao comercial de
+   conteudo extraido sem o consentimento do criador original.
 
-3. INTEGRAÇÃO COM GOOGLE DRIVE
-   O acesso ao Google Drive é limitado a arquivos criados pelo próprio
-   aplicativo (escopo drive.file). Nenhum outro arquivo é acessado.
+3. INTEGRACAO COM GOOGLE DRIVE
+   O acesso ao Google Drive e limitado a arquivos criados pelo proprio
+   aplicativo (escopo drive.file). Nenhum outro arquivo e acessado.
 
 4. CHAVES DE API
-   Chaves de API inseridas pelo usuário são armazenadas localmente e
+   Chaves de API inseridas pelo usuario sao armazenadas localmente e
    nunca transmitidas para servidores da CriAugu.
 
 5. PRIVACIDADE E DADOS LOCAIS
-   O Tusab processa todos os seus dados localmente. Nenhum conteúdo
-   da sua base de conhecimento — transcrições, documentos, textos ou
-   conversas — é enviado a servidores da CriAugu. A telemetria de uso
-   é opcional e requer consentimento explícito na primeira execução.
+   O Tusab processa todos os seus dados localmente. Nenhum conteudo
+   da sua base de conhecimento -- transcricoes, documentos, textos ou
+   conversas -- e enviado a servidores da CriAugu. A telemetria de uso
+   e opcional e requer consentimento explicito na primeira execucao.
 
 6. SEM GARANTIA
-   O Tusab é fornecido "como está", sem garantias de qualquer tipo.
+   O Tusab e fornecido "como esta", sem garantias de qualquer tipo.
    O YouTube pode alterar sua plataforma a qualquer momento.
 
-7. LIMITAÇÃO DE RESPONSABILIDADE
-   A CriAugu não se responsabiliza por danos indiretos decorrentes do
+7. LIMITACAO DE RESPONSABILIDADE
+   A CriAugu nao se responsabiliza por danos indiretos decorrentes do
    uso ou impossibilidade de uso do Tusab.
 
 ------------------------------------------------------------
-© 2026 CriAugu — CNPJ 65.131.075/0001-57  |  tusab@tusab.solutions
+(c) 2026 CriAugu -- CNPJ 65.131.075/0001-57  |  tusab@tusab.solutions
