@@ -887,11 +887,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   ${darkMode ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>
                   🧠 @{_canalEfetivo()}
                 </span>
-                {/* Trocar projeto */}
-                <button onClick={() => setProjetoSel('')}
-                  className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'} transition-colors`}>
-                  {t('repo.change', 'Trocar')}
-                </button>
               </div>
 
               <div className="flex gap-2">
