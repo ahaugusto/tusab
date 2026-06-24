@@ -69,9 +69,8 @@ Esta pasta contém dados sensíveis do Tusab.
 
 O QUE TEM AQUI
 ───────────────
-  cerebro/       → sua base de conhecimento (YouTube, PDFs, documentos)
+  neural/        → sua base de conhecimento (YouTube, PDFs, documentos)
   config/        → configurações do app, incluindo chaves de API
-  gestao/        → metadados de extração
   temp/          → arquivos temporários
 
 ⚠️  ATENÇÃO — NÃO COMPARTILHE ESTA PASTA INTEIRA
@@ -84,14 +83,14 @@ suas chaves de API podem ser expostas.
 
 O QUE É SEGURO COMPARTILHAR
 ─────────────────────────────
-  ✓ A pasta cerebro/ pode ser compartilhada — só tem texto extraído
+  ✓ A pasta neural/ pode ser compartilhada — só tem texto extraído
   ✗ A pasta config/ NÃO deve ser compartilhada
 
 RECOMENDAÇÕES
 ─────────────
   • Se usar backup em nuvem (OneDrive, Google Drive, iCloud),
     exclua a pasta config/ das sincronizações automáticas.
-  • Se for migrar para outro computador, copie apenas a pasta cerebro/.
+  • Se for migrar para outro computador, copie apenas a pasta neural/.
   • Suas chaves de API podem ser reconfiguradas no app a qualquer momento.
 
 Mais informações: consulte a documentação em Documentação do Produto/Segurança.txt
@@ -130,20 +129,20 @@ frontend_dist = os.path.join(BASE_PATH, "web_interface", "dist")
 if os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
-# Migra data/cerebro/ → data/neural/ quando são pastas distintas (pré-renomeação)
+# Migração legada: data/cerebro/ → data/neural/ (pré-renomeação, idempotente)
 try:
     from tusab_engine.storage import migrar_cerebro_para_neural
     migrar_cerebro_para_neural()
 except Exception:
     pass
 
-# Migra cerebro_txt → cerebro/youtube na primeira execução
+# Migração legada: data/cerebro_txt/ → data/neural/{canal}/youtube/ (pré-v1.0, idempotente)
 try:
     motor_tusab.migrar_cerebro_txt()
 except Exception:
     pass
 
-# Migra data/gestao/{prefixo}_* → data/cerebro/{prefixo}/management/
+# Migração legada: data/gestao/{prefixo}_* → data/neural/{prefixo}/management/ (pré-v1.0, idempotente)
 try:
     from tusab_engine.storage import migrar_gestao_para_cerebro
     migrar_gestao_para_cerebro()

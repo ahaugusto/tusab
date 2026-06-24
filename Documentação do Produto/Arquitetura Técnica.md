@@ -122,7 +122,7 @@ data/config/     ← agent_config.json, credentials.json, token.json
 ## Módulos principais
 
 ### `tusab_engine/storage.py`
-Fonte de verdade para todos os caminhos de dados do app. Entrypoints: `obter_caminho_dados()`, `DADOS_DIR`, `NEURAL_DIR`, `CONFIG_PATH`, `salvar_csv_atomico(df, path)`, `salvar_json_atomico(obj, path, indent)`. Funções de migração idempotentes chamadas no startup: `migrar_gestao_para_cerebro()`, `migrar_pastas_para_ingles()`.
+Fonte de verdade para todos os caminhos de dados do app. Entrypoints: `obter_caminho_dados()`, `DADOS_DIR`, `NEURAL_DIR`, `CONFIG_PATH`, `salvar_csv_atomico(df, path)`, `salvar_json_atomico(obj, path, indent)`. Funções de migração idempotentes chamadas no startup: `migrar_cerebro_para_neural()`, `migrar_gestao_para_cerebro()`, `migrar_pastas_para_ingles()` — todas idempotentes, executam apenas se houver estrutura legada em disco.
 
 ### `tusab_engine/state.py`
 Estado compartilhado entre routers e background threads via singleton `AppState`. Locks:

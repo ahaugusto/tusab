@@ -61,7 +61,7 @@ tusab_engine/                   ← pacote novo (sem conflito com tusab.spec)
     router_extraction.py           ← POST /set-channel, /start, /stop, /pause, /resume
     router_drive.py                ← GET /drive/*, POST /drive/*
     router_agent.py                ← GET|POST /agent/* (chat, config, index, test-key)
-    router_repositorio.py          ← GET /repositorio, POST|DELETE /cerebro/*
+    router_repositorio.py          ← GET /repositorio, POST|DELETE /neural/* (rotas internas ainda usam prefixo /cerebro/* por compatibilidade)
     router_static.py               ← serve_static fallback SPA
 
 # Raiz — permanece como hoje, se torna fina:
@@ -79,9 +79,9 @@ Cada passo é uma PR independente. pytest verde antes de fechar.
 ### Passo 1 — `storage.py`: eliminar duplicação de caminhos
 
 **O que muda:** extrair `obter_caminho_dados()`, as constantes de path (`DATA_DIR`,
-`CEREBRO_DIR`, etc.) e os helpers atômicos (`salvar_csv_atomico`, `salvar_json_atomico`)
+`NEURAL_DIR`, etc.) e os helpers atômicos (`salvar_csv_atomico`, `salvar_json_atomico`)
 para `tusab_engine/storage.py`. Atualizar `motor_tusab.py` e `agent_tusab.py`
-para importar de lá.
+para importar de lá. `CEREBRO_DIR` é mantido como alias (`CEREBRO_DIR = NEURAL_DIR`) para backward-compat com código que ainda usa o nome antigo.
 
 **Benefício imediato:** a duplicação de `obter_caminho_dados()` — idêntica nos dois
 arquivos hoje — vira uma fonte da verdade. Próxima mudança de path: 1 lugar.

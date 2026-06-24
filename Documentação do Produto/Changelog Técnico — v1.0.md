@@ -170,8 +170,8 @@ Dois endpoints de export, exclusivos do plano Pro:
 
 **`POST /export/base`**
 Gera um arquivo `.zip` contendo:
-- Toda a pasta `cerebro/` (transcrições YouTube, documentos, textos colados)
-- CSVs e JSONs de gestão (`gestao/`)
+- Toda a pasta `neural/` (transcrições YouTube, documentos, textos colados)
+- CSVs e JSONs de gestão (em `neural/{projeto}/management/`)
 
 Retorna `StreamingResponse` com `Content-Disposition: attachment` para download direto pelo browser.
 Nome do arquivo: `tusab_base_YYYYMMDD_HHMM.zip`.
@@ -401,9 +401,9 @@ Remove `token.json` de `DADOS_DIR/config/` — efetivamente desconecta o Drive s
 
 #### `tusab_engine/api/router_repositorio.py`
 
-**`POST /cerebro/buscar`**
+**`POST /cerebro/buscar`** *(nome de rota mantido para compatibilidade; storage interno: `NEURAL_DIR`)*
 
-Busca full-text recursiva em todos os arquivos `.txt` de `CEREBRO_DIR` (exceto arquivos `_`-prefixados).
+Busca full-text recursiva em todos os arquivos `.txt` de `NEURAL_DIR` (exceto arquivos `_`-prefixados).
 
 Request:
 ```json
@@ -694,7 +694,7 @@ Seguido de versão, data e status de inicialização de cada módulo.
 ### Exports liberados (sem paywall)
 
 Em junho 2026, a decisão de modelo de negócio removeu o paywall. Todos os endpoints de export funcionam para todos os usuários:
-- `POST /export/base` — ZIP de `cerebro/` + `gestao/`
+- `POST /export/base` — ZIP de `neural/` + metadados de gestão
 - `POST /export/historico` — Markdown do histórico de chat
 - `POST /export/resumo-canal` — DOCX com Q&A do canal
 - `POST /export/tabela-videos` — XLSX com tabela de vídeos
@@ -1385,7 +1385,7 @@ Mesma atualização de paths: `cerebro/` → `data/neural/`, `config/` → `data
 
 #### `web_interface/src/locales/pt.json`, `en.json`, `es.json`
 
-Todas as referências a `cerebro/` visíveis ao usuário substituídas por `data/neural/`. Adicionadas chaves:
+Todas as referências a `cerebro/` visíveis ao usuário substituídas por `data/neural/` (estrutura atual). Adicionadas chaves:
 - `chat.snack_hint` — texto do snack flutuante ("Pergunte à sua base" / "Ask your knowledge base" / "Pregunta a tu base")
 - `log.clear` — label do botão de limpar log ("Limpar" / "Clear" / "Limpiar")
 
@@ -1407,3 +1407,111 @@ Todas as referências a `cerebro/` visíveis ao usuário substituídas por `data
 | `role: 'system'` no chat para feedback de upload | Evita poluir o histórico real (user/assistant) com mensagens de operação; renderização separada permite estilo neutro e pode ser filtrada nos exports |
 | Modal de troca de base em vez de troca silenciosa | A troca silenciosa perdia o contexto da conversa sem aviso — comportamento destrutivo inadvertido |
 | Threshold de 200 chars para exports | Exports de 2–3 linhas não têm valor como documento; o threshold garante que o PDF/DOCX gerado seja minimamente substantivo |
+
+---
+
+## Sprint 24/06/2026 — Persistência de base, acessibilidade, atalhos de repositório e conformidade de nomenclatura
+
+**Commits:** `eee45c0` → HEAD  
+**Versão:** v1.0.1  
+**Branch:** main
+
+### Contexto
+
+Sprint de qualidade pré-release definitivo. Quatro frentes:
+1. **Persistência de base selecionada** — `canalConfigurado` perdia-se ao recarregar a página
+2. **Acessibilidade** — auditoria WCAG 2.1 AA completa; snack e tooltip corrigidos
+3. **Repositório** — atalho para pasta local em cada base; upload com botão "Voltar"
+4. **Conformidade de nomenclatura** — remoção completa de referências a `cerebro/` em comentários, avisos e documentação
+
+---
+
+### Backend
+
+#### `api_tusab.py`
+
+- **`LEIA-ME-SEGURANCA.txt`:** texto gerado no primeiro boot atualizado — referências a `cerebro/` substituídas por `neural/`
+- **Comentários de startup:** migrações legadas documentadas explicitamente como "pré-v1.0, idempotentes"
+- **`/_debug/paths`:** endpoint de diagnóstico removido de `router_status.py` (era temporário, nunca deveria ir a produção)
+
+#### `tusab_engine/api/router_repositorio.py`
+
+- **`openFolder` via `/open-folder?name=canal_youtube&prefixo={nome}`:** já existia no `router_status.py`; agora exposto ao frontend via botão no header de cada accordion do Repositório
+
+---
+
+### Frontend
+
+#### `web_interface/src/App.jsx`
+
+**Persistência de base (`canalConfigurado`):**
+
+```js
+// Antes
+const [canalConfigurado, setCanalConfigurado] = useState('');
+
+// Depois — inicializa do localStorage
+const [canalConfigurado, setCanalConfigurado] = useState(
+  () => localStorage.getItem('tusab_canal_configurado') || ''
+);
+
+// Novo useEffect — persiste ao mudar; remove quando vazio
+useEffect(() => {
+  if (canalConfigurado) localStorage.setItem('tusab_canal_configurado', canalConfigurado);
+  else localStorage.removeItem('tusab_canal_configurado');
+}, [canalConfigurado]);
+```
+
+**Tooltip do botão flutuante de chat:**
+- Adicionado `title={t('chat.open_tooltip')}` ao FAB — tooltip nativo do browser, acessível via hover e focus
+- `aria-label` atualizado para usar a mesma chave i18n
+
+**Tooltip da aba Agente na sidebar:**
+- `role="tooltip"` adicionado ao div do tooltip
+- `group-focus:opacity-100` adicionado — tooltip agora visível também via foco de teclado (não só hover)
+
+**Snack de primeiro acesso:**
+- `role="status" aria-live="polite"` adicionados — leitores de tela anunciam quando o snack aparece
+
+#### `web_interface/src/components/agent/RepositorioTab.jsx`
+
+**Botão de pasta local no header de cada accordion:**
+
+```jsx
+<button
+  onClick={e => { e.stopPropagation(); openFolder('canal_youtube', canal.nome).catch(() => {}); }}
+  title={t('repo.open_folder_title', { nome: canal.nome })}
+  ...>
+  <svg /* ícone de pasta */ />
+</button>
+```
+
+Posicionado entre o botão de export e o de lixeira. Abre `data/neural/{nome}/youtube/` no Explorer do Windows. Disponível para todos os canais (incluindo readonly).
+
+**Chave de tradução:** `repo.open_folder_title` adicionada em `pt.json`, `en.json`, `es.json`.
+
+#### `web_interface/src/locales/*.json`
+
+Nova chave `chat.open_tooltip` em PT / EN / ES.
+
+---
+
+### Documentação
+
+**Atualizada nesta sprint:**
+- `Documentação do Produto/Política de Privacidade.md` — v1.2, paths atualizados: `cerebro/` → `neural/`, subpastas em inglês (`documents/`, `texts/`)
+- `Documentação do Produto/Arquitetura Técnica.md` — funções de migração corrigidas
+- `Documentação do Produto/Blueprint de Modularização.md` — referência a `CEREBRO_DIR` clarificada como alias; rota `/cerebro/*` anotada como nome legado de API
+- `Documentação do Produto/Changelog Técnico — v1.0.md` (este arquivo) — paths em exemplos históricos corrigidos
+- `Documentação do Produto/Acessibilidade e WCAG.md` — criado nesta sprint; auditoria WCAG 2.1 AA completa
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| Nomes de rota `/cerebro/*` não renomeados | São API pública — renomear quebraria clientes que chamam diretamente; o storage interno já usa `NEURAL_DIR` |
+| `CEREBRO_DIR = NEURAL_DIR` mantido como alias | Código legado (testes, shims) importa `CEREBRO_DIR` por nome; alias evita breaking change sem custo |
+| Snack com `aria-live` em vez de `aria-atomic` | Conteúdo do snack é uma frase completa — `polite` anuncia quando o leitor de tela estiver ocioso, sem interromper leitura em andamento |
+| `localStorage` para `canalConfigurado` | Canal selecionado no chat é preferência de sessão longa; perder ao recarregar forçava o usuário a re-selecionar após qualquer reload |

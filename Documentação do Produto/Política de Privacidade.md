@@ -1,7 +1,7 @@
 # Política de Privacidade — Tusab
 
-**Versão:** 1.1  
-**Data de vigência:** 18 de junho de 2026  
+**Versão:** 1.2  
+**Data de vigência:** 24 de junho de 2026  
 **Responsável:** CriAugu — CNPJ 65.131.075/0001-57  
 **Site:** https://tusab.solutions  
 **Contato:** criaugu.tec.design@gmail.com
@@ -24,12 +24,12 @@ Os dados abaixo são processados exclusivamente na máquina do usuário e **nunc
 
 | Dado | Finalidade | Local de armazenamento |
 |------|------------|------------------------|
-| Transcrições de vídeos do YouTube | Base de conhecimento pessoal | `<dados>/cerebro/<canal>/youtube/` |
-| Documentos PDF / DOCX / XLSX / CSV / TXT enviados | Enriquecimento da base | `<dados>/cerebro/<canal>/documentos/` |
-| Textos manuais inseridos | Enriquecimento da base | `<dados>/cerebro/<canal>/textos/` |
-| Conversas exportadas do WhatsApp | Enriquecimento da base | `<dados>/cerebro/<canal>/conversas/` |
-| Transcrições de reuniões (Otter, Zoom, Teams etc.) | Enriquecimento da base | `<dados>/cerebro/<canal>/transcricoes/` |
-| Índice BM25 gerado | Busca local | `<dados>/cerebro/<canal>/index/` |
+| Transcrições de vídeos do YouTube | Base de conhecimento pessoal | `<dados>/neural/<projeto>/youtube/` |
+| Documentos PDF / DOCX / XLSX / CSV / TXT enviados | Enriquecimento da base | `<dados>/neural/<projeto>/documents/` |
+| Textos manuais inseridos | Enriquecimento da base | `<dados>/neural/<projeto>/texts/` |
+| Conversas exportadas do WhatsApp | Enriquecimento da base | `<dados>/neural/<projeto>/texts/` |
+| Transcrições de reuniões (Otter, Zoom, Teams etc.) | Enriquecimento da base | `<dados>/neural/<projeto>/texts/` |
+| Índice BM25 gerado | Busca local | `<dados>/indexes/<projeto>_index.json` |
 | Configurações do agente (provedor, modelo, tom) | Preferências do usuário | `<dados>/config/agent_config.json` |
 | Histórico de chat da sessão | Contexto da conversa | Memória RAM — não persiste entre sessões |
 
@@ -132,7 +132,7 @@ Para exercer direitos ou em caso de dúvidas: **criaugu.tec.design@gmail.com**
 
 | Dado | Período de retenção | Controle |
 |------|---------------------|----------|
-| Base de conhecimento (`cerebro/`) | Indefinido | Usuário controla totalmente |
+| Base de conhecimento (`neural/`) | Indefinido | Usuário controla totalmente |
 | Configurações (`config/`) | Indefinido | Usuário pode excluir a qualquer momento |
 | Histórico de chat (RAM) | Duração da sessão | Limpado ao fechar o app |
 | Telemetria anônima (PostHog) | 12 meses | Revogação do consentimento encerra novas coletas |
