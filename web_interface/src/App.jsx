@@ -61,6 +61,7 @@ import QueueManagerModal        from './components/modals/QueueManagerModal';
 import ExtractionTab            from './components/extraction/ExtractionTab';
 import AgentTab                 from './components/tabs/AgentTab';
 import AdminTab                 from './components/tabs/AdminTab';
+import ConfigurarIAModal        from './components/agent/ConfigurarIAModal';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -227,6 +228,9 @@ function App() {
   const [chatJaAberto, setChatJaAberto] = useState(
     () => localStorage.getItem('tusab_chat_ja_aberto') === '1'
   );
+  // Modal mínimo de configuração de IA — para perfis sem aba Agente (estudante, professor)
+  const [showConfigIA, setShowConfigIA] = useState(false);
+
   // Snack lateral "Pergunte à sua base →" — aparece 4 s após indexação ficar pronta
   const [showChatSnack, setShowChatSnack] = useState(false);
   const chatSnackFiredRef = useRef(false); // dispara no máximo uma vez por sessão
@@ -1139,7 +1143,10 @@ function App() {
               darkMode={darkMode} history={history} repositorio={repositorio}
               agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               regras={regras}
-              onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
+              onNavigate={(id) => {
+                if (id === 'agente' && !regras.config_api) { setShowConfigIA(true); return; }
+                setActiveTab(id); setShowHome(false);
+              }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onImportBase={() => { setActiveTab('repositorio'); setShowHome(false); setRepoImportOpen(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
@@ -1490,6 +1497,26 @@ function App() {
               />
             )}
 
+            {/* ── Modal de configuração de IA (perfis sem aba Agente) ── */}
+            {showConfigIA && (
+              <ConfigurarIAModal
+                darkMode={darkMode}
+                ollamaStatus={ollamaStatus}
+                agentProvider={agentProvider}
+                agentApiKey={agentApiKey}
+                useExternalProvider={useExternalProvider}
+                setUseExternalProvider={setUseExternalProvider}
+                setAgentProvider={setAgentProvider}
+                setAgentApiKey={setAgentApiKey}
+                handleTestKey={handleTestKey}
+                testKeyResult={testKeyResult}
+                testingKey={testingKey}
+                savingConfig={savingConfig}
+                handleSaveConfig={saveAgentConfig}
+                onClose={() => setShowConfigIA(false)}
+              />
+            )}
+
             {/* ── Chat Drawer ── */}
             <ChatDrawer
               darkMode={darkMode}
@@ -1551,6 +1578,7 @@ function App() {
               onRetomar={retomar}
               onNovaConversa={novaConversa}
               chatQueue={chatQueue}
+              onConfigIA={!regras.config_api ? () => setShowConfigIA(true) : undefined}
             />
 
             {/* Floating chat button */}
