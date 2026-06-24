@@ -20,6 +20,25 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [0.5.1] — 2026-06-24
+
+### Changed
+- **Perfis unificados** — estudante, professor e pesquisador agora têm acesso a todas as funcionalidades exceto Monitor (exclusivo do Especialista). Restrições anteriores por perfil eram arbitrárias e criavam fricção desnecessária.
+  - Todos os perfis: aba Agente com config de provider/API key, Busca Ampla + CrossEncoder, Google Drive, Relatório, exportar base `.tusab`
+  - Estudante: sem aba Extração (perfil de consumo) e sem Visão Geral (painel de gestão de corpus não relevante)
+  - Professor e acima: acesso à Extração e Visão Geral
+  - Monitor: exclusivo do Especialista
+- **Onboarding s5 reescrito** — texto deixa claro que Ollama é pré-requisito do chat; instrução de instalação e alternativa de provedor externo explicitadas
+- **Aviso de Ollama no chat** — painel âmbar quando `provider=ollama` e Ollama não detectado; link direto para `ollama.com/download`; válido para todos os perfis
+- **Placeholder do modal "Criar Projeto"** — trocado de "Nome do projeto" para "Canal do Youtube" (pt) / "YouTube channel" (en) / "Canal de YouTube" (es)
+- **Botão "Criar projeto" no header** — removido "+" duplicado da string de tradução (já havia ícone SVG no botão)
+
+### Docs
+- `Jornada do Usuário.md` — mapa de perfis reescrito, narrativas atualizadas, tabela de funcionalidades reflete v0.5.1
+- `Jornada do Usuário — Roteiro de Vídeo.md` — bloco 7 atualizado com aviso de Ollama; bloco 3 com modoFila; tabela final atualizada
+
+---
+
 ## [0.5.0] — 2026-06-24
 
 ### Added
