@@ -45,8 +45,9 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
 
   // modoFila: começa vazio — nome vem do handle da URL inserida
   // Normal: pré-preenchido com canalNome do canal já configurado
-  const [projetoNome,       setProjetoNome]       = React.useState(modoFila ? '' : (canalNome || ''));
-  const [nomeEditadoManual, setNomeEditadoManual] = React.useState(!modoFila && !!canalNome);
+  const [projetoNome,               setProjetoNome]               = React.useState(modoFila ? '' : (canalNome || ''));
+  const [nomeEditadoManual,         setNomeEditadoManual]         = React.useState(!modoFila && !!canalNome);
+  const [projetoExistenteSelecionado, setProjetoExistenteSelecionado] = React.useState(false);
 
   // Step URL: channel URL
   const [canalUrl, setCanalUrl] = React.useState('');
@@ -220,23 +221,40 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     Nome do projeto <span className="text-red-500" aria-label="obrigatório">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={projetoNome}
-                    onChange={e => { setProjetoNome(e.target.value); setNomeEditadoManual(true); }}
-                    onKeyDown={e => { if (e.key === 'Enter' && podeAvancarProjeto) avancar(); }}
-                    placeholder="Ex: FGV, Marketing Digital, Estudos 2026…"
-                    autoFocus
-                    maxLength={120}
-                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
-                  />
-                  {modoFila && projetoNome.trim() && !nomeEditadoManual && (
-                    <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Sugerido pela URL — edite à vontade
-                    </p>
-                  )}
-                  {!projetoNome.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1 px-1">Campo obrigatório</p>
+                  {projetoExistenteSelecionado ? (
+                    /* Projeto existente selecionado — mostra card de confirmação */
+                    <div className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary shrink-0"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                        <span className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{projetoNome}</span>
+                      </div>
+                      <button
+                        onClick={() => { setProjetoExistenteSelecionado(false); setProjetoNome(''); setNomeEditadoManual(false); }}
+                        className={`text-[10px] font-semibold shrink-0 transition-colors ${darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-600'} ${BTN_FOCUS}`}>
+                        Trocar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={projetoNome}
+                        onChange={e => { setProjetoNome(e.target.value); setNomeEditadoManual(true); setProjetoExistenteSelecionado(false); }}
+                        onKeyDown={e => { if (e.key === 'Enter' && podeAvancarProjeto) avancar(); }}
+                        placeholder="Ex: FGV, Marketing Digital, Estudos 2026…"
+                        autoFocus
+                        maxLength={120}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
+                      />
+                      {modoFila && projetoNome.trim() && !nomeEditadoManual && (
+                        <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Sugerido pela URL — edite à vontade
+                        </p>
+                      )}
+                      {!projetoNome.trim() && (
+                        <p className="text-[10px] text-red-500 mt-1 px-1">Campo obrigatório</p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -251,12 +269,12 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                   </div>
                 )}
 
-                {/* Hint sobre estrutura de pastas */}
-                <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                {/* Hint sobre estrutura de pastas — oculto quando projeto existente selecionado */}
+                {!projetoExistenteSelecionado && <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                   <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Estrutura de pastas</p>
                   <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || 'Projeto'}</span> → youtube → Canal</p>
                   <p className="opacity-70">O projeto agrupa canais e documentos. Um projeto pode conter vários canais.</p>
-                </div>
+                </div>}
 
                 {/* Projetos existentes: chips (≤4) ou select (>4) */}
                 {projetos.length > 0 && (
@@ -267,7 +285,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                     {usarSelect ? (
                       <select
                         value={projetos.some(p => p.nome === projetoNome) ? projetoNome : ''}
-                        onChange={e => { if (e.target.value) { setProjetoNome(e.target.value); setNomeEditadoManual(true); } }}
+                        onChange={e => { if (e.target.value) { setProjetoNome(e.target.value); setNomeEditadoManual(true); setProjetoExistenteSelecionado(true); } }}
                         className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
                           ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
                         <option value="">— selecione um projeto —</option>
@@ -282,7 +300,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                           return (
                             <button
                               key={p.nome}
-                              onClick={() => { setProjetoNome(p.nome); setNomeEditadoManual(true); }}
+                              onClick={() => { setProjetoNome(p.nome); setNomeEditadoManual(true); setProjetoExistenteSelecionado(true); }}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${BTN_FOCUS}
                                 ${ativo
                                   ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.03]'
