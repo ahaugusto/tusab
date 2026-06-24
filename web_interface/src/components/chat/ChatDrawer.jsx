@@ -206,6 +206,7 @@ function ChatDrawer({
   const [showBaseModal,     setShowBaseModal]     = useState(false);
   const [showBuscaModal,    setShowBuscaModal]    = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
+  const [filaStatusChat,    setFilaStatusChat]    = useState({}); // { nome: 'aguardando'|'indexando'|'ok'|'erro' }
   const [indexSnackbar,     setIndexSnackbar]     = useState(null); // { msg, type }
   // Modal de confirmação ao trocar base com conversa ativa
   const [showTrocarBaseModal, setShowTrocarBaseModal] = useState(false);
@@ -1334,9 +1335,13 @@ function ChatDrawer({
                 <button
                   onClick={async () => {
                     setIndexandoBase('__todos__');
+                    setFilaStatusChat({});
                     const selecionadas = [canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean);
-                    await onIndexar?.(selecionadas);
+                    await onIndexar?.(selecionadas, (nome, status) =>
+                      setFilaStatusChat(prev => ({ ...prev, [nome]: status }))
+                    );
                     setIndexandoBase(null);
+                    setTimeout(() => setFilaStatusChat({}), 2000);
                   }}
                   disabled={!!indexandoBase || agentStatus.indexing}
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors disabled:opacity-50
@@ -1359,30 +1364,55 @@ function ChatDrawer({
                 const isAtivo = base.nome === canalAtualAtivo;
                 const isExtra = (canaisExtras || []).includes(base.nome);
                 const selecionado = isAtivo || isExtra;
-                const indexandoEsta = indexandoBase === base.nome || indexandoBase === '__todos__';
+                const st = filaStatusChat[base.nome]; // 'aguardando'|'indexando'|'ok'|'erro'
+                const emFila = !!st;
+                const cardClass = st === 'ok'
+                  ? darkMode ? 'bg-emerald-500/8 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'
+                  : st === 'erro'
+                    ? darkMode ? 'bg-red-500/8 border-red-500/40' : 'bg-red-50 border-red-300'
+                    : st === 'indexando'
+                      ? darkMode ? 'bg-accent/8 border-accent/40' : 'bg-cyan-50 border-cyan-300'
+                      : st === 'aguardando'
+                        ? darkMode ? 'bg-white/3 border-white/12' : 'bg-slate-50 border-slate-200'
+                        : selecionado
+                          ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
+                          : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300';
                 return (
                   <div key={base.nome}
                     onClick={() => {
-                      if (isAtivo) return;
+                      if (isAtivo || emFila) return;
                       setCanaisExtras?.(prev =>
                         isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
                       );
                     }}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
-                      ${selecionado
-                        ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
-                        : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${emFila ? 'cursor-default' : 'cursor-pointer'} ${cardClass}`}>
                     {/* Avatar */}
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0
-                      ${selecionado
-                        ? darkMode ? 'bg-primary/30 text-primary' : 'bg-violet-100 text-violet-700'
+                      ${st === 'ok' ? darkMode ? 'bg-emerald-500/25 text-emerald-400' : 'bg-emerald-100 text-emerald-700'
+                        : st === 'erro' ? darkMode ? 'bg-red-500/25 text-red-400' : 'bg-red-100 text-red-600'
+                        : st === 'indexando' ? darkMode ? 'bg-accent/25 text-accent' : 'bg-cyan-100 text-cyan-700'
+                        : selecionado ? darkMode ? 'bg-primary/30 text-primary' : 'bg-violet-100 text-violet-700'
                         : darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                      {(base.nome || '?')[0].toUpperCase()}
+                      {st === 'indexando'
+                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        : st === 'ok'
+                          ? <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          : st === 'erro'
+                            ? <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                            : (base.nome || '?')[0].toUpperCase()}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-semibold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{base.nome}</p>
-                      {base.indexado ? (
+                      {st === 'indexando' ? (
+                        <p className={`text-[10px] ${darkMode ? 'text-accent' : 'text-cyan-600'}`}>Indexando…</p>
+                      ) : st === 'aguardando' ? (
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Na fila…</p>
+                      ) : st === 'ok' ? (
+                        <p className={`text-[10px] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>✓ Indexado</p>
+                      ) : st === 'erro' ? (
+                        <p className={`text-[10px] ${darkMode ? 'text-red-400' : 'text-red-600'}`}>Sem conteúdo</p>
+                      ) : base.indexado ? (
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
                             {base.chunks} chunks
@@ -1400,52 +1430,41 @@ function ChatDrawer({
                         <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('chat.not_indexed')}</p>
                       )}
                     </div>
-                    {/* Ações */}
-                    <div className="shrink-0 flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                      {base.indexado ? (
-                        /* Reindexar */
+                    {/* Ações — ocultas durante fila */}
+                    {!emFila && (
+                      <div className="shrink-0 flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={async () => {
                             setIndexandoBase(base.nome);
-                            await onIndexar?.(base.nome).catch?.(() => {});
+                            setFilaStatusChat({ [base.nome]: 'indexando' });
+                            await onIndexar?.([base.nome], (nome, status) =>
+                              setFilaStatusChat(prev => ({ ...prev, [nome]: status }))
+                            );
                             setIndexandoBase(null);
+                            setTimeout(() => setFilaStatusChat({}), 2000);
                           }}
                           disabled={!!indexandoBase || agentStatus.indexing}
-                          title={`Reindexar @${base.nome}`}
+                          title={base.indexado ? `Reindexar @${base.nome}` : `Indexar @${base.nome}`}
                           className={`p-1.5 rounded-lg transition-colors disabled:opacity-40
                             ${darkMode ? 'text-slate-500 hover:text-accent hover:bg-accent/10' : 'text-slate-400 hover:text-cyan-600 hover:bg-cyan-50'}`}>
-                          {indexandoEsta
+                          {indexandoBase === base.nome
                             ? <Loader2 size={11} className="animate-spin text-accent" />
-                            : <RefreshCw size={11} />}
+                            : base.indexado ? <RefreshCw size={11} /> : <Zap size={11} />}
                         </button>
-                      ) : (
-                        /* Indexar */
-                        <button
-                          onClick={async () => {
-                            setIndexandoBase(base.nome);
-                            await onIndexar?.(base.nome).catch?.(() => {});
-                            setIndexandoBase(null);
+                        <div
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (isAtivo) return;
+                            setCanaisExtras?.(prev =>
+                              isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
+                            );
                           }}
-                          disabled={!!indexandoBase || agentStatus.indexing}
-                          className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-50
-                            ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>
-                          {indexandoEsta ? <Loader2 size={10} className="animate-spin" /> : t('chat.index_btn')}
-                        </button>
-                      )}
-                      {/* Checkbox — para extras; base principal sempre marcada sem toggle */}
-                      <div
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (isAtivo) return; // principal não pode ser desmarcada pelo checkbox
-                          setCanaisExtras?.(prev =>
-                            isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
-                          );
-                        }}
-                        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
-                          ${isAtivo ? 'border-primary bg-primary cursor-default' : isExtra ? 'border-primary bg-primary cursor-pointer' : darkMode ? 'border-white/20 cursor-pointer hover:border-primary/60' : 'border-slate-300 cursor-pointer hover:border-primary/60'}`}>
-                        {selecionado && <span className="text-white text-[8px] font-bold">✓</span>}
+                          className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
+                            ${isAtivo ? 'border-primary bg-primary cursor-default' : isExtra ? 'border-primary bg-primary cursor-pointer' : darkMode ? 'border-white/20 cursor-pointer hover:border-primary/60' : 'border-slate-300 cursor-pointer hover:border-primary/60'}`}>
+                          {selecionado && <span className="text-white text-[8px] font-bold">✓</span>}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
