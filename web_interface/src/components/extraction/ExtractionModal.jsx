@@ -80,16 +80,21 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
     return '';
   };
 
-  // Atualiza sugestão de nome do projeto em tempo real conforme URL muda (só se não editado manualmente)
+  // Atualiza sugestão em tempo real conforme URL muda (só se usuário não editou manualmente)
   React.useEffect(() => {
-    if (step === 'url' && !nomeEditadoManual && canalUrl.trim()) {
+    if (step === 'url' && !nomeEditadoManual) {
       const handle = extrairHandle(canalUrl);
-      if (handle) setProjetoNome(handle);
+      setProjetoNome(handle || '');
     }
-  }, [canalUrl, step, nomeEditadoManual]);
+  }, [canalUrl]);
 
   const avancar = () => {
     if (step === 'url') {
+      // Garante que o nome está atualizado com o handle da URL ao avançar
+      if (!nomeEditadoManual) {
+        const handle = extrairHandle(canalUrl);
+        setProjetoNome(handle || '');
+      }
       setStep('projeto');
     } else if (step === 'projeto') {
       setStep('fontes');
