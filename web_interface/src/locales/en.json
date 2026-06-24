@@ -208,6 +208,8 @@
   "agent.rebuild_index": "Rebuild index",
   "chat.select_base_title": "Select a base",
   "chat.select_base_desc": "Choose which knowledge base to use in this conversation",
+  "chat.select_base_link": "Select base",
+  "chat.placeholder_select_base": "Select a base to start...",
   "chat.hint_select_base": "Select a base above to send this message",
   "chat.snack_hint": "Ask your knowledge base",
   "chat.chunks_indexed": "chunks indexed",
@@ -589,3 +591,4 @@
   "proHint.feature3": "Automatic sync with Google Drive",
   "proHint.cta": "Got it, keep using"
 }
+

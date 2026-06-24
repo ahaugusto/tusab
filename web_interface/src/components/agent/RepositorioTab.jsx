@@ -49,12 +49,13 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
   const listaFiltrada = busca.trim()
     ? lista.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()))
     : lista;
-  const todos = listaFiltrada.length > 0 && listaFiltrada.every(p => indexarSel[p.nome]);
+  const listaComConteudo = listaFiltrada.filter(p => (p.n_arquivos ?? 1) > 0);
+  const todos = listaComConteudo.length > 0 && listaComConteudo.every(p => indexarSel[p.nome]);
   const nSel  = Object.values(indexarSel).filter(Boolean).length;
 
   const toggleTodos = () => {
     const sel = { ...indexarSel };
-    listaFiltrada.forEach(p => { sel[p.nome] = !todos; });
+    listaComConteudo.forEach(p => { sel[p.nome] = !todos; });
     setIndexarSel(sel);
   };
 
@@ -105,7 +106,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
       {/* Lista */}
       <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar">
         {/* Selecionar todos (da lista filtrada) */}
-        {listaFiltrada.length > 0 && (
+        {listaComConteudo.length > 0 && (
           <button
             onClick={toggleTodos}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors mb-1
@@ -116,7 +117,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
               ${todos ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
               {todos && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
             </span>
-            {todos ? t('repo.deselect_all') : busca ? t('repo.indexar_select_results', { count: listaFiltrada.length }) : t('repo.select_all')}
+            {todos ? t('repo.deselect_all') : busca ? t('repo.indexar_select_results', { count: listaComConteudo.length }) : t('repo.select_all')}
           </button>
         )}
 
@@ -128,8 +129,10 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
             }
           </div>
         ) : listaFiltrada.map(p => {
-          const st = filaStatus[p.nome]; // 'aguardando'|'indexando'|'ok'|'erro'|undefined
+          const st = filaStatus[p.nome];
           const emFila = !!st;
+          const semConteudo = !emFila && (p.n_arquivos === 0);
+          const disabled = semConteudo || emFila;
           const borderColor = st === 'ok'
             ? darkMode ? 'border-emerald-500/50 bg-emerald-500/8' : 'border-emerald-300 bg-emerald-50'
             : st === 'erro'
@@ -138,31 +141,42 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
                 ? darkMode ? 'border-accent/50 bg-accent/8' : 'border-cyan-300 bg-cyan-50'
                 : st === 'aguardando'
                   ? darkMode ? 'border-white/15 bg-white/4' : 'border-slate-200 bg-slate-50'
-                  : indexarSel[p.nome]
-                    ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
-                    : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200';
+                  : semConteudo
+                    ? darkMode ? 'border-white/5 bg-white/2 opacity-50' : 'border-slate-100 bg-slate-50/50 opacity-50'
+                    : indexarSel[p.nome]
+                      ? darkMode ? 'bg-primary/10 border-primary/35' : 'bg-violet-50 border-violet-200'
+                      : darkMode ? 'border-white/8 hover:border-white/20' : 'border-slate-100 hover:border-slate-200';
           return (
             <button key={p.nome}
-              onClick={() => !emFila && setIndexarSel(prev => ({ ...prev, [p.nome]: !prev[p.nome] }))}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${borderColor} ${emFila ? 'cursor-default' : ''}`}>
+              onClick={() => !disabled && setIndexarSel(prev => ({ ...prev, [p.nome]: !prev[p.nome] }))}
+              disabled={semConteudo}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${borderColor} ${disabled ? 'cursor-default' : ''}`}>
               {/* Checkbox / status indicator */}
               <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all
                 ${st === 'ok' ? 'bg-emerald-500 border-emerald-500'
                   : st === 'erro' ? 'bg-red-500 border-red-500'
                   : st === 'indexando' ? 'bg-accent border-accent'
                   : st === 'aguardando' ? darkMode ? 'border-white/20' : 'border-slate-300'
+                  : semConteudo ? darkMode ? 'border-white/10' : 'border-slate-200'
                   : indexarSel[p.nome] ? 'bg-primary border-primary'
                   : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
                 {st === 'ok' && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 {st === 'erro' && <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/></svg>}
                 {st === 'indexando' && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
                 {st === 'aguardando' && <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />}
-                {!st && indexarSel[p.nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                {!st && !semConteudo && indexarSel[p.nome] && <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </span>
               <span className="shrink-0">{p.tipo === 'youtube' ? '🎬' : '🧠'}</span>
-              <span className={`text-xs font-medium flex-1 truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
-              </span>
+              <div className="flex-1 min-w-0">
+                <span className={`text-xs font-medium truncate block ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  {p.tipo === 'youtube' ? `@${p.nome}` : p.nome}
+                </span>
+                {semConteudo && (
+                  <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Sem conteúdo — adicione arquivos ou extraia um canal
+                  </span>
+                )}
+              </div>
               {/* Status label */}
               {st && (
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0
@@ -308,7 +322,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         const lista = res?.data?.projetos || [];
         setProjetos(lista);
         const sel = {};
-        lista.forEach(p => { sel[p.nome] = true; });
+        lista.forEach(p => { if ((p.n_arquivos ?? 1) > 0) sel[p.nome] = true; });
         setIndexarSel(sel);
         setShowIndexar(true);
         onOpenIndexarHandled?.();
@@ -320,7 +334,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   }, [openIndexar]);
 
   const handleIndexarConfirmar = async () => {
-    const selecionados = Object.entries(indexarSel).filter(([, v]) => v).map(([k]) => k);
+    const projetosMap = Object.fromEntries(projetos.map(p => [p.nome, p]));
+    const selecionados = Object.entries(indexarSel)
+      .filter(([k, v]) => v && (projetosMap[k]?.n_arquivos ?? 1) > 0)
+      .map(([k]) => k);
     if (selecionados.length === 0 || !onIndexar) return;
     setIndexando(true);
     setFilaStatus({});
@@ -651,7 +668,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               const lista = res?.data?.projetos || projetos;
               setProjetos(lista);
               const sel = {};
-              lista.forEach(p => { sel[p.nome] = true; });
+              lista.forEach(p => { if ((p.n_arquivos ?? 1) > 0) sel[p.nome] = true; });
               setIndexarSel(sel);
               setShowIndexar(true);
             }}

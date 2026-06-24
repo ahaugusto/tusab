@@ -52,7 +52,7 @@ jobs:
           cache-dependency-path: web_interface/package-lock.json
 
       - name: Instalar dependências
-        run: npm ci
+        run: npm install
 
       - name: Build de produção
         run: npx vite build

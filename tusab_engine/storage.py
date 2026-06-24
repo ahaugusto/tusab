@@ -115,6 +115,34 @@ def migrar_pastas_para_ingles():
                 except Exception:
                     pass
 
+def migrar_cerebro_para_neural():
+    """Move data/cerebro/{canal}/* → data/neural/{canal}/* quando são pastas distintas.
+    Executada uma vez na inicialização; idempotente.
+    """
+    import shutil
+    cerebro_fisico = os.path.join(DATA_DIR, 'cerebro')
+    if not os.path.exists(cerebro_fisico) or os.path.abspath(cerebro_fisico) == os.path.abspath(NEURAL_DIR):
+        return
+    for entry in os.scandir(cerebro_fisico):
+        if not entry.is_dir():
+            continue
+        destino = os.path.join(NEURAL_DIR, entry.name)
+        if not os.path.exists(destino):
+            try:
+                shutil.move(entry.path, destino)
+            except Exception:
+                pass
+        else:
+            # Destino já existe — mover subpastas individualmente
+            for sub in os.scandir(entry.path):
+                dst_sub = os.path.join(destino, sub.name)
+                if not os.path.exists(dst_sub):
+                    try:
+                        shutil.move(sub.path, dst_sub)
+                    except Exception:
+                        pass
+
+
 # Nomes usados pelo motor
 LOCAL_TXT_DIR    = os.path.join(NEURAL_DIR, 'youtube')   # legado flat
 DOCUMENTOS_DIR   = os.path.join(NEURAL_DIR, 'documents')

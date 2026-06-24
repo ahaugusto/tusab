@@ -118,6 +118,13 @@ frontend_dist = os.path.join(BASE_PATH, "web_interface", "dist")
 if os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
+# Migra data/cerebro/ → data/neural/ quando são pastas distintas (pré-renomeação)
+try:
+    from tusab_engine.storage import migrar_cerebro_para_neural
+    migrar_cerebro_para_neural()
+except Exception:
+    pass
+
 # Migra cerebro_txt → cerebro/youtube na primeira execução
 try:
     motor_tusab.migrar_cerebro_txt()
