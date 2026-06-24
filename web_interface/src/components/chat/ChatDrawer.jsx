@@ -324,10 +324,16 @@ function ChatDrawer({
   }, [indexingDoneCount, t]);
 
   const loadingPhrase = useLoadingPhrase(chatLoading);
-  const canaisIndexados = agentStatus.canais_indexados || [];
-  const temBase = agentStatus.indexed || canaisIndexados.length > 0;
-  const canalAtivo = canalConfigurado || agentStatus.canal_indexado;
-  const chatHabilitado = temBase && !!canalAtivo;
+  const canaisIndexadosTodos = agentStatus.canais_indexados || [];
+  // Filtra índices órfãos (n_arquivos_fonte === 0 significa que a fonte sumiu)
+  const canaisIndexados = canaisIndexadosTodos.filter(c => (c.n_arquivos_fonte ?? 1) > 0);
+  const temBase = canaisIndexados.length > 0;
+  // Auto-seleciona apenas quando há exatamente 1 base com fonte e nenhuma foi configurada
+  const canalAutoUnico = !canalConfigurado && canaisIndexados.length === 1 ? canaisIndexados[0].nome : null;
+  const canalAtivo = canalConfigurado || canalAutoUnico || agentStatus.canal_indexado;
+  // Requer seleção explícita quando há mais de uma base disponível com fonte
+  const precisaSelecionarBase = !canalConfigurado && canaisIndexados.length > 1;
+  const chatHabilitado = temBase && !!canalAtivo && !precisaSelecionarBase;
   // Ollama selecionado mas não detectado — sem provider externo configurado
   const ollamaNaoDisponivel = agentProvider === 'ollama' && !ollamaStatus?.running;
 
@@ -393,8 +399,16 @@ function ChatDrawer({
       <Sparkles size={15} className="text-primary shrink-0" />
       <div className="flex-1 min-w-0">
         <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
-        {agentStatus.indexed && (() => {
-          const principal = canalConfigurado || agentStatus.canal_indexado;
+        {precisaSelecionarBase ? (
+          <button
+            onClick={() => setShowBaseModal(true)}
+            className={`text-[10px] font-semibold flex items-center gap-1 transition-colors
+              ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-primary/70 hover:text-primary'}`}>
+            <Database size={9} />
+            {t('chat.select_base_link')}
+          </button>
+        ) : agentStatus.indexed && (() => {
+          const principal = canalConfigurado || canalAutoUnico || agentStatus.canal_indexado;
           const extras = canaisExtras || [];
           const todas = extras.length > 0
             ? [principal, ...extras].filter(Boolean)
@@ -589,7 +603,7 @@ function ChatDrawer({
                         )}
                       </AnimatePresence>
                     </>
-                  ) : ((!canalAtivo || showRepoModal) && canaisIndexados.length > 0) ? (
+                  ) : (precisaSelecionarBase || showRepoModal) && canaisIndexados.length > 0 ? (
                     <>
                       <Database size={28} className="text-primary" aria-hidden="true" />
                       <p className={`text-xs font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.select_base_title')}</p>
@@ -1091,7 +1105,7 @@ function ChatDrawer({
         <textarea
           ref={textareaRef}
           rows={1}
-          placeholder={!chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
+          placeholder={precisaSelecionarBase ? t('chat.placeholder_select_base') : !chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
           value={chatInput}
           onChange={handleInputChange}
           onKeyDown={e => {

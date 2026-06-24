@@ -208,6 +208,8 @@
   "agent.rebuild_index": "Recriar índice",
   "chat.select_base_title": "Selecione uma base",
   "chat.select_base_desc": "Escolha qual base de conhecimento usar nesta conversa",
+  "chat.select_base_link": "Selecionar base",
+  "chat.placeholder_select_base": "Selecione uma base para iniciar...",
   "chat.hint_select_base": "Selecione uma base acima para enviar esta mensagem",
   "chat.snack_hint": "Pergunte à sua base",
   "chat.chunks_indexed": "chunks indexados",
@@ -589,3 +591,4 @@
   "proHint.feature3": "Sincronização automática com Google Drive",
   "proHint.cta": "Entendido, continuar usando"
 }
+
