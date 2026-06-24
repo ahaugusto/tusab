@@ -1514,4 +1514,128 @@ Nova chave `chat.open_tooltip` em PT / EN / ES.
 | Nomes de rota `/cerebro/*` não renomeados | São API pública — renomear quebraria clientes que chamam diretamente; o storage interno já usa `NEURAL_DIR` |
 | `CEREBRO_DIR = NEURAL_DIR` mantido como alias | Código legado (testes, shims) importa `CEREBRO_DIR` por nome; alias evita breaking change sem custo |
 | Snack com `aria-live` em vez de `aria-atomic` | Conteúdo do snack é uma frase completa — `polite` anuncia quando o leitor de tela estiver ocioso, sem interromper leitura em andamento |
+
+---
+
+## Sprint 24/06/2026 — Branding, UX do modal de extração e dependências
+
+**Commits:** `176dbfb` → HEAD  
+**Versão:** v1.0.1 (build 2)  
+**Branch:** main
+
+### Contexto
+
+Sprint de polimento pós-release: correção de branding, UX do modal de nomeação de projeto e atualização do contrato de dependências.
+
+---
+
+### Branding e e-mail de contato
+
+**`electron/build_resources/license.txt`** — reescrito completamente:
+- Todas as referências a `Brain'IAC` substituídas por `Tusab`
+- Cláusula de privacidade local adicionada (item 5)
+- E-mail de contato: `tusab@tusab.solutions`
+
+**E-mail unificado para `tusab@tusab.solutions`** em:
+- `electron/package.json` — campo `author.email`
+- `web_interface/src/components/shared/ProSnackbar.jsx` — link mailto CTA do Pro
+- `Documentação do Produto/Política de Privacidade.md` — todos os contatos
+- Cabeçalhos `@author` de todos os 29 arquivos fonte do frontend (era `augusto.brasil@saude.gov.br`)
+
+**Link de download** — `README.md` atualizado para usar URL direta do asset:
+```
+https://github.com/ahaugusto/tusab/releases/download/v1.0.1/Tusab.Setup.1.0.1.exe
+```
+O link anterior apontava para a página do release (exige login em repo privado); o link direto de asset é público independente da visibilidade do repositório.
+
+---
+
+### Backend
+
+#### `tusab_engine/api/router_repositorio.py` — endpoint `/neural/projetos`
+
+Campo `canais` adicionado ao objeto de cada projeto retornado:
+
+```python
+canais = []
+if os.path.isdir(yt_dir):
+    canais = [e.name for e in os.scandir(yt_dir) if e.is_dir()]
+projetos.append({
+    "nome": entry.name,
+    "tipo": tipo,
+    "n_arquivos": n_docs + n_txts + n_youtube,
+    "canais": canais,          # ← novo
+})
+```
+
+`canais` é a lista de slugs de canais extraídos dentro do projeto (subpastas de `youtube/`). Usado pelo frontend para detectar se um canal já foi extraído anteriormente.
+
+---
+
+### Frontend
+
+#### `ExtractionModal.jsx` — step "Nome do projeto" (3 melhorias)
+
+**1. Alerta de canal já extraído**
+
+Quando o canal configurado (`canalNome` ou handle extraído da URL) já consta no campo `canais` de algum projeto retornado por `/neural/projetos`, exibe banner amber:
+
+> ⚠️ Canal já extraído  
+> **@fgv** já está no projeto **FGV**. Você pode adicionar ao mesmo projeto (vídeos novos serão extraídos) ou criar um projeto com outro nome.
+
+**2. Chip selecionado com feedback visual forte**
+
+Estado anterior: borda `border-primary/30`, fundo `bg-primary/15` — difícil de distinguir do estado inativo.  
+Estado novo: fundo sólido `bg-primary`, texto branco, `shadow-md shadow-primary/30`, `scale-[1.03]` e ícone ✓ à esquerda.
+
+**3. Select para >4 projetos**
+
+Quando `projetos.length > 4`, os chips são substituídos por `<select>` nativo para evitar overflow do modal.
+
+**4. Input oculto ao selecionar projeto existente** *(adicionado em seguida)*
+
+Novo estado `projetoExistenteSelecionado`:
+- Ao clicar num chip ou selecionar no `<select>`: `true` → o campo de texto e o hint de estrutura de pastas são ocultados; aparece card de confirmação com nome do projeto e botão "Trocar"
+- Ao clicar "Trocar" ou editar o input manualmente: `false` → input e hint voltam
+
+```jsx
+{projetoExistenteSelecionado ? (
+  <div className="card de confirmação com nome + botão Trocar">
+    ...
+  </div>
+) : (
+  <input type="text" ... />
+)}
+{!projetoExistenteSelecionado && <div className="hint estrutura de pastas">...</div>}
+```
+
+---
+
+### Dependências
+
+**`requirements.txt`** — reescrito com versões mínimas pinadas, organizado por seção:
+
+| Seção | Pacotes |
+|-------|---------|
+| API / servidor | `fastapi>=0.136.3`, `uvicorn[standard]>=0.48.0`, `python-multipart>=0.0.32`, `starlette>=1.1.0` |
+| Agente RAG | `rank-bm25>=0.2.2`, `sentence-transformers>=5.6.0`, `torch>=2.12.1`, `scikit-learn>=1.9.0` |
+| Provedores IA | `openai>=2.41.1`, `anthropic>=0.109.1`, `google-generativeai>=0.8.6`, `google-genai>=2.6.0` |
+| Google Drive | `google-auth>=2.53.0`, `google-auth-oauthlib>=1.4.0`, `google-auth-httplib2>=0.4.0`, `google-api-python-client>=2.196.0` |
+| Documentos | `yt-dlp>=2026.6.9`, `pdfplumber>=0.11.9`, `python-docx>=1.2.0`, `openpyxl>=3.1.5`, `pandas>=3.0.3`, `reportlab>=5.0.0` |
+| Sistema | `psutil>=7.2.2`, `python-dotenv>=1.2.2`, `requests>=2.34.2`, `cryptography>=48.0.0` |
+| Testes | `pytest>=9.0.3` |
+| Opcional | `pytesseract`, `faster-whisper`, `Pillow` (comentados) |
+
+Dependências anteriormente ausentes adicionadas: `openpyxl`, `psutil`, `cryptography`, `python-dotenv`, `starlette`, `scikit-learn`.
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| `tusab@tusab.solutions` como e-mail único | CriAugu vai ter outros produtos; e-mail por produto facilita triagem e transferência futura |
+| Link direto do `.exe` no README | Página do release exige login em repo privado; asset de release é público mesmo em repo privado |
+| `canais` no endpoint de projetos | Alternativa (buscar via `/repositorio`) retornaria payload maior; campo pontual no endpoint certo é mais limpo |
+| Input oculto ao selecionar existente | Reduz carga cognitiva — usuário que escolheu um projeto existente não precisa confirmar o nome novamente |
 | `localStorage` para `canalConfigurado` | Canal selecionado no chat é preferência de sessão longa; perder ao recarregar forçava o usuário a re-selecionar após qualquer reload |
