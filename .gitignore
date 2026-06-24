@@ -11,6 +11,8 @@ data/config/agent_config.json
 .env.*
 
 # --- Dados gerados em runtime ---
+data/neural/
+data/indexes/
 data/cerebro/
 data/cerebro_txt/
 data/gestao/
@@ -69,9 +71,12 @@ ENV/
 
 # --- Claude Code (settings locais, não o skill) ---
 .claude/settings.local.json
+.claude/worktrees/
 
-# --- PDFs de terceiros em documentação ---
+# --- PDFs de terceiros e prints de documentação ---
 Documentação do Produto/*.pdf
+"Documentação do Produto/Prints/"
+Documentação\ do\ Produto/Prints/
 
 # --- Logs de crash (podem conter informações sensíveis) ---
 sebayt_crash.log
