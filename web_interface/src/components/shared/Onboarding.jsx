@@ -20,9 +20,10 @@ import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
  *
  * @param {Object} props
  * @param {Function} props.onDone - callback invoked with the selected profile slug when user finishes or skips
+ * @param {boolean} props.darkMode - whether the app is in dark mode (affects modal background and text colors)
  * @returns {JSX.Element}
  */
-function Onboarding({ onDone, onSkip }) {
+function Onboarding({ onDone, onSkip, darkMode = true }) {
   const { t } = useTranslation();
   // step 0 = profile selection; steps 1–7 = content steps (mapped from index 0 in STEPS array)
   const [step, setStep] = useState(0);
@@ -78,6 +79,18 @@ function Onboarding({ onDone, onSkip }) {
     finish(true); // fallback se onSkip não fornecido
   };
 
+  // ── helpers de cor por tema ───────────────────────────────────────────────
+  const dotInactive  = darkMode ? 'bg-white/20' : 'bg-slate-200';
+  const textTitle    = darkMode ? 'text-white' : 'text-slate-900';
+  const textSub      = darkMode ? 'text-slate-400' : 'text-slate-500';
+  const textMeta     = darkMode ? 'text-slate-600' : 'text-slate-400';
+  const textSkip     = darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600';
+  const cardInactive = darkMode
+    ? 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10'
+    : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100';
+  const cardLabelInactive = darkMode ? 'text-slate-200' : 'text-slate-700';
+  const btnDisabled  = darkMode ? 'bg-white/5 text-slate-600' : 'bg-slate-100 text-slate-400';
+
   // ── Step 0 — Profile picker ───────────────────────────────────────────────
   if (isProfileStep) {
     return (
@@ -87,34 +100,27 @@ function Onboarding({ onDone, onSkip }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="bg-[#0C1122] border border-white/15 rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar"
+          className={`rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
           style={{ maxHeight: 'min(90vh, 680px)', padding: '2rem' }}
         >
           {/* Header row: dots + skip */}
           <div className="flex items-center justify-between mb-6">
-            {/* No dots on step 0 — show a single indicator */}
             <div className="flex gap-1.5">
               <div className="h-1.5 rounded-full w-6 bg-primary" />
               {Array.from({ length: total }).map((_, i) => (
-                <div key={i} className="h-1.5 rounded-full w-1.5 bg-white/20" />
+                <div key={i} className={`h-1.5 rounded-full w-1.5 ${dotInactive}`} />
               ))}
             </div>
-            {/* Pular só aparece após o perfil ser escolhido */}
             {perfilSelecionado && (
-              <button
-                onClick={skip}
-                className={`text-[11px] text-slate-500 hover:text-slate-300 transition-colors ${BTN_FOCUS}`}
-              >
+              <button onClick={skip} className={`text-[11px] transition-colors ${BTN_FOCUS} ${textSkip}`}>
                 {t('onboarding.skip')}
               </button>
             )}
           </div>
 
-          {/* Titles */}
-          <h2 className="text-lg font-bold text-white mb-1">{t('perfil.escolha_titulo')}</h2>
-          <p className="text-sm text-slate-400 mb-5">{t('perfil.escolha_subtitulo')}</p>
+          <h2 className={`text-lg font-bold mb-1 ${textTitle}`}>{t('perfil.escolha_titulo')}</h2>
+          <p className={`text-sm mb-5 ${textSub}`}>{t('perfil.escolha_subtitulo')}</p>
 
-          {/* Profile cards */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             {Object.entries(PERFIS_META).map(([slug, meta]) => {
               const selected = perfilSelecionado === slug;
@@ -123,33 +129,27 @@ function Onboarding({ onDone, onSkip }) {
                   key={slug}
                   onClick={() => handleSelectPerfil(slug)}
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-center transition-all ${BTN_FOCUS} ${
-                    selected
-                      ? 'border-primary bg-primary/10 text-white'
-                      : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/25 hover:bg-white/10'
+                    selected ? 'border-primary bg-primary/10' : cardInactive
                   }`}
                 >
                   <span className="text-3xl leading-none">{meta.icon}</span>
-                  <span className="text-xs font-semibold">{t(meta.label)}</span>
-                  <span className="text-[10px] text-slate-400 leading-snug">{t(meta.desc)}</span>
+                  <span className={`text-xs font-semibold ${selected ? 'text-primary' : cardLabelInactive}`}>{t(meta.label)}</span>
+                  <span className={`text-[10px] leading-snug ${textSub}`}>{t(meta.desc)}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Navigation */}
           <div className="flex items-center justify-between">
-            {/* Back placeholder for alignment */}
             <span className="w-16" />
-            <span className="text-[11px] text-slate-600">
-              1 {t('onboarding.step_of')} {total + 1}
-            </span>
+            <span className={`text-[11px] ${textMeta}`}>1 {t('onboarding.step_of')} {total + 1}</span>
             <button
               onClick={() => setStep(1)}
               disabled={!perfilSelecionado}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS} ${
                 perfilSelecionado
                   ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                  : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                  : `${btnDisabled} cursor-not-allowed`
               }`}
             >
               {t('onboarding.next')} →
@@ -168,22 +168,21 @@ function Onboarding({ onDone, onSkip }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="bg-[#0C1122] border border-white/15 rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar"
+        className={`rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
         style={{ maxHeight: 'min(90vh, 680px)', padding: '2rem' }}
       >
         {/* Step dots + skip */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex gap-1.5">
-            {/* dot for the profile step */}
-            <div className="h-1.5 rounded-full w-1.5 bg-white/20" />
+            <div className={`h-1.5 rounded-full w-1.5 ${dotInactive}`} />
             {STEPS.map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 rounded-full transition-all ${i === contentStep ? 'w-6 bg-primary' : 'w-1.5 bg-white/20'}`}
+                className={`h-1.5 rounded-full transition-all ${i === contentStep ? 'w-6 bg-primary' : `w-1.5 ${dotInactive}`}`}
               />
             ))}
           </div>
-          <button onClick={() => finish(false)} className={`text-[11px] text-slate-500 hover:text-slate-300 transition-colors ${BTN_FOCUS}`}>
+          <button onClick={() => finish(false)} className={`text-[11px] transition-colors ${BTN_FOCUS} ${textSkip}`}>
             {t('onboarding.skip')}
           </button>
         </div>
@@ -194,14 +193,14 @@ function Onboarding({ onDone, onSkip }) {
         </div>
 
         {/* Content */}
-        <h2 className="text-lg font-bold text-white mb-2">{current.title}</h2>
-        <p className="text-sm text-slate-400 leading-relaxed mb-4">{current.body}</p>
+        <h2 className={`text-lg font-bold mb-2 ${textTitle}`}>{current.title}</h2>
+        <p className={`text-sm leading-relaxed mb-4 ${textSub}`}>{current.body}</p>
         {current.whys && (
           <ul className="space-y-2.5">
             {current.whys.map((w, i) => (
               <li key={i} className="flex items-start gap-2.5">
                 <span className="mt-0.5 w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                <span className="text-xs text-slate-400 leading-relaxed">{w}</span>
+                <span className={`text-xs leading-relaxed ${textSub}`}>{w}</span>
               </li>
             ))}
           </ul>
@@ -212,11 +211,11 @@ function Onboarding({ onDone, onSkip }) {
           <button
             onClick={() => setStep(s => s - 1)}
             aria-label={t('onboarding.back')}
-            className={`text-xs text-slate-500 hover:text-slate-300 transition-colors ${BTN_FOCUS}`}
+            className={`text-xs transition-colors ${BTN_FOCUS} ${textSkip}`}
           >
             ← {t('onboarding.back')}
           </button>
-          <span className="text-[11px] text-slate-600">
+          <span className={`text-[11px] ${textMeta}`}>
             {step + 1} {t('onboarding.step_of')} {total + 1}
           </span>
           <button

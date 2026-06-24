@@ -103,8 +103,18 @@ export function useAgentConfig({ activeTab, showError }) {
   const canalAtivoRef = useRef('');
   const setCanalAtivo = (canal) => { canalAtivoRef.current = canal || ''; };
 
+  const [indexingDoneCount, setIndexingDoneCount] = useState(0);
+  const prevIndexingPollRef = useRef(false);
+
   const refetchAgentStatus = () =>
-    fetchAgentStatus(canalAtivoRef.current).then(r => setAgentStatus(r.data)).catch(() => {});
+    fetchAgentStatus(canalAtivoRef.current).then(r => {
+      const next = r.data;
+      if (prevIndexingPollRef.current && !next.indexing) {
+        setIndexingDoneCount(c => c + 1);
+      }
+      prevIndexingPollRef.current = next.indexing;
+      setAgentStatus(next);
+    }).catch(() => {});
 
   /** Polls agent status every 3 seconds (indexing progress, canal_indexado, etc.) */
   useEffect(() => {
@@ -220,7 +230,7 @@ export function useAgentConfig({ activeTab, showError }) {
 
   return {
     // state
-    agentStatus,          setAgentStatus,     refetchAgentStatus,
+    agentStatus,          setAgentStatus,     refetchAgentStatus,  indexingDoneCount,
     agentProvider,        setAgentProvider,
     agentApiKey,          setAgentApiKey,
     showApiKey,           setShowApiKey,
