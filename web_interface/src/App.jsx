@@ -127,7 +127,7 @@ function App() {
 
   // ─── Canal state ───────────────────────────────────────────────────────────
   const [canalInput,       setCanalInput]       = useState('');
-  const [canalConfigurado, setCanalConfigurado] = useState('');
+  const [canalConfigurado, setCanalConfigurado] = useState(() => localStorage.getItem('tusab_canal_configurado') || '');
   const [canalError,       setCanalError]       = useState('');
   const [configurando,     setConfigurando]     = useState(false);
   // Bloqueia restauração automática pelo polling quando o usuário remove manualmente
@@ -411,6 +411,15 @@ function App() {
       }
     }, 2000);
     return () => clearInterval(interval);
+  }, [canalConfigurado]);
+
+  // Persiste base selecionada para sobreviver a reloads
+  useEffect(() => {
+    if (canalConfigurado) {
+      localStorage.setItem('tusab_canal_configurado', canalConfigurado);
+    } else {
+      localStorage.removeItem('tusab_canal_configurado');
+    }
   }, [canalConfigurado]);
 
   // Sincroniza canal ativo com o hook para que o polling de /agent/status passe o canal correto
@@ -1078,7 +1087,9 @@ function App() {
                   {id === 'agente' && (agentStatus.configured || ollamaStatus?.running) && (
                     <>
                       <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${agentStatus.configured ? 'bg-secondary' : 'bg-warning'}`} aria-hidden="true" />
-                      <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
+                      <div
+                        role="tooltip"
+                        className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
                         ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-white text-slate-700 border border-slate-200 shadow-slate-200/60'}`}>
                         {agentStatus.configured
                           ? `Agente pronto · ${agentStatus.provider || 'configurado'}`
@@ -1607,6 +1618,8 @@ function App() {
                       exit={{    opacity: 0, x: 16, scale: 0.92 }}
                       transition={{ duration: 0.22, ease: 'easeOut' }}
                       onClick={handleOpenChat}
+                      role="status"
+                      aria-live="polite"
                       className={`cursor-pointer select-none flex items-center gap-2 px-3.5 py-2 rounded-2xl text-[13px] font-semibold shadow-xl whitespace-nowrap
                         ${darkMode
                           ? 'bg-[#1e1b2e] border border-violet-500/40 text-violet-200'
@@ -1637,11 +1650,12 @@ function App() {
                     initial={{ scale: 0 }} animate={{ scale: 1 }}
                     transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
                     onClick={handleOpenChat}
-                    className="relative w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
+                    title={t('chat.open_tooltip')}
+                    className="group relative w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
                     style={{ boxShadow: darkMode
                       ? '0 8px 24px 0 rgba(0,0,0,0.55), 0 2px 8px 0 rgba(0,0,0,0.35)'
                       : '0 8px 24px 0 rgba(0,0,0,0.22), 0 2px 8px 0 rgba(0,0,0,0.12)' }}
-                    aria-label="Abrir chat com o agente">
+                    aria-label={t('chat.open_tooltip')}>
                     <img
                       src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
                       alt=""
