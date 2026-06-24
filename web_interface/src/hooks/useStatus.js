@@ -2,7 +2,7 @@
  * @file useStatus.js
  * @description Custom hook for polling extraction engine status every 2 seconds
  * @module hooks/useStatus
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import { useState, useEffect } from 'react';

@@ -3,7 +3,7 @@
  * @description Custom hook encapsulating all agent configuration state, effects
  *              and handlers (provider, API key, Ollama, canal metadata).
  * @module hooks/useAgentConfig
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import { useState, useEffect, useRef } from 'react';

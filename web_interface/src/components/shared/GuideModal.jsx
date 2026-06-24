@@ -2,7 +2,7 @@
  * @file GuideModal.jsx
  * @description Modal de ajuda com guia de uso e atalhos de teclado
  * @module components/shared/GuideModal
- * @author CriAugu <augusto.brasil@saude.gov.br>
+ * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState } from 'react';
