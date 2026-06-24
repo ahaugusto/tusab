@@ -960,11 +960,20 @@ def cerebro_listar_projetos():
         # Tipo: youtube = tem subdir youtube/ com arquivos; projeto = criado manualmente
         yt_dir = os.path.join(entry.path, "youtube")
         # Nova estrutura: youtube/{canal_slug}/*.txt — verifica recursivamente
-        has_youtube = bool(
-            os.path.isdir(yt_dir) and glob.glob(os.path.join(yt_dir, '**', '*.txt'), recursive=True)
-        )
+        yt_files = glob.glob(os.path.join(yt_dir, '**', '*.txt'), recursive=True) if os.path.isdir(yt_dir) else []
+        has_youtube = bool(yt_files)
         tipo = "youtube" if has_youtube else "projeto"
-        projetos.append({"nome": entry.name, "tipo": tipo})
+        # Contar arquivos de conteúdo indexável (.txt em documents/ e texts/)
+        doc_files = glob.glob(os.path.join(entry.path, 'documents', '*.txt'))
+        txt_files = glob.glob(os.path.join(entry.path, 'texts', '*.txt'))
+        n_docs = len([f for f in doc_files if not os.path.basename(f).startswith('_')])
+        n_txts = len([f for f in txt_files if not os.path.basename(f).startswith('_')])
+        n_youtube = len(yt_files)
+        projetos.append({
+            "nome": entry.name,
+            "tipo": tipo,
+            "n_arquivos": n_docs + n_txts + n_youtube,
+        })
     return {"projetos": projetos}
 
 

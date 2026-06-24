@@ -41,7 +41,7 @@ jobs:
 
       - name: Build frontend
         working-directory: web_interface
-        run: npm ci && npx vite build
+        run: npm install && npx vite build
 
   # ── 2. Build do instalador Windows ───────────────────────────────────────────
   build-windows:
@@ -77,7 +77,7 @@ jobs:
       # Build do frontend (dist/ que vai dentro do instalador)
       - name: Build frontend
         working-directory: web_interface
-        run: npm ci && npx vite build
+        run: npm install && npx vite build
 
       # Instala dependências do Electron
       - name: Instalar dependências Electron

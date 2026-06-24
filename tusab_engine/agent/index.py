@@ -96,7 +96,15 @@ def get_agent_status() -> dict:
                     nome  = data.get('canal_nome', fname.replace('_index.json', ''))
                     count = len(chunks)
                     indexed_at = data.get('indexed_at', None)
-                    canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at})
+                    # Conta arquivos fonte para detectar índices órfãos
+                    prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', nome).strip('_')
+                    import glob as _glob
+                    yt_dir = get_canal_youtube_dir(prefixo)
+                    yt_txts = _glob.glob(os.path.join(yt_dir, '**', '*.txt'), recursive=True) if os.path.isdir(yt_dir) else []
+                    doc_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'documents', '*.txt'))
+                    txt_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'texts', '*.txt'))
+                    n_fonte = len([f for f in doc_txts + txt_txts if not os.path.basename(f).startswith('_')]) + len(yt_txts)
+                    canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at, 'n_arquivos_fonte': n_fonte})
                     if nome == canal_nome:
                         index_count = count
                 except Exception:
