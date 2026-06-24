@@ -59,6 +59,24 @@ export default function ExtractionTab({
   onOpenQueueModal,
 }) {
   const { t } = useTranslation();
+  const [logFiltroCanal, setLogFiltroCanal] = React.useState('');
+
+  // Deriva canais distintos presentes nos logs (mantém ordem de aparição)
+  const canaisNoLog = React.useMemo(() => {
+    const seen = new Set();
+    const ordem = [];
+    for (const l of (status.logs || [])) {
+      if (l.canal && !seen.has(l.canal)) { seen.add(l.canal); ordem.push(l.canal); }
+    }
+    return ordem;
+  }, [status.logs]);
+
+  const logsFiltrados = React.useMemo(() =>
+    logFiltroCanal
+      ? (status.logs || []).filter(l => l.canal === logFiltroCanal)
+      : (status.logs || []),
+    [status.logs, logFiltroCanal]
+  );
 
   return (
     <div id="panel-extracao" role="tabpanel" aria-labelledby="tab-extracao"
@@ -434,9 +452,23 @@ export default function ExtractionTab({
                 </div>
               )}
             </div>
+            {canaisNoLog.length > 1 && (
+              <select
+                value={logFiltroCanal}
+                onChange={e => setLogFiltroCanal(e.target.value)}
+                className={`text-[10px] font-medium rounded-lg px-2 py-1 border outline-none cursor-pointer shrink-0 max-w-[140px] truncate
+                  ${darkMode
+                    ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                <option value="">Todos os canais</option>
+                {canaisNoLog.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
             {status.logs.length > 0 && (
               <button
-                onClick={() => clearLog().catch(() => {})}
+                onClick={() => { clearLog().catch(() => {}); setLogFiltroCanal(''); }}
                 title={t('log.clear')}
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all shrink-0
                   ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
@@ -469,16 +501,16 @@ export default function ExtractionTab({
           <div ref={logContainerRef} role="log" aria-label={t('log.title')} aria-live="polite" aria-relevant="additions"
             style={{ height: 'clamp(8rem, 22vh, 20rem)' }}
             className={`overflow-y-auto p-4 lg:p-5 space-y-1 custom-scrollbar text-xs ${darkMode ? 'bg-black/30 text-slate-300' : 'bg-slate-50 text-slate-700'}`}>
-            {status.logs.length === 0 ? (
+            {logsFiltrados.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center space-y-3">
                 <Activity size={28} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
                 <p className={`text-xs opacity-60 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {canalConfigurado ? t('log.ready') : t('log.complete_steps')}
+                  {logFiltroCanal ? `Sem logs para "${logFiltroCanal}"` : canalConfigurado ? t('log.ready') : t('log.complete_steps')}
                 </p>
               </div>
             ) : (
               <div role="list" aria-label={t('log.title')}>
-                {status.logs.map((log, i) => <LogLine key={i} log={log} darkMode={darkMode} />)}
+                {logsFiltrados.map((log, i) => <LogLine key={i} log={log} darkMode={darkMode} />)}
               </div>
             )}
           </div>

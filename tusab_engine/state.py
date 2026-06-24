@@ -133,7 +133,11 @@ class LogRedirector:
             return
 
         with state.state_lock:
-            state.logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": clean})
+            state.logs.append({
+                "timestamp": time.strftime("%H:%M:%S"),
+                "message": clean,
+                "canal": state.stats.get("canal_nome", ""),
+            })
 
             if "✅" in text or "OK!" in text:
                 state.stats["videos_processed"] += 1
