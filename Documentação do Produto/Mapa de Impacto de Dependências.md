@@ -304,6 +304,8 @@ data/
 | Renomear chave de localStorage | Hook correspondente | **MÉDIO** | Configuração do usuário reseta para default na próxima sessão |
 | Mudar slug de perfil em `PERFIS_META` | localStorage + regras de exibição de abas | **CRÍTICO** | Usuários com perfil salvo ficam sem perfil → redirecionados para onboarding |
 | Mudar `repositorio.canais[n]` shape | `RepositorioTab`, folder picker, `ExtractionTab` | **ALTO** | Projetos somem da UI; upload modal não lista projetos |
+| Upload de arquivo/texto sem projeto criado previamente | `router_repositorio.py:/neural/upload`, `/neural/texto` | **CRÍTICO** | Backend cria pasta on-the-fly mas sem registro no repositório → arquivo some na listagem. **Regra:** projeto deve existir antes do upload — UI deve bloquear upload até `criarProjeto()` retornar `ok: true`. |
+| Botão de upload no card do projeto abre modal já com projeto fixo | `RepositorioTab` — ícone 📎 no card do canal | **ALTO** | Se o projeto-alvo não existir mais no backend entre o click e o upload, o arquivo fica órfão. Recarregar `repositorio` ao abrir o modal de upload mitiga. |
 | Mudar `agentStatus.indexing` | `useAgentConfig.refetchAgentStatus`, `indexingDoneCount`, snackbar do ChatDrawer | **ALTO** | Transição true→false não detectada → contador não incrementa → snackbar nunca aparece |
 | Remover prop `indexingDoneCount` do ChatDrawer | Snackbar de sucesso pós-indexação | **MÉDIO** | Snackbar some silenciosamente; indexação funciona normalmente |
 | Mudar formato do stream `/agent/chat/stream` | `useChatEngine.js:parseMessageStream()` | **CRÍTICO** | Chat fica "enviando..." eternamente ou resposta não renderiza |
