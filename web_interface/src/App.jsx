@@ -1261,6 +1261,7 @@ function App() {
                 handleCancel={handleCancel}
                 repositorio={repositorio}
                 onOpenFolderPicker={() => setFolderPickerOpen(true)}
+                onOpenQueueModal={() => setShowQueueModal(true)}
                 onNavigateMonitor={() => { setActiveTab('monitor'); setShowHome(false); }}
                 onRemoveCanal={() => {
                   setCanalConfigurado('');

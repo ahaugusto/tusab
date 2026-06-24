@@ -55,11 +55,10 @@ def run_motor():
             cancelado = state.evento_cancelar.is_set()
             if cancelado:
                 state.stats["status"] = "Interrompido"
-                # Não limpa a fila — o frontend pergunta se deve continuar
-                break
-
-            state.stats["status"]   = "Finalizado ✓"
-            state.stats["progress"] = 100
+                # Cancela só o canal atual — continua para o próximo da fila
+            else:
+                state.stats["status"]   = "Finalizado ✓"
+                state.stats["progress"] = 100
 
         except Exception as e:
             print(f"❌ ERRO NO MOTOR: {e}")
