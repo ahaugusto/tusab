@@ -38,6 +38,7 @@ let pythonProcess = null
 let ollamaProcess = null
 let watchdogTimer = null
 let backendDead   = false
+let pyStderrLines = []   // últimas linhas de stderr do Python — exibidas no erro de timeout
 
 // ─── Ollama ────────────────────────────────────────────────────────────────
 function findOllamaExe () {
@@ -211,7 +212,13 @@ function spawnBackend () {
   )
 
   pythonProcess.stdout.on('data', d => console.log('[py]', d.toString().trim()))
-  pythonProcess.stderr.on('data', d => console.error('[py]', d.toString().trim()))
+  pythonProcess.stderr.on('data', d => {
+    const line = d.toString().trim()
+    console.error('[py]', line)
+    // Guarda as últimas 20 linhas para exibir no diálogo de erro
+    pyStderrLines.push(...line.split('\n'))
+    if (pyStderrLines.length > 20) pyStderrLines = pyStderrLines.slice(-20)
+  })
   pythonProcess.on('exit', code => {
     console.log('[py] processo encerrado com código:', code)
     // Se o backend morreu inesperadamente e a janela ainda está aberta, avisa
@@ -224,10 +231,33 @@ function spawnBackend () {
 }
 
 // ─── Aguarda o backend estar pronto ────────────────────────────────────────
-function waitForBackend (maxMs = 20000) {
+function waitForBackend (maxMs = 90000) {
   const deadline = Date.now() + maxMs
+  const start    = Date.now()
+
+  // Mensagens progressivas conforme o tempo passa (ms decorrido → msg)
+  const PROGRESS_MSGS = [
+    [0,     'Iniciando backend...'],
+    [8000,  'Carregando modelos de IA...'],
+    [20000, 'Carregando modelos de IA (pode levar ate 1 min na primeira vez)...'],
+    [40000, 'Ainda inicializando — aguarde mais um momento...'],
+    [70000, 'Quase pronto...'],
+  ]
+  let lastMsgIdx = -1
+
   return new Promise((resolve, reject) => {
     const attempt = () => {
+      // Atualiza mensagem de status conforme o tempo decorrido
+      const elapsed = Date.now() - start
+      for (let i = PROGRESS_MSGS.length - 1; i >= 0; i--) {
+        if (elapsed >= PROGRESS_MSGS[i][0] && lastMsgIdx < i) {
+          lastMsgIdx = i
+          const msg = PROGRESS_MSGS[i][1].replace(/'/g, "\\'")
+          sendToLoading(`window.setStatus('${msg}', ${i >= 1})`)
+          break
+        }
+      }
+
       http.get(`http://127.0.0.1:${PORT}/status`, res => {
         res.resume()
         if (res.statusCode === 200) return resolve()
@@ -397,9 +427,12 @@ async function createWindow () {
     mainWindow.loadURL(`http://127.0.0.1:${PORT}`)
     startWatchdog()
   } catch (err) {
+    const pyLog = pyStderrLines.length > 0
+      ? `\n\nLog do Python (últimas linhas):\n${pyStderrLines.join('\n')}`
+      : ''
     dialog.showErrorBox(
       "Tusab — Erro de inicialização",
-      `O backend não respondeu a tempo.\n\n${err.message}\n\nVerifique se o Python e as dependências estão instaladas corretamente.`
+      `O backend não respondeu a tempo.\n\n${err.message}${pyLog}\n\nSe este é o primeiro uso, aguarde alguns minutos e tente novamente. Se o problema persistir, contate tusab@tusab.solutions`
     )
     app.quit()
   }
