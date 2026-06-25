@@ -19,16 +19,72 @@
       overflow: hidden;
     }
 
-    /* Grid de circuito estático no fundo */
-    body::before {
-      content: '';
+    /* Grid de circuito animado — pulsos percorrem as linhas */
+    .circuit-bg {
       position: fixed;
       inset: 0;
-      background-image:
-        linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
-      background-size: 48px 48px;
+      overflow: hidden;
       pointer-events: none;
+    }
+    .circuit-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(139,92,246,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139,92,246,0.045) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    /* Pulso horizontal */
+    .circuit-bg::after {
+      content: '';
+      position: absolute;
+      top: 35%;
+      left: -20%;
+      width: 40%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(96,165,250,0.6), transparent);
+      animation: pulse-h 3.8s ease-in-out 0.5s infinite;
+    }
+    .pulse-v {
+      position: absolute;
+      top: -20%;
+      left: 62%;
+      width: 1px;
+      height: 40%;
+      background: linear-gradient(180deg, transparent, rgba(167,139,250,0.5), transparent);
+      animation: pulse-v 4.2s ease-in-out 1.2s infinite;
+    }
+    .pulse-v2 {
+      position: absolute;
+      top: -20%;
+      left: 30%;
+      width: 1px;
+      height: 40%;
+      background: linear-gradient(180deg, transparent, rgba(96,165,250,0.4), transparent);
+      animation: pulse-v 5s ease-in-out 2.8s infinite;
+    }
+    .pulse-h2 {
+      position: absolute;
+      top: 68%;
+      left: 60%;
+      width: 35%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(139,92,246,0.4), transparent);
+      animation: pulse-h 4.5s ease-in-out 2s infinite;
+    }
+
+    @keyframes pulse-h {
+      0%   { transform: translateX(0);    opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateX(200%); opacity: 0; }
+    }
+    @keyframes pulse-v {
+      0%   { transform: translateY(0);    opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(250%); opacity: 0; }
     }
 
     .center {
@@ -40,7 +96,7 @@
       gap: 0;
     }
 
-    /* Logo com glow pulsante */
+    /* Logo com glow pulsante — idêntico ao LandingScreen */
     .logo-wrap {
       position: relative;
       display: flex;
@@ -51,61 +107,72 @@
 
     .logo-glow {
       position: absolute;
-      inset: -24px;
+      inset: -32px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, rgba(75,159,232,0.35) 0%, transparent 70%);
+      filter: blur(8px);
       opacity: 0;
       animation: pulse-glow 3s ease-in-out 1.2s infinite;
     }
 
     .logo {
-      font-size: 3.2rem;
+      font-size: 3.6rem;
       font-weight: 800;
-      letter-spacing: -1.5px;
-      background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #60a5fa 100%);
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #a78bfa 0%, #818cf8 40%, #60a5fa 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       position: relative;
+      animation: logo-scale 3s ease-in-out 1.2s infinite;
+    }
+
+    @keyframes logo-scale {
+      0%   { transform: scale(1); }
+      5%   { transform: scale(1.025); }
+      25%  { transform: scale(1.018); }
+      45%  { transform: scale(1.010); }
+      55%  { transform: scale(1); }
+      100% { transform: scale(1); }
     }
 
     .sub {
-      font-size: 0.72rem;
-      color: #475569;
-      letter-spacing: 0.22em;
+      font-size: 0.68rem;
+      color: #334155;
+      letter-spacing: 0.28em;
       text-transform: uppercase;
       margin-bottom: 3.5rem;
     }
 
     /* Spinner */
     .spinner {
-      width: 32px;
-      height: 32px;
-      border: 2.5px solid rgba(139,92,246,0.15);
-      border-top-color: #a78bfa;
+      width: 28px;
+      height: 28px;
+      border: 2px solid rgba(139,92,246,0.12);
+      border-top-color: #818cf8;
       border-radius: 50%;
       animation: spin 0.9s linear infinite;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     /* Status */
     .status {
-      font-size: 0.78rem;
-      color: #64748b;
-      transition: color 0.3s, opacity 0.3s;
+      font-size: 0.75rem;
+      color: #475569;
+      transition: color 0.4s, opacity 0.3s;
       text-align: center;
       min-height: 1.2em;
     }
     .status.highlight {
-      color: #a78bfa;
-      font-weight: 600;
+      color: #818cf8;
+      font-weight: 500;
     }
 
     /* Barra de progresso */
     .progress-wrap {
-      width: 200px;
-      height: 2px;
-      background: rgba(139,92,246,0.12);
+      width: 180px;
+      height: 1.5px;
+      background: rgba(139,92,246,0.1);
       border-radius: 99px;
       overflow: hidden;
       margin-top: 1rem;
@@ -120,10 +187,22 @@
       transition: width 0.4s ease;
     }
 
-    /* Aviso rodapé */
+    /* Rodapé */
+    .footer {
+      position: fixed;
+      bottom: 1.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.62rem;
+      color: #1e293b;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* Aviso (setNotice) */
     .notice {
       position: fixed;
-      bottom: 2rem;
+      bottom: 3.5rem;
       left: 50%;
       transform: translateX(-50%);
       font-size: 0.65rem;
@@ -132,28 +211,35 @@
       max-width: 360px;
       line-height: 1.7;
       transition: color 0.4s;
+      opacity: 0;
     }
-    .notice.visible { color: #475569; }
+    .notice.visible { opacity: 1; color: #475569; }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
     @keyframes pulse-glow {
-      0%   { opacity: 0;    transform: scale(0.95); }
-      15%  { opacity: 1;    transform: scale(1.025); }
-      40%  { opacity: 0.85; transform: scale(1.018); }
-      65%  { opacity: 0.5;  transform: scale(1.01); }
-      100% { opacity: 0;    transform: scale(0.95); }
+      0%   { opacity: 0;    transform: scale(0.92); }
+      15%  { opacity: 1;    transform: scale(1.02); }
+      40%  { opacity: 0.85; transform: scale(1.015); }
+      65%  { opacity: 0.5;  transform: scale(1.008); }
+      100% { opacity: 0;    transform: scale(0.92); }
     }
   </style>
 </head>
 <body>
+  <div class="circuit-bg">
+    <div class="pulse-v"></div>
+    <div class="pulse-v2"></div>
+    <div class="pulse-h2"></div>
+  </div>
+
   <div class="center">
     <div class="logo-wrap">
       <div class="logo-glow"></div>
       <div class="logo">Tusab</div>
     </div>
-    <div class="sub">Indexe. Aprenda. Consulte.</div>
+    <div class="sub">Indexe &nbsp;·&nbsp; Aprenda &nbsp;·&nbsp; Consulte</div>
 
     <div class="spinner"></div>
     <div class="status" id="status">Iniciando backend...</div>
@@ -162,11 +248,9 @@
     </div>
   </div>
 
-  <div class="notice" id="notice">
-    Na primeira execucao, componentes adicionais podem ser baixados
-    automaticamente para habilitar o Agente IA local.
-    Isso acontece apenas uma vez.
-  </div>
+  <div class="notice" id="notice"></div>
+
+  <div class="footer">© 2026 CriAugu</div>
 
   <script>
     window.setStatus = function(msg, highlight) {

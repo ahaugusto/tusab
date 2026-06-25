@@ -7,6 +7,12 @@ import sys
 import os
 import warnings
 
+# Garante que o diretório do próprio script está no sys.path
+# Necessário no Python embarcado (python_env) onde o cwd pode não ser adicionado automaticamente
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
+
 # Suprime warnings do SDK Gemini clássico (google-generativeai deprecado pelo Google)
 # Migração para google-genai pendente — manter até atualizar o SDK
 warnings.filterwarnings("ignore", category=FutureWarning, module="google")
