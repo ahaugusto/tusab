@@ -7,6 +7,62 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.7] — 2026-06-25
+
+### Fixed
+- **Export de PDF não funcionava no app instalado** — `reportlab` declarado no `requirements.txt` mas nunca incluído no `python_env/` bundled. Instalado e reempacotado; export de PDF agora funciona offline sem dependências externas.
+- **PDFs com layout complexo geravam texto corrompido** — tolerâncias explícitas no `pdfplumber.extract_text()` (`x_tolerance=3, y_tolerance=3`) melhoram extração de colunas e tabelas. Hifenização automática de linha (`palavra-\npalavra`) desfeita por regex. Espaços múltiplos colapsados.
+- **PDFs escaneados eram rejeitados silenciosamente** — agora são aceitos no repositório com texto placeholder e aviso ao usuário, em vez de retornar "Arquivo sem conteúdo extraível". Campo `QUALIDADE_PDF` gravado no cabeçalho do `.txt` para diagnóstico futuro.
+- **Mensagem de erro de export PDF inútil no .exe** — substituída sugestão de `pip install` por mensagem orientando o usuário a reinstalar ou contatar suporte.
+
+---
+
+## [1.0.6] — 2026-06-25
+
+### Fixed
+- **Chip "✓ ativo" no seletor de modelos Ollama aparecia sem modelo instalado** — `modelName` agora exige `hasModel` (lista não vazia) antes de resolver; sem modelo, chip não aparece.
+- **E-mail de suporte com typo na aba Admin** — `tusab@tusab.sollutions` corrigido para `tusab@tusab.solutions`.
+- **`electron-updater` apontava para repositório privado** — usuários sem acesso ao repo privado não recebiam atualizações automáticas. `build.publish.repo` corrigido para `tusab-public`.
+- **Versão exibida no nav lateral não refletia a versão de publicação** — estava hardcoded `v1.0.0`; agora usa `__APP_VERSION__` injetado via Vite em build-time.
+
+### New
+- **Instalador NSIS multilíngue** — Português (padrão), Inglês e Espanhol. O idioma é detectado automaticamente pelo Windows via locale ID; sem seleção manual necessária.
+- **Aviso no chat quando Ollama está ativo mas sem modelo** — estado `ollamaSemModelo` bloqueia o chat e exibe banner orientando o usuário a baixar um modelo na aba Agente.
+- **Versão, ano, e-mail e CNPJ injetados em build-time** — constantes `__APP_VERSION__`, `__APP_YEAR__`, `__SUPPORT_EMAIL__`, `__CNPJ__` definidas em `vite.config.js` a partir do `electron/package.json`; nunca desincronizam com a release.
+
+---
+
+## [1.0.4] — 2026-06-25
+
+### New
+- Tela de loading em preto e branco (identidade da marca).
+- Instalador oferece instalar o Ollama automaticamente durante o setup via script NSIS customizado.
+- Botão de download direto do Ollama no app (sempre versão mais recente via redirect oficial).
+- Estimativa de tempo restante durante download de modelos Ollama.
+
+### Fixed
+- Alerta visual claro quando Ollama não está instalado (âmbar, não verde).
+- Chip "ativo" corrigido — não aparecia quando Ollama estava rodando mas sem modelo selecionado.
+
+---
+
+## [1.0.3] — 2026-06-24
+
+### Fixed
+- **Crash imediato do backend em instalações novas** — `ModuleNotFoundError: motor_tusab` ao importar via shim no Electron packaged. Corrigido path de import no `main.js`.
+- Tela de loading com animação de pulsos e glow azul/violeta alinhada ao design da landing.
+
+---
+
+## [1.0.2] — 2026-06-24
+
+### Fixed
+- Timeout do backend aumentado para 90 segundos — resolve "Timeout aguardando backend" em máquinas novas (carregamento inicial dos modelos sentence-transformers demora mais).
+- Feedback progressivo na tela de loading durante inicialização dos modelos de IA.
+- Log do Python exibido no diálogo de erro para facilitar diagnóstico.
+
+---
+
 ## [1.0.1] — 2026-06-24
 
 ### Fixed

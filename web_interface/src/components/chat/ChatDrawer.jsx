@@ -186,6 +186,7 @@ function ChatDrawer({
   agentProvider,
   ollamaStatus,
   onAbrirIndexacaoRepositorio,
+  onGoToAgent,
   chatHistory,
   onRetomar,
   onNovaConversa,
@@ -536,11 +537,11 @@ function ChatDrawer({
                     </>
                   ) : ollamaSemModelo ? (
                     <>
-                      <div className={`p-3 rounded-2xl ${darkMode ? 'bg-primary/10' : 'bg-violet-50'}`}>
+                      <div className={`p-3 rounded-2xl ${darkMode ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
-                          className={darkMode ? 'text-primary' : 'text-violet-400'} aria-hidden="true">
-                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                          <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+                          className={darkMode ? 'text-amber-400' : 'text-amber-500'} aria-hidden="true">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                         </svg>
                       </div>
                       <p className={`text-xs font-bold text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
@@ -549,6 +550,16 @@ function ChatDrawer({
                       <p className={`text-[11px] text-center max-w-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         {t('chat.ollama_no_model_body')}
                       </p>
+                      {onGoToAgent && (
+                        <button
+                          onClick={() => { onGoToAgent(); setChatOpen(false); }}
+                          className={`mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] bg-amber-500/20 text-amber-400 hover:bg-amber-500/30`}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                          </svg>
+                          {t('chat.ollama_go_to_agent')}
+                        </button>
+                      )}
                     </>
                   ) : !temBase ? (
                     <>

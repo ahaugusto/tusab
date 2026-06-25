@@ -476,9 +476,35 @@ async def cerebro_upload(
     aviso_extracao = None  # mensagem opcional quando extração parcial/indisponível
     try:
         if ext == ".pdf":
-            import pdfplumber, io
-            with pdfplumber.open(io.BytesIO(conteudo_bytes)) as pdf:
-                texto = "\n".join(p.extract_text() or "" for p in pdf.pages)
+            import pdfplumber, io as _io
+            paginas = []
+            with pdfplumber.open(_io.BytesIO(conteudo_bytes)) as pdf:
+                for pagina in pdf.pages:
+                    # extract_text_simple preserva espaçamento horizontal melhor que o padrão
+                    txt = pagina.extract_text(x_tolerance=3, y_tolerance=3) or ""
+                    # corrige quebras de linha no meio de palavras (hifenização automática de PDFs)
+                    txt = re.sub(r'(?<=[a-záàâãéêíóôõúç])-\n(?=[a-záàâãéêíóôõúç])', '', txt, flags=re.IGNORECASE)
+                    # colapsa espaços múltiplos em um
+                    txt = re.sub(r'[ \t]{2,}', ' ', txt)
+                    txt = txt.strip()
+                    if txt:
+                        paginas.append(txt)
+            texto = "\n\n".join(paginas)
+            if not texto.strip():
+                # PDF escaneado sem camada de texto — registra com aviso em vez de rejeitar
+                aviso_extracao = (
+                    "⚠️ PDF sem camada de texto detectado (possivelmente escaneado). "
+                    "O arquivo foi salvo no repositório, mas o texto não pôde ser extraído. "
+                    "Para indexar o conteúdo, instale Ollama com modelo multimodal (llava ou gemma3) "
+                    "e reindexe a base."
+                )
+                texto = (
+                    f"[PDF registrado sem extração de texto — possível documento escaneado]\n"
+                    f"Arquivo: {arquivo.filename}\n"
+                    f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                    f"Para extrair o conteúdo, instale Ollama com modelo multimodal (llava ou gemma3) "
+                    f"e reindexe a base após a instalação."
+                )
         elif ext in (".docx",):
             import docx, io
             doc = docx.Document(io.BytesIO(conteudo_bytes))
@@ -558,6 +584,9 @@ async def cerebro_upload(
     txt_path = os.path.join(doc_dir, f"{fid}_{nome_limpo}.txt")
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(f"TITULO: {arquivo.filename}\nFONTE: documento\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
+        if ext == ".pdf":
+            qualidade = "escaneado_sem_ocr" if aviso_extracao and "sem camada" in aviso_extracao else "texto_nativo"
+            f.write(f"QUALIDADE_PDF: {qualidade}\n")
         f.write("-" * 70 + "\n")
         f.write(texto)
 
