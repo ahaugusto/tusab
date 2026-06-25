@@ -79,7 +79,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Tusab",
       "license": "build_resources/license.txt",
-      "installerLanguages": ["PortugueseBR", "English", "SpanishInternational"],
+      "installerLanguages": ["pt_BR", "en", "es"],
       "language": "1046"
     },
     "publish": {
