@@ -7,6 +7,23 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.8-beta] — 2026-06-25
+
+### Fixed (P0 — Estabilidade)
+- **Fila de extração perdida ao fechar o app** — `extraction_queue` agora persiste em `data/config/extraction_queue.json` a cada mutação e é restaurada no próximo startup. Jobs pendentes sobrevivem a crashes e reinicializações.
+- **Race condition no histórico de chat** — leitura do histórico movida para dentro do `agent_chat_lock`, garantindo que leitura + LLM + escrita sejam atômicas. Chats concorrentes no mesmo canal não sobrescrevem mais o histórico um do outro.
+- **`google-generativeai` legado removido** — SDK depreciado (`google-generativeai`) removido do `requirements.txt`; `google-genai` já era o SDK ativo e continua sendo o único.
+
+### New
+- **API de eventos estruturados no AppState** — `dispatch_event(event, **kwargs)` substitui o contrato implícito de emojis no `LogRedirector`. O motor pode chamar diretamente sem depender de padrões de string frágeis.
+- **Toast de carregamento do CrossEncoder** — primeira busca ampla exibe toast informativo ("Carregando modelo de relevância semântica... ~30s") via campo `cross_encoder_loading` em `GET /agent/status`.
+- **Persistência e restauração de fila** — métodos `salvar_fila()` / `restaurar_fila()` no `AppState`; chamados em todas as mutações da fila (add, clear, remove, move, pop).
+
+### Improved (P1 — Qualidade RAG)
+- **Chunking dinâmico por tipo de documento** — documentos PDF/DOCX usam janelas de 1.500 chars com overlap de 300; textos colados/WhatsApp usam 500 chars com overlap de 100. YouTube continua com chunks naturais por vídeo. Melhora o recall BM25 para documentos densos e conversas fragmentadas.
+
+---
+
 ## [1.0.7] — 2026-06-25
 
 ### Fixed

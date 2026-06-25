@@ -501,6 +501,14 @@ function App() {
   }, [agentStatus.indexing, agentStatus.index_logs]);
 
 
+  /** Toast de carregamento do CrossEncoder (primeira busca ampla — ~30s) */
+  useEffect(() => {
+    if (agentStatus.cross_encoder_loading) {
+      setProgressToast({ type: 'info', message: t('toast.cross_encoder_loading') });
+    }
+  }, [agentStatus.cross_encoder_loading]);
+
+
   /** Shows post-extraction modal and sends desktop notification when extraction finishes */
   useEffect(() => {
     const s = status.stats.status;

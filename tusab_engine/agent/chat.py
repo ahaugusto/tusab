@@ -37,20 +37,24 @@ from tusab_engine.agent.index import (
 
 _cross_encoder = None
 _cross_encoder_lock = __import__('threading').Lock()
+cross_encoder_loading = False  # True enquanto o modelo está sendo carregado pela primeira vez
 
 def _get_cross_encoder():
     """Retorna o CrossEncoder carregado (lazy, singleton). Retorna None se indisponível."""
-    global _cross_encoder
+    global _cross_encoder, cross_encoder_loading
     if _cross_encoder is not None:
         return _cross_encoder
     with _cross_encoder_lock:
         if _cross_encoder is not None:
             return _cross_encoder
+        cross_encoder_loading = True
         try:
             from sentence_transformers import CrossEncoder as _CE
             _cross_encoder = _CE('cross-encoder/ms-marco-MiniLM-L-6-v2')
         except Exception:
             _cross_encoder = False  # sentinel: tentativa feita, indisponível
+        finally:
+            cross_encoder_loading = False
     return _cross_encoder if _cross_encoder else None
 
 

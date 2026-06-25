@@ -175,6 +175,11 @@ def agent_status(canal: str = ""):
     status = agent_tusab.get_agent_status()
     status["indexing"]   = state.agent_indexing
     status["index_logs"] = state.agent_index_logs[-30:]
+    try:
+        from tusab_engine.agent.chat import cross_encoder_loading
+        status["cross_encoder_loading"] = cross_encoder_loading
+    except Exception:
+        status["cross_encoder_loading"] = False
     if not state.agent_indexing and canal:
         prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal).strip('_')
         status["perguntas_sugeridas"] = state.perguntas_sugeridas.get(prefixo, [])
@@ -680,18 +685,20 @@ def agent_chat(req: AgentChatRequest):
     if state.agent_indexing:
         return {"error": True, "message": "Indexação em andamento. Aguarde."}
     mensagem = req.mensagem[:2000].strip()
-    with state.hist_lock:
-        hist = list(state.chat_histories.get(req.canal_nome, []))
     try:
+        # hist_lock DENTRO do agent_chat_lock — leitura+LLM+escrita como operação atômica
         with state.agent_chat_lock:
-            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''))
-        if not resultado.get("error"):
-            hist = hist + [
-                {"role": "user",      "content": mensagem},
-                {"role": "assistant", "content": resultado.get("resposta", "")},
-            ]
             with state.hist_lock:
-                state.chat_histories[req.canal_nome] = hist[-_MAX_HIST_MSGS:]
+                hist = list(state.chat_histories.get(req.canal_nome, []))
+            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''))
+            if not resultado.get("error"):
+                novo_hist = hist + [
+                    {"role": "user",      "content": mensagem},
+                    {"role": "assistant", "content": resultado.get("resposta", "")},
+                ]
+                with state.hist_lock:
+                    state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+        if not resultado.get("error"):
             try:
                 n_refs = len(resultado.get("fontes", []))
                 _atualizar_chat_stats(req.canal_nome, n_refs)
@@ -710,8 +717,12 @@ def agent_chat_stream(req: AgentChatStreamRequest):
         return StreamingResponse(_err(), media_type='text/plain')
 
     mensagem = req.mensagem[:2000].strip()
-    with state.hist_lock:
-        hist = list(state.chat_histories.get(req.canal_nome, []))
+
+    # Serializa streaming: captura hist antes, escreve de volta depois de concluir.
+    # agent_chat_lock garante que dois streams do mesmo canal não entrelacem histórico.
+    with state.agent_chat_lock:
+        with state.hist_lock:
+            hist = list(state.chat_histories.get(req.canal_nome, []))
 
     resposta_acumulada = []
     refs_acumuladas = []

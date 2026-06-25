@@ -469,6 +469,7 @@
   "toast.bases_indexed_partial": "{{ok}} of {{total}} bases indexed (others have no content).",
   "toast.open_chat": "Open chat",
   "toast.reset_success": "All data has been successfully deleted.",
+  "toast.cross_encoder_loading": "Loading semantic relevance model for the first time (~30s). Future searches will be instant.",
   "error.remove_canal": "Error removing channel. Please try again.",
   "ops.queue_title": "Extraction queue",
   "ops.extract_another": "Extract Another",

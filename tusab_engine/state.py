@@ -20,6 +20,7 @@ import os
 import sys
 import re
 import time
+import json
 import threading
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -87,6 +88,80 @@ class AppState:
         # Fila de extração sequencial: lista de {"url": str, "fontes": list}
         self.extraction_queue: list = []
         self.queue_lock = threading.Lock()
+
+    # ── API de eventos estruturados ───────────────────────────────────────────
+    # Substitui o contrato implícito de emojis/strings do LogRedirector.
+    # O motor chama dispatch_event() em vez de depender de padrões de texto.
+
+    def dispatch_event(self, event: str, **kwargs):
+        """Atualiza stats via evento tipado — sem parsing de strings."""
+        with self.state_lock:
+            if event == "video_processed":
+                self.stats["videos_processed"] += 1
+                if self.stats["videos_total"] > 0:
+                    pct = int(self.stats["videos_processed"] / self.stats["videos_total"] * 100)
+                    self.stats["progress"] = min(pct, 99)
+                elapsed = time.time() - self.extraction_start_time
+                processed = self.stats["videos_processed"]
+                total = self.stats["videos_total"]
+                if processed > 0 and total > 0 and elapsed > 0 and self.extraction_start_time > 0:
+                    rate = processed / elapsed
+                    self.stats["eta_segundos"] = int((total - processed) / rate) if rate > 0 else 0
+                else:
+                    self.stats["eta_segundos"] = 0
+
+            elif event == "file_generated":
+                self.stats["files_generated"] += 1
+
+            elif event == "video_sem_legenda":
+                self.stats["videos_sem_legenda"] += 1
+
+            elif event == "video_legenda_curta":
+                self.stats["videos_legenda_curta"] += 1
+
+            elif event == "videos_mapeados":
+                total = kwargs.get("total", 0)
+                self.stats["videos_mapeados"] = total
+                self.stats["status"] = "Mapeando YouTube"
+
+            elif event == "videos_total":
+                total = kwargs.get("total", 0)
+                self.stats["videos_total"] = total
+                self.stats["videos_mapeados"] = total
+                self.stats["status"] = "Extraindo legendas"
+
+            elif event == "idioma_detectado":
+                self.stats["idioma_detectado"] = kwargs.get("idioma", "")
+
+    # ── Persistência da fila ──────────────────────────────────────────────────
+
+    def _queue_path(self) -> str:
+        from tusab_engine.storage import CONFIG_PATH
+        return os.path.join(os.path.dirname(CONFIG_PATH), 'extraction_queue.json')
+
+    def salvar_fila(self):
+        """Persiste a fila em disco atomicamente."""
+        try:
+            path = self._queue_path()
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(self.extraction_queue, f, ensure_ascii=False)
+            os.replace(tmp, path)
+        except Exception:
+            pass
+
+    def restaurar_fila(self):
+        """Carrega a fila do disco no startup (se houver jobs pendentes)."""
+        try:
+            path = self._queue_path()
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    dados = json.load(f)
+                if isinstance(dados, list):
+                    self.extraction_queue = dados
+        except Exception:
+            pass
 
 
 
