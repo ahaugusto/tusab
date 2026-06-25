@@ -9,6 +9,9 @@ export default defineConfig({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(electronPkg.version),
+    __APP_YEAR__:    JSON.stringify(new Date().getFullYear()),
+    __SUPPORT_EMAIL__: JSON.stringify('tusab@tusab.solutions'),
+    __CNPJ__:        JSON.stringify('65.131.075/0001-57'),
   },
   build: {
     sourcemap: true,

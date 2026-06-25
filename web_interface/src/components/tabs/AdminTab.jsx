@@ -132,13 +132,13 @@ export default function AdminTab({
             Encontrou um problema ou tem uma sugestão? Entre em contato com a equipe do Tusab.
           </p>
           <a
-            href="mailto:tusab@tusab.sollution"
+            href={`mailto:${__SUPPORT_EMAIL__}`}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors
               ${darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
-            <Mail size={13} /> tusab@tusab.sollution
+            <Mail size={13} /> {__SUPPORT_EMAIL__}
           </a>
           <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-            Tusab v1.0.0 · © 2026 CriAugu — CNPJ 65.131.075/0001-57
+            Tusab v{__APP_VERSION__} · © {__APP_YEAR__} CriAugu — CNPJ {__CNPJ__}
           </p>
         </div>
       </section>

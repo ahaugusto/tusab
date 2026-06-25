@@ -195,4 +195,74 @@ A decisão de manter fechado não precisa ser permanente. O caminho natural é:
 
 ---
 
-*Documento criado em 12/06/2026 · Tusab v3.0 · © 2026 CriAugu*
+## 6. Auto-update — como funciona e como publicar
+
+### Fluxo do usuário
+
+Quando uma nova versão é publicada, o Tusab detecta automaticamente e notifica
+o usuário sem interromper o uso:
+
+1. Ao abrir o app, `electron-updater` consulta o GitHub Releases do repo privado
+2. Se houver versão mais nova, aparece um **banner no rodapé** da interface:
+   _"Nova versão disponível: vX.X.X — Baixando em segundo plano…"_
+3. Um **badge laranja** aparece na aba Admin da sidebar
+4. Quando o download termina, o banner muda para
+   _"Tusab vX.X.X pronto para instalar"_ com botão "Instalar agora"
+5. O botão "Ver detalhes" navega para a aba Admin, onde um card com a versão
+   e o botão "Instalar e reiniciar agora" fica visível
+6. Se o usuário fechar o app sem instalar, a atualização é aplicada automaticamente
+
+### Arquitetura técnica
+
+| Componente | Responsabilidade |
+|---|---|
+| `electron-updater` (main.js) | Consulta GitHub Releases, baixa `.exe` em background |
+| `main.js → setupAutoUpdater()` | Envia eventos `update-available` e `update-downloaded` via IPC |
+| `electron/preload.js` | Expõe `onUpdateAvailable`, `onUpdateDownloaded`, `installUpdate` |
+| `App.jsx` | Banner animado + badge na sidebar |
+| `AdminTab.jsx` | Card de destaque com botão de instalação |
+
+O `electron-updater` lê a configuração `build.publish` do `package.json`:
+```json
+"publish": {
+  "provider": "github",
+  "owner": "ahaugusto",
+  "repo": "tusab"
+}
+```
+Isso aponta para o repo **privado** — o updater usa a API do GitHub Releases para
+verificar versões. O usuário **não** precisa de conta GitHub; o updater faz
+requests autenticados internamente.
+
+### Como publicar uma nova versão (checklist)
+
+1. Bumpar `"version"` em `electron/package.json`
+2. Buildar frontend: `cd web_interface && npm run build`
+3. Buildar instalador: `cd electron && npm run build`
+4. Commitar e fazer push no repo privado (`ahaugusto/tusab`)
+5. Criar release no repo **privado** com tag `vX.X.X`:
+   ```
+   gh release create vX.X.X "dist_electron/Tusab Setup X.X.X.exe#Tusab.Setup.X.X.X.exe" \
+     --repo ahaugusto/tusab --title "vX.X.X" --notes "..."
+   ```
+6. Criar release no repo **público** (`ahaugusto/tusab-public`) com o mesmo `.exe`
+   para o link de download público:
+   ```
+   gh release create vX.X.X "dist_electron/Tusab Setup X.X.X.exe#Tusab.Setup.X.X.X.exe" \
+     --title "..." --notes "..."
+   ```
+7. Atualizar links de download nos dois READMEs
+
+**Por que dois repos?**
+O `electron-updater` verifica releases no repo privado (código-fonte protegido).
+O link de download público aponta para o repo público (sem necessidade de login).
+
+### Preferência do usuário
+
+O usuário pode desativar o auto-update pela aba Admin → "Atualizações automáticas".
+A preferência é salva no keystore local via `electron.safeStorage` (DPAPI no Windows).
+Quando desativado, o app não consulta o GitHub Releases e nenhuma notificação aparece.
+
+---
+
+*Documento criado em 12/06/2026 · Atualizado em 25/06/2026 · Tusab v1.0.5 · © 2026 CriAugu*

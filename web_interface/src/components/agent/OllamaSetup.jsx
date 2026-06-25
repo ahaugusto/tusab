@@ -44,9 +44,9 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
   const [tempoRestante, setTempoRestante] = React.useState(null);
 
   const hasModel  = ollamaStatus.models && ollamaStatus.models.length > 0;
-  // Só usa modelo padrão se Ollama estiver rodando — evita chip "ativo" falso
-  const modelName = ollamaStatus.running
-    ? (ollamaModel || (hasModel ? ollamaStatus.models[0] : 'llama3.2:1b'))
+  // modelName só existe quando Ollama está rodando E há pelo menos um modelo instalado
+  const modelName = (ollamaStatus.running && hasModel)
+    ? (ollamaModel && ollamaStatus.models.includes(ollamaModel) ? ollamaModel : ollamaStatus.models[0])
     : null;
 
   const refresh = async () => {

@@ -7,6 +7,180 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
+## Sprint 25/06/2026 — v1.0.6: instalador multilíngue, versão dinâmica, UX do Ollama sem modelo
+
+**Versão:** v1.0.6
+**Escopo:** Electron + Frontend
+**Branch:** main
+
+### Contexto
+
+Sprint de qualidade e distribuição em três frentes:
+1. **Instalador multilíngue** — NSIS detecta o idioma do Windows e exibe PT/EN/ES
+2. **Valores dinâmicos** — versão, ano de copyright, CNPJ e e-mail injetados em build-time; nunca desincronizam
+3. **UX Ollama sem modelo** — chat bloqueado com aviso claro quando Ollama está rodando mas sem modelo baixado
+
+---
+
+### Electron / NSIS
+
+#### Feat: instalador em 3 idiomas (PT / EN / ES)
+
+`electron/build_resources/installer.nsh` reescrito com `LangString` para os IDs de idioma Windows:
+- `1046` (Português Brasil), `1033` (Inglês), `3082` (Espanhol Internacional)
+
+O instalador detecta o idioma do Windows automaticamente. Todas as mensagens são localizadas:
+pergunta de instalação do Ollama, caption e banner de download, mensagens de sucesso e erro.
+
+`electron/package.json` atualizado:
+```json
+"installerLanguages": ["PortugueseBR", "English", "SpanishInternational"],
+"language": "1046"
+```
+O seletor de idioma aparece na primeira tela do instalador; PT é o padrão.
+
+#### Fix: `build.publish` apontava para repo privado
+
+`"repo": "tusab"` → `"repo": "tusab-public"` — o `electron-updater` agora verifica releases no repo público, acessível por todos os usuários sem autenticação GitHub.
+
+---
+
+### Frontend
+
+#### Fix: versão, ano, CNPJ e e-mail hardcoded
+
+`vite.config.js` — 4 novas variáveis injetadas em build-time:
+
+```js
+define: {
+  __APP_VERSION__:   JSON.stringify(electronPkg.version),    // já existia
+  __APP_YEAR__:      JSON.stringify(new Date().getFullYear()),
+  __SUPPORT_EMAIL__: JSON.stringify('tusab@tusab.solutions'),
+  __CNPJ__:          JSON.stringify('65.131.075/0001-57'),
+}
+```
+
+Usadas em:
+- `App.jsx` — versão no nav lateral: `v{__APP_VERSION__}` (já estava)
+- `AdminTab.jsx` — copyright: `© {__APP_YEAR__} CriAugu — CNPJ {__CNPJ__}`
+- `AdminTab.jsx` — e-mail de suporte: `{__SUPPORT_EMAIL__}` (corrigido typo `sollution` → `solutions`)
+- `SidebarContent.jsx` — copyright: `© {__APP_YEAR__} CriAugu`
+
+A partir de agora, bump de versão em `electron/package.json` atualiza automaticamente nav lateral, AdminTab e SidebarContent. Virada de ano atualiza o copyright sozinho no próximo build.
+
+#### Fix: chip "✓ ativo" no OllamaSetup aparecia sem modelo instalado
+
+`OllamaSetup.jsx` — `modelName` tinha fallback `'llama3.2:1b'` mesmo quando `ollamaStatus.models` estava vazio:
+
+```js
+// Antes — poderia gerar chip "ativo" sem modelo instalado
+const modelName = ollamaStatus.running
+  ? (ollamaModel || (hasModel ? ollamaStatus.models[0] : 'llama3.2:1b'))
+  : null;
+
+// Depois — modelName só existe se Ollama está rodando E há modelo instalado
+const modelName = (ollamaStatus.running && hasModel)
+  ? (ollamaModel && ollamaStatus.models.includes(ollamaModel) ? ollamaModel : ollamaStatus.models[0])
+  : null;
+```
+
+Também garante que o modelo configurado pelo usuário exista na lista — se foi desinstalado, usa o primeiro disponível.
+
+#### Feat: chat bloqueado quando Ollama rodando sem modelo
+
+Nova variável derivada:
+```js
+const ollamaSemModelo = agentProvider === 'ollama' && ollamaStatus?.running && !(ollamaStatus?.models?.length > 0);
+```
+
+Comportamento quando `ollamaSemModelo = true`:
+- **Tela vazia:** estado dedicado com ícone, título e instrução para ir à aba Agente
+- **Banner acima do textarea:** aviso inline persistente
+- **Textarea desabilitado** com placeholder `"Baixe um modelo na aba Agente para conversar…"`
+- **Botão de envio desabilitado** — impossível enviar e receber apenas fontes sem resposta gerada
+
+Strings adicionadas em `pt.json`, `en.json`, `es.json`:
+- `chat.ollama_no_model_title` / `body` / `banner` / `placeholder`
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| IDs numéricos NSIS (`1046`/`1033`/`3082`) em vez de nomes | electron-builder aceita nomes como `"PortugueseBR"`, mas os `LangString` do NSIS usam IDs de locale do Windows diretamente — os dois sistemas são independentes |
+| `build.publish` → repo público | `electron-updater` fazia requisição autenticada ao repo privado; usuários sem conta GitHub ou sem acesso ao repo não conseguiam verificar atualizações |
+| `__APP_YEAR__` via `new Date()` no `vite.config.js` | O ano é calculado no momento do build — correto para releases publicados no mesmo ano. Virada de ano exige apenas um novo build |
+| Bloquear envio quando `ollamaSemModelo` | Sem o bloqueio, o usuário enviava uma mensagem, recebia apenas "fontes encontradas" sem resposta do LLM — comportamento confuso e sem diagnóstico claro |
+
+---
+
+## Sprint 25/06/2026 — Estabilidade no empacotado, auto-update in-app, UX do Ollama
+
+**Commits:** `6d75819` · `97fe76d` · `df0a9c1` · `93d52c0` · `9f5aae3` · `cbd0cb7` · `0659d5e`
+**Escopo:** Electron + Frontend
+**Branch:** main
+
+### Contexto
+
+Sprint focada em resolver erros críticos na instalação em máquinas novas e melhorar
+a experiência de configuração do Ollama e notificação de atualizações do app.
+
+---
+
+### Electron / main.js
+
+#### Fix: `ModuleNotFoundError: No module named 'motor_tusab'`
+
+O Python embarcado (`python_env/`) não adiciona o diretório do script ao `sys.path`
+automaticamente — diferente do Python instalado no sistema. Isso causava crash
+imediato do backend em toda instalação nova.
+
+**Solução em `api_tusab.py`:**
+```python
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
+```
+
+#### Fix: timeout de 20s insuficiente na primeira execução
+
+Na primeira execução, compilação de bytecode de `torch`, `sentence-transformers`
+e `fastapi` pode levar 30-60 segundos. Timeout aumentado para 90s com mensagens
+progressivas na loading screen.
+
+#### Feat: notificação in-app de nova versão
+
+- `electron-updater` envia `update-available` e `update-downloaded` via IPC
+- `preload.js` expõe `onUpdateAvailable`, `onUpdateDownloaded`, `installUpdate`
+- Banner animado no rodapé ao detectar update
+- Badge laranja na aba Admin da sidebar
+- Card de destaque na AdminTab com botão "Instalar e reiniciar agora"
+
+#### Feat: hook NSIS para instalar Ollama durante setup
+
+`electron/build_resources/installer.nsh` detecta `ollama.exe` nas pastas padrão.
+Se não encontrado, oferece ao usuário baixar e instalar silenciosamente (~50 MB)
+durante a instalação do Tusab.
+
+### Frontend / OllamaSetup.jsx
+
+- Card de status usa **amber** quando Ollama não detectado (não verde — confuso)
+- Chip "✓ ativo" só aparece se `ollamaStatus.running && modelo instalado`
+- Botões de download desabilitados quando Ollama não está rodando
+- **Botão de download direto** do Ollama (`/releases/latest/download/OllamaSetup.exe`)
+- Estimativa de tempo restante durante download (baseada em progresso/elapsed)
+- Verificação de status antes de tentar pull — exibe alerta se Ollama offline
+
+### loading.html
+
+Tela de loading redesenhada em **preto e branco** (identidade da marca):
+- Fundo `#000000`, logo em branco puro, spinner branco
+- Grid e pulsos em branco com opacidade baixa
+- Sem gradientes violet/blue
+
+---
+
 ## Sprint 22/06/2026 — UX de chat, jargão técnico e injeção de trecho
 
 **Commits:** `c48cfa9` · `caaf1e3` · `2860220` · `cfbe5e1` · `fc70c11` · `c6d147d` · `6089b83` · `f7a4edd`
