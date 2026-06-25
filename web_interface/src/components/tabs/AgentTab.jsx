@@ -11,7 +11,7 @@ import { saveAgentConfig } from '../../services/api';
 
 export default function AgentTab({
   darkMode,
-  agentScrollRef,
+  mainScrollRef,
   // agent config state (from useAgentConfig)
   agentStatus,
   agentProvider,       setAgentProvider,
@@ -41,7 +41,7 @@ export default function AgentTab({
 
   return (
     <div id="panel-agente" role="tabpanel" aria-labelledby="tab-agente"
-      ref={agentScrollRef}
+      ref={mainScrollRef}
       className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 space-y-4 custom-scrollbar">
 
       {/* First-visit hint */}
