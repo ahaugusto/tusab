@@ -12,11 +12,42 @@ export default function AdminTab({
   setAnalyticsEnabled,
   regras,
   onResetClick,
+  appUpdateInfo,
+  onInstallUpdate,
 }) {
   const { t } = useTranslation();
 
   return (
     <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
+
+      {/* Card de atualização do app */}
+      {appUpdateInfo && (
+        <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-warning/5 border-warning/25' : 'bg-amber-50 border-amber-200'}`}>
+          <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-warning/15' : 'border-b border-amber-100'}`}>
+            <span className="text-warning text-sm">⬆</span>
+            <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+              Atualização disponível
+            </h3>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-warning/20 text-warning' : 'bg-amber-200 text-amber-800'}`}>
+              v{appUpdateInfo.version}
+            </span>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              {appUpdateInfo.downloaded
+                ? `O Tusab ${appUpdateInfo.version} foi baixado e está pronto para instalar. Feche o app para aplicar a atualização automaticamente.`
+                : `Uma nova versão do Tusab (${appUpdateInfo.version}) está sendo baixada em segundo plano. A atualização será aplicada ao fechar o app.`}
+            </p>
+            {appUpdateInfo.downloaded && onInstallUpdate && (
+              <button
+                onClick={onInstallUpdate}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-warning text-white hover:bg-warning/90 transition-colors">
+                ⬆ Instalar e reiniciar agora
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Telemetria */}
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
