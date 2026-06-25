@@ -351,6 +351,7 @@
   "chat.ollama_no_model_body": "Ollama is running, but you haven't downloaded any model yet. Go to the Agent tab and download a model to start chatting.",
   "chat.ollama_no_model_banner": "Ollama is active, but no model is installed. Go to Configure Agent → download a model to get started.",
   "chat.ollama_no_model_placeholder": "Download a model in the Agent tab to start chatting…",
+  "chat.ollama_go_to_agent": "Go to Configure Agent",
   "chat.index_base_btn": "Index base",
   "chat.index_modal_title": "Select base to index",
   "chat.index_all_channels": "All extracted channels",
