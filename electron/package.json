@@ -1,6 +1,6 @@
 {
   "name": "tusab",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Tusab — Index.Augment.Converse",
   "main": "main.js",
   "author": {
@@ -78,12 +78,14 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Tusab",
-      "license": "build_resources/license.txt"
+      "license": "build_resources/license.txt",
+      "installerLanguages": ["PortugueseBR", "English", "SpanishInternational"],
+      "language": "1046"
     },
     "publish": {
       "provider": "github",
-      "owner": "criaugu",
-      "repo": "tusab"
+      "owner": "ahaugusto",
+      "repo": "tusab-public"
     }
   }
 }

@@ -343,6 +343,8 @@ function ChatDrawer({
   }, [precisaSelecionarBase, chatOpen]);
   // Ollama selecionado mas não detectado — sem provider externo configurado
   const ollamaNaoDisponivel = agentProvider === 'ollama' && !ollamaStatus?.running;
+  // Ollama rodando mas nenhum modelo baixado ainda
+  const ollamaSemModelo = agentProvider === 'ollama' && ollamaStatus?.running && !(ollamaStatus?.models?.length > 0);
 
   // Handler de @mention: detecta @ no input e busca itens mencionáveis
   const handleInputChange = async (e) => {
@@ -530,6 +532,22 @@ function ChatDrawer({
                       </a>
                       <p className={`text-[10px] text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                         {t('chat.ollama_or_provider')}
+                      </p>
+                    </>
+                  ) : ollamaSemModelo ? (
+                    <>
+                      <div className={`p-3 rounded-2xl ${darkMode ? 'bg-primary/10' : 'bg-violet-50'}`}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
+                          className={darkMode ? 'text-primary' : 'text-violet-400'} aria-hidden="true">
+                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                          <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+                        </svg>
+                      </div>
+                      <p className={`text-xs font-bold text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                        {t('chat.ollama_no_model_title')}
+                      </p>
+                      <p className={`text-[11px] text-center max-w-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {t('chat.ollama_no_model_body')}
                       </p>
                     </>
                   ) : !temBase ? (
@@ -1066,6 +1084,20 @@ function ChatDrawer({
         onChange={e => { const f = e.target.files?.[0]; if (f) handleAnexo(f); e.target.value = ''; }}
       />
 
+      {/* Banner: Ollama sem modelo */}
+      {ollamaSemModelo && (
+        <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border text-[11px] leading-relaxed
+          ${darkMode ? 'bg-primary/8 border-primary/20 text-slate-300' : 'bg-violet-50 border-violet-200 text-slate-600'}`}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className={`shrink-0 mt-0.5 ${darkMode ? 'text-primary' : 'text-violet-500'}`} aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>
+            {t('chat.ollama_no_model_banner')}
+          </span>
+        </div>
+      )}
+
       <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
         {/* Botão de anexo */}
         {(agentStatus?.canal_indexado || canalConfigurado) && (
@@ -1081,20 +1113,20 @@ function ChatDrawer({
         <textarea
           ref={textareaRef}
           rows={1}
-          placeholder={precisaSelecionarBase ? t('chat.placeholder_select_base') : !chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
+          placeholder={precisaSelecionarBase ? t('chat.placeholder_select_base') : ollamaSemModelo ? t('chat.ollama_no_model_placeholder') : !chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
           value={chatInput}
           onChange={handleInputChange}
           onKeyDown={e => {
             if (e.key === 'Escape' && showMencao) { setShowMencao(false); return; }
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
-          disabled={!chatHabilitado || chatLoading}
+          disabled={!chatHabilitado || chatLoading || ollamaSemModelo}
           autoFocus
           style={{ resize: 'none', overflow: 'hidden' }}
           className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed leading-relaxed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
         <button
           onClick={onSend}
-          disabled={!chatHabilitado || !chatInput.trim() || chatLoading}
+          disabled={!chatHabilitado || !chatInput.trim() || chatLoading || ollamaSemModelo}
           className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
           aria-label={t('agent.send')}>
           <Send size={13} />

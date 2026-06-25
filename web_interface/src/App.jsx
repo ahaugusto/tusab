@@ -1186,7 +1186,7 @@ function App() {
                 <span className="text-[9px] font-semibold leading-none">{darkMode ? t('footer.light') : t('footer.dark')}</span>
               </button>
             </div>
-            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v1.0.0</p>
+            <p className={`text-[9px] ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>v{__APP_VERSION__}</p>
           </nav>
         )}
 

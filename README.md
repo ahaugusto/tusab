@@ -10,7 +10,7 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 
 ## Download
 
-**[⬇ Tusab Setup 1.0.4.exe](https://github.com/ahaugusto/tusab-public/releases/download/v1.0.4/Tusab.Setup.1.0.4.exe)** — Windows 10/11 x64 · ~210 MB · inclui Python e yt-dlp embutidos
+**[⬇ Tusab Setup 1.0.6.exe](https://github.com/ahaugusto/tusab-public/releases/download/v1.0.6/Tusab.Setup.1.0.6.exe)** — Windows 10/11 x64 · ~210 MB · inclui Python e yt-dlp embutidos
 
 ---
 
@@ -270,6 +270,19 @@ O Tusab roda localmente — sem servidor central, sem dados na nuvem por padrão
 ---
 
 ## Changelog
+
+### [1.0.6] — 2026-06-25
+
+**Correções**
+- Chip "✓ ativo" no seletor de modelos Ollama aparecia sem modelo instalado
+- E-mail de suporte com typo (`sollution` → `solutions`) na aba Admin
+- `electron-updater` apontava para repo privado — usuários sem acesso não recebiam atualizações
+- Versão exibida no nav lateral não refletia a versão de publicação
+
+**Novo**
+- Instalador NSIS em 3 idiomas: Português (padrão), Inglês, Espanhol — detectado automaticamente pelo Windows
+- Chat bloqueado com aviso claro quando Ollama está ativo mas sem modelo instalado (evita receber só fontes sem resposta)
+- Versão, ano de copyright, CNPJ e e-mail injetados em build-time — nunca desincronizam com `electron/package.json`
 
 ### [1.0.1] — 2026-06-24
 
