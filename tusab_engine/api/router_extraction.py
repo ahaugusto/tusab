@@ -71,6 +71,7 @@ def run_motor():
         # Verifica fila antes de decidir se terminou
         with state.queue_lock:
             proximo = state.extraction_queue.pop(0) if state.extraction_queue else None
+            state.salvar_fila()
 
         if proximo is None:
             # Fila vazia — aguarda 15s e reseta status
@@ -185,6 +186,7 @@ def queue_add(req: QueueAddRequest):
     with state.queue_lock:
         state.extraction_queue.append({"url": url, "fontes": req.fontes, "projeto_nome": req.projeto_nome})
         tamanho = len(state.extraction_queue)
+        state.salvar_fila()
     return {"ok": True, "queue_size": tamanho}
 
 
@@ -193,6 +195,7 @@ def queue_clear():
     """Remove todos os itens pendentes da fila (não afeta a extração em curso)."""
     with state.queue_lock:
         state.extraction_queue.clear()
+        state.salvar_fila()
     return {"ok": True}
 
 
@@ -203,6 +206,7 @@ def queue_remove_item(index: int):
         if index < 0 or index >= len(state.extraction_queue):
             return {"error": True, "message": "Índice fora do intervalo"}
         state.extraction_queue.pop(index)
+        state.salvar_fila()
     return {"ok": True}
 
 
@@ -220,6 +224,7 @@ def queue_move_item(req: QueueMoveRequest):
             return {"error": True, "message": "Índice fora do intervalo"}
         item = state.extraction_queue.pop(req.from_index)
         state.extraction_queue.insert(req.to_index, item)
+        state.salvar_fila()
     return {"ok": True}
 
 

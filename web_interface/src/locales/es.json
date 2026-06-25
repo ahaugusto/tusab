@@ -469,6 +469,7 @@
   "toast.bases_indexed_partial": "{{ok}} de {{total}} bases indexadas (otras sin contenido).",
   "toast.open_chat": "Abrir chat",
   "toast.reset_success": "Todos los datos han sido eliminados con éxito.",
+  "toast.cross_encoder_loading": "Cargando modelo de relevancia semántica por primera vez (~30s). Las próximas búsquedas serán instantáneas.",
   "error.remove_canal": "Error al eliminar el canal. Inténtalo de nuevo.",
   "ops.queue_title": "Cola de extracción",
   "ops.extract_another": "Extraer Otro",
