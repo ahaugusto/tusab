@@ -24,4 +24,9 @@ contextBridge.exposeInMainWorld('tusab', {
 
   // Abre terminal com comando pré-preenchido (ex: ollama pull llama3.2:3b)
   openTerminal: (command) => ipcRenderer.invoke('open-terminal', command),
+
+  // Notificações de atualização do app (electron-updater → frontend)
+  onUpdateAvailable:  (cb) => ipcRenderer.on('update-available',  (_e, info) => cb(info)),
+  onUpdateDownloaded: (cb) => ipcRenderer.on('update-downloaded', (_e, info) => cb(info)),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
 })

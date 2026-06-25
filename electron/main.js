@@ -455,17 +455,20 @@ function setupAutoUpdater () {
 
     autoUpdater.on('update-available', info => {
       console.log('[update] nova versão disponível:', info.version)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-available', { version: info.version })
+      }
     })
 
     autoUpdater.on('update-downloaded', info => {
-      dialog.showMessageBox({
-        type:    'info',
-        title:   'Atualização disponível',
-        message: `Tusab ${info.version} foi baixado.\nA atualização será instalada ao fechar o app.`,
-        buttons: ['Instalar agora', 'Depois'],
-      }).then(({ response }) => {
-        if (response === 0) autoUpdater.quitAndInstall()
-      })
+      console.log('[update] download concluído:', info.version)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-downloaded', { version: info.version })
+      }
+    })
+
+    ipcMain.handle('install-update', () => {
+      autoUpdater.quitAndInstall()
     })
 
     autoUpdater.on('error', e => console.error('[update] erro:', e.message))

@@ -99,6 +99,8 @@ function App() {
   const [showQueueModal,       setShowQueueModal]       = useState(false);
   const [autoUpdateConfigs,    setAutoUpdateConfigs]    = useState({}); // { [canal]: { enabled, frequencia, fontes } }
   const [autoUpdateChecking,   setAutoUpdateChecking]   = useState(false);
+  const [appUpdateInfo,        setAppUpdateInfo]        = useState(null);  // { version, downloaded }
+  const [showUpdateBanner,     setShowUpdateBanner]     = useState(false);
   const [cancelFlash,          setCancelFlash]          = useState(false);
   const [showCancelQueueModal, setShowCancelQueueModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
@@ -290,6 +292,19 @@ function App() {
   const cleanCanalName = (n) => n ? n.split('?')[0] : '';
 
   // ─── Effects ───────────────────────────────────────────────────────────────
+
+  /** Escuta eventos de atualização do Electron (electron-updater → IPC → frontend) */
+  useEffect(() => {
+    if (!window.tusab?.onUpdateAvailable) return;
+    window.tusab.onUpdateAvailable(info => {
+      setAppUpdateInfo({ version: info.version, downloaded: false });
+      setShowUpdateBanner(true);
+    });
+    window.tusab.onUpdateDownloaded(info => {
+      setAppUpdateInfo({ version: info.version, downloaded: true });
+      setShowUpdateBanner(true);
+    });
+  }, []);
 
   /** Resets activeTab if it is not in the current profile's allowed tabs */
   useEffect(() => {
@@ -901,6 +916,58 @@ function App() {
         onConfirm={handleDriveWarningConfirm}
         onCancel={() => setShowDriveWarning(false)} />
 
+      {/* Banner de atualização do app disponível */}
+      <AnimatePresence>
+        {showUpdateBanner && appUpdateInfo && !showHome && !showLanding && (
+          <motion.div
+            key="update-banner"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[9000] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm
+              ${darkMode ? 'bg-[#1a2035] border-warning/30 text-white' : 'bg-white border-warning/40 text-slate-800'}`}
+            style={{ minWidth: 300, maxWidth: 420 }}>
+            <span className="text-warning text-base">⬆</span>
+            <div className="flex-1 min-w-0">
+              {appUpdateInfo.downloaded ? (
+                <p className="text-xs font-semibold">
+                  Tusab <span className="text-warning">{appUpdateInfo.version}</span> pronto para instalar
+                </p>
+              ) : (
+                <p className="text-xs font-semibold">
+                  Nova versão disponível: <span className="text-warning">{appUpdateInfo.version}</span>
+                </p>
+              )}
+              <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                {appUpdateInfo.downloaded
+                  ? 'Feche o app para instalar automaticamente.'
+                  : 'Baixando em segundo plano…'}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {appUpdateInfo.downloaded && (
+                <button
+                  onClick={() => window.tusab?.installUpdate?.()}
+                  className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-warning text-white hover:bg-warning/90 transition-colors">
+                  Instalar agora
+                </button>
+              )}
+              <button
+                onClick={() => { setShowUpdateBanner(false); setActiveTab('admin'); setShowHome(false); }}
+                className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors
+                  ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                Ver detalhes
+              </button>
+              <button onClick={() => setShowUpdateBanner(false)}
+                aria-label="Fechar"
+                className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                ✕
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Progress toast — contextual next-step guidance */}
       <AnimatePresence>
         {progressToast && !showHome && !showLanding && (
@@ -1084,6 +1151,9 @@ function App() {
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
+                  {id === 'admin' && appUpdateInfo && (
+                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
+                  )}
                   {id === 'agente' && (agentStatus.configured || ollamaStatus?.running) && (
                     <>
                       <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${agentStatus.configured ? 'bg-secondary' : 'bg-warning'}`} aria-hidden="true" />
@@ -1540,6 +1610,8 @@ function App() {
                 setAnalyticsEnabled={setAnalyticsEnabled}
                 regras={regras}
                 onResetClick={() => setShowResetModal(true)}
+                appUpdateInfo={appUpdateInfo}
+                onInstallUpdate={() => window.tusab?.installUpdate?.()}
               />
             )}
 
