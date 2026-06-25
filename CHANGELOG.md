@@ -22,6 +22,9 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ### Improved (P1 — Qualidade RAG)
 - **Chunking dinâmico por tipo de documento** — documentos PDF/DOCX usam janelas de 1.500 chars com overlap de 300; textos colados/WhatsApp usam 500 chars com overlap de 100. YouTube continua com chunks naturais por vídeo. Melhora o recall BM25 para documentos densos e conversas fragmentadas.
 
+### Fixed (UX)
+- **Botão "Voltar ao topo" disponível em todas as abas** — anteriormente só aparecia na aba Agente. Todas as abas com rolagem longa (Extração, Repositório, Histórico, Visão Geral, Monitor, Agente, Admin) agora compartilham um único ref de scroll e disparam o botão corretamente.
+
 ---
 
 ## [1.0.7] — 2026-06-25

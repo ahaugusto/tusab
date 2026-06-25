@@ -259,7 +259,6 @@ function App() {
   const logContainerRef = useRef(null);
   const logSectionRef   = useRef(null);
   const mainScrollRef   = useRef(null);
-  const agentScrollRef  = useRef(null);
   const isVisibleRef    = useRef(true);
   const cleanupRef      = useRef(null);
 
@@ -458,11 +457,10 @@ function App() {
       el.addEventListener('scroll', onScroll, { passive: true });
       return () => el.removeEventListener('scroll', onScroll);
     };
-    // rAF garante que os divs já estão montados antes de ler .current
+    // rAF garante que o div já está montado antes de ler .current
     const id = requestAnimationFrame(() => {
       const d1 = attach(mainScrollRef.current);
-      const d2 = attach(agentScrollRef.current);
-      cleanupRef.current = () => { d1(); d2(); };
+      cleanupRef.current = () => { d1(); };
     });
     return () => {
       cancelAnimationFrame(id);
@@ -1412,7 +1410,7 @@ function App() {
             )}
 {/* ── TAB: HISTÓRICO ── */}
             {activeTab === 'historico' && (
-              <div id="panel-historico" role="tabpanel" aria-labelledby="tab-historico"
+              <div id="panel-historico" role="tabpanel" aria-labelledby="tab-historico" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
                 <div className="flex items-center justify-between mb-2">
                   <div>
@@ -1557,7 +1555,7 @@ function App() {
 
             {/* ── TAB: VISÃO GERAL ── */}
             {activeTab === 'visao-geral' && (
-              <div id="panel-visao-geral" role="tabpanel" aria-labelledby="tab-visao-geral"
+              <div id="panel-visao-geral" role="tabpanel" aria-labelledby="tab-visao-geral" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 custom-scrollbar">
                 <VisaoGeralTab darkMode={darkMode} btnFocus={BTN_FOCUS} />
               </div>
@@ -1565,7 +1563,7 @@ function App() {
 
             {/* ── TAB: MONITOR ── */}
             {activeTab === 'monitor' && (
-              <div id="panel-monitor" role="tabpanel" aria-labelledby="tab-monitor"
+              <div id="panel-monitor" role="tabpanel" aria-labelledby="tab-monitor" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
                 <MonitorTab darkMode={darkMode} btnFocus={BTN_FOCUS} />
               </div>
@@ -1575,7 +1573,7 @@ function App() {
             {activeTab === 'agente' && (
               <AgentTab
                 darkMode={darkMode}
-                agentScrollRef={agentScrollRef}
+                mainScrollRef={mainScrollRef}
                 agentStatus={agentStatus}
                 agentProvider={agentProvider}
                 setAgentProvider={setAgentProvider}
@@ -1769,7 +1767,6 @@ function App() {
                   transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                   onClick={() => {
                     mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                    agentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   aria-label="Voltar ao topo"
                   style={{ backdropFilter: 'blur(16px) saturate(1.8)', WebkitBackdropFilter: 'blur(16px) saturate(1.8)' }}
