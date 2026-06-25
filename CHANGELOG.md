@@ -7,7 +7,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [1.0.8-beta] — 2026-06-25
+## [1.0.8] — 2026-06-25
 
 ### Fixed (P0 — Estabilidade)
 - **Fila de extração perdida ao fechar o app** — `extraction_queue` agora persiste em `data/config/extraction_queue.json` a cada mutação e é restaurada no próximo startup. Jobs pendentes sobrevivem a crashes e reinicializações.
