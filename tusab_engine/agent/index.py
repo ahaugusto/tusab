@@ -46,11 +46,6 @@ _bm25_cache: dict = {}
 _bm25_lock = threading.Lock()
 
 
-def _invalidar_cache(canal_prefixo: str):
-    with _bm25_lock:
-        _bm25_cache.pop(canal_prefixo, None)
-
-
 def _carregar_meta_canal(canal_prefixo: str) -> dict:
     import glob as _glob
     # Nova estrutura: neural/{projeto}/youtube/{canal}/{canal}_meta.json
@@ -74,7 +69,33 @@ def _carregar_meta_canal(canal_prefixo: str) -> dict:
 
 # ── Status do agente ──────────────────────────────────────────────────────────
 
+_status_cache: dict = {}
+_status_cache_lock = threading.Lock()
+_STATUS_TTL = 30.0  # segundos entre rebuilds completos do status
+
+def _invalidar_status_cache():
+    """Força rebuild do status no próximo poll — chamar após indexar() ou deletar índice."""
+    with _status_cache_lock:
+        _status_cache.clear()
+
+
 def get_agent_status() -> dict:
+    import time as _time
+    with _status_cache_lock:
+        cached = _status_cache.get('result')
+        ts     = _status_cache.get('ts', 0.0)
+        if cached is not None and (_time.time() - ts) < _STATUS_TTL:
+            return cached
+
+    result = _get_agent_status_uncached()
+
+    with _status_cache_lock:
+        _status_cache['result'] = result
+        _status_cache['ts']     = _time.time()
+    return result
+
+
+def _get_agent_status_uncached() -> dict:
     config      = carregar_config()
     provider    = config.get('provider', '')
     canal_nome  = config.get('canal_indexado', '')
@@ -167,6 +188,12 @@ def get_agent_status() -> dict:
         'novos_desde_indexacao':  novos_desde_indexacao,
         'indices_corrompidos':    indices_corrompidos,
     }
+
+
+def _invalidar_cache(canal_prefixo: str):
+    with _bm25_lock:
+        _bm25_cache.pop(canal_prefixo, None)
+    _invalidar_status_cache()
 
 
 # ── Stopwords PT + EN ─────────────────────────────────────────────────────────

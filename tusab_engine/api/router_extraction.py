@@ -50,6 +50,7 @@ def run_motor():
                 evento_cancelar=state.evento_cancelar,
                 fontes_filtro=state.fontes_filtro or None,
                 projeto_nome=state.projeto_nome,
+                dispatch_event=state.dispatch_event,
             )
 
             cancelado = state.evento_cancelar.is_set()
