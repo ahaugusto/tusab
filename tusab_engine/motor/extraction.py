@@ -377,7 +377,7 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
 
 # ── Engine principal ──────────────────────────────────────────────────────────
 
-def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None, projeto_nome: str = ""):
+def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None, projeto_nome: str = "", dispatch_event=None):
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
     if projeto_nome:
@@ -506,10 +506,14 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     novos_fonte += 1
             if novos_fonte > 0:
                 print(f"   📋 {aba}: {novos_fonte} vídeos mapeados ({len(all_videos)} no total)\n")
+                if dispatch_event:
+                    dispatch_event("videos_mapeados", total=len(all_videos))
 
     df_full = pd.DataFrame(all_videos)
     total_liquido = len(df_full)
     print(f"✅ {total_liquido} vídeos mapeados no canal.\n")
+    if dispatch_event:
+        dispatch_event("videos_total", total=total_liquido)
 
     # Persiste total mapeado para cálculo correto de cobertura no relatório
     summary_path = os.path.join(gestao_canal_dir(prefixo), f'{canal_nome_canal}_summary.json')
@@ -731,10 +735,14 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         nome_arquivo_base = f"{canal_nome_canal}_Parte_{parte_atual}"
                         caminho_txt = os.path.join(canal_youtube_dir, f"{nome_arquivo_base}.txt")
                         print(f"      📂 NOVO ARQUIVO: Parte {parte_atual} iniciada.")
+                        if dispatch_event:
+                            dispatch_event("file_generated")
 
                     file_is_new = not os.path.exists(caminho_txt)
                     if file_is_new:
                         print(f"      📂 NOVO ARQUIVO: {nome_arquivo_base}.txt criado.")
+                        if dispatch_event:
+                            dispatch_event("file_generated")
                     with open(caminho_txt, "a", encoding="utf-8-sig") as f:
                         if file_is_new:
                             handle = meta_canal.get('canal_handle', f'@{canal_nome_raw}')
@@ -773,6 +781,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     df_db = pd.concat([df_db, pd.DataFrame([nova_linha])], ignore_index=True)
                     salvar_csv_atomico(df_db, db_file)
                     print(f"      ✅ OK! ({data_real})")
+                    if dispatch_event:
+                        dispatch_event("video_processed")
                 else:
                     nova_linha = {
                         'ID': v_id, 'Data_Pub': data_real, 'Link': v_link,
@@ -784,6 +794,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     salvar_csv_atomico(df_db, db_file)
                     ids_ja_minerados.add(v_id)
                     print(f"      ⚠️ Ignorado: Legenda muito curta.")
+                    if dispatch_event:
+                        dispatch_event("video_legenda_curta")
 
                 for vf in vtt_files:
                     try:
@@ -801,6 +813,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                 salvar_csv_atomico(df_db, db_file)
                 ids_ja_minerados.add(v_id)
                 print(f"      ⚠️ Ignorado: Sem legenda em português.")
+                if dispatch_event:
+                    dispatch_event("video_sem_legenda")
 
             time.sleep(1)
 
