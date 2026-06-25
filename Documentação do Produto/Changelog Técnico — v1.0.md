@@ -7,9 +7,9 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
-## Sprint 25/06/2026 — v1.0.8: estabilidade P0 + qualidade RAG P1
+## Sprint 25/06/2026 — v1.0.8: estabilidade P0 + qualidade RAG P1 + fix UX
 
-**Commits:** `41780f7` · `c441417`
+**Commits:** `41780f7` · `c441417` · `(este commit)`
 **Versão:** v1.0.8
 **Branch:** main
 
@@ -228,6 +228,41 @@ Chave `toast.cross_encoder_loading` adicionada em PT / EN / ES:
 | TTL 30 s no cache de `get_agent_status()` | `/agent/status` é polled a cada 2 s; sem cache, cada poll fazia 30+ leituras de disco para listar índices e calcular `bases_desatualizadas` |
 | `manualChunks` como função em Vite 8/Rolldown | Objeto seria inferido como `Record<string, string[]>` no Rollup/Rolldown v5+ — lança `TypeError: manualChunks is not a function` em runtime |
 | Chunking dinâmico por tipo (1500/300 vs 500/100) | PDFs têm densidade semântica alta — chunks menores cortam argumentos ao meio; conversas WhatsApp têm densidade baixa — chunks maiores diluem o sinal |
+
+---
+
+### Frontend — Fix: botão "Voltar ao topo" em todas as abas
+
+#### `web_interface/src/App.jsx` + `components/tabs/AgentTab.jsx`
+
+**Causa:** `mainScrollRef` estava conectado apenas ao `div` do painel Repositório e `agentScrollRef` apenas ao painel Agente. Os painéis Extração (via prop), Histórico, Visão Geral e Monitor não tinham ref conectada ao listener de scroll — o evento nunca disparava `setShowScrollTop(true)` nessas abas.
+
+**Fix:** eliminado `agentScrollRef` (ref separada); `mainScrollRef` agora é o único ref de scroll e é atribuído ao `div` raiz scrollável de cada painel:
+
+| Painel | Antes | Depois |
+|--------|-------|--------|
+| Extração (`ExtractionTab`) | `mainScrollRef` via prop ✅ | sem mudança |
+| Histórico | sem ref ❌ | `ref={mainScrollRef}` ✅ |
+| Repositório | `ref={mainScrollRef}` ✅ | sem mudança |
+| Visão Geral | sem ref ❌ | `ref={mainScrollRef}` ✅ |
+| Monitor | sem ref ❌ | `ref={mainScrollRef}` ✅ |
+| Agente (`AgentTab`) | `ref={agentScrollRef}` — listener separado | `ref={mainScrollRef}` ✅ |
+| Admin (`AdminTab`) | `ref={mainScrollRef}` ✅ | sem mudança |
+
+O `useEffect` do listener simplificado — um único `attach()` em vez de dois:
+
+```js
+// Antes
+const d1 = attach(mainScrollRef.current);
+const d2 = attach(agentScrollRef.current);
+cleanupRef.current = () => { d1(); d2(); };
+
+// Depois
+const d1 = attach(mainScrollRef.current);
+cleanupRef.current = () => { d1(); };
+```
+
+O botão de scroll (`mainScrollRef.current?.scrollTo(...)`) também simplificado — uma única chamada.
 
 ---
 
