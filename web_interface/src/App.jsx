@@ -1631,6 +1631,11 @@ function App() {
               } : undefined}
               agentProvider={useExternalProvider ? agentProvider : 'ollama'}
               ollamaStatus={ollamaStatus}
+              onGoToAgent={() => {
+                setChatOpen(false);
+                setActiveTab('agente');
+                setShowHome(false);
+              }}
               onAbrirIndexacaoRepositorio={() => {
                 setChatOpen(false);
                 setActiveTab('repositorio');

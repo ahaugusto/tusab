@@ -276,7 +276,7 @@ def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
     except ImportError:
         return JSONResponse({
             "error": True,
-            "message": "Dependência não instalada: reportlab. Execute: pip install reportlab"
+            "message": "Recurso de exportação PDF não disponível. Reinstale a aplicação ou contacte o suporte em tusab@tusab.solutions"
         })
 
     canal = req.canal_nome or state.stats.get("canal_nome", "") or "chat"

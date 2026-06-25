@@ -55,6 +55,24 @@ LangString OLLAMA_FOUND 1046 "Ollama ja instalado. Nenhuma acao necessaria."
 LangString OLLAMA_FOUND 1033 "Ollama already installed. No action needed."
 LangString OLLAMA_FOUND 3082 "Ollama ya esta instalado. No se requiere ninguna accion."
 
+; ── Strings para o seletor de idioma ──────────────────────────────────────────
+
+LangString LANG_SELECT_TITLE  1046 "Selecione o idioma do instalador"
+LangString LANG_SELECT_TITLE  1033 "Select installer language"
+LangString LANG_SELECT_TITLE  3082 "Seleccione el idioma del instalador"
+
+; ── Seletor de idioma exibido no início da instalação ────────────────────────
+; customInit é chamado pelo electron-builder antes das páginas do instalador.
+; LangDLL::LangDialog abre um dropdown com os idiomas declarados em installerLanguages.
+
+!macro customInit
+  LangDLL::LangDialog "$(LANG_SELECT_TITLE)" "$(LANG_SELECT_TITLE)"
+  Pop $LANGUAGE
+  ${If} $LANGUAGE == "cancel"
+    Abort
+  ${EndIf}
+!macroend
+
 ; ── Hook principal ─────────────────────────────────────────────────────────────
 
 !macro customInstall

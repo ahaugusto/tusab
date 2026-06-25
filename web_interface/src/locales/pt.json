@@ -351,6 +351,7 @@
   "chat.ollama_no_model_body": "O Ollama está ativo, mas você ainda não baixou nenhum modelo. Acesse a aba Agente e baixe um modelo para começar a conversar.",
   "chat.ollama_no_model_banner": "Ollama ativo, mas sem modelo instalado. Vá para Configurar Agente → baixe um modelo para começar.",
   "chat.ollama_no_model_placeholder": "Baixe um modelo na aba Agente para conversar…",
+  "chat.ollama_go_to_agent": "Ir para Configurar Agente",
   "chat.index_base_btn": "Indexar base",
   "chat.index_modal_title": "Selecionar base para indexar",
   "chat.index_all_channels": "Todos os canais extraídos",
