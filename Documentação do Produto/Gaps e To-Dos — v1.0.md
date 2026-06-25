@@ -12,14 +12,17 @@ Documento vivo. Cada item tem status, pilar e classificação:
 
 ## PILAR 1 — Confiabilidade & Recuperação
 
-> SRE score atual: 4,5/10. O maior risco de NPS negativo.
+> SRE score atual: 6,5/10. P0s críticos resolvidos na v1.0.8-beta.
 
 | # | To-Do | Tipo | Prioridade |
 |---|---|---|---|
 | C1 | ~~**Recovery de índice corrompido**~~ — **✅ IMPLEMENTADO** (Junho 2026): `get_agent_status()` detecta JSON inválido, deleta o arquivo, invalida cache e retorna `indices_corrompidos[]`; frontend exibe toast com nome do canal e botão Reindexar | — | — |
 | C2 | ~~**Watchdog do backend no Electron**~~ — **✅ IMPLEMENTADO** (Junho 2026): poll de 5s pós-inicialização via `pingBackend()`; IPC `backend-dead`/`backend-alive`; preload expõe `onBackendDead`, `onBackendAlive`, `restartBackend`; banner vermelho no topo com botão "Reiniciar backend" | — | — |
-| C3 | **Export/Import da base completa** — exportar `cerebro/` como `.zip` e reimportar em outra máquina. Desbloqueia troca de máquina e backup manual | [DEF] | P1 |
-| C4 | **Backup automático incremental** — cópia agendada da base no Drive (já autenticado) sem intervenção do usuário | [DEF] | P2 |
+| C3 | ~~**Fila de extração persiste em disco**~~ — **✅ IMPLEMENTADO** (v1.0.8-beta): `AppState.salvar_fila()` / `restaurar_fila()` com write atômico em `data/config/extraction_queue.json`; chamado em todo add/remove/clear/move/pop; `api_tusab.py` restaura no startup | — | — |
+| C4 | ~~**Race condition no histórico de chat**~~ — **✅ CORRIGIDO** (v1.0.8-beta): leitura do hist movida para dentro de `agent_chat_lock`; leitura + LLM + escrita são atômicas; fix em `/agent/chat` e `/agent/chat/stream` | — | — |
+| C5 | **Export/Import da base completa** — exportar `cerebro/` como `.zip` e reimportar em outra máquina. Desbloqueia troca de máquina e backup manual | [DEF] | P1 |
+| C6 | **Backup automático incremental** — cópia agendada da base no Drive (já autenticado) sem intervenção do usuário | [DEF] | P2 |
+| C7 | **LogRedirector event-driven (migração gradual)** — `dispatch_event()` implementado na v1.0.8-beta mas ainda não usado por `extraction.py`. Motor ainda depende do contrato de emojis/strings do LogRedirector. Migrar as chamadas de print críticas para dispatch_event() para eliminar o acoplamento frágil | [IMPL] | P1 |
 
 **Discussão C3:** o documento de próximos passos descartou "Exportar base" como redundante ao Drive sync. Rever: o Drive sync é opt-in e exige OAuth em produção (ainda não publicado). Para um PKM local, export de ZIP é a única garantia de portabilidade que funciona hoje. Vale revisar a decisão.
 
@@ -100,7 +103,7 @@ Ver spec completa: `Documentação do Produto/Modelo de negócio.txt`
 | S1 | ~~**Chaves de API no keychain**~~ — **✅ IMPLEMENTADO** (Junho 2026): `safeStorage` do Electron (Windows DPAPI / macOS Keychain) via IPC `get/set/delete-api-key`; `keystore.json` guarda blobs criptografados; `agent_config.json` grava sentinel `__encrypted__`; boot reinforma o backend com a chave real; chat.py rejeita sentinel como chave inválida | — | — |
 | S2 | ~~**`requirements.txt` com versões pinned**~~ — **✅ JÁ ESTAVA FEITO** — `requirements-lock.txt` com todas as deps pinned em versão exata (`==`) já existia na raiz | — | — |
 | S3 | ~~**Pydantic sem `max_length`**~~ — **✅ IMPLEMENTADO** (Junho 2026): `Field(max_length=...)` aplicado em todos os modelos de request de `router_repositorio.py`, `router_extraction.py` e `router_exports.py` | — | — |
-| S4 | **Publicar OAuth no Google Cloud** — de Testing para Production. Pré-requisito: política de privacidade publicada (já existe como `.md`, precisa de URL pública) | [DEF] | P2 |
+| S4 | ~~**Publicar OAuth no Google Cloud**~~ — **✅ EM PRODUÇÃO** (junho 2026): status "Em produção", tipo Externo, marca verificada. Política de privacidade publicada em `tusab.solutions/politica-de-privacidade`. Qualquer conta Google pode autorizar o Drive sem aviso de "app não verificado". | — | — |
 
 ---
 
@@ -144,9 +147,11 @@ Ver spec completa: `Documentação do Produto/Modelo de negócio.txt`
 
 ## RESUMO EXECUTIVO — Ordem de Ataque
 
-### P0 — Antes de qualquer distribuição
+### P0 — Antes de qualquer distribuição — TODOS FECHADOS ✅
 - ~~C1 · Recovery de índice corrompido~~ ✅
 - ~~C2 · Watchdog do backend no Electron~~ ✅
+- ~~C3 · Fila de extração persiste em disco~~ ✅ v1.0.8-beta
+- ~~C4 · Race condition no histórico de chat~~ ✅ v1.0.8-beta
 - ~~A4 · Empty state do chat (canal não indexado)~~ ✅ já estava
 - ~~T1 · Auditar e corrigir eventos mortos~~ ✅ já estava
 - ~~S2 · `requirements.txt` com versões pinned~~ ✅ já estava
@@ -154,7 +159,7 @@ Ver spec completa: `Documentação do Produto/Modelo de negócio.txt`
 
 **Todos os P0 estão fechados. O produto está defensável para distribuição.**
 
-### P1 — Próximo sprint (implementáveis agora)
+### P1 — Próximos sprints (implementáveis agora)
 - ~~A1 · Perguntas sugeridas pós-indexação~~ ✅
 - ~~A2/A3 · Eventos de ativação e tempo até primeiro valor~~ ✅
 - ~~T2 · Retenção Day 7 / Day 30~~ ✅
@@ -164,24 +169,30 @@ Ver spec completa: `Documentação do Produto/Modelo de negócio.txt`
 - ~~I3 · Auditoria de navegação por teclado~~ ✅
 - ~~X1 · Markdown nas respostas do chat~~ ✅
 - ~~X2 · Chat expandido (overlay)~~ ✅
+- ~~Chunking dinâmico por tipo de doc~~ ✅ v1.0.8-beta
+- ~~Toast de carregamento do CrossEncoder~~ ✅ v1.0.8-beta
+- **C7 · LogRedirector event-driven** — migrar `extraction.py` para `dispatch_event()` [IMPL]
+- **P1-perf · `get_agent_status()` com cache interno** — hoje faz full scan de todos os índices a cada poll de 2s; com 30 projetos = 30 leituras de disco por chamada. Adicionar TTL de 30s sobre o resultado [IMPL]
+- **P1-frontend · Code splitting no Vite** — bundle único de 1MB+ carrega tudo; tabs pesadas (Repositório, Admin) devem carregar sob demanda [IMPL]
 - E4 · Hard Reset completo
 - M3 · Proteção do código Python (Nuitka/PyArmor)
 
-### P1 — Próximo sprint (requerem decisão primeiro)
+### P1 — Próximos sprints (requerem decisão primeiro)
 - M1 · **Definir parede do free** ← discussão prioritária
 - M2 · Sistema de licença (depende de M1)
 - M4 · Spec do tier Pro (depende de M1)
 - ~~E1/E2 · Export de histórico e base~~ ✅
 
-### P2 — Go-to-market
-- C4 · Backup automático no Drive
+### P2 — Go-to-market (gargalo estratégico real)
+- **D1 · Landing page** — sem URL pública não há funil, SEO nem referência para demos B2B
+- **D4 · Case público da AUVP** — único social proof existente; documentar com autorização
+- C6 · Backup automático no Drive
 - T3 · Funil de ativação no PostHog
-- D1 · Landing page mínima
 - D2 · Definir canais de aquisição
 - D3 · Estratégia de SEO
-- D4 · Case público da AUVP
-- S4 · OAuth em produção
+- ~~S4 · OAuth em produção~~ ✅
 - E3 · Política de portabilidade
+- **Assinatura de código** — decisão tomada: IDLK (reputação orgânica, $0) por enquanto. Migrar para OV (~$80/ano, Sectigo) quando houver primeiro contrato B2B com TI corporativa ou volume de downloads tornar o aviso um problema recorrente. Integração: `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD` no build pipeline — nenhuma mudança no código
 
 ---
 

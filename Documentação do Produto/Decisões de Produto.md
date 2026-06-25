@@ -215,6 +215,64 @@ A ordem correta é: case → landing page → sistema de licença → venda. Nã
 
 ---
 
+## Por que Electron (e não alternativas mais leves)
+
+**Contexto:** em junho 2026 avaliamos se o Electron poderia ser substituído por algo mais leve — PyInstaller standalone abrindo no browser do sistema, webapp SaaS, self-hosted via Docker, ou app mobile.
+
+**Decisão:** Electron é a escolha certa e definitiva para desktop. Não por falta de alternativas, mas porque é o único que resolve o problema central sem comprometer o local-first.
+
+**Alternativas avaliadas e descartadas:**
+
+| Alternativa | Por que não |
+|-------------|-------------|
+| PyInstaller standalone (sem Electron) | Continua local-first — o executável roda 100% local. A perda é de experiência: sem auto-update nativo, sem ícone na barra de tarefas, sem startup automático. O usuário abre um terminal ou clica num `.exe` que levanta o FastAPI e então abre o browser manualmente. Viável tecnicamente (`Tusab.spec` já existe na raiz), mas a experiência é de ferramenta de desenvolvedor, não de produto. |
+| Webapp SaaS | yt-dlp em servidor cloud é bloqueado pelo YouTube (IPs de AWS/GCP/Render são banidos). Requer auth, billing, infra. Dado que sai da máquina. Produto completamente diferente. |
+| Self-hosted (Docker) | Válido para usuários técnicos, mas não é o público principal. Mantém o local-first pois o yt-dlp roda no IP do próprio usuário — roadmap futuro possível, não prioridade. |
+| App mobile (iOS/Android) | Python não roda em iOS. Android possível mas corpus e fluxo de extração são inerentemente desktop. Ferramenta de gestão de conhecimento é desktop por natureza. |
+
+**Por que o peso de ~210 MB é o custo justo:**
+O usuário instala uma vez e tem privacidade total, funcionamento offline e custo zero recorrente. Quem usa ChatGPT no browser não instala nada — mas os dados vão para a OpenAI e o YouTube pode bloquear a extração a qualquer momento. O Tusab troca 210 MB por independência permanente.
+
+**O que o Electron resolve que nenhuma alternativa resolve gratuitamente:**
+- Empacota Python + yt-dlp + dependências em um instalador que o usuário clica e funciona
+- Auto-update via GitHub Releases sem servidor próprio
+- Startup automático e ícone nativo na barra de tarefas
+- Extração YouTube no IP residencial do usuário — nunca banida
+
+---
+
+## Plataformas planejadas
+
+**Windows (atual):** Electron + NSIS + python_env embarcado. Maduro, auto-update funcionando, instalador multilíngue PT/EN/ES.
+
+**macOS (próxima):** mesma arquitetura Electron. Troca NSIS por DMG, python_env por python-build-standalone (Astral), yt-dlp.exe por yt-dlp_macos. Requer Mac para build. Detalhes técnicos documentados separadamente.
+
+**Webapp / mobile:** descartado como produto independente. O local-first exige o backend no device — sem isso, o YouTube não funciona e o Ollama não faz sentido. Self-hosted Docker é possível no futuro para usuários técnicos (o yt-dlp continua no IP deles), mas não é prioridade.
+
+**A arquitetura de infra atual — python_env embarcado, auto-update, TUSAB_DATA_DIR, storage atômico, instalador multilíngue — não é complexidade acidental. É a implementação direta do princípio local-first, e justifica cada decisão tomada até aqui.**
+
+---
+
+## Assinatura de código — decisão por fase
+
+**Contexto:** instaladores Windows não assinados exibem aviso do SmartScreen ("Windows protegeu seu PC"). Para usuário individual é contornável; para B2B com TI gerenciada pode ser bloqueador.
+
+**Opções avaliadas:**
+
+| Opção | Custo | Reputação |
+|-------|-------|-----------|
+| IDLK (Microsoft SmartScreen orgânico) | $0 | Acumula com o histórico de downloads — desaparece após centenas de instalações |
+| OV (Sectigo/DigiCert) | ~$80–200/ano | Remove o aviso após semanas de histórico acumulado |
+| EV (Extended Validation) | ~$300–500/ano | Remove o aviso imediatamente, desde a emissão |
+
+**Decisão atual (junho 2026):** IDLK — reputação orgânica, custo zero. O volume atual de distribuição não justifica certificado pago.
+
+**Gatilho para migrar para OV:** primeiro contrato B2B com TI corporativa gerenciada que exigir instalador assinado, ou volume de downloads suficiente para tornar o aviso um problema recorrente de suporte.
+
+**Como implementar OV quando chegar a hora:** `electron-builder` suporta assinatura automática via variáveis de ambiente no CI/build pipeline — `WIN_CSC_LINK` (path do `.pfx`) e `WIN_CSC_KEY_PASSWORD`. Nenhuma mudança no código, só no pipeline de build.
+
+---
+
 ## Decisão sobre App.jsx (débito técnico aceito)
 
 O `App.jsx` tem ~1.590 linhas orquestrando ~40 estados. É um "God Component" reconhecido.

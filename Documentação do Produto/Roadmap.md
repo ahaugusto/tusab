@@ -8,7 +8,7 @@ Atualizado: Junho 2026
 
 ---
 
-## Estado atual — v1.0.0 (junho 2026)
+## Estado atual — v1.0.8-beta (junho 2026)
 
 ### Feito e funcionando
 
@@ -76,13 +76,16 @@ Atualizado: Junho 2026
 **Infraestrutura**
 - Modularização: 9 módulos em `tusab_engine/` com separação limpa de responsabilidades
 - Suite pytest: 27/27 verde
-- Smoke tests: 15/15 verde (pre-commit hook)
+- Smoke tests: 16/16 verde (pre-commit hook)
 - Segurança: 12 fixes aplicados (CORS, path traversal, prompt injection, upload size, etc.)
 - Chaves de API criptografadas via `safeStorage` do Electron (Windows DPAPI)
 - Watchdog do backend no Electron (poll de 5s, IPC backend-dead/alive, banner vermelho com botão Reiniciar)
+- Fila de extração persistente em disco — crash não perde jobs pendentes (v1.0.8-beta)
+- Race condition no histórico de chat corrigida — leitura+LLM+escrita atômicas (v1.0.8-beta)
+- API de eventos estruturados `dispatch_event()` no AppState (v1.0.8-beta)
 - Telemetria PostHog opt-in com retenção Day 7 / Day 30
 - i18n PT/EN/ES (Brasil como mercado primário — app abre em português)
-- Empacotamento Windows: Python embeddable + yt-dlp bundled + instalador NSIS
+- Empacotamento Windows: Python embeddable + yt-dlp bundled + instalador NSIS multilíngue PT/EN/ES com selector de idioma
 
 **Google Drive**
 - OAuth2 com escopo `drive.file` (mínimo)
@@ -101,6 +104,15 @@ Atualizado: Junho 2026
 - Latência medida: +236ms de retrieval (modelo já em memória); carga inicial ~29s (download único, primeira sessão)
 - Degradação graciosa: se `sentence-transformers` não estiver disponível, BM25 puro continua funcionando
 - Chunking de documentos também corrigido: overlap de 200 chars entre janelas de 2.000 chars
+
+### ~~P0-beta — Estabilidade crítica~~ ✅ IMPLEMENTADO (v1.0.8-beta)
+
+- **Fila persistente em disco** — `AppState.salvar_fila()` / `restaurar_fila()`; write atômico; restaurado no startup
+- **Race condition no chat corrigida** — `agent_chat_lock` cobre leitura + LLM + escrita do histórico
+- **Chunking dinâmico** — PDF/DOCX: (1500, 300); texto/WhatsApp: (500, 100); YouTube: chunk natural
+- **Toast de carregamento do CrossEncoder** — `cross_encoder_loading` em `/agent/status`; informativo na primeira Busca Ampla
+- **API de eventos estruturados** — `dispatch_event()` no `AppState`; base para migrar LogRedirector
+- **`google-generativeai` removido** — SDK legado eliminado do `requirements.txt`
 
 ---
 

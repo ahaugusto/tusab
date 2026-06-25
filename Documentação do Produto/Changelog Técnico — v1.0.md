@@ -7,6 +7,239 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
+## Sprint 25/06/2026 — v1.0.8: estabilidade P0 + qualidade RAG P1
+
+**Commits:** `41780f7` · `c441417`
+**Versão:** v1.0.8
+**Branch:** main
+
+### Contexto
+
+Sprint de estabilidade e qualidade RAG em dois blocos:
+- **P0 — Estabilidade crítica:** fila de extração persistida em disco, race condition no chat eliminada, SDK Gemini legado removido
+- **P1 — Qualidade técnica:** API de eventos tipados no motor, toast de carregamento do CrossEncoder, cache de `/agent/status`, chunking dinâmico por tipo de documento, code splitting no Vite
+
+---
+
+### Backend
+
+#### `tusab_engine/state.py` — Persistência da fila de extração
+
+Métodos adicionados ao `AppState`:
+
+```python
+def _queue_path(self) -> str:
+    from tusab_engine.storage import DADOS_DIR, CONFIG_DIR
+    return os.path.join(CONFIG_DIR, "extraction_queue.json")
+
+def salvar_fila(self):
+    """Persiste extraction_queue em disco atomicamente (write-to-.tmp + os.replace)."""
+    import json as _json
+    path = self._queue_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        _json.dump(self.extraction_queue, f, ensure_ascii=False)
+    os.replace(tmp, path)
+
+def restaurar_fila(self):
+    """Lê extraction_queue.json ao startup. Silencioso se arquivo não existe."""
+    import json as _json
+    path = self._queue_path()
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            self.extraction_queue = _json.load(f)
+```
+
+`salvar_fila()` chamado dentro do `queue_lock` em todas as mutações da fila: add, clear, remove, move e pop no `run_motor()`. `restaurar_fila()` chamado no startup em `api_tusab.py`.
+
+#### `tusab_engine/state.py` — API de eventos estruturados
+
+Método `dispatch_event(event, **kwargs)` adicionado ao `AppState`. Despacha eventos tipados para `state.stats` sem depender de parsing de emoji/string do `LogRedirector`:
+
+| Evento | Efeito |
+|--------|--------|
+| `video_processed` | `stats["videos_processed"] += 1` |
+| `file_generated` | `stats["files_generated"] += 1` |
+| `video_sem_legenda` | `stats["videos_sem_legenda"] += 1` |
+| `video_legenda_curta` | `stats["videos_legenda_curta"] += 1` |
+| `videos_mapeados` | `stats["videos_mapeados"] = total` |
+| `videos_total` | `stats["videos_total"] = total` |
+| `idioma_detectado` | `stats["idioma_detectado"] = idioma` |
+
+O `LogRedirector` continua como fallback — operação paralela, não substituta.
+
+#### `tusab_engine/motor/extraction.py` — Chamadas a `dispatch_event`
+
+`tusab_engine()` recebe novo parâmetro `dispatch_event=None` e chama o evento correto em cada ponto crítico do loop de extração:
+
+```python
+def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None,
+                 fontes_filtro=None, projeto_nome: str = "", dispatch_event=None):
+    ...
+    dispatch_event("videos_mapeados", total=len(all_videos))
+    dispatch_event("videos_total", total=total_liquido)
+    dispatch_event("file_generated")      # ao criar arquivo .txt
+    dispatch_event("video_processed")     # após vídeo extraído com sucesso
+    dispatch_event("video_legenda_curta") # legenda < 200 chars
+    dispatch_event("video_sem_legenda")   # sem legenda disponível
+```
+
+#### `tusab_engine/api/router_agent.py` — Race condition no chat
+
+Leitura do histórico movida para dentro do `agent_chat_lock`, tornando leitura + LLM + escrita uma operação atômica:
+
+```python
+# /agent/chat
+with state.agent_chat_lock:
+    with state.hist_lock:
+        hist = list(state.chat_histories.get(req.canal_nome, []))
+    resultado = agent_tusab.chat(...)
+    if not resultado.get("error"):
+        novo_hist = hist + [{"role":"user","content":req.mensagem},
+                            {"role":"assistant","content":resultado["resposta"],
+                             "fontes":resultado.get("fontes",[])}]
+        with state.hist_lock:
+            state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+```
+
+Mesmo padrão aplicado ao endpoint `/agent/chat/stream` — hist lido antes de abrir o generator.
+
+Campo `cross_encoder_loading` adicionado à resposta de `/agent/status`:
+
+```python
+try:
+    from tusab_engine.agent.chat import cross_encoder_loading
+    status["cross_encoder_loading"] = cross_encoder_loading
+except Exception:
+    status["cross_encoder_loading"] = False
+```
+
+#### `tusab_engine/agent/chat.py` — Flag de carregamento do CrossEncoder
+
+```python
+cross_encoder_loading = False
+
+def _get_cross_encoder():
+    global _cross_encoder, cross_encoder_loading
+    if _cross_encoder is not None:
+        return _cross_encoder
+    cross_encoder_loading = True
+    try:
+        from sentence_transformers import CrossEncoder as _CE
+        _cross_encoder = _CE('cross-encoder/ms-marco-MiniLM-L-6-v2')
+    except Exception:
+        _cross_encoder = False
+    finally:
+        cross_encoder_loading = False
+    return _cross_encoder
+```
+
+#### `tusab_engine/agent/index.py` — Cache de `get_agent_status()` com TTL 30 s
+
+```python
+_status_cache: dict = {}
+_status_cache_lock = threading.Lock()
+_STATUS_TTL = 30.0
+
+def _invalidar_status_cache():
+    with _status_cache_lock:
+        _status_cache.clear()
+
+def get_agent_status() -> dict:
+    import time as _time
+    with _status_cache_lock:
+        cached = _status_cache.get('result')
+        ts = _status_cache.get('ts', 0.0)
+        if cached is not None and (_time.time() - ts) < _STATUS_TTL:
+            return cached
+    result = _get_agent_status_uncached()
+    with _status_cache_lock:
+        _status_cache['result'] = result
+        _status_cache['ts'] = _time.time()
+    return result
+```
+
+`_invalidar_cache(canal_prefixo)` agora invalida BM25 cache E status cache simultaneamente. Elimina 30+ leituras de disco por polling de 2 s.
+
+#### `tusab_engine/agent/index.py` — Chunking dinâmico
+
+```python
+if aba_label == 'documento':
+    CHUNK_SIZE, OVERLAP = 1500, 300
+else:
+    CHUNK_SIZE, OVERLAP = 500, 100
+```
+
+PDF/DOCX: janelas maiores para capturar raciocínio contínuo. Texto colado / WhatsApp: janelas menores para chunks mais precisos.
+
+#### `requirements.txt`
+
+`google-generativeai>=0.8.6` removido — SDK deprecado, redundante com `google-genai` que já era o SDK ativo.
+
+---
+
+### Frontend
+
+#### `web_interface/vite.config.js` — Code splitting com Rolldown
+
+Bundle 1 081 KB → 538 KB. `manualChunks` como função (Vite 8 / Rolldown exige função, não objeto):
+
+```js
+rolldownOptions: {
+  output: {
+    manualChunks(id) {
+      if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) return 'vendor-react';
+      if (id.includes('node_modules/framer-motion')) return 'vendor-motion';
+      if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
+      if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next')) return 'vendor-i18n';
+      if (id.includes('node_modules/react-markdown') || id.includes('node_modules/remark-gfm')) return 'vendor-markdown';
+    },
+  },
+},
+```
+
+#### `web_interface/src/App.jsx` — Toast de carregamento do CrossEncoder
+
+```jsx
+useEffect(() => {
+  if (agentStatus.cross_encoder_loading) {
+    setProgressToast({ type: 'info', message: t('toast.cross_encoder_loading') });
+  }
+}, [agentStatus.cross_encoder_loading]);
+```
+
+#### `web_interface/src/locales/*.json`
+
+Chave `toast.cross_encoder_loading` adicionada em PT / EN / ES:
+- PT: `"Carregando modelo de relevância semântica pela primeira vez (~30s). As próximas buscas serão instantâneas."`
+- EN: `"Loading semantic relevance model for the first time (~30s). Future searches will be instant."`
+- ES: `"Cargando modelo de relevancia semántica por primera vez (~30s). Las próximas búsquedas serán instantáneas."`
+
+---
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---------|--------|
+| Persistência da fila em `data/config/extraction_queue.json` | Jobs de extração configurados mas não iniciados eram perdidos em crash ou restart; atomic write garante integridade mesmo com queda brusca |
+| `agent_chat_lock` envolvendo leitura + LLM + escrita | Sem o lock completo, dois chats concorrentes no mesmo canal liam o mesmo histórico e um sobrescrevia o outro após a resposta do LLM |
+| `dispatch_event` paralelo ao `LogRedirector` | Migração gradual: motor passa a usar API tipada; LogRedirector continua como fallback para prints não migrados — zero breaking change |
+| TTL 30 s no cache de `get_agent_status()` | `/agent/status` é polled a cada 2 s; sem cache, cada poll fazia 30+ leituras de disco para listar índices e calcular `bases_desatualizadas` |
+| `manualChunks` como função em Vite 8/Rolldown | Objeto seria inferido como `Record<string, string[]>` no Rollup/Rolldown v5+ — lança `TypeError: manualChunks is not a function` em runtime |
+| Chunking dinâmico por tipo (1500/300 vs 500/100) | PDFs têm densidade semântica alta — chunks menores cortam argumentos ao meio; conversas WhatsApp têm densidade baixa — chunks maiores diluem o sinal |
+
+---
+
+### Estado dos testes (25/06/2026)
+
+| Suite | Resultado |
+|-------|-----------|
+| `pytest tests/ -v` (27 testes) | ✅ 27/27 verde |
+| Smoke test pre-commit (16 checks) | ✅ 16/16 verde |
+
+---
+
 ## Sprint 25/06/2026 — v1.0.6: instalador multilíngue, versão dinâmica, UX do Ollama sem modelo
 
 **Versão:** v1.0.6
