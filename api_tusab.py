@@ -107,6 +107,12 @@ Mais informações: consulte a documentação em Documentação do Produto/Segur
 
 _criar_aviso_seguranca()
 
+# Restaura fila de extração que estava pendente antes do último encerramento
+try:
+    state.restaurar_fila()
+except Exception:
+    pass
+
 # Dispara verificação de auto-update em background (não bloqueia startup)
 try:
     from tusab_engine.motor.auto_update import agendar_startup_check

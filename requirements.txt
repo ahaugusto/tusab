@@ -17,8 +17,7 @@ scikit-learn>=1.9.0              # usado internamente pelo sentence-transformers
 # ── Provedores de IA ────────────────────────────────────────────────────────
 openai>=2.41.1                   # OpenAI + Groq (Groq usa client OpenAI)
 anthropic>=0.109.1
-google-generativeai>=0.8.6       # SDK legado google.generativeai (Gemini chat)
-google-genai>=2.6.0              # SDK novo google-genai (Gemini avançado)
+google-genai>=2.6.0              # SDK google-genai (Gemini) — substitui o google-generativeai legado
 
 # ── Google Drive ────────────────────────────────────────────────────────────
 google-auth>=2.53.0
