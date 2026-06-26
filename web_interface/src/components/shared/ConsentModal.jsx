@@ -11,6 +11,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, BarChart2, Globe, HardDrive, ShieldCheck } from 'lucide-react';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
+import { useAriaHidden } from '../../hooks/useAriaHidden';
 
 // ─── Data flows disclosed ─────────────────────────────────────────────────────
 
@@ -51,6 +52,7 @@ const FLOWS = [
 function ConsentModal({ darkMode, onDone }) {
   const [expanded, setExpanded] = useState(false);
   const firstBtnRef = useRef(null);
+  useAriaHidden();
 
   const handleAccept  = () => { acceptAnalytics();  onDone(); };
   const handleDecline = () => { declineAnalytics(); onDone(); };

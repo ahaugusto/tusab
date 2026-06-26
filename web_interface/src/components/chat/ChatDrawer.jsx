@@ -12,7 +12,7 @@ import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 
@@ -204,6 +204,11 @@ function ChatDrawer({
   const [salvando,          setSalvando]          = useState(false);
   const [showHistQuick,     setShowHistQuick]     = useState(false);
   const histQuickRef        = useRef(null);
+  // Painel de históricos auto-salvos (_chat_history/)
+  const [histQuickTab,      setHistQuickTab]      = useState('recentes'); // 'recentes' | 'salvos'
+  const [histSalvos,        setHistSalvos]        = useState([]);
+  const [histSalvosLoading, setHistSalvosLoading] = useState(false);
+  const [injetando,         setInjetando]         = useState(null); // hist_id em injeção
   const [showBaseModal,     setShowBaseModal]     = useState(false);
   const [showBuscaModal,    setShowBuscaModal]    = useState(false);
   const [indexandoBase,     setIndexandoBase]     = useState(null);
@@ -1249,48 +1254,153 @@ function ChatDrawer({
           {/* Dropdown */}
           {showHistQuick && (
             <div
-              className={`absolute bottom-full left-0 mb-2 w-72 rounded-2xl border shadow-2xl z-50 overflow-hidden
+              className={`absolute bottom-full left-0 mb-2 w-80 rounded-2xl border shadow-2xl z-50 flex flex-col
                 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
-              style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              <div className={`px-3 py-2.5 border-b flex items-center justify-between ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
-                <p className={`text-[11px] font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Conversas recentes</p>
-                <button onClick={() => setShowHistQuick(false)}
-                  className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
-                  <X size={12} />
-                </button>
-              </div>
+              style={{ maxHeight: '65vh' }}>
 
-              {!chatHistory?.recent?.length ? (
-                <p className={`text-[11px] text-center py-6 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  Nenhuma conversa salva ainda
-                </p>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {chatHistory.recent.map(conv => (
-                    <button
-                      key={conv.id}
-                      onClick={() => { onRetomar?.(conv); setShowHistQuick(false); }}
-                      className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors group
-                        ${chatHistory.activeId === conv.id
-                          ? darkMode ? 'bg-primary/15 border border-primary/30' : 'bg-violet-50 border border-violet-200'
-                          : darkMode ? 'hover:bg-white/8' : 'hover:bg-slate-50'}`}>
-                      <div className="flex items-start gap-2">
-                        {conv.favorito && <span className="text-amber-400 shrink-0 mt-0.5" style={{ fontSize: 10 }}>★</span>}
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-[11px] font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{conv.titulo}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {conv.canalNome && (
-                              <span className={`text-[9px] font-bold px-1 rounded ${darkMode ? 'text-primary/70' : 'text-violet-500'}`}>@{conv.canalNome}</span>
-                            )}
-                            <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                              {conv.messages?.length || 0} msg · {new Date(conv.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                            </span>
-                          </div>
-                        </div>
-                        <RotateCcw size={10} className={`shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-primary' : 'text-violet-500'}`} />
-                      </div>
+              {/* Header com abas */}
+              <div className={`px-3 pt-2.5 pb-0 border-b ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className={`text-[11px] font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Histórico de conversas</p>
+                  <button onClick={() => setShowHistQuick(false)}
+                    className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+                    <X size={12} />
+                  </button>
+                </div>
+                <div className="flex gap-1 pb-0">
+                  {[
+                    { id: 'recentes', label: 'Recentes' },
+                    { id: 'salvos',   label: 'Salvos no disco' },
+                  ].map(tab => (
+                    <button key={tab.id}
+                      onClick={() => {
+                        setHistQuickTab(tab.id);
+                        if (tab.id === 'salvos' && histSalvos.length === 0) {
+                          const canal = agentStatus?.canal_indexado || canalConfigurado;
+                          if (canal) {
+                            setHistSalvosLoading(true);
+                            listarHistoricosSalvos(canal)
+                              .then(r => setHistSalvos(r.data?.historicos || []))
+                              .catch(() => {})
+                              .finally(() => setHistSalvosLoading(false));
+                          }
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-[10px] font-bold rounded-t-lg border-b-2 transition-colors
+                        ${histQuickTab === tab.id
+                          ? darkMode ? 'text-primary border-primary' : 'text-violet-600 border-violet-500'
+                          : `border-transparent ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}`}>
+                      {tab.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Aba Recentes */}
+              {histQuickTab === 'recentes' && (
+                <div className="overflow-y-auto flex-1">
+                  {!chatHistory?.recent?.length ? (
+                    <p className={`text-[11px] text-center py-6 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                      Nenhuma conversa recente
+                    </p>
+                  ) : (
+                    <div className="p-2 space-y-1">
+                      {chatHistory.recent.map(conv => (
+                        <button
+                          key={conv.id}
+                          onClick={() => { onRetomar?.(conv); setShowHistQuick(false); }}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors group
+                            ${chatHistory.activeId === conv.id
+                              ? darkMode ? 'bg-primary/15 border border-primary/30' : 'bg-violet-50 border border-violet-200'
+                              : darkMode ? 'hover:bg-white/8' : 'hover:bg-slate-50'}`}>
+                          <div className="flex items-start gap-2">
+                            {conv.favorito && <span className="text-amber-400 shrink-0 mt-0.5" style={{ fontSize: 10 }}>★</span>}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[11px] font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{conv.titulo}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {conv.canalNome && (
+                                  <span className={`text-[9px] font-bold px-1 rounded ${darkMode ? 'text-primary/70' : 'text-violet-500'}`}>@{conv.canalNome}</span>
+                                )}
+                                <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                                  {conv.messages?.length || 0} msg · {new Date(conv.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                                </span>
+                              </div>
+                            </div>
+                            <RotateCcw size={10} className={`shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-primary' : 'text-violet-500'}`} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Aba Salvos no disco (_chat_history/) */}
+              {histQuickTab === 'salvos' && (
+                <div className="overflow-y-auto flex-1">
+                  {histSalvosLoading ? (
+                    <div className="flex items-center justify-center py-6 gap-2">
+                      <Loader2 size={14} className="animate-spin text-primary" />
+                      <span className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Carregando…</span>
+                    </div>
+                  ) : !histSalvos.length ? (
+                    <div className="px-4 py-6 text-center">
+                      <p className={`text-[11px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                        Nenhum histórico salvo em disco.
+                      </p>
+                      <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>
+                        Históricos são salvos automaticamente ao iniciar uma nova conversa.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-2 space-y-1">
+                      {histSalvos.map(h => (
+                        <div key={h.id}
+                          className={`rounded-xl border px-3 py-2.5 ${darkMode ? 'border-white/8 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+                          <div className="flex items-start gap-2">
+                            <FileText size={11} className={`shrink-0 mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[11px] font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{h.titulo}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                                  {h.n_pares} par{h.n_pares !== 1 ? 'es' : ''} P+R · {h.data}
+                                </span>
+                                {h.indexado && (
+                                  <span className={`text-[9px] font-bold px-1 rounded-full ${darkMode ? 'bg-secondary/15 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    no corpus
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {!h.indexado && (
+                            <button
+                              onClick={async () => {
+                                const canal = agentStatus?.canal_indexado || canalConfigurado;
+                                if (!canal) return;
+                                setInjetando(h.id);
+                                try {
+                                  await injetarHistorico(canal, h.id);
+                                  setHistSalvos(prev => prev.map(x => x.id === h.id ? { ...x, indexado: true } : x));
+                                } catch {
+                                  // silencioso
+                                } finally {
+                                  setInjetando(null);
+                                }
+                              }}
+                              disabled={injetando === h.id}
+                              className={`mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors
+                                ${darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/25' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}
+                                disabled:opacity-50 disabled:cursor-not-allowed`}>
+                              {injetando === h.id
+                                ? <><Loader2 size={10} className="animate-spin" /> Injetando…</>
+                                : <><Database size={10} /> Adicionar ao corpus</>}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

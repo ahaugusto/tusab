@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BTN_FOCUS } from '../../constants';
 import { resetTotal } from '../../services/api';
+import ModalWrapper from '../shared/ModalWrapper';
 
 export default function ResetModal({ open, darkMode, onClose, onResetDone }) {
   const { t } = useTranslation();
@@ -29,10 +30,7 @@ export default function ResetModal({ open, darkMode, onClose, onResetDone }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div key="reset-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.55)' }}
-          onClick={e => { if (e.target === e.currentTarget) handleClose(); }}>
+        <ModalWrapper key="reset-modal" onClose={handleClose} zIndex="z-[9999]" backdrop="bg-black/55" label="Reset total da base">
           <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
             className={`w-full max-w-sm rounded-2xl border p-5 space-y-4 shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center gap-3">
@@ -70,7 +68,7 @@ export default function ResetModal({ open, darkMode, onClose, onResetDone }) {
               </button>
             </div>
           </motion.div>
-        </motion.div>
+        </ModalWrapper>
       )}
     </AnimatePresence>
   );

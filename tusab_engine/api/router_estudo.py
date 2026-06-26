@@ -36,7 +36,7 @@ def _chamar_llm_estudo(prompt: str) -> str:
         resp = _req.post(
             "http://localhost:11434/api/generate",
             json={"model": model, "prompt": prompt, "stream": False},
-            timeout=120,
+            timeout=300,
         )
         return resp.json().get("response", "")
 
@@ -71,6 +71,55 @@ def _chamar_llm_estudo(prompt: str) -> str:
     raise ValueError(f"Provider não configurado: {provider}")
 
 
+def _parsear_flashcards_json(texto: str, n_esperado: int) -> list:
+    """Extrai flashcards de uma resposta LLM que deveria conter um array JSON.
+
+    Tenta três estratégias em cascata:
+    1. json.loads direto (resposta limpa)
+    2. Extrai primeiro bloco [...] da resposta (LLM adicionou texto antes/depois)
+    3. Fallback para regex Q:/A: (LLM ignorou a instrução de JSON)
+    """
+    texto = texto.strip()
+
+    # Estratégia 1: JSON direto
+    try:
+        data = json.loads(texto)
+        if isinstance(data, list):
+            return _validar_cards(data)
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Estratégia 2: extrai bloco JSON [...] do meio do texto
+    match = re.search(r'\[\s*\{.*?\}\s*\]', texto, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group())
+            if isinstance(data, list):
+                return _validar_cards(data)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Estratégia 3: fallback Q:/A: linha a linha (LLM ignorou JSON)
+    pares = re.findall(r'Q:\s*(.+?)\nA:\s*(.+?)(?=\n(?:\d+\.|Q:)|\Z)', texto + '\n', re.DOTALL)
+    if pares:
+        return [{"pergunta": q.strip(), "resposta": a.strip()} for q, a in pares]
+
+    return []
+
+
+def _validar_cards(data: list) -> list:
+    """Filtra e normaliza itens do array JSON — descarta entradas sem pergunta/resposta."""
+    resultado = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        pergunta = str(item.get("pergunta") or item.get("question") or item.get("front") or "").strip()
+        resposta  = str(item.get("resposta")  or item.get("answer")   or item.get("back")  or "").strip()
+        if pergunta and resposta:
+            resultado.append({"pergunta": pergunta, "resposta": resposta})
+    return resultado
+
+
 @router.post("/agent/study")
 def agent_study(req: StudyRequest):
     """Gera flashcards e/ou resumo estruturado a partir do índice BM25 do projeto."""
@@ -96,9 +145,13 @@ def agent_study(req: StudyRequest):
     if not chunks:
         return {"error": True, "message": "Índice vazio. Adicione conteúdo e indexe novamente."}
 
-    n_amostras = min(req.n_cards * 2, 30)
-    amostra = chunks[:n_amostras]
-    random.shuffle(amostra)
+    # Amostra distribuída: sorteia aleatoriamente de todo o índice (não só do início).
+    # Flashcards precisam de mais diversidade; resumo precisa de menos tokens no prompt.
+    n_amostras = min(req.n_cards * 3, 60, len(chunks))
+    amostra = random.sample(chunks, n_amostras)
+    # Amostra menor dedicada ao resumo — reduz contexto enviado ao LLM (~18k→4k chars)
+    n_resumo = min(15, len(chunks))
+    amostra_resumo = random.sample(chunks, n_resumo)
 
     mgmt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "management")
     os.makedirs(mgmt_dir, exist_ok=True)
@@ -108,26 +161,31 @@ def agent_study(req: StudyRequest):
 
     if req.tipo in ("flashcards", "ambos"):
         trechos = "\n\n".join(
-            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:200]}"
+            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:300]}"
             for c in amostra
         )
         prompt_fc = (
-            f"Você é um tutor. Com base nos trechos abaixo de {req.canal_nome}, "
-            f"gere {req.n_cards} flashcards de estudo.\n\n"
-            "Formato OBRIGATÓRIO — cada flashcard em duas linhas:\n"
-            "Q: [pergunta clara e específica]\n"
-            "A: [resposta direta e concisa]\n\n"
-            f"Gere exatamente {req.n_cards} flashcards sobre os conceitos mais importantes. "
-            "Sem numeração, sem explicação extra.\n\n"
+            f"Você é um tutor especializado. Com base nos trechos abaixo de \"{req.canal_nome}\", "
+            f"gere exatamente {req.n_cards} flashcards de estudo.\n\n"
+            "RESPONDA APENAS com um array JSON válido. Nenhum texto antes ou depois.\n"
+            "Formato:\n"
+            '[\n'
+            '  {"pergunta": "texto da pergunta", "resposta": "texto da resposta"},\n'
+            '  ...\n'
+            ']\n\n'
+            "Regras:\n"
+            f"- Exatamente {req.n_cards} objetos no array\n"
+            "- Cada pergunta deve ser específica e clara\n"
+            "- Cada resposta deve ser direta e concisa (1-3 frases)\n"
+            "- Cubra conceitos variados dos trechos fornecidos\n\n"
             f"TRECHOS:\n{trechos}"
         )
         try:
             resposta_fc = _chamar_llm_estudo(prompt_fc)
-            pares = re.findall(r'Q:\s*(.+?)\nA:\s*(.+?)(?=\nQ:|\Z)', resposta_fc, re.DOTALL)
-            flashcards_resultado = [
-                {"pergunta": q.strip(), "resposta": a.strip()}
-                for q, a in pares
-            ]
+            # Parser robusto: extrai o primeiro array JSON da resposta
+            flashcards_resultado = _parsear_flashcards_json(resposta_fc, req.n_cards)
+            if not flashcards_resultado:
+                return {"error": True, "message": "O modelo não retornou flashcards no formato esperado. Tente novamente."}
             fc_path = os.path.join(mgmt_dir, "flashcards.json")
             salvar_json_atomico({
                 "canal": req.canal_nome,
@@ -138,9 +196,10 @@ def agent_study(req: StudyRequest):
             return {"error": True, "message": f"Erro ao gerar flashcards: {e}"}
 
     if req.tipo in ("resumo", "ambos"):
+        # Usa amostra_resumo (15 chunks × 250 chars = ~3.750 chars) — viável para Ollama local
         trechos_resumo = "\n\n".join(
-            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:300]}"
-            for c in amostra
+            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:250]}"
+            for c in amostra_resumo
         )
         prompt_rs = (
             f"Com base nos trechos abaixo de {req.canal_nome}, crie um resumo estruturado de estudo.\n\n"

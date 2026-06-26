@@ -633,11 +633,146 @@ def agent_chat_stats():
     return result
 
 
+def _serializar_historico_bm25(mensagens: list, canal_nome: str, titulo: str) -> str:
+    """Serializa histórico de chat no formato par P+R otimizado para BM25.
+
+    Cada par user+assistant vira um bloco separado com TEMA, DATA, PERGUNTA,
+    RESPOSTA e FONTES. O indexador BM25 recupera por qualquer um desses campos.
+    Respostas incluídas para rastreabilidade: 'de onde veio essa informação?'
+    """
+    from datetime import datetime as _dt
+
+    data_str = _dt.now().strftime("%d/%m/%Y")
+    header = (
+        f"TITULO: {titulo}\n"
+        f"FONTE: historico_chat\n"
+        f"CANAL: {canal_nome}\n"
+        f"DATA: {data_str}\n"
+        + "-" * 70 + "\n\n"
+    )
+
+    # Emparelha user → assistant
+    blocos = []
+    i = 0
+    while i < len(mensagens):
+        msg = mensagens[i]
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        if role != "user" or not content:
+            i += 1
+            continue
+
+        pergunta = content.strip()
+
+        # Procura a resposta imediatamente seguinte
+        resposta = ""
+        fontes_txt = ""
+        if i + 1 < len(mensagens):
+            prox = mensagens[i + 1]
+            if prox.get("role") == "assistant":
+                resposta = prox.get("content", "").strip()
+                fontes = prox.get("fontes", [])
+                if fontes:
+                    nomes = []
+                    for f in fontes:
+                        nome = f.get("titulo") or f.get("arquivo") or ""
+                        if nome and nome not in nomes:
+                            nomes.append(nome)
+                    fontes_txt = " · ".join(nomes)
+                i += 1  # consome a resposta
+
+        # Deriva tema a partir das primeiras palavras da pergunta
+        palavras = pergunta.split()
+        tema = " ".join(palavras[:8]) + ("…" if len(palavras) > 8 else "")
+
+        bloco = f"TEMA: {tema}\n"
+        bloco += f"PERGUNTA: {pergunta}\n"
+        if resposta:
+            bloco += f"RESPOSTA: {resposta[:1200]}\n"
+        if fontes_txt:
+            bloco += f"FONTES: {fontes_txt}\n"
+        bloco += "\n"
+        blocos.append(bloco)
+        i += 1
+
+    return header + "\n".join(blocos) if blocos else ""
+
+
+def _auto_salvar_historico(canal_nome: str, mensagens: list) -> None:
+    """Salva histórico em texts/_chat_history/ no formato BM25-friendly.
+
+    Chamado automaticamente ao limpar/trocar canal. Silencioso em caso de erro.
+    Arquivo salvo com prefixo '_' — ignorado pelo indexador por padrão.
+    Mínimo de 2 mensagens (1 par P+R) para salvar.
+    """
+    import uuid as _uuid
+    import re as _re
+    from datetime import datetime as _dt
+    from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
+
+    msgs_validas = [
+        m for m in mensagens
+        if m.get("role") in ("user", "assistant") and m.get("content", "").strip()
+    ]
+    if len(msgs_validas) < 2:
+        return
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    if not canal_prefixo:
+        return
+
+    try:
+        hist_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_chat_history")
+        os.makedirs(hist_dir, exist_ok=True)
+
+        ts  = _dt.now().strftime("%Y%m%d_%H%M%S")
+        fid = str(_uuid.uuid4())[:8]
+        titulo = f"Chat — {canal_nome} — {_dt.now().strftime('%d/%m/%Y %H:%M')}"
+        nome_arquivo = f"_hist_{fid}_{ts}.txt"
+        txt_path = os.path.join(hist_dir, nome_arquivo)
+
+        conteudo = _serializar_historico_bm25(msgs_validas, canal_nome, titulo)
+        if not conteudo:
+            return
+
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(conteudo)
+
+        # Manifesto local em _chat_history/_index.json
+        idx_path = os.path.join(hist_dir, "_index.json")
+        idx = []
+        if os.path.exists(idx_path):
+            try:
+                with open(idx_path, "r", encoding="utf-8") as f:
+                    idx = json.load(f)
+            except Exception:
+                pass
+        idx.insert(0, {
+            "id":           fid,
+            "titulo":       titulo,
+            "nome_arquivo": nome_arquivo,
+            "canal":        canal_nome,
+            "data":         _dt.now().strftime("%d/%m/%Y"),
+            "ts":           ts,
+            "n_pares":      sum(1 for m in msgs_validas if m.get("role") == "user"),
+            "chars":        len(conteudo),
+            "indexado":     False,
+        })
+        # Mantém no máximo 200 entradas
+        idx = idx[:200]
+        salvar_json_atomico(idx, idx_path, indent=2)
+    except Exception:
+        pass  # nunca bloqueia o clear
+
+
 @router.post("/agent/chat/clear")
 def agent_chat_clear(req: AgentChatRequest):
-    """Limpa histórico de conversa do lado do servidor para o canal informado."""
+    """Limpa histórico de conversa do lado do servidor e auto-salva em _chat_history/."""
     with state.hist_lock:
-        state.chat_histories.pop(req.canal_nome, None)
+        hist = list(state.chat_histories.pop(req.canal_nome, []))
+    # Auto-save silencioso fora do lock
+    if hist:
+        _auto_salvar_historico(req.canal_nome, hist)
     return {"message": "Histórico limpo."}
 
 
@@ -745,6 +880,104 @@ def agent_chat_historicos(canal_nome: str):
     historicos = [e for e in manifest if e.get("tipo") == "historico_chat"]
     historicos.sort(key=lambda e: e.get("data", ""), reverse=True)
     return {"historicos": historicos}
+
+
+@router.get("/agent/chat/historicos-salvos/{canal_nome}")
+def agent_chat_historicos_salvos(canal_nome: str):
+    """Lista históricos auto-salvos em texts/_chat_history/ (fora do corpus BM25)."""
+    import re as _re
+    from tusab_engine.storage import NEURAL_DIR
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    if not canal_prefixo:
+        return {"historicos": []}
+
+    idx_path = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_chat_history", "_index.json")
+    if not os.path.exists(idx_path):
+        return {"historicos": []}
+    try:
+        with open(idx_path, "r", encoding="utf-8") as f:
+            idx = json.load(f)
+        return {"historicos": idx}
+    except Exception:
+        return {"historicos": []}
+
+
+class InjetarHistoricoRequest(BaseModel):
+    canal_nome: str = Field(max_length=120)
+    hist_id:    str = Field(max_length=20)
+
+
+@router.post("/agent/chat/injetar-historico")
+def agent_chat_injetar_historico(req: InjetarHistoricoRequest):
+    """Move um histórico de _chat_history/ para texts/ — torna-o indexável pelo BM25.
+
+    Após a injeção marca o item como indexado=True no _index.json.
+    O usuário ainda precisa clicar em 'Indexar base' para reconstruir o índice BM25.
+    """
+    import re as _re
+    import shutil
+    from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Canal não especificado."}
+
+    hist_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_chat_history")
+    idx_path = os.path.join(hist_dir, "_index.json")
+    if not os.path.exists(idx_path):
+        return {"error": True, "message": "Nenhum histórico salvo encontrado."}
+
+    try:
+        with open(idx_path, "r", encoding="utf-8") as f:
+            idx = json.load(f)
+    except Exception:
+        return {"error": True, "message": "Erro ao ler índice de históricos."}
+
+    entrada = next((e for e in idx if e.get("id") == req.hist_id), None)
+    if not entrada:
+        return {"error": True, "message": "Histórico não encontrado."}
+
+    if entrada.get("indexado"):
+        return {"ok": True, "message": "Histórico já está no corpus.", "ja_indexado": True}
+
+    src = os.path.join(hist_dir, entrada["nome_arquivo"])
+    if not os.path.exists(src):
+        return {"error": True, "message": "Arquivo de histórico não encontrado em disco."}
+
+    # Copia para texts/ sem o prefixo '_hist_' — torna-o visível ao indexador
+    txt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts")
+    nome_destino = entrada["nome_arquivo"].lstrip("_").replace("hist_", "chat_hist_", 1)
+    dst = os.path.join(txt_dir, nome_destino)
+    shutil.copy2(src, dst)
+
+    # Atualiza manifesto de textos do canal
+    manifest_path = os.path.join(txt_dir, "_manifest.json")
+    manifest = []
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception:
+            pass
+    manifest.insert(0, {
+        "id":       entrada["id"],
+        "titulo":   entrada["titulo"],
+        "nome_txt": nome_destino,
+        "tipo":     "historico_chat",
+        "chars":    entrada.get("chars", 0),
+        "data":     entrada.get("data", ""),
+    })
+    salvar_json_atomico(manifest, manifest_path, indent=2)
+
+    # Marca como indexado no _index.json
+    for e in idx:
+        if e.get("id") == req.hist_id:
+            e["indexado"] = True
+            e["nome_destino"] = nome_destino
+    salvar_json_atomico(idx, idx_path, indent=2)
+
+    return {"ok": True, "message": "Histórico adicionado ao corpus. Indexe a base para ativá-lo."}
 
 
 @router.post("/agent/chat")

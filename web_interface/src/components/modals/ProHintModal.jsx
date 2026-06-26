@@ -1,11 +1,12 @@
 import { Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import ModalWrapper from '../shared/ModalWrapper';
 
 export default function ProHintModal({ onClose }) {
   const { t } = useTranslation();
 
   return (
-    <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <ModalWrapper onClose={onClose} zIndex="z-[9000]" backdrop="bg-black/50 backdrop-blur-sm" label={t('proHint.title', 'Tusab Pro')}>
       <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 relative">
         <button
           onClick={onClose}
@@ -50,6 +51,6 @@ export default function ProHintModal({ onClose }) {
           {t('proHint.cta', 'Entendido, continuar usando')}
         </button>
       </div>
-    </div>
+    </ModalWrapper>
   );
 }

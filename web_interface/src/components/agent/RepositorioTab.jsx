@@ -228,6 +228,17 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
+
+  // Esconde #root de leitores de tela enquanto a modal de upload está aberta
+  // (as outras modais já usam ModalWrapper que faz isso automaticamente)
+  React.useEffect(() => {
+    if (!showAdd_) return;
+    const root = document.getElementById('root');
+    if (root) root.setAttribute('aria-hidden', 'true');
+    return () => {
+      if (root) root.removeAttribute('aria-hidden');
+    };
+  }, [showAdd_]);
   const setShowAdd = (v) => { setShowAddLocal(v); setShowAddProp?.(v); };
   const [mode, setMode]       = React.useState('arquivo');
   const [title, setTitle]     = React.useState('');
@@ -724,7 +735,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
 
       {/* Modal — limpar base */}
-      {showLimpar && createPortal(
+      {showLimpar && (
         <ModalWrapper onClose={() => { if (!limpando) { setShowLimpar(false); setLimparBasesSel({}); } }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar bases">
           {(() => {
             const selecionadas = Object.entries(limparBasesSel).filter(([, v]) => v).map(([k]) => k);
@@ -824,8 +835,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </div>
             );
           })()}
-        </ModalWrapper>,
-        document.body
+        </ModalWrapper>
       )}
 
       {/* Add modal */}
@@ -833,10 +843,13 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={() => closeAddModal()}>
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={!_canalEfetivo() ? 'Selecionar projeto' : mode === 'texto' ? 'Colar texto' : 'Enviar arquivo'}
             className={`w-full max-w-lg rounded-2xl border shadow-2xl p-4 space-y-3 overflow-y-auto
               ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}
               ${dragging ? darkMode ? 'border-primary' : 'border-violet-400' : ''}`}
-            style={{ maxHeight: 'min(90vh, 680px)' }}
+            style={{ maxHeight: 'min(90vh, 680px)', outline: 'none' }}
             onClick={e => e.stopPropagation()}>
           {/* Modal header */}
           <div className="flex items-center justify-between pb-2 border-b border-white/8">
@@ -1315,7 +1328,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Modal — criar novo projeto */}
-      {showCriarProjetoModal && createPortal(
+      {showCriarProjetoModal && (
         <ModalWrapper onClose={() => setShowCriarProjetoModal(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Novo projeto">
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div>
@@ -1377,12 +1390,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </button>
             </div>
           </div>
-        </ModalWrapper>,
-        document.body
+        </ModalWrapper>
       )}
 
       {/* Modal — limpar canal individual */}
-      {limparCanalNome && createPortal(
+      {limparCanalNome && (
         <ModalWrapper onClose={() => !limpandoCanal && setLimparCanalNome(null)} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar canal">
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
@@ -1409,12 +1421,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </button>
             </div>
           </div>
-        </ModalWrapper>,
-        document.body
+        </ModalWrapper>
       )}
 
       {/* Modal — reset total */}
-      {showResetTotal && createPortal(
+      {showResetTotal && (
         <ModalWrapper onClose={() => !resetando && (setShowResetTotal(false), setResetConfirm(''))} zIndex="z-[9999]" backdrop="bg-black/70" label="Reset total">
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
@@ -1452,8 +1463,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </button>
             </div>
           </div>
-        </ModalWrapper>,
-        document.body
+        </ModalWrapper>
       )}
 
       {/* Modal: Indexar base */}
@@ -1471,8 +1481,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             onConfirmar={handleIndexarConfirmar}
             onFechar={() => setShowIndexar(false)}
           />
-        </ModalWrapper>,
-        document.body
+        </ModalWrapper>
       )}
 
       {/* Snackbar de indexação concluída */}

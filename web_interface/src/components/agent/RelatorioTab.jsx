@@ -146,7 +146,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       )}
 
       {/* Modal — limpar histórico */}
-      {showLimpar && createPortal(
+      {showLimpar && (
         <ModalWrapper onClose={() => { setShowLimpar(false); setLimparSel({}); }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('relatorio.clear')}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div className="flex items-start gap-3">
@@ -195,8 +195,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
               </button>
             </div>
           </div>
-        </ModalWrapper>,
-        document.body
+        </ModalWrapper>
       )}
 
       {/* Banner informativo de cobertura */}
