@@ -323,12 +323,13 @@ def _parsear_todos_chunks(canal_prefixo: str) -> list:
                 if len(conteudo) < 80:
                     continue
                 # Chunking dinâmico por tipo:
-                #   documento (PDF/DOCX) → janelas maiores pois o conteúdo é denso e estruturado
-                #   texto (colado/histórico/WhatsApp) → janelas menores, alta densidade de info curta
+                #   documento (PDF/DOCX) → janelas maiores, conteúdo denso e estruturado
+                #   texto/WhatsApp → janelas médias: 500 chars capturava só 2-3 mensagens,
+                #     insuficiente para BM25 recuperar contexto em históricos longos (2018+)
                 if aba_label == 'documento':
                     CHUNK_SIZE, OVERLAP = 1500, 300
                 else:
-                    CHUNK_SIZE, OVERLAP = 500, 100
+                    CHUNK_SIZE, OVERLAP = 1200, 250
                 partes = [conteudo[max(0, i - OVERLAP):i + CHUNK_SIZE]
                           for i in range(0, len(conteudo), CHUNK_SIZE)]
                 for parte in partes:

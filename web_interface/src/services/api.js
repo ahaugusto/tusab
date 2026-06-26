@@ -245,10 +245,16 @@ export const exportHistorico = (canal_nome = '') =>
 // ─── Modo Estudo ──────────────────────────────────────────────────────────────
 
 /** Gera flashcards e/ou resumo para um canal a partir do índice BM25 */
-export const gerarEstudo = (data) => axios.post(`${API_BASE}/agent/study`, data);
+export const gerarEstudo = (data) => axios.post(`${API_BASE}/agent/study`, data, { timeout: 300000 });
 
 /** Busca flashcards e resumo salvos para um canal */
 export const fetchEstudo = (canal) => axios.get(`${API_BASE}/agent/study/${encodeURIComponent(canal)}`);
+
+/** Lista históricos auto-salvos em _chat_history/ (fora do corpus BM25) */
+export const listarHistoricosSalvos = (canal) => axios.get(`${API_BASE}/agent/chat/historicos-salvos/${encodeURIComponent(canal)}`);
+
+/** Move um histórico de _chat_history/ para texts/ — torna-o indexável */
+export const injetarHistorico = (canal_nome, hist_id) => axios.post(`${API_BASE}/agent/chat/injetar-historico`, { canal_nome, hist_id });
 
 /** Exporta flashcards como CSV compatível com Anki (frente;verso) */
 export const exportFlashcardsAnki = (canal) => fetch(`${API_BASE}/export/flashcards/${encodeURIComponent(canal)}`);

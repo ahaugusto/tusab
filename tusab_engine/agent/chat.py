@@ -67,7 +67,7 @@ def _rerankar(pergunta: str, chunks: list) -> list:
     if not ce or not chunks:
         return chunks
     try:
-        pares = [(pergunta, c['texto'][:512]) for c in chunks]
+        pares = [(pergunta, c['texto'][:768]) for c in chunks]
         scores = ce.predict(pares)
         reordenados = sorted(zip(scores, chunks), key=lambda x: x[0], reverse=True)
         return [c for _, c in reordenados]
@@ -295,7 +295,18 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     resultados.sort(key=lambda x: x['score'], reverse=True)
 
-    SCORE_MINIMO = 0.5
+    # Score mínimo adaptativo: corpora grandes (>2k chunks) têm IDF menor por documento
+    # — textos informais/WhatsApp sofrem mais porque termos são menos únicos.
+    # Reduz o threshold progressivamente para não silenciar resultados válidos.
+    n_chunks_total = len(cached['chunks'])
+    if n_chunks_total > 5000:
+        SCORE_MINIMO = 0.15
+    elif n_chunks_total > 2000:
+        SCORE_MINIMO = 0.25
+    elif n_chunks_total > 500:
+        SCORE_MINIMO = 0.35
+    else:
+        SCORE_MINIMO = 0.5
     resultados = [r for r in resultados if r['score'] >= SCORE_MINIMO]
 
     # S3.2 — Filtro de data: quando a query contém termos temporais, prioriza conteúdo recente.

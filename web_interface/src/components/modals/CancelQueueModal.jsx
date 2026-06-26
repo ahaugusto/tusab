@@ -1,17 +1,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BTN_FOCUS } from '../../constants';
+import ModalWrapper from '../shared/ModalWrapper';
 
 export default function CancelQueueModal({ open, darkMode, extractionQueue, onKeepQueue, onClearQueue, onCancel }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div key="cancel-queue-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={onCancel}>
+        <ModalWrapper key="cancel-queue-modal" onClose={onCancel} zIndex="z-50" backdrop="bg-black/60 backdrop-blur-sm" label="Cancelar extração">
           <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
-            className={`rounded-2xl border p-6 max-w-sm w-full shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
-            onClick={e => e.stopPropagation()}>
+            className={`rounded-2xl border p-6 max-w-sm w-full shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
@@ -62,8 +60,8 @@ export default function CancelQueueModal({ open, darkMode, extractionQueue, onKe
                 ${darkMode ? 'bg-white/6 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
               Voltar — não cancelar
             </button>
-          </motion.div>
-        </motion.div>
+            </motion.div>
+        </ModalWrapper>
       )}
     </AnimatePresence>
   );
