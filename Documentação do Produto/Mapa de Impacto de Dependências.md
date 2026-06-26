@@ -869,6 +869,76 @@ score_final = score_bm25 * boost
 
 **Impacto em código:** nenhum — `rank_bm25` permanece em `chat.py` e `index.py`. `bm25s` instalado no `.venv` mas não usado — pode ser removido com `pip uninstall bm25s`.
 
+---
+
+## 13. Sprint 5 — Plano técnico LanceDB (contratos futuros)
+
+### 13.1 Novos módulos e paths
+
+| Artefato | Path | Nota |
+|----------|------|------|
+| Banco LanceDB | `data/lancedb/tusab_{prefixo}/` | Diretório por projeto; substitui `data/indexes/{prefixo}_index.json` |
+| Constante nova | `storage.py:LANCEDB_DIR` | `os.path.join(DATA_DIR, "lancedb")` |
+
+**Dependência de pacote:**
+```
+lancedb>=0.4  pyarrow>=14
+```
+
+### 13.2 Schema Arrow — contrato de colunas
+
+```python
+SCHEMA_CHUNKS = pa.schema([
+    pa.field("canal_prefixo",     pa.string()),
+    pa.field("canal_nome",        pa.string()),
+    pa.field("arquivo",           pa.string()),
+    pa.field("texto",             pa.string()),
+    pa.field("titulo",            pa.string()),
+    pa.field("aba",               pa.string()),
+    pa.field("data",              pa.string()),
+    pa.field("link",              pa.string()),
+    pa.field("tags",              pa.list_(pa.string())),
+    pa.field("descricao",         pa.string()),
+    pa.field("video_id",          pa.string()),
+    pa.field("views",             pa.int64()),
+    pa.field("timestamp_inicio",  pa.int64()),
+    pa.field("indexed_at",        pa.int64()),
+    pa.field("texto_enriquecido", pa.string()),   # tokens BM25 pré-calculados
+    # Futuro (RAG Híbrido, pós-Sprint 5):
+    # pa.field("vector", pa.list_(pa.float32(), 768)),
+])
+```
+
+**Quebra se:**
+- Coluna renomeada sem migração → `chat.py` não encontra campo → `KeyError`
+- `texto_enriquecido` ausente → BM25 FTS cai para busca em `texto` bruto (menor precisão)
+- Coluna `vector` adicionada sem schema update → tabelas existentes ficam sem o campo
+
+### 13.3 Mudanças em módulos existentes
+
+| Módulo | O que muda | O que NÃO muda |
+|--------|-----------|----------------|
+| `storage.py` | + `LANCEDB_DIR` | Todos os outros paths |
+| `index.py:indexar()` | Substitui `salvar_json_atomico` + `BM25Okapi` por `lancedb.create_table` | `_parsear_todos_chunks()`, `_enriquecer_documento()`, `_invalidar_cache()` |
+| `index.py:_bm25_cache` | Passa a guardar referência à tabela LanceDB aberta, não o objeto BM25Okapi | Estrutura de lock (`_bm25_lock`) |
+| `chat.py:_recuperar_contexto()` | Substitui `BM25Okapi.get_scores()` por `tbl.search(query_type="fts")` | Pipeline pós-retrieval: score mínimo, date-aware, views boost, CrossEncoder |
+| `tests/test_confiabilidade.py` | Adaptar teste de índice corrompido: tabela ausente → reindexação | Testes de atomicidade e concorrência |
+
+### 13.4 Compatibilidade com índices legados
+
+- Se `data/indexes/{prefixo}_index.json` existe mas `data/lancedb/tusab_{prefixo}/` não: `_recuperar_contexto()` lança erro orientado "Reindexe para migrar para o novo formato."
+- Não migrar automaticamente — exige ação consciente do usuário (botão Indexar).
+- Após primeira reindexação com LanceDB, o `.json` legado pode ser removido manualmente (não deletar automaticamente).
+
+### 13.5 Checklist de compliance Sprint 5
+
+- [ ] `storage.py:LANCEDB_DIR` adicionado a `obter_caminho_dados()` para respeitar `TUSAB_DATA_DIR`
+- [ ] `index.py:indexar()` mantém assinatura idêntica (canal_nome, canal_prefixo, callback, stop_event) — callers não mudam
+- [ ] `chat.py` importa `lancedb` em lazy-load (dentro da função) — sem custo de startup
+- [ ] Testes: fixture `conftest.py` cria `LANCEDB_DIR` dentro do `tempdir` isolado
+- [ ] `CLAUDE.md` atualizado com novo path `data/lancedb/`
+- [ ] `Mapa de Impacto de Dependências.md` §3.2 atualizado com schema Arrow
+
 ### 12.2 Roadmap de infraestrutura RAG
 
 | Sprint | Item | Status |

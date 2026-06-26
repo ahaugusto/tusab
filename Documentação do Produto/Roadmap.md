@@ -230,11 +230,169 @@ O Tusab tem **12–18 meses** para tornar a extração em escala apenas o ponto 
 
 ---
 
+## Sprint 5 — LanceDB: indexação incremental (plano técnico)
+
+> **Por que LanceDB?** O gargalo atual não é velocidade de query (< 1ms) — é que `indexar()` reconstrói o índice inteiro do zero a cada chamada. Com 500 vídeos, isso leva 3–5s e bloqueia o uso do agente. LanceDB resolve com append nativo: só novos chunks são gravados. Além disso, substitui `rank_bm25` **e** o ChromaDB planejado de uma vez, eliminando uma dependência futura.
+
+### Motivação
+
+| Cenário | Hoje (rank_bm25) | Com LanceDB |
+|---------|-----------------|-------------|
+| Adicionar 10 vídeos novos ao projeto com 500 | Reindexar tudo (~3–5s) | Append de 10 chunks (< 100ms) |
+| 2 usuários indexando o mesmo projeto | Race condition potencial no JSON | Transações ACID nativas |
+| Quero ver meus chunks por data/canal | Carrego JSON inteiro na memória | Query SQL-like via Arrow |
+| Quero busca vetorial no futuro | Nova dependência (ChromaDB) | Já está no LanceDB |
+
+### Plano técnico
+
+#### Fase 1 — Infraestrutura base (2 dias)
+
+**1.1 Instalação**
+```
+pip install lancedb pyarrow
+```
+
+**1.2 Novo schema de tabela LanceDB**
+
+Cada chunk vira uma linha Arrow com colunas tipadas:
+
+```python
+SCHEMA_CHUNKS = pa.schema([
+    pa.field("canal_prefixo",    pa.string()),
+    pa.field("canal_nome",       pa.string()),
+    pa.field("arquivo",          pa.string()),
+    pa.field("texto",            pa.string()),
+    pa.field("titulo",           pa.string()),
+    pa.field("aba",              pa.string()),      # youtube | documents | texts
+    pa.field("data",             pa.string()),      # DD/MM/AAAA
+    pa.field("link",             pa.string()),
+    pa.field("tags",             pa.list_(pa.string())),
+    pa.field("descricao",        pa.string()),
+    pa.field("video_id",         pa.string()),
+    pa.field("views",            pa.int64()),
+    pa.field("timestamp_inicio", pa.int64()),
+    pa.field("indexed_at",       pa.int64()),       # Unix timestamp da indexação
+    pa.field("texto_enriquecido", pa.string()),     # tokens BM25 pré-calculados (join de _enriquecer_documento)
+])
+```
+
+**1.3 Path do banco**
+
+```python
+# storage.py
+LANCEDB_DIR = os.path.join(DATA_DIR, "lancedb")
+```
+
+**1.4 `index.py` — função `indexar()` com LanceDB**
+
+```python
+def indexar(canal_nome, canal_prefixo, callback=None, stop_event=None):
+    import lancedb, pyarrow as pa
+
+    chunks = _parsear_todos_chunks(canal_prefixo)
+    if not chunks:
+        raise ValueError(...)
+
+    db    = lancedb.connect(LANCEDB_DIR)
+    table_name = f"tusab_{canal_prefixo}"
+
+    # Prepara registros Arrow
+    registros = [{
+        **c,
+        "canal_prefixo":    canal_prefixo,
+        "canal_nome":       canal_nome,
+        "indexed_at":       int(time.time()),
+        "texto_enriquecido": " ".join(_enriquecer_documento(c["texto"], c.get("tags", []), c.get("descricao", ""))),
+        "tags":              c.get("tags", []),
+    } for c in chunks]
+
+    # Cria ou substitui tabela (overwrite completo — modo simples)
+    if table_name in db.table_names():
+        db.drop_table(table_name)
+    db.create_table(table_name, data=registros, schema=SCHEMA_CHUNKS)
+
+    callback(f"✅ {len(chunks)} chunks indexados no LanceDB.")
+    _invalidar_cache(canal_prefixo)
+    return len(chunks)
+```
+
+**Fase 2 — Indexação incremental (1 dia)**
+
+Após a Fase 1 funcionar, ativar append:
+
+```python
+# Detecta arquivos novos desde a última indexação
+def _arquivos_novos_desde(canal_prefixo, last_indexed_at):
+    """Retorna lista de paths com mtime > last_indexed_at."""
+    ...
+
+# indexar() com modo incremental
+def indexar(..., incremental=False):
+    if incremental and table_name in db.table_names():
+        tbl = db.open_table(table_name)
+        last_ts = tbl.to_arrow()["indexed_at"].to_pylist()
+        last_ts = max(last_ts) if last_ts else 0
+        novos = _arquivos_novos_desde(canal_prefixo, last_ts)
+        if not novos:
+            callback("✅ Base já atualizada."); return 0
+        # parsear só os arquivos novos, append na tabela
+        ...
+```
+
+**Fase 3 — Retrieval BM25 via LanceDB (1 dia)**
+
+LanceDB tem BM25 nativo via full-text search:
+
+```python
+def _recuperar_contexto(...):
+    import lancedb
+    db  = lancedb.connect(LANCEDB_DIR)
+    tbl = db.open_table(f"tusab_{canal_prefixo}")
+
+    # Busca BM25 nativa
+    resultados = tbl.search(pergunta, query_type="fts").limit(n * 2).to_list()
+    # → retorna dicts com colunas do schema + score "_score"
+
+    # Pipeline pós-retrieval continua igual:
+    # filtro SCORE_MINIMO → date-aware → views boost → CrossEncoder
+    ...
+```
+
+**Checklist de migração (Fase 1→3)**
+
+- [ ] `storage.py`: adicionar `LANCEDB_DIR`
+- [ ] `index.py`: substituir `salvar_json_atomico` por `lancedb.create_table`; manter `_index_path()` como fallback de leitura para índices legados
+- [ ] `chat.py`: substituir `rank_bm25.BM25Okapi` + `get_scores()` por `tbl.search(..., query_type="fts")`
+- [ ] `_bm25_cache`: simplificar — LanceDB é persistido em disco, cache em memória vira apenas referência à tabela aberta
+- [ ] Testes: adaptar `test_confiabilidade.py` para LanceDB (índice corrompido = tabela ausente)
+- [ ] Migração de índices legados: se `_index_{canal}.json` existe mas tabela LanceDB não, reconstruir automaticamente no startup
+
+### Riscos e mitigações
+
+| Risco | Mitigação |
+|-------|-----------|
+| API do LanceDB muda (biblioteca jovem) | Pinnar versão no `requirements.txt` |
+| Tabela LanceDB corrompida | Mesmo tratamento atual: se `db.open_table()` falhar, deletar e pedir reindexação |
+| Full-text search do LanceDB com qualidade diferente do BM25Okapi | A/B test interno: rodar ambos por uma versão, comparar top-3 |
+| Arquivo legado `_index.json` sem tabela LanceDB | `_recuperar_contexto()` detecta ausência e lança erro orientado: "Reindexe para migrar para o novo formato" |
+
+### Estimativa
+
+- Fase 1 (infra + overwrite): ~2 dias
+- Fase 2 (incremental): ~1 dia  
+- Fase 3 (BM25 nativo): ~1 dia
+- Testes + ajustes: ~1 dia
+- **Total: ~5 dias de trabalho** — Sprint 5 dedicado
+
+---
+
 ## Candidatos a features futuras
 
-### RAG: Embeddings via Ollama + ChromaDB (próxima versão)
+### RAG: Embeddings via Ollama + LanceDB (pós-Sprint 5)
 
-**O que é:** RAG Híbrido — BM25 continua como retriever principal, embeddings vetoriais via `nomic-embed-text` (Ollama) complementam com busca semântica. Fusão de scores BM25 + vetorial antes de montar o prompt.
+**O que é:** RAG Híbrido — após o Sprint 5 (LanceDB), adicionar busca vetorial como complemento ao BM25. `nomic-embed-text` (Ollama) gera embeddings; LanceDB armazena vetores na mesma tabela dos chunks (sem ChromaDB separado). Fusão de scores BM25 + vetorial antes de montar o prompt.
+
+**Por que depois do LanceDB:** o LanceDB já tem suporte a vetores nativamente — a mesma tabela que guarda os chunks BM25 pode guardar o vetor de embedding de cada chunk. Elimina a necessidade de ChromaDB como dependência separada.
 
 **Por que não agora:** aguardando feedback dos usuários com o CrossEncoder já implementado. Decisão tomada em junho 2026.
 
@@ -242,14 +400,14 @@ O Tusab tem **12–18 meses** para tornar a extração em escala apenas o ponto 
 
 **Latência estimada do RAG híbrido completo:**
 - Embeddings via `nomic-embed-text` CPU: +400–800ms
-- ChromaDB lookup: +50–100ms
+- LanceDB ANN lookup: +10–30ms (muito mais rápido que ChromaDB)
 - Fusão BM25 + vetorial: +10ms
-- **Total: ~700–1.100ms de retrieval** — aceitável para Ollama (LLM ~10s), inaceitável para provedores rápidos
+- **Total: ~450–850ms de retrieval** — aceitável para Ollama (LLM ~10s), inaceitável para provedores rápidos
 
 **Três pontos a decidir antes de codar:**
 1. Detectar `nomic-embed-text` disponível via `GET /api/tags` do Ollama antes de indexar — sem travar o chat se ausente
-2. Recriar índice vetorial (ChromaDB) sempre junto com BM25 no `indexar()` — nunca separado, para evitar inconsistência
-3. Comunicar lentidão da primeira indexação com toast de aviso e estimativa de tempo baseada no número de chunks
+2. Adicionar coluna `vector` ao schema LanceDB no Sprint 5 (campo opcional, nulo quando sem embedding)
+3. Comunicar lentidão da primeira indexação com embedding via toast com estimativa baseada no número de chunks
 
 ---
 
