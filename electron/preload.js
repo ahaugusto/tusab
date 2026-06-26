@@ -26,7 +26,8 @@ contextBridge.exposeInMainWorld('tusab', {
   openTerminal: (command) => ipcRenderer.invoke('open-terminal', command),
 
   // Notificações de atualização do app (electron-updater → frontend)
-  onUpdateAvailable:  (cb) => ipcRenderer.on('update-available',  (_e, info) => cb(info)),
-  onUpdateDownloaded: (cb) => ipcRenderer.on('update-downloaded', (_e, info) => cb(info)),
+  onUpdateAvailable:       (cb) => ipcRenderer.on('update-available',       (_e, info) => cb(info)),
+  onUpdateDownloaded:      (cb) => ipcRenderer.on('update-downloaded',      (_e, info) => cb(info)),
+  onTriggerInstallUpdate:  (cb) => ipcRenderer.on('trigger-install-update', () => cb()),
   installUpdate: () => ipcRenderer.invoke('install-update'),
 })

@@ -212,3 +212,26 @@ def open_folder(name: str, prefixo: str = ""):
     os.makedirs(target, exist_ok=True)
     subprocess.Popen(["explorer", target])
     return {"ok": True}
+
+
+@router.get("/agent/mcp/config")
+def agent_mcp_config():
+    """Retorna o JSON de configuração do servidor MCP para Claude Code / Cursor.
+
+    Cole o conteúdo retornado em ~/.claude.json (Claude Code) ou
+    .cursor/mcp.json (Cursor) para habilitar as tools do Tusab no editor.
+    """
+    import sys as _sys
+    mcp_server_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "tusab_engine",
+        "mcp_server.py",
+    )
+    return {
+        "mcpServers": {
+            "tusab": {
+                "command": _sys.executable,
+                "args": [mcp_server_path],
+            }
+        }
+    }

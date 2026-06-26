@@ -39,6 +39,7 @@ export function useChatEngine({
   exportFns = {},
   onPrimeiraFonte,
   perfil = '',
+  chatOpenRef,
 }) {
   const { t } = useTranslation();
 
@@ -223,6 +224,14 @@ export function useChatEngine({
                 msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], streaming: false };
                 return msgs;
               });
+              // Notificação desktop quando o chat está fechado/minimizado
+              if (chatOpenRef && !chatOpenRef.current && Notification.permission === 'granted') {
+                const canal = canalConfigurado || agentStatus?.canal_indexado || '';
+                new Notification(t('notify.chat_done_title'), {
+                  body: canal ? t('notify.chat_done_body_canal', { canal }) : t('notify.chat_done_body'),
+                  icon: '/logo_light_mode.svg',
+                });
+              }
             }
           } catch {
             setChatMessages(prev => {

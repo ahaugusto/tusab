@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, Cpu, HardDrive, RefreshCw } from 'lucide-react';
+import { Activity, Cpu, HardDrive, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
 import { fetchMetrics } from '../../services/api';
 import { BTN_FOCUS } from '../../constants';
 
@@ -54,7 +54,7 @@ function GaugeBar({ value, max, color, darkMode }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function MonitorTab({ darkMode, btnFocus }) {
+export default function MonitorTab({ darkMode, btnFocus, onGoToAdmin }) {
   const { t } = useTranslation();
   const [metrics, setMetrics] = useState(null);
   const [error, setError]     = useState('');
@@ -84,6 +84,10 @@ export default function MonitorTab({ darkMode, btnFocus }) {
   const ramHist  = hist.map(h => h.ram_mb);
   const cpuHist  = hist.map(h => h.sys_cpu ?? h.cpu_pct);
   const maxRam   = Math.max(...ramHist, 1);
+
+  // Detecta métricas zeradas — psutil sem permissão em ambientes corporativos
+  const metricsUnavailable = metrics && cur &&
+    cur.ram_mb === 0 && cur.cpu_pct === 0 && cur.sys_cpu === 0;
 
   const card = `rounded-2xl border p-4 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`;
   const label = `text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`;
@@ -118,6 +122,31 @@ export default function MonitorTab({ darkMode, btnFocus }) {
         <p className={`text-[11px] px-3 py-2 rounded-xl border ${darkMode ? 'bg-red-900/20 border-red-800/40 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
           {error}
         </p>
+      )}
+
+      {metricsUnavailable && (
+        <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border
+          ${darkMode ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+          <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-semibold mb-0.5 ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>
+              {t('monitor.unavailable_title')}
+            </p>
+            <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-amber-400/80' : 'text-amber-700'}`}>
+              {t('monitor.unavailable_desc')}
+            </p>
+            {onGoToAdmin && (
+              <button
+                onClick={onGoToAdmin}
+                className={`mt-2 flex items-center gap-1 text-[10px] font-semibold transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-700 hover:text-amber-900'}`}
+              >
+                {t('monitor.unavailable_cta')}
+                <ExternalLink size={10} />
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Cards */}

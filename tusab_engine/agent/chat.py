@@ -298,6 +298,47 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     SCORE_MINIMO = 0.5
     resultados = [r for r in resultados if r['score'] >= SCORE_MINIMO]
 
+    # S3.2 — Filtro de data: quando a query contém termos temporais, prioriza conteúdo recente.
+    # Detecta anos explícitos (ex: "2024") ou palavras como "recente", "último", "agora".
+    # Filtra chunks sem data válida apenas quando há candidatos suficientes com data.
+    _TERMOS_RECENTE = {'recente', 'recentes', 'último', 'últimos', 'última', 'últimas',
+                       'atual', 'atualmente', 'agora', 'hoje', 'novo', 'novos', 'nova'}
+    pergunta_lower = pergunta.lower()
+    ano_explicito  = re.search(r'\b(20\d{2})\b', pergunta_lower)
+    quer_recente   = any(t in pergunta_lower for t in _TERMOS_RECENTE) or ano_explicito
+
+    if quer_recente:
+        def _data_para_ano(data_str: str) -> int:
+            try:
+                return int(data_str.split('/')[-1])  # DD/MM/AAAA → AAAA
+            except Exception:
+                return 0
+
+        if ano_explicito:
+            ano_alvo = int(ano_explicito.group(1))
+            com_data = [r for r in resultados if _data_para_ano(r.get('data', '')) == ano_alvo]
+        else:
+            ano_max  = max((_data_para_ano(r.get('data', '')) for r in resultados), default=0)
+            com_data = [r for r in resultados if _data_para_ano(r.get('data', '')) >= ano_max - 1]
+
+        # Só aplica filtro se houver candidatos suficientes (≥ n/2), senão usa todos
+        if len(com_data) >= max(n // 2, 2):
+            resultados = com_data + [r for r in resultados if r not in com_data]
+
+    # S3.3 — Boost de engajamento: pondera score pelo log de views.
+    # Efeito suave: um vídeo com 100k views tem boost de ~1.17x sobre um com 1k views.
+    # Aplicado antes do CrossEncoder para não distorcer o reranking semântico.
+    import math as _math
+    views_max = max((r.get('views', 0) for r in resultados), default=1) or 1
+    for r in resultados:
+        views = r.get('views', 0)
+        if views > 0:
+            # Normaliza pelo máximo do conjunto e aplica boost logarítmico
+            boost = 1.0 + 0.2 * (_math.log1p(views) / _math.log1p(views_max))
+            r['score'] = round(r['score'] * boost, 3)
+
+    resultados.sort(key=lambda x: x['score'], reverse=True)
+
     # Re-rankeamento semântico com CrossEncoder — ativado quando busca_ampla=True.
     # O toggle de Busca Ampla é a decisão consciente do usuário de querer mais profundidade:
     # BM25 recupera top-2n candidatos, CrossEncoder reordena por relevância semântica real.
@@ -736,13 +777,16 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
 
     fontes = [{
-        'titulo':  c['titulo'],
-        'aba':     c.get('aba', 'youtube'),
-        'data':    c['data'],
-        'link':    c['link'],
-        'arquivo': c.get('arquivo', ''),
-        'canal':   c.get('canal', ''),
-        'score':   c['score'],
+        'titulo':            c['titulo'],
+        'aba':               c.get('aba', 'youtube'),
+        'data':              c['data'],
+        'link':              c['link'],
+        'arquivo':           c.get('arquivo', ''),
+        'canal':             c.get('canal', ''),
+        'score':             c['score'],
+        'trecho':            c['texto'][:600],
+        'video_id':          c.get('video_id', ''),
+        'timestamp_inicio':  c.get('timestamp_inicio', 0),
     } for c in contexto]
 
     if trecho_mode and not fontes:
@@ -795,13 +839,16 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
 
         prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
         fontes = [{
-            'titulo':  c['titulo'],
-            'aba':     c.get('aba', 'youtube'),
-            'data':    c['data'],
-            'link':    c['link'],
-            'arquivo': c.get('arquivo', ''),
-            'canal':   c.get('canal', ''),
-            'score':   c['score'],
+            'titulo':            c['titulo'],
+            'aba':               c.get('aba', 'youtube'),
+            'data':              c['data'],
+            'link':              c['link'],
+            'arquivo':           c.get('arquivo', ''),
+            'canal':             c.get('canal', ''),
+            'score':             c['score'],
+            'trecho':            c['texto'][:600],
+            'video_id':          c.get('video_id', ''),
+            'timestamp_inicio':  c.get('timestamp_inicio', 0),
         } for c in contexto]
 
     provider = config['provider']

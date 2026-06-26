@@ -5,6 +5,7 @@ Rotas do agente RAG: configuração, indexação, chat e integrações Ollama.
 
 import os
 import re
+import sys
 import json
 import time
 
@@ -191,6 +192,72 @@ def agent_status(canal: str = ""):
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     status["bases_desatualizadas"] = _bases_com_arquivos_novos(status.get("canais_indexados", []))
     return status
+
+
+@router.get("/agent/base-summary")
+def agent_base_summary():
+    """Agrega métricas de inventário por projeto para o painel de visibilidade da base."""
+    import time
+    from tusab_engine.storage import NEURAL_DIR, INDEX_DIR
+
+    status = agent_tusab.get_agent_status()
+    canais_indexados = {c["nome"]: c for c in status.get("canais_indexados", [])}
+
+    projetos = []
+    if os.path.isdir(NEURAL_DIR):
+        for prefixo in sorted(os.listdir(NEURAL_DIR)):
+            pasta = os.path.join(NEURAL_DIR, prefixo)
+            if not os.path.isdir(pasta):
+                continue
+
+            contagens = {}
+            ultima_adicao = 0
+            for sub in ['youtube', 'documents', 'texts']:
+                sub_dir = os.path.join(pasta, sub)
+                if not os.path.isdir(sub_dir):
+                    contagens[sub] = 0
+                    continue
+                arquivos = [f for f in os.listdir(sub_dir) if not f.startswith('_')]
+                contagens[sub] = len(arquivos)
+                for f in arquivos:
+                    try:
+                        mt = os.path.getmtime(os.path.join(sub_dir, f))
+                        if mt > ultima_adicao:
+                            ultima_adicao = mt
+                    except OSError:
+                        pass
+
+            total = sum(contagens.values())
+            if total == 0:
+                continue
+
+            idx_path = os.path.join(INDEX_DIR, f"{prefixo}.json")
+            idx_mtime = None
+            try:
+                idx_mtime = int(os.path.getmtime(idx_path))
+            except OSError:
+                pass
+
+            nome_canal = next(
+                (n for n in canais_indexados if re.sub(r'[<>:"/\\|?*\s]', '_', n).strip('_') == prefixo),
+                prefixo
+            )
+            info = canais_indexados.get(nome_canal, {})
+
+            projetos.append({
+                "prefixo":       prefixo,
+                "nome":          nome_canal,
+                "n_youtube":     contagens.get('youtube', 0),
+                "n_documents":   contagens.get('documents', 0),
+                "n_texts":       contagens.get('texts', 0),
+                "total":         total,
+                "indexado":      idx_mtime is not None,
+                "indexed_at":    idx_mtime,
+                "ultima_adicao": int(ultima_adicao) if ultima_adicao else None,
+                "n_chunks":      info.get("n_chunks", 0),
+            })
+
+    return {"projetos": projetos}
 
 
 @router.get("/agent/mencoes/{canal_nome}")
@@ -772,3 +839,4 @@ def agent_canal_delete(canal_nome: str):
             agent_tusab.salvar_config(config)
         return {"ok": True}
     return {"error": True, "message": "Índice não encontrado"}
+

@@ -231,46 +231,57 @@ def _detectar_formato_especial(texto: str, filename: str) -> str | None:
 
 
 def _parsear_whatsapp(texto: str, formato: str) -> str:
-    """Estrutura export de WhatsApp por dia e participante."""
+    """Estrutura export de WhatsApp por dia e participante.
+
+    Itera linha a linha para capturar mensagens multilinha corretamente:
+    linhas que não começam com o padrão de cabeçalho são continuação da
+    mensagem anterior, não uma nova entrada.
+    """
     if formato == 'whatsapp_android':
-        # "[DD/MM/AAAA, HH:MM:SS] Nome: msg"  ou  "DD/MM/AA HH:MM - Nome: msg"
-        padrao = re.compile(
-            r'^\[?(\d{1,2}/\d{1,2}/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*[-–]\s*([^:]+):\s*(.+)',
-            re.MULTILINE
+        padrao_cabecalho = re.compile(
+            r'^\[?(\d{1,2}/\d{1,2}/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*[-–]\s*([^:]+):\s*(.+)'
         )
     else:
-        # "DD/MM/AAAA HH:MM - Nome: msg"
-        padrao = re.compile(
-            r'^(\d{1,2}/\d{1,2}/\d{2,4})\s+(\d{1,2}:\d{2})\s*[-–]\s*([^:]+):\s*(.+)',
-            re.MULTILINE
+        padrao_cabecalho = re.compile(
+            r'^(\d{1,2}/\d{1,2}/\d{2,4})\s+(\d{1,2}:\d{2})\s*[-–]\s*([^:]+):\s*(.+)'
         )
 
-    mensagens = padrao.findall(texto)
+    mensagens: list[tuple[str, str, str, list[str]]] = []  # (data, hora, remetente, linhas)
+
+    for linha in texto.splitlines():
+        m = padrao_cabecalho.match(linha)
+        if m:
+            data, hora, remetente, primeira_linha = m.groups()
+            # Ignora mensagens de sistema (caractere invisível WhatsApp)
+            if primeira_linha.strip().startswith('‎'):
+                mensagens.append((data, hora, remetente.strip(), []))
+            else:
+                mensagens.append((data, hora, remetente.strip(), [primeira_linha.strip()]))
+        elif mensagens:
+            # Continuação da mensagem anterior
+            linha_strip = linha.strip()
+            if linha_strip and mensagens[-1][3] is not None:
+                mensagens[-1][3].append(linha_strip)
+
+    # Filtra entradas vazias (mensagens de sistema sem conteúdo)
+    mensagens = [(d, h, r, ls) for d, h, r, ls in mensagens if ls]
+
     if not mensagens:
-        return texto  # fallback: retorna original
-
-    por_dia: dict = {}
-    for data, hora, remetente, conteudo in mensagens:
-        remetente = remetente.strip()
-        conteudo  = conteudo.strip()
-        # ignora mensagens de sistema (ex: "Você foi adicionado")
-        if not conteudo or conteudo.startswith('‎'):
-            continue
-        por_dia.setdefault(data, []).append(f"[{hora}] {remetente}: {conteudo}")
-
-    if not por_dia:
         return texto
 
-    blocos = []
-    participantes = set()
-    for msg in mensagens:
-        participantes.add(msg[2].strip())
+    por_dia: dict = {}
+    participantes: set = set()
+    for data, hora, remetente, linhas in mensagens:
+        participantes.add(remetente)
+        conteudo = ' '.join(linhas)
+        por_dia.setdefault(data, []).append(f"[{hora}] {remetente}: {conteudo}")
 
-    blocos.append(f"Conversa do WhatsApp")
-    blocos.append(f"Participantes: {', '.join(sorted(participantes))}")
-    blocos.append(f"Total de mensagens: {len(mensagens)}")
-    blocos.append("-" * 60)
-
+    blocos = [
+        "Conversa do WhatsApp",
+        f"Participantes: {', '.join(sorted(participantes))}",
+        f"Total de mensagens: {len(mensagens)}",
+        "-" * 60,
+    ]
     for data, msgs in por_dia.items():
         blocos.append(f"\n--- {data} ---")
         blocos.extend(msgs)

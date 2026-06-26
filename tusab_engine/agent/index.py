@@ -248,12 +248,15 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
             if not bloco or len(bloco) < 100:
                 continue
 
-            titulo = re.search(r'TITULO:\s*(.+)', bloco)
-            aba    = re.search(r'ABA:\s*(.+)',    bloco)
-            data   = re.search(r'DATA:\s*(.+)',   bloco)
-            link   = re.search(r'LINK:\s*(.+)',   bloco)
-            tags_m = re.search(r'TAGS:\s*(.+)',   bloco)
-            desc_m = re.search(r'DESCRICAO:\s*(.+)', bloco)
+            titulo    = re.search(r'TITULO:\s*(.+)',          bloco)
+            aba       = re.search(r'ABA:\s*(.+)',             bloco)
+            data      = re.search(r'DATA:\s*(.+)',            bloco)
+            link      = re.search(r'LINK:\s*(.+)',            bloco)
+            tags_m    = re.search(r'TAGS:\s*(.+)',            bloco)
+            desc_m    = re.search(r'DESCRICAO:\s*(.+)',       bloco)
+            vid_id_m  = re.search(r'VIDEO_ID:\s*(.+)',        bloco)
+            views_m   = re.search(r'VIEWS:\s*(\d+)',          bloco)
+            ts_m      = re.search(r'TIMESTAMP_INICIO:\s*(\d+)', bloco)
 
             partes = re.split(r'-{50,}', bloco)
             texto  = partes[-1].strip() if len(partes) > 1 else bloco
@@ -266,15 +269,18 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
                 tags = [t.strip() for t in tags_m.group(1).split(',') if t.strip()]
 
             chunks.append({
-                'texto':    texto[:8000],
-                'titulo':   titulo.group(1).strip() if titulo else '',
-                'aba':      aba.group(1).strip()    if aba    else 'youtube',
-                'data':     data.group(1).strip()   if data   else '',
-                'link':     link.group(1).strip()   if link   else '',
-                'tags':     tags,
-                'descricao': desc_m.group(1).strip() if desc_m else '',
-                'arquivo':  arquivo,
-                'canal':    canal_prefixo,
+                'texto':             texto[:8000],
+                'titulo':            titulo.group(1).strip()   if titulo   else '',
+                'aba':               aba.group(1).strip()      if aba      else 'youtube',
+                'data':              data.group(1).strip()     if data     else '',
+                'link':              link.group(1).strip()     if link     else '',
+                'tags':              tags,
+                'descricao':         desc_m.group(1).strip()   if desc_m   else '',
+                'arquivo':           arquivo,
+                'canal':             canal_prefixo,
+                'video_id':          vid_id_m.group(1).strip() if vid_id_m else '',
+                'views':             int(views_m.group(1))     if views_m  else 0,
+                'timestamp_inicio':  int(ts_m.group(1))        if ts_m     else 0,
             })
 
     return chunks

@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2, Bell, Mail, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PrivacidadeRede from '../agent/PrivacidadeRede';
+import RedesCorporativas from '../agent/RedesCorporativas';
 import { BTN_FOCUS } from '../../constants';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
 
@@ -85,6 +86,9 @@ export default function AdminTab({
 
       {/* Privacidade e Rede */}
       <PrivacidadeRede darkMode={darkMode} />
+
+      {/* Redes Corporativas */}
+      <RedesCorporativas darkMode={darkMode} />
 
       {/* Limpeza de bases — só para perfis com reset_total */}
       {regras.reset_total && (
