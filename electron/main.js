@@ -4,7 +4,7 @@
 
 'use strict'
 
-const { app, BrowserWindow, shell, dialog, ipcMain, safeStorage } = require('electron')
+const { app, BrowserWindow, shell, dialog, ipcMain, safeStorage, Notification } = require('electron')
 const { spawn }  = require('child_process')
 const path       = require('path')
 const http       = require('http')
@@ -464,6 +464,23 @@ function setupAutoUpdater () {
       console.log('[update] download concluído:', info.version)
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('update-downloaded', { version: info.version })
+      }
+      // Notificação nativa com ação de clique para instalar
+      if (Notification.isSupported()) {
+        const notif = new Notification({
+          title: `Tusab ${info.version} pronto para instalar`,
+          body: 'Clique aqui para instalar a atualização e reiniciar o app.',
+          icon: path.join(__dirname, 'logo_loading.png'),
+          silent: false,
+        })
+        notif.on('click', () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show()
+            mainWindow.focus()
+            mainWindow.webContents.send('trigger-install-update')
+          }
+        })
+        notif.show()
       }
     })
 

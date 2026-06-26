@@ -7,6 +7,17 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.10] — 2026-06-26
+
+### New
+- **Notificação desktop quando o chat responde** — ao receber resposta do LLM com o drawer fechado/minimizado, o Tusab envia notificação nativa do OS. Configurado no novo step de onboarding que solicita permissão de forma contextual.
+- **Notificação nativa de update com ação de clique** — ao concluir download de nova versão, Electron exibe notificação do sistema com título e corpo; clique instala e reinicia imediatamente sem abrir o Admin.
+- **Step de notificações no onboarding** — novo passo "Fique por dentro em tempo real" entre Indexar e Relatório. Exibe botão "Ativar notificações do sistema" com feedback visual de concedida/bloqueada. Fallback: usuários já onboardados recebem solicitação silenciosa na inicialização.
+- **Accordion "Redes Corporativas" na aba Admin** — checklist de diagnóstico com 6 itens classificados por severidade (crítico/moderado/baixo): porta 8001, porta 11434, YouTube, GitHub, antivírus/EDR, GPO. Seção "O que pedir ao TI" com 3 itens de liberação. Traduzido em PT/EN/ES.
+- **Aviso de métricas indisponíveis no Monitor** — quando `psutil` retorna zeros (ambiente EDR/GPO restritivo), exibe banner âmbar com link "Ver diagnóstico de redes corporativas →" que navega direto para o accordion do Admin.
+
+---
+
 ## [1.0.9] — 2026-06-25
 
 ### Fixed (UX)

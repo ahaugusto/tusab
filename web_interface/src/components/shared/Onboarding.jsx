@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2 } from 'lucide-react';
+import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2, Bell } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from './ModalWrapper';
 import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
@@ -25,10 +25,17 @@ import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
  */
 function Onboarding({ onDone, onSkip, darkMode = true }) {
   const { t } = useTranslation();
-  // step 0 = profile selection; steps 1–7 = content steps (mapped from index 0 in STEPS array)
+  // step 0 = profile selection; steps 1–8 = content steps (mapped from index 0 in STEPS array)
   const [step, setStep] = useState(0);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
+  const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const { setPerfil } = usePerfil();
+
+  const requestNotifPermission = async () => {
+    if (typeof Notification === 'undefined') return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+  };
 
   // ── per-profile body overrides for steps 1 and 6 ─────────────────────────
   const s1Body = () => {
@@ -50,6 +57,7 @@ function Onboarding({ onDone, onSkip, darkMode = true }) {
     { icon: Cloud,         title: t('onboarding.s4_title'), body: t('onboarding.s4_body') },
     { icon: Cpu,           title: t('onboarding.s5_title'), body: t('onboarding.s5_body') },
     { icon: MessageSquare, title: t('onboarding.s6_title'), body: s6Body() },
+    { icon: Bell,          title: t('onboarding.s_notif_title'), body: t('onboarding.s_notif_body'), isNotif: true },
     { icon: BarChart2,     title: t('onboarding.s7_title'), body: t('onboarding.s7_body') },
   ];
 
@@ -195,6 +203,33 @@ function Onboarding({ onDone, onSkip, darkMode = true }) {
         {/* Content */}
         <h2 className={`text-lg font-bold mb-2 ${textTitle}`}>{current.title}</h2>
         <p className={`text-sm leading-relaxed mb-4 ${textSub}`}>{current.body}</p>
+
+        {/* Step de notificações — botão de ativação */}
+        {current.isNotif && (
+          <div className="mt-2">
+            {notifPermission === 'granted' ? (
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold
+                ${darkMode ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}>
+                <Bell size={13} />
+                {t('onboarding.notif_granted')}
+              </div>
+            ) : notifPermission === 'denied' ? (
+              <p className={`text-xs px-4 py-2.5 rounded-xl
+                ${darkMode ? 'bg-white/5 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
+                {t('onboarding.notif_denied')}
+              </p>
+            ) : (
+              <button
+                onClick={requestNotifPermission}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                  ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/20' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
+                <Bell size={13} />
+                {t('onboarding.notif_cta')}
+              </button>
+            )}
+          </div>
+        )}
+
         {current.whys && (
           <ul className="space-y-2.5">
             {current.whys.map((w, i) => (

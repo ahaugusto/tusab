@@ -478,6 +478,50 @@ async def import_base_compartilhavel(arquivo: UploadFile = File(...)):
     }
 
 
+# ── Export de flashcards Anki (.csv) ─────────────────────────────────────────
+
+@router.get("/export/flashcards/{canal_nome}")
+def export_flashcards_anki(canal_nome: str):
+    """Exporta flashcards salvos de um projeto como CSV compatível com Anki (frente;verso)."""
+    import re as _re
+    from tusab_engine.storage import NEURAL_DIR
+
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    if not canal_prefixo:
+        return JSONResponse({"error": True, "message": "Canal não especificado."})
+
+    fc_path = os.path.join(NEURAL_DIR, canal_prefixo, "management", "flashcards.json")
+    if not os.path.exists(fc_path):
+        return JSONResponse({"error": True, "message": f"Nenhum flashcard encontrado para '{canal_nome}'. Gere os flashcards primeiro."})
+
+    try:
+        with open(fc_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        return JSONResponse({"error": True, "message": f"Erro ao ler flashcards: {e}"})
+
+    flashcards = data.get("flashcards", [])
+    if not flashcards:
+        return JSONResponse({"error": True, "message": "Nenhum flashcard para exportar."})
+
+    linhas = []
+    for fc in flashcards:
+        pergunta = str(fc.get("pergunta", "")).replace(";", ",").replace("\n", " ")
+        resposta  = str(fc.get("resposta",  "")).replace(";", ",").replace("\n", " ")
+        linhas.append(f"{pergunta};{resposta}")
+
+    csv_content = "\n".join(linhas)
+    buf = io.BytesIO(csv_content.encode("utf-8"))
+    safe_canal = canal_prefixo
+    filename = f"tusab_{safe_canal}_flashcards.csv"
+
+    return StreamingResponse(
+        buf,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 # ── Status de readonly por projeto ───────────────────────────────────────────
 
 @router.get("/export/readonly-status")

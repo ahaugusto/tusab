@@ -191,6 +191,7 @@ function App() {
   const [driveOpen,        setDriveOpen]        = useState(false);
 
   // ─── Chat engine hook ─────────────────────────────────────────────────────
+  const chatOpenRef = useRef(false);
   const {
     chatOpen,      setChatOpen,
     chatExpandido, setChatExpandido,
@@ -214,11 +215,15 @@ function App() {
     useExternalProvider,
     showError,
     perfil: perfil ?? '',
+    chatOpenRef,
     onPrimeiraFonte: () => setProgressToast({
       type: 'info',
       message: t('citation.snackbar'),
     }),
   });
+
+  // Mantém chatOpenRef sincronizado para closures async no useChatEngine
+  useEffect(() => { chatOpenRef.current = chatOpen; }, [chatOpen]);
 
   /** When profile disables busca ampla, always revert to restricted */
   useEffect(() => {
@@ -303,6 +308,10 @@ function App() {
       setAppUpdateInfo({ version: info.version, downloaded: true });
       setShowUpdateBanner(true);
     });
+    // Clique na notificação nativa de update → instala imediatamente
+    window.tusab.onTriggerInstallUpdate?.(() => {
+      window.tusab?.installUpdate?.();
+    });
   }, []);
 
   /** Resets activeTab if it is not in the current profile's allowed tabs */
@@ -349,9 +358,10 @@ function App() {
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
-  /** Requests browser notification permission on first load */
+  /** Fallback: pede permissão de notificação se onboarding já foi concluído sem perguntar */
   useEffect(() => {
-    if (Notification.permission === 'default') Notification.requestPermission();
+    const jaOnboarded = !!localStorage.getItem('tusab_onboarded');
+    if (jaOnboarded && Notification.permission === 'default') Notification.requestPermission();
   }, []);
 
   /** Loads initial history and repositório on mount */
@@ -1565,7 +1575,7 @@ function App() {
             {activeTab === 'monitor' && (
               <div id="panel-monitor" role="tabpanel" aria-labelledby="tab-monitor" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
-                <MonitorTab darkMode={darkMode} btnFocus={BTN_FOCUS} />
+                <MonitorTab darkMode={darkMode} btnFocus={BTN_FOCUS} onGoToAdmin={() => { setActiveTab('admin'); setShowHome(false); }} />
               </div>
             )}
 
@@ -1605,6 +1615,7 @@ function App() {
                 handleTestKey={handleTestKey}
                 showAgentHint={showAgentHint}
                 setShowAgentHint={setShowAgentHint}
+                onIndexar={handleIndexarDoChat}
               />
             )}
 {/* ── Admin tab ── */}
