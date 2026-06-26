@@ -7,6 +7,60 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
+## Sprint 25/06/2026 — v1.0.9: logo ibis na tela de loading
+
+**Commit:** `963363a`
+**Versão:** v1.0.9
+**Branch:** main
+
+### Contexto
+
+Fix de identidade visual: a tela de loading do app instalado exibia apenas o texto "Tusab" em tipografia pura. Substituído pelo logo completo (ibis + wordmark TUSAB + INDEX ASCEND CONVERSE) em branco sobre fundo preto.
+
+---
+
+### Electron
+
+#### `electron/loading.html`
+
+Bloco `.logo` (texto) e `.sub` (tagline em texto) substituídos por `<img class="logo-img">` apontando para `./logo_loading.png`:
+
+```html
+<!-- Antes -->
+<div class="logo">Tusab</div>
+<div class="sub">Indexe · Aprenda · Consulte</div>
+
+<!-- Depois -->
+<img class="logo-img" src="./logo_loading.png" alt="Tusab" />
+```
+
+CSS ajustado: `.logo-img` com `width: 260px` + animação `logo-scale` existente aplicada à imagem. Margem inferior do `.logo-wrap` aumentada de `0.5rem` para `3rem` (tagline estava incluída no logo, não mais como elemento separado). Glow expandido de `inset: -32px` para `inset: -40px` para envolver melhor o logo maior.
+
+#### `electron/logo_loading.png`
+
+Arquivo adicionado à pasta `electron/` — logo branco sobre fundo preto (ibis + TUSAB + INDEX ASCEND CONVERSE), 130 KB. Fonte: `_backup_local/LOGOS/TUSAB-PNG_COMFUNDO/2.png`.
+
+#### `electron/package.json`
+
+`logo_loading.png` adicionado ao array `build.files` para ser incluído no app packaged:
+
+```json
+"files": ["main.js", "preload.js", "loading.html", "logo_loading.png"]
+```
+
+Versão: `1.0.8` → `1.0.9`.
+
+---
+
+### Decisão técnica
+
+| Decisão | Motivo |
+|---------|--------|
+| PNG em vez de SVG inline | SVG do logo tem 760 KB — inviável para embutir inline no HTML; PNG branco sobre preto já está renderizado, sem custo de parse |
+| `logo_loading.png` em `electron/` (não em `assets/`) | `loading.html` usa `loadFile` com `__dirname` = pasta `electron/`; path relativo `./logo_loading.png` funciona identicamente em dev e no packaged |
+
+---
+
 ## Sprint 25/06/2026 — v1.0.8: estabilidade P0 + qualidade RAG P1 + fix UX
 
 **Commits:** `41780f7` · `c441417` · `(este commit)`
