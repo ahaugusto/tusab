@@ -96,23 +96,20 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.5rem;
+      margin-bottom: 3rem;
     }
 
     .logo-glow {
       position: absolute;
-      inset: -32px;
+      inset: -40px;
       border-radius: 50%;
       background: radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, transparent 70%);
       opacity: 0;
       animation: pulse-glow 3s ease-in-out 1.2s infinite;
     }
 
-    .logo {
-      font-size: 3.6rem;
-      font-weight: 800;
-      letter-spacing: -2px;
-      color: #ffffff;
+    .logo-img {
+      width: 260px;
       position: relative;
       animation: logo-scale 3s ease-in-out 1.2s infinite;
     }
@@ -124,14 +121,6 @@
       45%  { transform: scale(1.010); }
       55%  { transform: scale(1); }
       100% { transform: scale(1); }
-    }
-
-    .sub {
-      font-size: 0.65rem;
-      color: rgba(255,255,255,0.25);
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      margin-bottom: 3.5rem;
     }
 
     /* Spinner branco */
@@ -225,9 +214,8 @@
   <div class="center">
     <div class="logo-wrap">
       <div class="logo-glow"></div>
-      <div class="logo">Tusab</div>
+      <img class="logo-img" src="./logo_loading.png" alt="Tusab" />
     </div>
-    <div class="sub">Indexe &nbsp;·&nbsp; Aprenda &nbsp;·&nbsp; Consulte</div>
 
     <div class="spinner"></div>
     <div class="status" id="status">Iniciando backend...</div>
