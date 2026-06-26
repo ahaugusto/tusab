@@ -7,6 +7,13 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.9] — 2026-06-25
+
+### Fixed (UX)
+- **Tela de loading com logo do ibis** — substituído o texto "Tusab" pelo logo completo (ibis + wordmark + INDEX ASCEND CONVERSE) na tela de inicialização do app instalado.
+
+---
+
 ## [1.0.8] — 2026-06-25
 
 ### Fixed (P0 — Estabilidade)
