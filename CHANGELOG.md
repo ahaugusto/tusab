@@ -9,12 +9,25 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [1.0.10] — 2026-06-26
 
-### New
+### New (Sprint 2 — Sprints 1.2, 2.1, 2.2, 2.3)
+- **MCP Server** — `tusab_engine/mcp_server.py`: servidor stdio JSON-RPC 2.0 com tools `search_knowledge` e `list_projects`. Conecta o Tusab ao Claude Code, Cursor ou qualquer agente MCP. Config em `GET /agent/mcp/config` (agora em `router_status.py`).
+- **Modo Estudo** — `router_estudo.py`: `POST /agent/study` gera flashcards e resumo estruturado; `GET /agent/study/{canal}` recupera sessão salva. Frontend: `EstudoTab.jsx` com flip 3D CSS, progress bar frente/verso, export Anki CSV.
+- **Digest Semanal** — `router_digest.py` + `scheduler.py`: `POST /agent/digest/{projeto}` gera síntese dos conteúdos adicionados na semana (APScheduler, segunda-feira 8h). Digest salvo em `management/digest_YYYY-MM-DD.md`.
+- **Onboarding inteligente do Ollama** (S1.2) — `OllamaSetup.jsx`: quando Ollama já está rodando com modelo instalado (`jaConfigurado = running && hasModel`), o bloco "O que é o Ollama?" e a lista de modelos sugeridos ficam ocultos. Aparecem ao clicar "Trocar modelo".
+- **Modularização** — `router_estudo.py` e `router_digest.py` extraídos de `router_agent.py`; endpoint `/agent/mcp/config` movido para `router_status.py`. `router_agent.py` reduzido de 1.089 para 842 linhas.
 - **Notificação desktop quando o chat responde** — ao receber resposta do LLM com o drawer fechado/minimizado, o Tusab envia notificação nativa do OS. Configurado no novo step de onboarding que solicita permissão de forma contextual.
 - **Notificação nativa de update com ação de clique** — ao concluir download de nova versão, Electron exibe notificação do sistema com título e corpo; clique instala e reinicia imediatamente sem abrir o Admin.
 - **Step de notificações no onboarding** — novo passo "Fique por dentro em tempo real" entre Indexar e Relatório. Exibe botão "Ativar notificações do sistema" com feedback visual de concedida/bloqueada. Fallback: usuários já onboardados recebem solicitação silenciosa na inicialização.
 - **Accordion "Redes Corporativas" na aba Admin** — checklist de diagnóstico com 6 itens classificados por severidade (crítico/moderado/baixo): porta 8001, porta 11434, YouTube, GitHub, antivírus/EDR, GPO. Seção "O que pedir ao TI" com 3 itens de liberação. Traduzido em PT/EN/ES.
 - **Aviso de métricas indisponíveis no Monitor** — quando `psutil` retorna zeros (ambiente EDR/GPO restritivo), exibe banner âmbar com link "Ver diagnóstico de redes corporativas →" que navega direto para o accordion do Admin.
+
+### New (Sprint 3 — S3.1, S3.2, S3.3)
+- **Timestamp clicável** (S3.1) — fontes de vídeo YouTube no chat exibem link ▶ MM:SS que abre o YouTube no minuto exato. `extraction.py` grava `VIDEO_ID`, `VIEWS` e `TIMESTAMP_INICIO` (segundos do primeiro cue VTT) em cada bloco do `.txt`; `index.py` parseia os novos campos; `chat.py` inclui `video_id` e `timestamp_inicio` nas fontes; `ChatDrawer.jsx` renderiza `<a>` clicável.
+- **Date-aware retrieval** (S3.2) — perguntas com termos temporais ("recente", "último", "em 2024") filtram chunks pelo campo `data` antes do CrossEncoder. Só aplica quando há candidatos suficientes (≥ n/2).
+- **Views boost logarítmico** (S3.3) — score BM25 multiplicado por `1 + 0.2 × log1p(views)/log1p(views_max)`. Boost máximo 1.2×; neutro quando views = 0. Aplicado pós-BM25, pré-CrossEncoder.
+
+### Fixed (Sprint 2)
+- **WhatsApp multilinha** — `_parsear_whatsapp()` migrado de `re.findall()` para iteração linha a linha. Mensagens com `\n` interno não são mais truncadas na primeira linha.
 
 ---
 
