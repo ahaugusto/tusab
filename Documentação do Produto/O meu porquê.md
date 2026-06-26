@@ -1,4 +1,4 @@
-﻿O PORQUÊ DO Tusab
+O PORQUÊ DO Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────

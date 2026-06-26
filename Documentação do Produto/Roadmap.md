@@ -8,7 +8,7 @@ Atualizado: Junho 2026
 
 ---
 
-## Estado atual — v1.0.10 (junho 2026)
+## Estado atual — v1.0.11 (junho 2026)
 
 ### Feito e funcionando
 
@@ -87,6 +87,35 @@ Atualizado: Junho 2026
 - i18n PT/EN/ES (Brasil como mercado primário — app abre em português)
 - Empacotamento Windows: Python embeddable + yt-dlp bundled + instalador NSIS multilíngue PT/EN/ES com selector de idioma
 
+**Modo Estudo (v1.0.11)**
+- Flashcards e resumo gerados por LLM a partir do índice BM25 do projeto
+- Seleção obrigatória de projeto indexado antes de gerar — empty state âmbar quando nada indexado
+- Parser robusto de flashcards: cascata JSON direto → extração de bloco `[...]` → fallback regex Q:/A:
+- Amostragem distribuída: `random.sample()` em vez de `chunks[:n]` — cobre todo o corpus, não só o início
+- Timeout Ollama: 120→300s; amostra do resumo reduzida de 18k para 3.7k chars (evita timeout em modelos locais)
+- Estado persistente: flashcards, resumo e progresso sobrevivem a trocas de aba e fechamento do accordion
+- Download de modelos Ollama também persiste entre trocas de aba
+
+**RAG — qualidade para corpora densos (v1.0.11)**
+- Chunk size para textos/WhatsApp: 500→1200 chars com overlap de 100→250 chars — captura contexto conversacional completo
+- Score mínimo BM25 adaptativo por tamanho do corpus: 0.15 (>5k chunks) / 0.25 (>2k) / 0.35 (>500) / 0.5 (pequeno)
+- CrossEncoder com truncação 512→768 chars por chunk — mais contexto para rerankeamento semântico
+
+**Histórico de chat como conhecimento (v1.0.11)**
+- Auto-salvamento em `texts/_chat_history/` ao limpar conversa — formato BM25 otimizado (TEMA/PERGUNTA/RESPOSTA/FONTES)
+- Pasta `_chat_history/` ignorada pelo indexador por padrão — usuário controla quando injetar
+- Aba "Salvos no disco" no histórico de chat — lista com metadata e botão "Adicionar ao corpus"
+
+**Acessibilidade de modais (v1.0.11)**
+- `ModalWrapper` usa `ReactDOM.createPortal` + `aria-hidden` no `#root` enquanto modal aberta
+- Screen readers (NVDA, JAWS, VoiceOver) agora lêem apenas a modal — conteúdo de fundo mascarado
+- `CancelQueueModal`, `QueueManagerModal`, `ResetModal`, `ProHintModal` migrados para `ModalWrapper`
+- Hook `useAriaHidden.js` criado para modais fora do `ModalWrapper`
+
+**UX — Sub-abas do Agente (v1.0.11)**
+- Tabs "Funcionalidades" e "Configurações" agora seguem o padrão visual da aba de Extração (underline `border-b-2`, não pill)
+- Layout `flex-col` com área scrollável separada — mais espaço vertical para o conteúdo
+
 **Notificações e diagnóstico (v1.0.10)**
 - Notificação desktop quando o chat responde com drawer fechado/minimizado — dispara via Web Notification API ao detectar `parsed.done` com `chatOpenRef.current === false`
 - Notificação nativa Electron ao concluir download de update — clique na notificação instala e reinicia sem passar pelo Admin
@@ -120,6 +149,100 @@ Atualizado: Junho 2026
 - **Toast de carregamento do CrossEncoder** — `cross_encoder_loading` em `/agent/status`; informativo na primeira Busca Ampla
 - **API de eventos estruturados** — `dispatch_event()` no `AppState`; base para migrar LogRedirector
 - **`google-generativeai` removido** — SDK legado eliminado do `requirements.txt`
+
+---
+
+### P0-c — Calibragem dinâmica de RAG por corpus (Perfil Especialista)
+
+**O problema:** os parâmetros de RAG são constantes hardcoded (`SCORE_MINIMO`, `CHUNK_SIZE`, `n_docs`, uso de CrossEncoder). O perfil Especialista frequentemente precisa que o usuário ajuste manualmente as configurações dependendo do corpus — base densa de WhatsApp exige limiar menor; corpus técnico pequeno exige limiar maior.
+
+**A proposta:** ao indexar (ou na primeira query de um canal), o backend analisa o corpus e persiste `corpus_profile.json` no diretório do projeto com parâmetros calibrados automaticamente.
+
+```python
+# Exemplo de corpus_profile.json
+{
+  "canal_prefixo": "meu_projeto",
+  "calibrado_em": "2026-06-26T10:00:00",
+  "n_chunks_total": 12400,
+  "tipo_dominante": "texts",       # youtube | documents | texts
+  "densidade_media_tokens": 180,
+  "score_minimo": 0.15,
+  "chunk_size": 1200,
+  "overlap": 250,
+  "usar_crossencoder": true,
+  "n_candidatos_bm25": 15,
+  "n_docs_prompt": 6
+}
+```
+
+**Lógica de calibragem (`_calibrar_corpus(prefixo)` em `index.py`):**
+
+| Sinal do corpus | Ação |
+|---|---|
+| `n_chunks > 5000` | `score_minimo = 0.15`; `usar_crossencoder = True` |
+| `tipo_dominante == 'texts'` | `chunk_size = 1200`, `overlap = 250` (conversacional) |
+| `tipo_dominante == 'documents'` | `chunk_size = 1500`, `overlap = 300` (técnico) |
+| `tipo_dominante == 'youtube'` | chunk natural por vídeo — sem chunking extra |
+| `densidade_media_tokens < 50` | corpus de mensagens curtas → `n_candidatos_bm25 = 20` |
+
+**Integração com `_recuperar_contexto()` em `chat.py`:** lê `corpus_profile.json` do projeto ativo antes de aplicar os parâmetros de busca. Fallback para constantes hardcoded se o arquivo não existir (backward-compatible).
+
+**UX:** no Repositório, card "Perfil do corpus" mostra os parâmetros calibrados automaticamente. Botão "Recalibrar" força nova análise após adicionar muitos documentos.
+
+**Quem se beneficia:** Especialista (qualquer corpus), Pesquisador (bases acadêmicas heterogêneas).
+
+**Custo estimado:** 2 dias. Sem nova dependência.
+
+---
+
+### P0-d — Modo Estudo: Quiz Adaptativo com SM-2
+
+**O que é:** após gerar flashcards, o usuário pode entrar em modo quiz. Cada card é marcado como "fácil", "médio" ou "difícil". O algoritmo SM-2 (SuperMemo 2) calcula o próximo intervalo de revisão para cada card — cartões difíceis aparecem mais cedo, cartões fáceis somem por mais tempo.
+
+**Por que é valioso:** hoje o Modo Estudo gera flashcards e o usuário os revisa sem progressão. O quiz adaptativo transforma a ferramenta em sistema de repetição espaçada (SRS) — o mesmo modelo do Anki. Diferencial claro vs. qualquer concorrente que gera flashcards mas não gerencia revisão.
+
+**Dados persistidos por card em `management/srs_state.json`:**
+
+```json
+{
+  "card_id": "sha256-hash-da-pergunta",
+  "intervalo_dias": 4,
+  "facilidade": 2.5,
+  "proxima_revisao": "2026-07-01",
+  "historico": ["facil", "medio", "facil"]
+}
+```
+
+**Algoritmo SM-2 (Python, sem dependência):**
+```python
+def sm2(facilidade, intervalo, qualidade):  # qualidade: 0-5
+    if qualidade >= 3:
+        if intervalo == 0: intervalo = 1
+        elif intervalo == 1: intervalo = 6
+        else: intervalo = round(intervalo * facilidade)
+        facilidade = max(1.3, facilidade + 0.1 - (5 - qualidade) * 0.08)
+    else:
+        intervalo = 1
+    return facilidade, intervalo
+```
+
+**UX:** após o flip do card, três botões: `← Difícil` / `OK` / `Fácil →`. Barra de progresso mostra cards revisados vs. pendentes. Badge "X cards para revisar hoje" na aba Funcionalidades.
+
+**Exportação Anki:** o CSV existente (`/export/flashcards/{canal}`) já é compatível com Anki. O estado SRS do Tusab é independente — dois sistemas de revisão paralelos para quem preferir.
+
+**Custo estimado:** 3-4 dias. Sem nova dependência (SM-2 é pure Python).
+
+---
+
+### P0-e — Modo Estudo: Mapa de Conceitos e Índice de Tópicos
+
+**Mapa de conceitos:** prompt LLM extrai entidades e relações do corpus → gera grafo `{ nodes: [...], edges: [...] }` → renderizado com `react-force-graph` ou D3 force-directed. Identifica clusters de tópicos e pontes conceituais.
+
+**Índice de tópicos:** BM25 agrupa chunks por TF-IDF → gera lista de tópicos com frequência e exemplos de fontes. Sem LLM — puro BM25 + clustering de keywords. Útil para entender o que está e o que não está na base.
+
+**Anotações ancoradas:** ao revelar a resposta de um flashcard, botão "Anotar" abre textarea vinculada ao `card_id`. Anotações salvas em `management/anotacoes.json`. Injetáveis no corpus BM25 como um bloco `ANOTACAO` — o próprio usuário enriquece a base com suas reflexões.
+
+**Custo estimado:** mapa de conceitos (5 dias — depende de lib de grafo); índice de tópicos (2 dias); anotações ancoradas (1 dia).
 
 ---
 

@@ -14,6 +14,7 @@
 | Foco visível e navegação por teclado | ✅ Conforme (global via `index.css`) |
 | prefers-reduced-motion | ✅ Conforme (global via `index.css`) |
 | Modais com trap de foco e aria-modal | ✅ Conforme (`ModalWrapper.jsx`) |
+| **Modais isolam conteúdo de fundo** | ✅ **Corrigido v1.0.11** — `#root` recebe `aria-hidden` enquanto modal aberta |
 | Skip-nav link | ✅ Conforme (`App.jsx`) |
 | lang no HTML | ✅ Conforme (`index.html`: `lang="pt-BR"`) |
 | Contraste de texto (AA) | ⚠️ Maioria OK — exceções documentadas abaixo |
@@ -56,11 +57,31 @@ Todas as animações Framer Motion são reduzidas quando o usuário configura pr
 
 ### Modais
 
-`ModalWrapper.jsx` implementa:
+`ModalWrapper.jsx` implementa (v1.0.11 — corrigido):
 - `role="dialog"`
 - `aria-modal="true"`
 - `aria-label={label}` (recebe prop)
-- Trap de foco automático via `useEffect` com `focusTrap`
+- Trap de foco automático via `useEffect`
+- `ReactDOM.createPortal` — renderiza em `document.body` (fora do `#root`)
+- `aria-hidden="true"` no `#root` enquanto modal aberta — leitores de tela vêem apenas a modal
+- Contador de instâncias (`openCount`) — modais aninhadas não removem o atributo prematuramente
+- Restauração do foco ao elemento anterior ao fechar
+
+**Hook `useAriaHidden.js`** — alternativa para modais que não usam `ModalWrapper` (ex.: `ConsentModal`):
+```js
+import { useAriaHidden } from '../../hooks/useAriaHidden';
+// Dentro do componente:
+useAriaHidden(); // ativo sempre que o componente está montado
+```
+
+**Modais usando `ModalWrapper`:**
+- `ExtractionModal`, `PostExtractionModal`, `GuideModal`, `DriveWarningModal`, `AlterarPerfilModal`
+- `RepositorioTab` (5 modais inline), `RelatorioTab` (1 modal inline)
+- `CancelQueueModal`, `QueueManagerModal`, `ResetModal`, `ProHintModal` (migrados em v1.0.11)
+- `Onboarding` (2 steps)
+
+**Modais usando `useAriaHidden`:**
+- `ConsentModal` — toast na parte inferior, layout diferente do padrão ModalWrapper
 
 ---
 

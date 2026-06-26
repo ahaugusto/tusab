@@ -7,6 +7,177 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
+## Sprint 26/06/2026 — v1.0.11: Modo Estudo, RAG denso, histórico de chat e acessibilidade de modais
+
+**Branch:** main
+
+### Contexto
+
+Sprint de qualidade e UX focada em quatro frentes simultâneas:
+1. **Modo Estudo** — flashcards e resumo agora exigem projeto indexado; estado persiste entre trocas de aba
+2. **RAG para corpora densos** — melhoria de recall em bases grandes (WhatsApp desde 2018, corpora acadêmicos)
+3. **Histórico de chat como conhecimento** — auto-salvamento e injeção no corpus BM25
+4. **Acessibilidade de modais** — screen readers agora vêem apenas a modal aberta, não o conteúdo de fundo
+5. **Sub-abas da aba Agente** — alinhadas ao padrão visual da aba de Extração (underline, não pill)
+
+---
+
+### Backend — `tusab_engine/api/router_estudo.py`
+
+**Parser de flashcards robusto (cascata de 3 estratégias):**
+
+```python
+def _parsear_flashcards_json(texto, n_esperado):
+    # Estratégia 1: json.loads direto (resposta limpa)
+    # Estratégia 2: extrai primeiro bloco [...] da resposta (LLM adicionou texto antes/depois)
+    # Estratégia 3: fallback regex Q:/A: linha a linha
+```
+
+**`_validar_cards(data)`** normaliza nomes de campo (`question`/`front`/`pergunta` → `pergunta`; `answer`/`back`/`resposta` → `resposta`).
+
+**Amostragem distribuída:** `random.sample(chunks, n_amostras)` — era `chunks[:n_amostras]`, que sempre pegava os primeiros 20-30 chunks (bias de início de corpus).
+
+**Prompt JSON explícito:** LLM instruído a retornar array JSON puro, sem texto antes/depois. Compatível com Ollama, Gemini, OpenAI, Groq, Anthropic.
+
+**Resumo desacoplado:** `amostra_resumo = random.sample(chunks, min(15, len(chunks)))` com `[:250]` chars/chunk (~3.750 chars) — era 60 chunks × 300 chars (~18.000 chars), que causava timeout nos modelos Ollama locais.
+
+**Timeout Ollama:** 120 → 300s na chamada `requests.post` do `_chamar_llm_estudo`.
+
+---
+
+### Backend — `tusab_engine/agent/index.py`
+
+**Chunk size adaptado ao tipo de conteúdo:**
+
+```python
+if aba_label == 'documento':
+    CHUNK_SIZE, OVERLAP = 1500, 300
+else:
+    CHUNK_SIZE, OVERLAP = 1200, 250  # era 500, 100
+```
+
+WhatsApp com 500-char chunks gerava 2-3 mensagens por chunk — muito granular para BM25. Com 1200 chars e overlap de 250, a janela captura contexto conversacional completo.
+
+---
+
+### Backend — `tusab_engine/agent/chat.py`
+
+**Score mínimo adaptativo por tamanho do corpus:**
+
+```python
+n_chunks_total = len(cached['chunks'])
+if n_chunks_total > 5000:
+    SCORE_MINIMO = 0.15
+elif n_chunks_total > 2000:
+    SCORE_MINIMO = 0.25
+elif n_chunks_total > 500:
+    SCORE_MINIMO = 0.35
+else:
+    SCORE_MINIMO = 0.5
+```
+
+Corpus grande (ex.: WhatsApp desde 2018, > 10k chunks) tem scores BM25 naturalmente menores — threshold fixo de 0.5 eliminava resultados válidos.
+
+**CrossEncoder:** truncação aumentada de `[:512]` para `[:768]` chars por chunk.
+
+---
+
+### Backend — `tusab_engine/api/router_agent.py`
+
+**Auto-salvamento de histórico de chat:**
+
+- `_serializar_historico_bm25()` — converte pares usuário/assistente em blocos TEMA/PERGUNTA/RESPOSTA/FONTES, otimizados para retrieval BM25 posterior.
+- `_auto_salvar_historico()` — salva em `texts/_chat_history/_hist_{id}_{ts}.txt` com `_index.json` por canal. Ativado automaticamente quando o usuário limpa o chat.
+- A pasta `_chat_history/` usa prefixo `_` para ser ignorada pelo indexador BM25 por padrão — o usuário controla quando injetar.
+
+**Novas rotas:**
+
+| Rota | Descrição |
+|------|-----------|
+| `GET /agent/chat/historicos-salvos/{canal}` | Lista históricos em `_chat_history/` com metadata |
+| `POST /agent/chat/injetar-historico` | Move histórico de `_chat_history/` para `texts/` — torna-o indexável |
+
+---
+
+### Frontend — `web_interface/src/components/tabs/AgentTab.jsx`
+
+**Estado persistente do Modo Estudo** (sobrevive a troca de aba/accordion):
+
+```jsx
+const [estudoProjeto, setEstudoProjeto] = useState('');
+const [estudoTipo, setEstudoTipo]       = useState('flashcards');
+const [estudoNCards, setEstudoNCards]   = useState(10);
+const [estudoGerando, setEstudoGerando] = useState(false);
+const [estudoErro, setEstudoErro]       = useState('');
+const [estudoFlashcards, setEstudoFlashcards] = useState([]);
+const [estudoResumo, setEstudoResumo]   = useState('');
+const [estudoRevisados, setEstudoRevisados] = useState(new Set());
+```
+
+**Estado persistente do download Ollama** — `pullProgress`, `pulling`, `pullingModel`, `pullStartTime` agora vivem no AgentTab e são passados via props ao `OllamaSetup`. Download iniciado em "Configurações" continua mesmo que o usuário mude para "Funcionalidades" e volte.
+
+**Sub-abas no padrão Extração:** substituído pill/segmented control por tabs com `border-b-2` na borda inferior, dentro de `border-b` container — mesmo padrão de Extração/Relatório/Auto-Update. Layout usa `flex-col` com área scrollável separada abaixo das tabs.
+
+---
+
+### Frontend — `web_interface/src/components/agent/EstudoTab.jsx`
+
+Componente totalmente controlado — todo estado persistente movido para `AgentTab`:
+
+- **Antes:** estado local (desmontava ao trocar de aba, perdendo resultados)
+- **Depois:** recebe `projeto`, `tipo`, `nCards`, `gerando`, `erro`, `flashcards`, `resumo`, `revisados` e setters via props
+
+**Seleção obrigatória de projeto:** `<select>` com lista de `projetosIndexados` (de `/agent/status`). Botão "Gerar" desabilitado até selecionar. Empty state âmbar quando `projetosIndexados.length === 0`.
+
+---
+
+### Frontend — `web_interface/src/components/agent/OllamaSetup.jsx`
+
+Refatorado para componente totalmente controlado:
+
+- Remove estado interno: `pullProgress`, `pulling`, `pullingModel`, `pullStartTime`
+- Recebe via props: `pullProgress`, `pulling`, `pullingModel`, `pullStartTime`, `onBaixarModelo`
+- Tempo restante estimado (`tempoRestante`) permanece local — ephemeral, não precisa persistir entre abas
+
+---
+
+### Frontend — `web_interface/src/components/chat/ChatDrawer.jsx`
+
+**Aba "Salvos no disco" no histórico de chat:**
+
+- Dropdown de histórico agora tem duas sub-abas: "Recentes" (localStorage) e "Salvos no disco" (`_chat_history/`)
+- Lista de históricos salvos com metadata: n_pares, data, badge "no corpus"
+- Botão "Adicionar ao corpus" injeta o histórico em `texts/` via `POST /agent/chat/injetar-historico`
+
+---
+
+### Frontend — `web_interface/src/services/api.js`
+
+- `gerarEstudo` timeout: 120.000 → 300.000ms
+- `listarHistoricosSalvos(canal)` — novo
+- `injetarHistorico(canal_nome, hist_id)` — novo
+
+---
+
+### Acessibilidade — Modais (`ModalWrapper.jsx` + hook `useAriaHidden.js`)
+
+**Problema corrigido:** quando uma modal estava aberta, leitores de tela (NVDA, JAWS, VoiceOver) ainda anunciavam o conteúdo de fundo porque `#root` não estava marcado como `aria-hidden`.
+
+**Solução:**
+
+1. `ModalWrapper` agora usa `ReactDOM.createPortal` para renderizar diretamente em `document.body` (fora do `#root`).
+2. No mount, marca `document.getElementById('root')` com `aria-hidden="true"`.
+3. No unmount, remove o atributo. Contador de instâncias abertas (`openCount`) garante que múltiplos modais aninhados não removem o `aria-hidden` prematuramente.
+4. Removido `aria-hidden="true"` do backdrop (estava escondendo a própria modal do leitor de tela — bug de acessibilidade invertido).
+
+**Hook `useAriaHidden.js`** criado para modais que não usam `ModalWrapper` (`ConsentModal`).
+
+**Modais migradas para `ModalWrapper`:** `CancelQueueModal`, `QueueManagerModal`, `ResetModal`, `ProHintModal`.
+
+**`createPortal` externo removido** do `RepositorioTab` e `RelatorioTab` — `ModalWrapper` agora faz o portal internamente, evitando portal duplo.
+
+---
+
 ## Sprint 25/06/2026 — v1.0.9: logo ibis na tela de loading
 
 **Commit:** `963363a`

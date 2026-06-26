@@ -1,4 +1,4 @@
-﻿SEGURANÇA — Tusab
+SEGURANÇA — Tusab
 © 2026 CriAugu — Atualizado: Junho 2026
 
 Documento técnico e não-técnico sobre a postura de segurança do produto,

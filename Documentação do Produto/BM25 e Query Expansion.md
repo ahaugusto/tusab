@@ -1,4 +1,4 @@
-﻿Tusab — BM25 E QUERY EXPANSION
+Tusab — BM25 E QUERY EXPANSION
 © 2026 CriAugu — Atualizado: Junho 2026
 
 ─────────────────────────────────────────

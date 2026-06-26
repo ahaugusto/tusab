@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BTN_FOCUS } from '../../constants';
 import { queueMoveItem, queueRemoveItem, fetchQueue, queueClear } from '../../services/api';
+import ModalWrapper from '../shared/ModalWrapper';
 
 export default function QueueManagerModal({ open, darkMode, extractionQueue, setExtractionQueue, onClose }) {
   const { t } = useTranslation();
@@ -23,11 +24,7 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          key="queue-modal"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={onClose}>
+        <ModalWrapper key="queue-modal" onClose={onClose} zIndex="z-50" backdrop="bg-black/60 backdrop-blur-sm" label="Gerenciar fila de extração">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.2 }}
@@ -104,7 +101,7 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
               </button>
             )}
           </motion.div>
-        </motion.div>
+        </ModalWrapper>
       )}
     </AnimatePresence>
   );

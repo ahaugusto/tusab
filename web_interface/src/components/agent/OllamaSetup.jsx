@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { CheckCircle2, RefreshCw, ChevronDown, Settings2, ExternalLink, Info, Loader2, AlertTriangle } from 'lucide-react';
-import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress } from '../../services/api';
+import { fetchOllamaStatus, pullOllamaModel } from '../../services/api';
 
 // Modelos sugeridos: [id, label, tamanho, descrição curta]
 const MODELOS_SUGERIDOS = [
@@ -21,30 +21,29 @@ const MODELOS_SUGERIDOS = [
   ['gemma3:12b',     'Gemma 3 12B',     '~8.1 GB', 'Google, alta qualidade, 16 GB RAM'],
 ];
 
-// Tamanhos aproximados em GB para estimar tempo restante
-const TAMANHOS_GB = {
-  'llama3.2:1b': 1.3, 'llama3.2:3b': 2.0, 'gemma3:4b': 3.3,
-  'llama3.1:8b': 4.7, 'qwen2.5:7b': 4.7, 'mistral:7b': 4.1,
-  'phi4-mini:3.8b': 2.5, 'gemma3:12b': 8.1,
-};
-
 function formatarTempo(segundos) {
   if (segundos < 60) return `~${Math.ceil(segundos)}s`;
   const min = Math.ceil(segundos / 60);
   return `~${min} min`;
 }
 
-function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollamaModel, onModelChange, isStandby = false }) {
-  const [pullProgress,  setPullProgress]  = React.useState(null);
-  const [pulling,       setPulling]       = React.useState(false);
-  const [showAdvanced,  setShowAdvanced]  = React.useState(false);
-  const [pullingModel,  setPullingModel]  = React.useState(null);
-  const [refreshing,    setRefreshing]    = React.useState(false);
-  const [pullStartTime, setPullStartTime] = React.useState(null);
+function OllamaSetup({
+  darkMode,
+  ollamaStatus, setOllamaStatus,
+  btnFocus,
+  ollamaModel, onModelChange,
+  isStandby = false,
+  // Estado de download — controlado pelo AgentTab para persistir entre trocas de aba
+  pullProgress, pulling, pullingModel, pullStartTime,
+  onBaixarModelo,
+}) {
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [refreshing,   setRefreshing]   = React.useState(false);
+
+  // Tempo restante estimado — calculado localmente a partir dos props (ephemeral, não precisa persistir)
   const [tempoRestante, setTempoRestante] = React.useState(null);
 
   const hasModel  = ollamaStatus.models && ollamaStatus.models.length > 0;
-  // modelName só existe quando Ollama está rodando E há pelo menos um modelo instalado
   const modelName = (ollamaStatus.running && hasModel)
     ? (ollamaModel && ollamaStatus.models.includes(ollamaModel) ? ollamaModel : ollamaStatus.models[0])
     : null;
@@ -56,22 +55,6 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
   };
 
   React.useEffect(() => { refresh(); }, []);
-
-  React.useEffect(() => {
-    if (!pulling) return;
-    const iv = setInterval(async () => {
-      try {
-        const r = await fetchOllamaPullProgress();
-        setPullProgress(r.data);
-        if (r.data.status === 'done' || r.data.status === 'error') {
-          setPulling(false);
-          const s = await fetchOllamaStatus();
-          setOllamaStatus(s.data);
-        }
-      } catch {}
-    }, 800);
-    return () => clearInterval(iv);
-  }, [pulling]);
 
   // Estima tempo restante durante download
   React.useEffect(() => {
@@ -88,67 +71,23 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
   }, [pullProgress, pullStartTime, pullingModel]);
 
   const startPull = async () => {
-    setPulling(true);
-    setPullProgress({ status: 'pulling', pct: 0, message: 'Iniciando...' });
-    await pullOllamaModel().catch(() => {});
+    if (onBaixarModelo) {
+      onBaixarModelo('llama3.2:1b');
+    } else {
+      await pullOllamaModel().catch(() => {});
+    }
   };
 
-  const handleBaixar = async (id) => {
-    setPullingModel(id);
-    setPullStartTime(Date.now());
-    setTempoRestante(null);
-    setPullProgress({ status: 'pulling', pct: 0, message: 'Iniciando download...', model: id });
-
-    // Verifica se Ollama está rodando antes de tentar baixar
-    const status = await fetchOllamaStatus().catch(() => null);
-    if (!status?.data?.running) {
-      setPullProgress({ status: 'error', pct: 0, message: 'Ollama não está rodando. Instale em ollama.com e tente novamente.', model: id });
-      setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 5000);
-      return;
-    }
-
-    try {
-      await pullOllamaModel(id);
-    } catch {
-      setPullProgress({ status: 'error', pct: 0, message: 'Erro ao iniciar download.', model: id });
-      setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 3000);
-      return;
-    }
-    const iv = setInterval(async () => {
-      try {
-        const r = await fetchOllamaPullProgress();
-        const p = r.data;
-        setPullProgress(p);
-        if (p.status === 'done' || p.status === 'error') {
-          clearInterval(iv);
-          setTempoRestante(null);
-          const s = await fetchOllamaStatus().catch(() => null);
-          if (s?.data) setOllamaStatus(s.data);
-          setTimeout(async () => {
-            const s2 = await fetchOllamaStatus().catch(() => null);
-            if (s2?.data) setOllamaStatus(s2.data);
-            setPullingModel(null);
-            setPullProgress(null);
-            setPullStartTime(null);
-          }, 3000);
-        }
-      } catch {}
-    }, 800);
-    setTimeout(() => { clearInterval(iv); setPullingModel(null); setPullProgress(null); }, 900000);
-  };
-
-  // Cores do card de status: verde se ativo, amarelo se não detectado
-  const cardBg     = ollamaStatus.running
+  const cardBg = ollamaStatus.running
     ? (darkMode ? 'bg-secondary/5 border-secondary/20'   : 'bg-emerald-50 border-emerald-200')
     : (darkMode ? 'bg-amber-500/5 border-amber-500/20'   : 'bg-amber-50 border-amber-200');
 
-  // Quando Ollama já está rodando com modelo, pula onboarding e mostra estado compacto
   const jaConfigurado = ollamaStatus.running && hasModel;
 
   return (
     <div className="space-y-3">
 
-      {/* Bloco explicativo — só aparece quando Ollama não está pronto */}
+      {/* Bloco explicativo — só quando Ollama não está pronto */}
       {!jaConfigurado && (
         <div className={`rounded-xl p-3.5 border flex gap-2.5 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
           <Info size={13} className={`shrink-0 mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
@@ -171,10 +110,8 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
         </div>
       )}
 
-      {/* Card de status do Ollama */}
+      {/* Card de status */}
       <div className={`rounded-xl p-4 space-y-3 border ${cardBg}`}>
-
-        {/* Indicador de status */}
         <div className="flex items-center gap-2">
           {ollamaStatus.running ? (
             <div className={`w-2 h-2 rounded-full shrink-0 ${isStandby ? 'bg-slate-400' : 'bg-secondary animate-pulse'}`} />
@@ -193,7 +130,6 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
           )}
         </div>
 
-        {/* Ollama não detectado — alerta com instrução clara */}
         {!ollamaStatus.running && (
           <div className="space-y-2.5">
             <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-amber-300/80' : 'text-amber-800'}`}>
@@ -289,9 +225,9 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
             )}
           </div>
         )}
-      </div>{/* fim card status */}
+      </div>
 
-      {/* Lista de modelos sugeridos — sempre visível no onboarding; colapsável via "Trocar modelo" quando já configurado */}
+      {/* Lista de modelos sugeridos */}
       {(!jaConfigurado || showAdvanced) && (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -308,7 +244,6 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
           {MODELOS_SUGERIDOS.map(([id, label, size, desc]) => {
             const instalado    = ollamaStatus.running && ollamaStatus.models?.includes(id);
             const baixandoEste = pullingModel === id;
-            // Chip "ativo" só aparece se Ollama está rodando E modelo está instalado
             const isAtivo      = ollamaStatus.running && modelName === id && instalado;
             return (
               <div key={id} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors
@@ -332,7 +267,7 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
                 {!instalado ? (
                   <button
                     disabled={!!pullingModel || !ollamaStatus.running}
-                    onClick={() => handleBaixar(id)}
+                    onClick={() => onBaixarModelo && onBaixarModelo(id)}
                     title={!ollamaStatus.running ? 'Instale o Ollama para baixar modelos' : undefined}
                     className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-40
                       ${baixandoEste
@@ -404,9 +339,8 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
             Erro: {pullProgress.message}
           </p>
         )}
-
       </div>
-      )}{/* fim bloco modelos sugeridos */}
+      )}
 
     </div>
   );
