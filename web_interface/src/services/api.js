@@ -36,6 +36,9 @@ export const fetchMetrics = () => axios.get(`${API_BASE}/metrics`);
 /** Fetches agent/RAG status */
 export const fetchAgentStatus = (canal = '') => axios.get(`${API_BASE}/agent/status${canal ? `?canal=${encodeURIComponent(canal)}` : ''}`);
 
+/** Fetches per-project inventory metrics for the base visibility panel */
+export const fetchBaseSummary = () => axios.get(`${API_BASE}/agent/base-summary`);
+
 /** Fetches extraction history (all canals) */
 export const fetchHistory = () => axios.get(`${API_BASE}/history`);
 
@@ -238,6 +241,17 @@ export const exportHistorico = (canal_nome = '') =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ canal_nome }),
   });
+
+// ─── Modo Estudo ──────────────────────────────────────────────────────────────
+
+/** Gera flashcards e/ou resumo para um canal a partir do índice BM25 */
+export const gerarEstudo = (data) => axios.post(`${API_BASE}/agent/study`, data);
+
+/** Busca flashcards e resumo salvos para um canal */
+export const fetchEstudo = (canal) => axios.get(`${API_BASE}/agent/study/${encodeURIComponent(canal)}`);
+
+/** Exporta flashcards como CSV compatível com Anki (frente;verso) */
+export const exportFlashcardsAnki = (canal) => fetch(`${API_BASE}/export/flashcards/${encodeURIComponent(canal)}`);
 
 /** Downloads canal summary as Word .docx — sends frontend messages to avoid empty server-side history */
 export const exportResumoCanalDocx = (canal_nome, mensagens = []) =>

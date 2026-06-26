@@ -175,6 +175,67 @@ Proteção intelectual via:
 
 ---
 
+## As três camadas de mercado
+
+O Tusab opera em três camadas que se alimentam mutuamente:
+
+**Camada 1 — "Um RAG pra chamar de meu" (B2C)**
+
+O usuário monta a própria base com as fontes que escolhe: canais do YouTube, PDFs, documentos, anotações pessoais. Não é IA genérica — é o conhecimento curado por ele, organizado do jeito dele, consultável quando precisar.
+
+Perfis: estudante que combina canal do professor + apostilas; profissional que agrega canais técnicos + relatórios; investidor que segue criadores de finanças + seus estudos; pesquisador com entrevistas + artigos acadêmicos; médico com canais de medicina + PDF de protocolos; advogado com canais jurídicos + jurisprudência.
+
+Modelo: uso gratuito (Ollama) ou compra única (Pro). Case de origem: o próprio Augusto como aluno da AUVP.
+
+---
+
+**Camada 2 — "O assistente do criador" (B2B Creator)**
+
+O criador oferece à audiência um assistente com a própria voz — não apenas o canal do YouTube, mas também roteiros, materiais de aula, pesquisas, apostilas e documentos. Uma base completa, consultável pelos inscritos.
+
+Perfis: criadores educacionais (finanças, direito, medicina, concursos), professores com canal próprio e base de alunos pagantes, coaches e consultores com conteúdo em múltiplos formatos.
+
+O que o criador ganha: diferencial de produto para assinantes premium, monetização do arquivo (cada vídeo continua gerando valor), redução de perguntas repetidas, insight sobre o que a audiência mais pergunta.
+
+Modelo: mensalidade por base indexada. Case de referência: AUVP (Raul Sena / Investidor Sardinha).
+
+---
+
+**Camada 3 — "O arquivo institucional vivo" (B2B Enterprise)**
+
+Instituições têm acervos imensos em múltiplos formatos: lives e webinars no YouTube, relatórios em PDF, atas em DOCX, regulamentos, materiais de treinamento. O Tusab une tudo em uma base consultável rodando na rede interna, sem depender de servidor externo.
+
+Perfis: cursinhos e pré-vestibulares (Grancursos, Estratégia, Damásio), universidades e escolas de negócios (FGV, Insper, ESPM), conselhos e entidades técnicas (CFM, Fiocruz, OAB), empresas com onboarding e treinamentos em vídeo, hospitais com protocolos e capacitações gravadas.
+
+Proposta: "Tudo que vocês já produziram — vídeos, PDFs, documentos — em uma única base consultável. Na rede de vocês. Dados de vocês."
+
+Modelo: licenciamento por instituição + onboarding assistido.
+
+---
+
+**Por que as camadas se alimentam:**
+
+O aluno B2C que usa Tusab com conteúdo da FGV → vira case study para a FGV contratar a Camada 3.
+O criador que vê fãs usando sua base → tem argumento pronto para contratar a Camada 2.
+A instituição que compra → atrai criadores do mesmo ecossistema.
+
+O produto desktop é a Camada 1 funcionando agora. As camadas 2 e 3 são o caminho B2B.
+
+---
+
+## Estratégia de entrada (go-to-market)
+
+**Beachhead:** criadores educacionais de médio porte (50k–500k inscritos no Brasil).
+- Problema conhecido, audiência qualificada, budget disponível
+- Venda direta: uma demo com o canal + documentos deles
+- Case da AUVP serve como referência imediata
+
+**Expansão natural:**
+- Alunos descobrem e adotam para uso próprio (Camada 1)
+- Instituições veem o caso dos criadores e entram (Camada 3)
+
+---
+
 ## Modelo de negócio atual
 
 **Estágio:** vitrine técnica → cases → B2B eventual.
@@ -191,6 +252,30 @@ Proteção intelectual via:
 - Sem case público documentado
 
 A ordem correta é: case → landing page → sistema de licença → venda. Não o inverso.
+
+### Spec de tiers (para quando o momento chegar)
+
+**FREE — Gratuito (atual: todas as features liberadas)**
+
+Quando o paywall for ativado, o free entrega o loop completo de valor — extrai, indexa e conversa de verdade. A parede separa casual de power user, sem frustrar quem está descobrindo.
+
+Inclui: extração de até 2 canais, agente RAG com Ollama + providers externos, indexação e chat ilimitados, upload de documentos/imagens/áudio, Drive sync opcional, busca BM25 básica, relatório resumido.
+
+Não inclui (reservado ao Pro): fila de extração multi-canal, mais de 2 canais indexados, busca multi-canal cruzada, query expansion, configuração avançada do agente, exports (ZIP/DOCX/XLSX/PDF/MD), relatório detalhado, suporte por email.
+
+**PRO — Licença Perpétua (1 seat, estimado R$97–R$197)**
+
+Tudo do Free + canais ilimitados, fila de extração, busca multi-canal, query expansion, configuração avançada, todos os exports, relatório detalhado, suporte por email, acesso antecipado a features.
+
+**STUDIO — Assinatura para criadores (estimado R$97–R$297/mês)**
+
+Tudo do Pro + chatbot hospedado acessível por alunos via link, painel de analytics (perguntas mais frequentes, temas buscados), customização de marca (logo, nome do assistente), scheduler de atualização automática da base.
+
+**ENTERPRISE — Contrato anual (sob consulta)**
+
+Tudo do Studio + N seats configuráveis, onboarding assistido, SLA 24h, deployment on-premise, NDA e contrato personalizado.
+
+**Infraestrutura de licença:** Lemon Squeezy — gerencia pagamento, chave de ativação, webhooks, reembolsos, nota fiscal PJ. Fluxo: compra → chave por email → ativação no Electron com hardware fingerprint.
 
 ---
 

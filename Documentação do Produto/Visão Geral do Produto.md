@@ -139,41 +139,163 @@ O perfil é escolhido no onboarding — a primeira tela após a instalação. Po
 
 ## Comparação com concorrentes
 
-### NotebookLM (Google)
+O Tusab compete em três frentes distintas: ferramentas locais com privacidade, gigantes da nuvem tipo NotebookLM, e PKMs tradicionais que estão adicionando IA. A análise abaixo é honesta — onde perdemos e onde ganhamos.
 
-O NotebookLM é o concorrente mais próximo em conceito: aceita PDFs, Google Docs, YouTube e texto, responde citando a fonte. É polido, usa Gemini 1.5 Pro, atualmente gratuito.
+---
 
-**O que fazemos igual:**
-- Chat sobre documentos com citação de fonte
-- Múltiplos tipos de entrada (PDF, texto, YouTube)
-- Interface focada em perguntas e respostas
+### 1. Concorrentes diretos — Local e privacidade
 
-**Onde o NotebookLM é melhor:**
-- Motor de IA superior (Gemini 1.5 Pro vs. llama3.2:1b padrão)
-- UI mais polida (produto Google)
-- Audio Overview — resumo em formato podcast
-- Gratuito sem configuração
-- Disponível no browser, sem instalação
+#### AnythingLLM
 
-**Onde o Tusab se diferencia de verdade:**
+App desktop que permite conectar Ollama ou IA em nuvem, criar workspaces (bases de conhecimento) e subir PDFs e documentos. É o concorrente arquitetônico mais próximo.
 
-1. **Escala de extração do YouTube** — o NotebookLM aceita vídeos individuais; o Tusab extrai canais inteiros. Não é uma feature diferente. É uma magnitude diferente.
+| | AnythingLLM | Tusab |
+|---|---|---|
+| Extração YouTube em escala | ✗ (manual) | ✅ (canal inteiro) |
+| Parser WhatsApp / Reuniões | ✗ | ✅ |
+| Fluxo professor → aluno | ✗ | ✅ (.tusab) |
+| Integrações enterprise (Confluence, Slack, S3) | ✅ | ✗ |
+| API exposta para automações | ✅ | ✗ |
+| Comunidade e plugins | Grande | Pequena |
+| Público-alvo | Devs e empresas | Estudantes, professores, pesquisadores |
 
-2. **Local-first** — o NotebookLM processa nos servidores do Google. Para uso institucional (documentos internos, atas, dados sensíveis), isso é bloqueador. Para o Tusab, é o design padrão.
+**Conclusão:** não compete no segmento enterprise. Vence no nicho de conteúdo audiovisual e compartilhamento educacional.
 
-3. **Base Compartilhável** — o NotebookLM não tem mecanismo nativo de professor → aluno. O `.tusab` resolve exatamente isso.
+---
 
-4. **Sem dependência de conta Google** — funciona offline com Ollama. Sem risco de descontinuação ou mudança de política de privacidade.
+#### GPT4All (Nomic AI)
+
+App desktop focado em rodar modelos locais facilmente, com "LocalDocs" que aponta uma pasta e conversa com os arquivos.
+
+| | GPT4All | Tusab |
+|---|---|---|
+| Fontes de dados | Texto/PDF | YouTube + PDF + áudio + imagem + WhatsApp |
+| Modelo embutido (zero config) | ✅ | ✗ (requer Ollama) |
+| UX para não-técnicos | Básica | Mais guiada |
+| i18n / Brasil First | ✗ | ✅ |
+
+**Conclusão:** o gap de fontes é real. A fricção do Ollama é o ponto fraco do Tusab aqui.
+
+---
+
+#### Nvidia ChatRTX
+
+Demo da Nvidia de RAG local com arquivos. Exige GPU Nvidia série 3000 ou 4000.
+
+**Onde o Tusab ganha:** roda CPU-only. Funciona em qualquer máquina Windows. Democraticamente mais acessível.
+
+**Mercados distintos** — não é concorrente direto real.
+
+---
+
+### 2. Gigantes da nuvem
+
+#### NotebookLM (Google)
+
+O concorrente mais perigoso. Mesma proposta de valor (chat com citação de fonte sobre suas fontes), produto Google, gratuito, browser-first.
+
+| | NotebookLM | Tusab |
+|---|---|---|
+| Qualidade do RAG | Alta (Gemini 1.5 Pro + contexto longo) | Boa (BM25 + CrossEncoder) |
+| Extração YouTube | Vídeos individuais | Canais inteiros em escala |
+| Instalação | Zero (browser) | Executável Windows |
+| Privacidade | ✗ (servidores Google) | ✅ (local-first) |
+| Audio Overview (podcast gerado) | ✅ | ✗ |
+| Citações navegáveis e clicáveis | ✅ | ✗ (gap a fechar) |
+| Fluxo professor → aluno | ✗ | ✅ (.tusab) |
+| Uso offline | ✗ | ✅ (Ollama) |
+| Documentos sensíveis / corporativos | Bloqueador | ✅ |
+
+**O risco estratégico central:** se o Google habilitar extração de canal completo (não apenas vídeo individual), o principal diferencial de captura do Tusab para usuários casuais desaparece. A janela estimada é de 12–18 meses. O Tusab precisa avançar no grafo de conhecimento e no servidor MCP antes disso.
 
 **Conclusão:** o NotebookLM valida o mercado. O Tusab ocupa o nicho que o NotebookLM deliberadamente não quer: local, privado, sem Google, com extração em escala e fluxo professor→aluno.
 
-### Obsidian AI / Notion AI
+---
 
-Ferramentas de organização de notas com IA adicionada. Não extraem YouTube nativamente, não rodam o modelo localmente como padrão, exigem assinatura para as features de IA.
+#### Claude Projects (Anthropic) / ChatGPT
 
-### SummarizeYT / Glasp
+Melhor qualidade de RAG em nuvem, UI polida, mobile, colaboração em equipe.
 
-Ferramentas de resumo de vídeos individuais. Não indexam canais, não têm chat, não são PKM.
+**Onde o Tusab ganha:** privacidade total, sem custo recorrente sobre o corpus, corpus ilimitado em tamanho, sem conta obrigatória.
+
+**Onde o Tusab perde:** qualidade de resposta (margem considerável), facilidade de acesso, mobile.
+
+**Público distinto** — quem precisa de privacidade não usa esses.
+
+---
+
+#### ChatPDF e clones
+
+Ferramentas de arquivo único. Não indexam canais. Não têm chat persistente. Não são PKM real.
+
+---
+
+### 3. PKMs tradicionais com IA
+
+#### Obsidian + plugins (Smart Connections, Copilot)
+
+O rei do PKM local. Cofre de notas com plugins que conectam Ollama ou OpenAI. Comunidade enorme. Altamente flexível.
+
+| | Obsidian + plugins | Tusab |
+|---|---|---|
+| Graph view / backlinks | ✅ | ✗ |
+| Extração YouTube nativa | ✗ | ✅ |
+| Parser WhatsApp / Reuniões | ✗ | ✅ |
+| Configuração de IA | Complexa (dezenas de plugins) | 1 clique |
+| Busca de texto completo com preview | ✅ | ✗ (só via chat) |
+| Público-alvo | Técnicos e entusiastas | Estudantes a especialistas |
+
+**Onde perde:** o Obsidian mostra ao usuário sua rede de conhecimento — ele *vê* o que construiu. O Tusab não tem nenhuma representação visual da base após a ingestão. Gap de percepção de posse.
+
+**Conclusão:** usuários Obsidian são early adopters técnicos — canal válido de aquisição, mas não é o usuário principal do Tusab.
+
+---
+
+#### Notion AI / Mem.ai
+
+Plataformas em nuvem que auto-organizam notas e buscam respostas dentro do workspace.
+
+**Onde o Tusab ganha:** privacidade local, zero custo de assinatura para o corpus, extração de YouTube.
+
+**Públicos distintos** — usuários dessas plataformas já estão comprometidos com a nuvem.
+
+---
+
+### Mapa de posicionamento
+
+```
+                        PRIVACIDADE LOCAL
+                              ▲
+                              │
+           Tusab ●────────────┤────── AnythingLLM
+                              │         GPT4All
+                              │
+  CAPTURA SIMPLES ────────────┼──────────────── CAPTURA RICA
+  (arquivo único)             │              (múltiplas fontes,
+                              │               canais inteiros)
+                              │
+           ChatPDF ●    NotebookLM ●    Obsidian ●
+                              │
+                              ▼
+                          NUVEM / IA CLOUD
+```
+
+**O posicionamento defensável do Tusab:** quadrante superior direito — privacidade local com captura rica de múltiplas fontes. Nenhum concorrente ocupa esse espaço com UX não-técnica.
+
+---
+
+### Diferenciais realmente defensáveis
+
+Genuinamente difíceis de copiar no curto prazo:
+
+1. **Extração YouTube em escala + parser WhatsApp/Zoom em um executável Windows com UX simples** — combinação única: yt-dlp + parsers especializados + RAG em 1 clique
+2. **Fluxo professor→aluno via `.tusab`** — sem equivalente no mercado. Potencial de viralidade orgânica em contexto educacional
+3. **CPU-only + offline total com UX não-técnica** — AnythingLLM e GPT4All também rodam local, mas a UX do Tusab é mais acessível para o segmento não-desenvolvedor
+
+Diferenciais frágeis (fáceis de copiar por qualquer concorrente):
+- Multi-LLM: commodity
+- i18n PT/EN/ES: commodity
+- Perfis de usuário: cosmético
 
 ---
 
@@ -196,6 +318,55 @@ O caminho de negócio é: vitrine técnica → cases documentados → contratos 
 Repositório: fechado. Proteção intelectual via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ 65.131.075/0001-57. Registro INPI pendente.
 
 Site: tusab.solutions
+
+---
+
+## O pipeline IAC em detalhe
+
+**I — INDEX**
+Extração e indexação de qualquer fonte de conhecimento: YouTube, PDFs, Word, Markdown, texto colado, áudio, imagem, WhatsApp, transcrições. O produto ingere, processa e estrutura o que você escolheu aprender.
+
+**A — AUGMENT**
+Retrieval-Augmented Generation (RAG): quando você faz uma pergunta, o produto recupera os trechos mais relevantes da sua base e os entrega ao modelo de linguagem como contexto. Não é IA genérica — é sua base amplificando a resposta.
+
+**C — CONVERSE**
+A interface de conversa com o agente: você pergunta em linguagem natural, recebe resposta com citação de fonte, pode aprofundar, questionar, pedir exemplos. É o ponto de entrega do valor.
+
+O mentor do Tusab só sabe o que você ensinou a ele. Isso não é limitação — é a garantia de que ele não inventa.
+
+---
+
+## Relação com o ecossistema local
+
+O Google lançar modelos cada vez melhores rodando localmente não é uma ameaça ao Tusab — é validação e combustível.
+
+O Google entrega o motor. O Tusab entrega a camada de conhecimento. São complementares, não concorrentes.
+
+- Motor (Gemma, Llama, Phi, Qwen via Ollama) → processa linguagem
+- Tusab → extrai, indexa, cita fontes, entrega interface
+
+Quanto melhor o motor disponível, mais capaz fica o mentor do Tusab. O usuário não precisa saber que existe um Gemma 3 por baixo — ele só sabe que o mentor ficou mais inteligente.
+
+O NotebookLM nunca vai querer o nicho local/privado — é um produto de nuvem por design. Esse espaço fica estruturalmente aberto. O Tusab ocupa.
+
+---
+
+## Arquitetura narrativa (comunicação)
+
+**Linha de frente** — gatilho de atenção:
+> "Seu conhecimento, consultável. Sem perder tempo."
+
+Resolve a dor imediata: conteúdo demais, tempo de menos.
+
+**Segunda camada** — construção de confiança:
+> "Só responde com o que você escolheu. Cita sempre a fonte. Você verifica."
+
+Diferencia de IA genérica sem precisar atacar ninguém.
+
+**Braço estratégico** — para B2B e perfis avançados:
+> "Num mundo de conteúdo sem autoria, Tusab é o assistente que você pode auditar."
+
+Argumento de governança para instituições.
 
 ---
 

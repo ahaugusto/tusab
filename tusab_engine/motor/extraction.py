@@ -64,24 +64,56 @@ def formatar_data(data_str):
         return data_str
 
 
+def _vtt_ts_para_segundos(ts_str: str) -> int:
+    """Converte 'HH:MM:SS.mmm' ou 'MM:SS.mmm' para segundos inteiros."""
+    try:
+        ts_str = ts_str.strip().split('.')[0]  # descarta milissegundos
+        partes = ts_str.split(':')
+        if len(partes) == 3:
+            return int(partes[0]) * 3600 + int(partes[1]) * 60 + int(partes[2])
+        if len(partes) == 2:
+            return int(partes[0]) * 60 + int(partes[1])
+    except Exception:
+        pass
+    return 0
+
+
 def limpar_vtt(caminho_vtt):
+    texto, _ = _limpar_vtt_interno(caminho_vtt)
+    return texto
+
+
+def limpar_vtt_com_timestamp(caminho_vtt):
+    """Retorna (texto_limpo, timestamp_inicio_segundos). timestamp=0 se não detectado."""
+    return _limpar_vtt_interno(caminho_vtt)
+
+
+def _limpar_vtt_interno(caminho_vtt):
     if not os.path.exists(caminho_vtt):
-        return ""
+        return "", 0
     with open(caminho_vtt, 'r', encoding='utf-8', errors='replace') as f:
         linhas = f.readlines()
     texto_limpo = []
+    timestamp_inicio = 0
     for linha in linhas:
-        if '-->' not in linha and not linha.strip().isdigit() and 'WEBVTT' not in linha:
-            linha = re.sub(r'<[^>]*>', '', linha)
-            if linha.strip():
-                texto_limpo.append(linha.strip())
+        if '-->' in linha:
+            # Captura o timestamp de início do primeiro cue encontrado
+            if timestamp_inicio == 0:
+                inicio = linha.split('-->')[0].strip()
+                timestamp_inicio = _vtt_ts_para_segundos(inicio)
+            continue
+        if linha.strip().isdigit() or 'WEBVTT' in linha:
+            continue
+        linha = re.sub(r'<[^>]*>', '', linha)
+        if linha.strip():
+            texto_limpo.append(linha.strip())
     resultado = []
     if texto_limpo:
         resultado.append(texto_limpo[0])
         for i in range(1, len(texto_limpo)):
             if texto_limpo[i] != texto_limpo[i - 1]:
                 resultado.append(texto_limpo[i])
-    return " ".join(resultado).strip()
+    return " ".join(resultado).strip(), timestamp_inicio
 
 
 # Idiomas em ordem de tentativa. Baixados em duas passagens para evitar 429:
@@ -725,7 +757,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                 if f.startswith(temp_base) and f.endswith('.vtt')
             ]
             if vtt_files:
-                texto = limpar_vtt(vtt_files[0])
+                texto, ts_inicio = limpar_vtt_com_timestamp(vtt_files[0])
                 if len(texto) > 150:
                     num_palavras = len(texto.split())
 
@@ -762,6 +794,9 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                             f"ABA: {video['aba']}\n"
                             f"DATA: {data_real}\n"
                             f"LINK: {v_link}\n"
+                            f"VIDEO_ID: {v_id}\n"
+                            f"VIEWS: {video.get('views', 0)}\n"
+                            f"TIMESTAMP_INICIO: {ts_inicio}\n"
                             f"TAGS: {tags_str}\n"
                             f"DESCRICAO: {descricao_str}\n"
                             f"{'-' * 70}\n"

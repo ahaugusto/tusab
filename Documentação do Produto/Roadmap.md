@@ -8,7 +8,7 @@ Atualizado: Junho 2026
 
 ---
 
-## Estado atual — v1.0.8-beta (junho 2026)
+## Estado atual — v1.0.10 (junho 2026)
 
 ### Feito e funcionando
 
@@ -80,12 +80,19 @@ Atualizado: Junho 2026
 - Segurança: 12 fixes aplicados (CORS, path traversal, prompt injection, upload size, etc.)
 - Chaves de API criptografadas via `safeStorage` do Electron (Windows DPAPI)
 - Watchdog do backend no Electron (poll de 5s, IPC backend-dead/alive, banner vermelho com botão Reiniciar)
-- Fila de extração persistente em disco — crash não perde jobs pendentes (v1.0.8-beta)
-- Race condition no histórico de chat corrigida — leitura+LLM+escrita atômicas (v1.0.8-beta)
-- API de eventos estruturados `dispatch_event()` no AppState (v1.0.8-beta)
+- Fila de extração persistente em disco — crash não perde jobs pendentes (v1.0.8)
+- Race condition no histórico de chat corrigida — leitura+LLM+escrita atômicas (v1.0.8)
+- API de eventos estruturados `dispatch_event()` no AppState (v1.0.8)
 - Telemetria PostHog opt-in com retenção Day 7 / Day 30
 - i18n PT/EN/ES (Brasil como mercado primário — app abre em português)
 - Empacotamento Windows: Python embeddable + yt-dlp bundled + instalador NSIS multilíngue PT/EN/ES com selector de idioma
+
+**Notificações e diagnóstico (v1.0.10)**
+- Notificação desktop quando o chat responde com drawer fechado/minimizado — dispara via Web Notification API ao detectar `parsed.done` com `chatOpenRef.current === false`
+- Notificação nativa Electron ao concluir download de update — clique na notificação instala e reinicia sem passar pelo Admin
+- Step de notificações no onboarding — solicita permissão contextualmente com feedback de concedida/bloqueada
+- Accordion "Redes Corporativas" na aba Admin — checklist de diagnóstico (6 itens com severidade crítico/moderado/baixo) + texto para o TI liberar portas 8001/11434, exceções no antivírus e GPO; PT/EN/ES
+- Monitor de sistema detecta métricas zeradas (psutil sem permissão em ambientes EDR/GPO) e exibe aviso com link direto para o accordion de Redes Corporativas
 
 **Google Drive**
 - OAuth2 com escopo `drive.file` (mínimo)
@@ -124,15 +131,44 @@ Atualizado: Junho 2026
 
 **Quem mais se beneficia:** Pesquisador (corpora acadêmicos com vocabulário especializado onde sinônimos são problema real).
 
+**Impacto competitivo:** fecha o gap de qualidade de RAG vs. NotebookLM (Gemini + contexto longo). Não iguala, mas reduz a distância perceptível para o usuário.
+
 ---
 
-### P2 — Scheduler de periodicidade
+### P1-b — Citações navegáveis no chat
+
+**O que é:** tornar cada citação de fonte no chat clicável — abre um painel lateral com o trecho exato de onde a resposta veio, dentro do documento ou vídeo original.
+
+**Por que é P1:** o NotebookLM faz isso e é o momento de maior confiança no produto. Hoje o Tusab cita mas não permite verificação em dois cliques — gap de UX crítico vs. o principal concorrente.
+
+**Implementação:** `_recuperar_contexto()` já retorna offset de chunk; adicionar `chunk_id` na resposta do chat → frontend abre modal com trecho original ao clicar na citação.
+
+---
+
+### P2 — Scheduler de periodicidade (auto-update de canais)
 
 **O que é:** atualização automática de canais configurável pelo usuário. A cada N dias, o Tusab verifica novos vídeos e extrai automaticamente.
 
-**Impacto:** transforma o uso de "ação pontual" para "base sempre atualizada". Especialmente relevante para o perfil Professor (canal que posta aulas periodicamente).
+**Impacto:** transforma o uso de "ação pontual" para "base sempre atualizada". Especialmente relevante para o perfil Professor (canal que posta aulas periodicamente) e Pesquisador (feeds de publicações técnicas).
 
-**Pré-requisito:** persistir agenda em `agent_config.json` e implementar loop no startup do Electron.
+**Pré-requisito técnico:**
+- Persistir agenda por canal em `agent_config.json` (`{ canal, frequencia_dias, fontes, proxima_execucao }`)
+- Loop de verificação no startup do Electron — compara `proxima_execucao` com `Date.now()`; se vencido, enfileira extração incremental
+- Notificação nativa ao concluir extração agendada (infra de notificações já disponível em v1.0.10)
+
+**UX planejada:** toggle por canal no accordion do Repositório com seletor de frequência (diário / semanal / quinzenal / mensal). Ao ativar, o Tusab agenda silenciosamente a próxima verificação.
+
+**Nota:** a notificação de conclusão de extração agendada já está preparada — a infra de Web Notification + Electron Notification foi implementada na v1.0.10. O P2 é puramente o scheduler e a UI de configuração.
+
+---
+
+### P2-b — Digest Semanal (síntese periódica por projeto)
+
+**O que é:** job agendado (APScheduler, disponível no Python) que roda BM25 + LLM local sobre o que foi adicionado na semana e gera um resumo estruturado por projeto. Entregue como notificação desktop (infra já disponível em v1.0.10) e acessível no histórico.
+
+**Por que é importante:** cria hábito de retorno ao app — barreira comportamental de entrada para concorrentes. Nenhum concorrente direto (AnythingLLM, GPT4All) tem isso.
+
+**Custo de implementação:** baixo — APScheduler + prompt de síntese + notificação já existente.
 
 ---
 
@@ -160,6 +196,40 @@ Atualizado: Junho 2026
 
 ---
 
+## Análise competitiva — Junho 2026
+
+### Posicionamento confirmado
+
+O Tusab é um **motor de ingestão + RAG privado de fontes externas estruturadas** — mais preciso que "PKM clássico" (que pressupõe captura de notas pessoais, grafos, backlinks). O diferencial é: você traz suas fontes (YouTube em escala, PDFs, reuniões, WhatsApp), o Tusab indexa, e você conversa com esse corpus localmente.
+
+O posicionamento defensável: **privacidade local com captura rica de múltiplas fontes**. Nenhum concorrente ocupa esse espaço com UX não-técnica.
+
+### Mapa de ameaças
+
+| Concorrente | Ameaça principal | Probabilidade | Horizonte |
+|---|---|---|---|
+| NotebookLM | Adicionar extração de canal completo (Google tem acesso privilegiado à API YouTube) | Alta | 12–18 meses |
+| AnythingLLM | Adicionar extração YouTube nativa | Média | 6–12 meses |
+| Obsidian | Lançar ingestão YouTube nativa | Baixa | 18+ meses |
+
+### Janela estratégica
+
+O Tusab tem **12–18 meses** para tornar a extração em escala apenas o ponto de entrada — o valor real deve migrar para o grafo de conhecimento e o servidor MCP, onde Google e OpenAI não têm vantagem estrutural sobre dados locais.
+
+### Diferenciais a fortalecer (não facilmente copiáveis)
+
+1. **Fluxo professor→aluno via `.tusab`** — sem equivalente no mercado. Aposta de viralidade orgânica em contexto educacional.
+2. **Servidor MCP** — transforma o Tusab em fonte de contexto para Claude Code, Cursor, Continue.dev. AnythingLLM não tem MCP nativo. NotebookLM não tem API pública.
+3. **CPU-only + offline + UX não-técnica** — combinação que AnythingLLM e GPT4All não entregam juntos.
+
+### Gaps a fechar
+
+1. **Citações navegáveis** — NotebookLM permite clicar na citação e ver o trecho original. O Tusab cita mas não navega. Gap de confiança crítico.
+2. **Fricção do Ollama no onboarding** — usuário não-técnico pode abandonar antes do primeiro "aha moment". Mitigação: Groq como padrão inicial (sem instalação).
+3. **Visibilidade da base** — o usuário não vê o que foi indexado, não percebe o crescimento. Obsidian tem graph view. O Tusab não tem nenhuma representação visual da base.
+
+---
+
 ## Candidatos a features futuras
 
 ### RAG: Embeddings via Ollama + ChromaDB (próxima versão)
@@ -183,19 +253,28 @@ Atualizado: Junho 2026
 
 ---
 
-### RAG: GraphRAG (fase futura — Pesquisador e Especialista)
+### RAG: Grafo de entidades leve (GraphRAG sem Neo4j)
 
-**O que é:** construção de grafo de conhecimento entre documentos — entende relações entre conceitos, não só trechos isolados.
+**O que é:** após embeddings + ChromaDB, extrair entidades (pessoa, conceito, data, projeto) com spaCy ou LLM local e construir um grafo SQLite com relações. Viável em Python puro, sem Neo4j.
 
-**Quando faz sentido:** quando corpora de Pesquisadores e Especialistas atingirem alta densidade relacional (artigos que se citam, documentos normativos com referências cruzadas, bases acadêmicas temáticas densas). O corpus atual do usuário médio (transcrições YouTube + PDFs avulsos) é predominantemente paralelo — baixa densidade relacional.
+**Diferencial competitivo:** permite responder "qual a evolução do pensamento deste autor sobre X ao longo de 3 anos de vídeos" — nenhum concorrente local faz isso.
 
-**Por que não agora:** requer Neo4j ou implementação manual de grafos — complexidade incompatível com o princípio local-first sem dependências pesadas. Reavaliação quando dados de uso mostrarem padrão de corpus denso nos perfis Pesquisador e Especialista.
+**Por que não agora:** depende de embeddings implementados primeiro. Corpus atual (transcrições YouTube + PDFs avulsos) tem densidade relacional baixa para a maioria dos usuários. Reavaliação quando dados de uso mostrarem padrão de corpus denso nos perfis Pesquisador e Especialista.
+
+**Por que SQLite e não Neo4j:** complexidade incompatível com o princípio local-first sem dependências pesadas.
 
 ---
 
 ### Servidor MCP
 
 Expõe a base RAG do Tusab como ferramenta para agentes externos. O usuário conecta o Tusab ao Claude Code, Cursor ou qualquer agente compatível com MCP. A base de conhecimento vira uma "ferramenta de busca" para qualquer agente. Alto potencial para o perfil Especialista e usuários técnicos.
+
+**Impacto competitivo por perfil:**
+- Profissional técnico: base de canais de programação disponível diretamente no Cursor durante o código
+- Pesquisador: base de papers e transcrições acessível no Claude Projects sem subir dados para a nuvem
+- Criador de conteúdo: roteiros gerados com contexto da própria base local, sem vazar ideias para servidores externos
+
+AnythingLLM não tem MCP server nativo. NotebookLM não tem API pública. Esta é a maior janela de diferenciação no médio prazo.
 
 ---
 
@@ -211,6 +290,16 @@ Combinação do Scheduler (P2) com a integração Google Drive existente: ao con
 
 ---
 
+### Extração multimodal local (vídeo → frame + áudio)
+
+**O que é:** yt-dlp já baixa o vídeo; Whisper.cpp local transcreve com timestamps; CLIP ou LLaVA (Ollama) analisa frames-chave. O resultado: chunks com contexto visual + temporal, indexados junto ao texto.
+
+**Diferencial:** NotebookLM ignora frames de vídeo — processa apenas a transcrição. O Tusab passaria a indexar conceito visual + fala + timestamp simultaneamente.
+
+**Pré-requisito:** Ollama com modelo multimodal (llava ou gemma3 12B) instalado pelo usuário. Degradação graciosa: sem modelo multimodal, comportamento atual (transcrição apenas).
+
+---
+
 ### Fontes além do YouTube
 
 Podcasts via RSS, páginas web via URL, repositórios de código. Cada fonte exige um extrator próprio — escopo considerável. Prioridade por perfil: Pesquisador (feeds acadêmicos) e Especialista (RSS de publicações setoriais).
@@ -220,6 +309,25 @@ Podcasts via RSS, páginas web via URL, repositórios de código. Cada fonte exi
 ### Busca web integrada no chat
 
 Integração com Brave Search API (2.000 buscas/mês gratuitas). A base como referência primária + snippets da web como complemento. Relevante para Pesquisador (busca ampla + web) e Especialista.
+
+---
+
+## Débitos e pendências operacionais
+
+Itens implementáveis sem decisão de produto — entram no próximo sprint disponível.
+
+| # | Item | Tipo | Nota |
+|---|---|---|---|
+| C7 | **LogRedirector event-driven** — migrar `extraction.py` para `dispatch_event()` | técnico | Elimina acoplamento frágil de emojis/strings no LogRedirector |
+| P1-perf | **Cache em `get_agent_status()`** — hoje faz full scan de índices a cada poll de 2s; com 30 projetos = 30 leituras de disco por chamada | técnico | Adicionar TTL de 30s sobre o resultado |
+| P1-front | **Code splitting no Vite** — bundle único de 1 MB+ carrega tudo; tabs pesadas (Repositório, Admin) devem carregar sob demanda | técnico | `build.rolldownOptions.output.codeSplitting` |
+| M2 | **Sistema de licença (Lemon Squeezy)** — tela de ativação no Electron, validação HTTP, hardware fingerprint | produto | Pré-requisito: ter tração antes de implementar |
+| M3 | **Proteção do código Python** — compilar com Nuitka ou PyArmor antes da versão paga | produto | Só faz sentido junto com M2 |
+| T3 | **Funil de ativação no PostHog** — configurar dashboard: install → extração → indexação → 1ª pergunta → 1ª resposta com fonte | produto | Dados existem, falta dashboard legível |
+| T4 | **Evento de abandono de canal** — usuário configura canal mas nunca inicia extração | produto | Indica fricção no fluxo |
+| D1 | **Landing page mínima** — proposta de valor, demo 30s, botão de download | estratégico | Sem isso não há funil de aquisição |
+| D4 | **Case público da AUVP** — documentar com autorização; único social proof existente | estratégico | Pré-requisito para demos B2B |
+| E3 | **Política de portabilidade de dados** — "seus dados ficam em X, você exporta fazendo Y, deleta fazendo Z" | produto | Para contratos B2B enterprise |
 
 ---
 

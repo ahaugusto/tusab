@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
   KeyRound, CheckCircle2, Eye, EyeOff, AlertTriangle, Loader2,
-  Zap, ArrowUp, Sparkles, X, Info, ExternalLink,
+  Zap, ArrowUp, Sparkles, X, Info, ExternalLink, GraduationCap,
 } from 'lucide-react';
 import OllamaSetup from '../agent/OllamaSetup';
+import { BasePainel } from '../agent/BasePainel';
+import EstudoTab from '../agent/EstudoTab';
 import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig } from '../../services/api';
 
@@ -36,8 +38,12 @@ export default function AgentTab({
   handleTestKey,
   // hint state
   showAgentHint,       setShowAgentHint,
+  // base visibility panel
+  onIndexar,
 }) {
   const { t } = useTranslation();
+  const [estudoOpen, setEstudoOpen] = useState(false);
+  const canalAtivo = agentStatus?.canal_indexado || '';
 
   return (
     <div id="panel-agente" role="tabpanel" aria-labelledby="tab-agente"
@@ -271,6 +277,59 @@ export default function AgentTab({
             </button>
           ))}
         </div>
+      </section>
+
+      {/* ── Painel de visibilidade da base (S1.3) ── */}
+      <section aria-label="O que o Tusab sabe"
+        className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`px-5 py-3.5 border-b ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+          <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+            Base de Conhecimento
+          </h3>
+        </div>
+        <div className="p-4">
+          <BasePainel
+            darkMode={darkMode}
+            basesDesatualizadas={agentStatus.bases_desatualizadas || []}
+            onIndexar={onIndexar}
+            agentIndexing={agentStatus.indexing}
+          />
+        </div>
+      </section>
+
+      {/* ── Modo Estudo ── */}
+      <section aria-labelledby="estudo-heading"
+        className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <button
+          aria-expanded={estudoOpen} aria-controls="estudo-body"
+          onClick={() => setEstudoOpen(v => !v)}
+          className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${estudoOpen && (darkMode ? 'border-b border-white/10' : 'border-b border-slate-100')} ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'} ${BTN_FOCUS}`}>
+          <GraduationCap size={14} className="text-primary shrink-0" aria-hidden="true" />
+          <h3 id="estudo-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+            Modo Estudo
+          </h3>
+          {canalAtivo && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold mr-1 ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-100 text-violet-700'}`}>
+              @{canalAtivo}
+            </span>
+          )}
+          <motion.div animate={{ rotate: estudoOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
+          </motion.div>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {estudoOpen && (
+            <motion.div id="estudo-body"
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}>
+              <div className="p-4">
+                <EstudoTab darkMode={darkMode} canalAtivo={canalAtivo} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
     </div>
   );

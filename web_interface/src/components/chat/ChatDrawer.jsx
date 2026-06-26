@@ -225,6 +225,7 @@ function ChatDrawer({
   const mencaoStartRef = useRef(-1);
   const textareaRef = useRef(null);
   const [copiedIdx,         setCopiedIdx]         = useState(null);
+  const [fontePreview,      setFontePreview]      = useState(null); // { titulo, trecho, link, data, arquivo }
 
   // ─── Action bar helpers ───────────────────────────────────────────────────
   const detectaLista = (content = '') =>
@@ -892,24 +893,85 @@ function ChatDrawer({
                               const icon  = isYt ? '🎬' : f.aba === 'texto' ? '📝' : '📄';
                               const label = f.titulo || f.arquivo?.replace('.txt', '') || 'Sem título';
                               const sub   = f.arquivo?.replace('.txt', '') !== label ? f.arquivo?.replace('.txt', '') : null;
+                              const temTrecho = !!f.trecho;
+                              const isAtivo = fontePreview?.titulo === f.titulo && fontePreview?.trecho === f.trecho;
                               return (
-                                <div key={j} className={`rounded-lg p-2 flex items-start gap-2 ${darkMode ? 'bg-white/5' : 'bg-slate-100/60'}`}>
+                                <div key={j} className={`rounded-lg p-2 flex items-start gap-2 transition-colors
+                                  ${isAtivo
+                                    ? darkMode ? 'bg-primary/15 border border-primary/30' : 'bg-violet-50 border border-violet-200'
+                                    : darkMode ? 'bg-white/5' : 'bg-slate-100/60'
+                                  }`}>
                                   <span className="text-sm shrink-0 mt-0.5">{icon}</span>
                                   <div className="flex-1 min-w-0">
-                                    {f.link
-                                      ? <a href={f.link} target="_blank" rel="noreferrer"
-                                          className={`text-[10px] font-medium leading-snug flex items-center gap-1 hover:underline ${darkMode ? 'text-slate-200 hover:text-white' : 'text-slate-700 hover:text-slate-900'}`}>
-                                          <span className="truncate">{label}</span>
-                                          <ExternalLink size={8} className="shrink-0 opacity-60" />
-                                        </a>
-                                      : <p className={`text-[10px] font-medium leading-snug truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{label}</p>
-                                    }
-                                    {sub && <p className={`text-[9px] truncate mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{sub}</p>}
-                                    <div className={`flex items-center gap-1.5 mt-0.5 flex-wrap text-[9px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                      {f.data   && <span>{f.data}</span>}
-                                      {f.canal  && <span className={`px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>@{f.canal}</span>}
-                                      {!isYt && f.arquivo && <span className={`px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{f.arquivo.split('.').pop()?.toUpperCase()}</span>}
+                                    <div className="flex items-start justify-between gap-1">
+                                      <div className="flex-1 min-w-0">
+                                        {f.link
+                                          ? <a href={f.link} target="_blank" rel="noreferrer"
+                                              className={`text-[10px] font-medium leading-snug flex items-center gap-1 hover:underline ${darkMode ? 'text-slate-200 hover:text-white' : 'text-slate-700 hover:text-slate-900'}`}>
+                                              <span className="truncate">{label}</span>
+                                              <ExternalLink size={8} className="shrink-0 opacity-60" />
+                                            </a>
+                                          : <p className={`text-[10px] font-medium leading-snug truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{label}</p>
+                                        }
+                                        {sub && <p className={`text-[9px] truncate mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{sub}</p>}
+                                        <div className={`flex items-center gap-1.5 mt-0.5 flex-wrap text-[9px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                          {f.data   && <span>{f.data}</span>}
+                                          {f.canal  && <span className={`px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>@{f.canal}</span>}
+                                          {!isYt && f.arquivo && <span className={`px-1 py-0.5 rounded font-mono ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{f.arquivo.split('.').pop()?.toUpperCase()}</span>}
+                                          {f.video_id && f.timestamp_inicio > 0 && (() => {
+                                            const ts = f.timestamp_inicio;
+                                            const hh = Math.floor(ts / 3600);
+                                            const mm = Math.floor((ts % 3600) / 60);
+                                            const ss = ts % 60;
+                                            const label = hh > 0
+                                              ? `${hh}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`
+                                              : `${mm}:${String(ss).padStart(2,'0')}`;
+                                            const href = `https://www.youtube.com/watch?v=${f.video_id}&t=${ts}`;
+                                            return (
+                                              <a href={href} target="_blank" rel="noreferrer"
+                                                className={`flex items-center gap-0.5 font-mono font-semibold hover:underline ${darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-800'}`}>
+                                                ▶ {label}
+                                              </a>
+                                            );
+                                          })()}
+                                        </div>
+                                      </div>
+                                      {temTrecho && (
+                                        <button
+                                          onClick={() => setFontePreview(isAtivo ? null : f)}
+                                          title={isAtivo ? 'Fechar trecho' : 'Ver trecho original'}
+                                          className={`shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold transition-colors
+                                            ${isAtivo
+                                              ? darkMode ? 'bg-primary/30 text-primary' : 'bg-violet-200 text-violet-700'
+                                              : darkMode ? 'bg-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/15' : 'bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700'
+                                            }`}>
+                                          <FileText size={9} />
+                                          <span>{isAtivo ? 'Fechar' : 'Trecho'}</span>
+                                        </button>
+                                      )}
                                     </div>
+                                    {/* Painel de trecho inline */}
+                                    <AnimatePresence>
+                                      {isAtivo && f.trecho && (
+                                        <motion.div
+                                          initial={{ opacity: 0, height: 0 }}
+                                          animate={{ opacity: 1, height: 'auto' }}
+                                          exit={{ opacity: 0, height: 0 }}
+                                          transition={{ duration: 0.2 }}
+                                          className="overflow-hidden">
+                                          <div className={`mt-2 p-2.5 rounded-lg text-[10px] leading-relaxed whitespace-pre-wrap border-l-2
+                                            ${darkMode
+                                              ? 'bg-black/30 border-primary/50 text-slate-300'
+                                              : 'bg-white border-violet-300 text-slate-600'
+                                            }`}>
+                                            {f.trecho}
+                                            {f.trecho.length >= 600 && (
+                                              <span className={`ml-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>…</span>
+                                            )}
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
                                   </div>
                                 </div>
                               );

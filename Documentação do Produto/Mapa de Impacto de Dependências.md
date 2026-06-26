@@ -1,6 +1,6 @@
 # Mapa de Impacto de Dependências — Tusab
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
-Atualizado: Junho 2026
+Atualizado: Junho 2026 (v1.0.10 — Sprint 3: Timestamp clicável + Date-aware retrieval + Views boost | Decisão S4: BM25S descartado)
 
 Este documento é a referência de compliance para mudanças de código.
 **Antes de alterar qualquer módulo listado, consulte a coluna "Quebra".**
@@ -45,11 +45,13 @@ O Tusab tem contratos implícitos que não aparecem em tipos, schemas ou imports
 │                                                             │
 │  api_tusab.py                                              │
 │    └─ monta routers:                                        │
-│         router_status      /status, /history, /drive-*     │
-│         router_extraction  /set-channel, /start, /queue/*  │
-│         router_agent       /agent/*                        │
-│         router_repositorio /repositorio, /neural/*         │
-│         router_exports     /export/*  (Pro)                │
+│         router_status      /status, /history, /drive-*, /agent/mcp/config │
+│         router_extraction  /set-channel, /start, /queue/*               │
+│         router_agent       /agent/* (config, index, chat, ollama)        │
+│         router_repositorio /repositorio, /neural/*                       │
+│         router_exports     /export/*  (Pro)                              │
+│         router_estudo      /agent/study, /agent/study/{canal}            │
+│         router_digest      /agent/digest/{projeto}                       │
 │                                                             │
 │  Todos os routers compartilham estado via:                  │
 │                                                             │
@@ -311,6 +313,8 @@ data/
 | Mudar formato do stream `/agent/chat/stream` | `useChatEngine.js:parseMessageStream()` | **CRÍTICO** | Chat fica "enviando..." eternamente ou resposta não renderiza |
 | Mudar `state.extraction_queue` sem `queue_lock` | Motor de extração (thread) | **MÉDIO** | Race condition em CPython (GIL mitiga, mas não garante) |
 | Modelo LLM hardcoded deprecado | `chat.py` (OpenAI: gpt-4o-mini, Anthropic: claude-sonnet-4-6) | **MÉDIO** | API retorna 404/400 → chat com erro genérico |
+| Remover `onTriggerInstallUpdate` do preload | `App.jsx` listener de update por clique na notificação | **BAIXO** | Clique na notificação nativa não instala; banner do Admin continua funcionando |
+| `chatOpenRef` dessincronizado de `chatOpen` | `useChatEngine.js` — notificação de chat concluído | **BAIXO** | Notificação dispara mesmo com chat visível, ou nunca dispara |
 
 ---
 
@@ -497,3 +501,381 @@ Estes cenários não produzem erro de compilação nem log de erro — falham si
 8. **Pro hint `state.pro_hint` não resetado**: modal ProHint aparece em toda resposta de `/agent/status`
 9. ~~**`repositorio` sem `canais: []` no estado inicial**~~: RepositorioTab renderizava vazio até o primeiro fetch completar. **Corrigido** em `App.jsx:121` — estado inicial agora inclui `canais: []`; fetch também disparado ao entrar na aba.
 10. ~~**`canalConfigurado` não atualizado ao trocar canal da fila**~~: card "Configurado" mostrava o canal anterior mesmo após troca. **Corrigido** em `App.jsx` — polling atualiza `canalConfigurado` sempre que `stats.canal_nome !== canalConfigurado` enquanto `is_running`.
+
+---
+
+## 9. Contratos adicionados no Sprint 1 (jun/2026)
+
+### 9.1 Campo `trecho` nas fontes do chat (S1.1 — Citações clicáveis)
+
+**Adicionado em:** `tusab_engine/agent/chat.py` — funções `chat()` e `chat_stream()`
+**Consumido por:** `ChatDrawer.jsx` — botão "Trecho" + painel inline expandível
+
+```json
+{
+  "titulo":  "string",
+  "aba":     "youtube | documents | texts",
+  "data":    "string",
+  "link":    "string",
+  "arquivo": "string",
+  "canal":   "string",
+  "score":   0.0,
+  "trecho":  "string (primeiros 600 chars do chunk)"
+}
+```
+
+**Contrato:** `trecho` é opcional — se ausente (modo trecho injetado), o botão "Trecho" não aparece. Limite de 600 chars é proposital para exibição compacta; `…` é adicionado pelo frontend se `trecho.length >= 600`.
+
+**Quebra se:**
+- Campo `trecho` renomeado → botão "Trecho" some silenciosamente (condição `!!f.trecho`)
+- Limite 600 chars aumentado sem teste em mobile → painel overflow
+
+**Estado local no ChatDrawer:** `fontePreview` — `{ titulo, trecho, link, data, arquivo }` ou `null`. Reset ao fechar (clicar no botão "Fechar" ou na mesma fonte).
+
+---
+
+### 9.2 Endpoint `GET /agent/base-summary` (S1.3 — Painel de visibilidade da base)
+
+**Adicionado em:** `tusab_engine/api/router_agent.py`
+**Consumido por:** `BasePainel.jsx` via `fetchBaseSummary()` em `services/api.js`
+
+```json
+{
+  "projetos": [
+    {
+      "prefixo":       "string",
+      "nome":          "string",
+      "n_youtube":     0,
+      "n_documents":   0,
+      "n_texts":       0,
+      "total":         0,
+      "indexado":      false,
+      "indexed_at":    1234567890,
+      "ultima_adicao": 1234567890,
+      "n_chunks":      0
+    }
+  ]
+}
+```
+
+**Contrato:** projetos com `total === 0` são filtrados no backend (nunca chegam ao frontend). `indexed_at` e `ultima_adicao` são timestamps Unix em segundos; `null` quando não disponíveis.
+
+**Quebra se:**
+- `projetos` ausente → `BasePainel` renderiza "Nenhuma base encontrada" (degradação graciosa)
+- Chave `indexado` renomeada → `StatusChip` sempre mostra "Não indexado"
+- Chave `n_chunks` removida → chip de chunks não aparece (condição `p.n_chunks > 0`)
+
+**Componente:** `BasePainel.jsx` em `web_interface/src/components/agent/`
+**Integração:** `AgentTab.jsx` recebe prop `onIndexar` → passa para `BasePainel` → chama `handleIndexarDoChat()` do `App.jsx`
+
+**Checklist para mudanças em `GET /agent/base-summary`:**
+- [ ] Chave renomeada? → Atualizar `BasePainel.jsx` e este mapa
+- [ ] Formato de timestamp mudou? → `formatDate()` em `BasePainel.jsx` usa `ts * 1000` (Unix → JS Date)
+
+---
+
+## 10. Contratos adicionados no Sprint 2 (jun/2026)
+
+### 10.1 MCP Server stdio (S2.1)
+
+**Arquivo:** `tusab_engine/mcp_server.py` (standalone, sem importar `tusab_engine.state`)
+**Protocolo:** JSON-RPC 2.0 sobre stdio — uma mensagem por linha
+**Configuração:** `GET /agent/mcp/config` (em `router_status.py`) retorna o JSON para `~/.claude.json` / `.cursor/mcp.json`
+
+**Tools expostas:**
+
+| Tool | Input | Output |
+|------|-------|--------|
+| `search_knowledge` | `{ query, canal, top_k }` | `{ chunks: [{ titulo, texto, score, aba, link }] }` |
+| `list_projects` | `{}` | `{ projects: [{ prefixo, indexed_at, n_chunks }] }` |
+
+**Contrato de stderr:** Todo stderr é redirecionado para `data/mcp_server.log` via `_StderrToLog`. Jamais escrever para stderr diretamente — Claude Code / Cursor interpretam qualquer output fora de stdout como erro de protocolo.
+
+**Quebra se:**
+- `tusab_engine.state` for importado → `LogRedirector` redireciona `sys.stdout`, corrompendo o protocolo stdio
+- Algum `print()` for adicionado ao mcp_server fora do loop de resposta → Claude Code recebe JSON malformado
+
+**Checklist para mudanças em `mcp_server.py`:**
+- [ ] Novo `print()` adicionado? → Garantir que é apenas dentro de `_respond()` e apenas para stdout
+- [ ] Nova tool adicionada? → Registrar em `tools/list` E implementar em `tools/call`
+- [ ] Import de `tusab_engine.state` tentado? → **Proibido** — causa corrupção de stdio
+
+---
+
+### 10.2 Modo Estudo — flashcards e resumo (S2.2)
+
+**Módulo backend:** `tusab_engine/api/router_estudo.py`
+**Endpoints:** `POST /agent/study`, `GET /agent/study/{canal_nome}`
+**Componente frontend:** `EstudoTab.jsx` em `web_interface/src/components/agent/`
+**API calls:** `gerarEstudo()`, `fetchEstudo()`, `exportFlashcardsAnki()` em `services/api.js`
+**Export CSV:** `GET /export/flashcards/{canal_nome}` em `router_exports.py`
+
+**Schema em disco:** `data/neural/{prefixo}/management/flashcards.json`
+
+```json
+{
+  "canal": "string",
+  "gerado_em": "YYYY-MM-DDTHH:MM:SS",
+  "flashcards": [
+    { "pergunta": "string", "resposta": "string" }
+  ]
+}
+```
+
+**Resumo:** `data/neural/{prefixo}/management/resumo_estudo.md` (Markdown plano)
+
+**Contrato de requisição:**
+```json
+{
+  "canal_nome": "string (max 120 chars)",
+  "tipo": "flashcards | resumo | ambos",
+  "n_cards": 10
+}
+```
+
+**Contrato de resposta:**
+```json
+{
+  "ok": true,
+  "flashcards": [{ "pergunta": "string", "resposta": "string" }],
+  "resumo": "string | ''",
+  "total": 0
+}
+```
+
+**Pré-condição:** índice BM25 deve existir (`data/indexes/{prefixo}_index.json`). Se ausente, retorna `{ "error": true, "message": "Indexe a base primeiro." }`.
+
+**Quebra se:**
+- Chave `pergunta`/`resposta` renomeada → flip animation do `EstudoTab` mostra campo vazio
+- `resumo_estudo.md` deletado manualmente → `GET /agent/study` retorna `resumo: null`; frontend exibe botão "Gerar" novamente
+- `_index_path()` muda → `POST /agent/study` não encontra índice mesmo após indexação
+
+**Checklist para mudanças em `router_estudo.py`:**
+- [ ] Schema de `flashcards.json` mudou? → Atualizar `EstudoTab.jsx` e o handler do Anki export
+- [ ] Formato do CSV Anki mudou? → CSV usa `frente;verso` (ponto-e-vírgula) com header `frente;verso\n` — Anki exige este separador
+
+---
+
+### 10.3 Digest Semanal (S2.3)
+
+**Módulo backend:** `tusab_engine/api/router_digest.py`
+**Módulo de lógica:** `tusab_engine/scheduler.py`
+**Endpoints:** `GET /agent/digest/{projeto}`, `POST /agent/digest/{projeto}`
+
+**Schema de digest em disco:** `data/neural/{prefixo}/management/digest_{YYYY-MM-DD}.md`
+
+**Contrato de listagem (`GET /agent/digest/{projeto}`):**
+```json
+{
+  "digests": [
+    {
+      "data": "YYYY-MM-DD",
+      "preview": "string (primeiros 200 chars)",
+      "filename": "digest_YYYY-MM-DD.md"
+    }
+  ]
+}
+```
+
+**Contrato de geração (`POST /agent/digest/{projeto}`):**
+```json
+{ "ok": true, "message": "Digest gerado para @projeto (N arquivo(s) novo(s))." }
+```
+ou
+```json
+{ "ok": false, "message": "Nenhum arquivo novo esta semana." }
+```
+
+**Lógica de `_arquivos_novos`:** escaneia `youtube/`, `documents/`, `texts/` buscando arquivos com `mtime > agora - 7 dias`. Digest não é gerado se lista vazia.
+
+**Scheduler:** `agendar_digest()` usa APScheduler (`CronTrigger`, segunda-feira 8h). Protegido por `try/except ImportError` — funciona sem APScheduler instalado (trigger manual via POST).
+
+**Quebra se:**
+- `tusab_engine.scheduler` importar `tusab_engine.state` → circular import via `AppState` singleton
+- Formato de nome de arquivo `digest_{YYYY-MM-DD}.md` mudar → `listar_digests()` não encontra arquivos existentes (glob `digest_*.md`)
+- APScheduler não instalado → `agendar_digest()` retorna silenciosamente; POST manual continua funcionando
+
+**Checklist para mudanças em `scheduler.py`:**
+- [ ] Padrão de glob `digest_*.md` mudou? → Atualizar `listar_digests()` e este contrato
+- [ ] Lógica de "arquivo novo" mudou (janela de 7 dias)? → `GET /agent/digest` pode retornar listas diferentes do esperado
+
+---
+
+### 10.4 Registros de modularidade — Sprint 2
+
+| Módulo | Arquivo | Rotas | Extrai de |
+|--------|---------|-------|-----------|
+| `router_estudo` | `tusab_engine/api/router_estudo.py` | `POST /agent/study`, `GET /agent/study/{canal}` | Extraído de `router_agent.py` (era monolítico) |
+| `router_digest` | `tusab_engine/api/router_digest.py` | `GET /agent/digest/{p}`, `POST /agent/digest/{p}` | Extraído de `router_agent.py` (era monolítico) |
+| `mcp_server` | `tusab_engine/mcp_server.py` | stdio JSON-RPC 2.0 | Novo arquivo standalone |
+| `scheduler` | `tusab_engine/scheduler.py` | — (lógica pura) | Novo arquivo standalone |
+
+**Registrados em `api_tusab.py`:**
+```python
+from tusab_engine.api.router_estudo import router as router_estudo
+from tusab_engine.api.router_digest import router as router_digest
+app.include_router(router_estudo)
+app.include_router(router_digest)
+```
+
+**Regra de modularidade (fixada após Sprint 2):** Qualquer novo domínio de funcionalidade deve ter seu próprio arquivo `router_{dominio}.py`. `router_agent.py` fica restrito a: configuração, indexação, chat, status do agente e Ollama.
+
+---
+
+## 11. Contratos adicionados no Sprint 3 (jun/2026)
+
+### 11.1 Novos campos nos arquivos .txt extraídos
+
+**Escrito por:** `tusab_engine/motor/extraction.py` — função `tusab_engine()`, bloco de escrita do `.txt`
+**Lido por:** `tusab_engine/agent/index.py` — `_parsear_chunks()`
+
+Campos adicionados ao cabeçalho de cada vídeo no `.txt`:
+```
+VIDEO_ID: {v_id}
+VIEWS: {views}
+TIMESTAMP_INICIO: {segundos}
+```
+
+- `VIDEO_ID`: ID do vídeo YouTube (ex: `dQw4w9WgXcQ`)
+- `VIEWS`: inteiro, views no momento da extração (vem do mesmo `%(view_count)s` do mapeamento — sem request extra)
+- `TIMESTAMP_INICIO`: inteiro em segundos do primeiro cue VTT detectado por `_limpar_vtt_interno()`
+
+**Compatibilidade retroativa:** arquivos extraídos antes do Sprint 3 não têm esses campos. `_parsear_chunks()` usa `.group(1)` com fallback — retorna `''` / `0` se ausente. Chat e frontend tratam `timestamp_inicio == 0` como "sem timestamp".
+
+**Quebra se:**
+- Formato `VIDEO_ID:` renomeado → `_parsear_chunks` não extrai o ID → link de timestamp não aparece
+- `TIMESTAMP_INICIO:` renomeado → todos os chunks antigos (que eram 0) permanecem sem impacto; novos chunks perdem o timestamp
+
+---
+
+### 11.2 Novos campos nos chunks BM25
+
+**Escrito por:** `_parsear_chunks()` em `tusab_engine/agent/index.py`
+**Lido por:** `chat.py` (views boost, fontes) e `ChatDrawer.jsx` (link ▶)
+
+Três campos novos no schema de chunk:
+```json
+{
+  "video_id":         "string (ID YouTube ou '')",
+  "views":            0,
+  "timestamp_inicio": 0
+}
+```
+
+**Compatibilidade:** índices gerados antes do Sprint 3 não têm esses campos. `c.get('video_id', '')`, `c.get('views', 0)`, `c.get('timestamp_inicio', 0)` garantem fallback seguro.
+
+**Quebra se:**
+- `video_id` removido → `ChatDrawer` nunca renderiza link ▶ (condição `f.video_id && f.timestamp_inicio > 0`)
+- `views` removido → boost silenciosamente desativado (boost = 0 quando views=0, sem erro)
+
+---
+
+### 11.3 Novas fontes do chat com timestamp (S3.1)
+
+**Adicionado em:** `chat.py` — funções `chat()` e `chat_stream()`, na construção de `fontes`
+**Consumido por:** `ChatDrawer.jsx`
+
+```json
+{
+  "titulo":            "string",
+  "aba":               "youtube | documents | texts",
+  "data":              "string",
+  "link":              "string",
+  "arquivo":           "string",
+  "canal":             "string",
+  "score":             0.0,
+  "trecho":            "string (primeiros 600 chars)",
+  "video_id":          "string (ID YouTube ou '')",
+  "timestamp_inicio":  0
+}
+```
+
+**Renderização no ChatDrawer:**
+- Quando `f.video_id && f.timestamp_inicio > 0`: renderiza `<a href="https://www.youtube.com/watch?v={video_id}&t={timestamp_inicio}">▶ MM:SS</a>`
+- Formato de label: `H:MM:SS` quando hora > 0, `M:SS` caso contrário
+
+**Quebra se:**
+- `video_id` ou `timestamp_inicio` ausentes no payload → link não aparece (degradação graciosa — sem erro)
+- Formato da URL `?v=ID&t=SEG` mudar → link abre YouTube mas sem saltar ao timestamp
+
+**Checklist para mudanças:**
+- [ ] Campo `timestamp_inicio` renomeado? → Atualizar `chat.py` (2 lugares: sync + stream), `ChatDrawer.jsx`, este mapa
+- [ ] `limpar_vtt_com_timestamp()` refatorada? → Garantir que `_limpar_vtt_interno()` ainda retorna `(texto, int)` — `limpar_vtt()` original não pode quebrar (mantida como wrapper)
+
+---
+
+### 11.4 Date-aware retrieval (S3.2)
+
+**Implementado em:** `tusab_engine/agent/chat.py` — `_recuperar_contexto()`, após score mínimo e antes do CrossEncoder
+
+**Lógica:**
+1. Detecta termos temporais na query: `{'recente', 'último', 'atual', 'agora', 'hoje', 'novo', ...}` ou ano explícito (`\b20\d{2}\b`)
+2. Se ano explícito (`"em 2024"`): filtra chunks cujo campo `data` (DD/MM/AAAA) tem ano == ano alvo
+3. Se termo recente: filtra chunks do último ano em relação ao máximo encontrado no corpus
+4. Filtro só aplicado se há candidatos suficientes (`≥ max(n//2, 2)`); se não, usa todos
+
+**Não requer:** nenhum campo novo — usa o campo `data` já existente nos chunks
+
+**Quebra se:**
+- Formato de `data` no chunk mudar de `DD/MM/AAAA` → parser `data_str.split('/')[-1]` falha silenciosamente (ano = 0, filtro não aplica — degradação graciosa)
+- Lista `_TERMOS_RECENTE` crescer com termos muito comuns → filtro aplica em queries não temporais
+
+---
+
+### 11.5 Views boost no retrieval (S3.3)
+
+**Implementado em:** `tusab_engine/agent/chat.py` — `_recuperar_contexto()`, após filtro de data e antes do CrossEncoder
+
+**Fórmula:**
+```python
+boost = 1.0 + 0.2 * (log1p(views) / log1p(views_max))
+score_final = score_bm25 * boost
+```
+
+- Boost máximo (vídeo mais visto do conjunto): `1.2x`
+- Boost mínimo (views = 0): `1.0x` (neutro)
+- `views_max` é calculado por consulta — normalização relativa ao conjunto retornado
+
+**Dependência:** chunk precisa ter campo `views` (int). Chunks sem `views` (índices pré-Sprint 3) recebem boost = 1.0 (neutro, sem penalização).
+
+**Quebra se:**
+- `views` negativo no chunk → `log1p` retorna NaN → multiplicar por NaN propaga NaN no score → `sort()` tem comportamento indefinido. Mitigação: `if views > 0` já está no código.
+- `views_max` = 0 (todos os chunks sem views) → divisão por zero. Mitigação: `or 1` na linha `views_max = max(...) or 1`.
+
+**Checklist:**
+- [ ] Novo provider de views? → Garantir que o valor é sempre inteiro ≥ 0 no `.txt` e no chunk
+- [ ] Fórmula de boost alterada? → Testar que scores permanecem ≥ SCORE_MINIMO (0.5) para queries relevantes
+
+---
+
+## 12. Decisões de infraestrutura RAG — Sprint 4 (jun/2026)
+
+### 12.1 BM25S — descartado para corpora < 5 k docs
+
+**Análise:** `bm25s 0.3.9` foi instalado e benchmarked contra `rank_bm25` com corpus de 500 docs.
+
+| Métrica | rank_bm25 | bm25s |
+|---------|-----------|-------|
+| Tempo de indexação (500 docs) | ~1 ms | ~7 ms |
+| Tempo de retrieval (k=500) | ~0,6 ms | ~0,5 ms |
+| Qualidade do ranking | BM25Okapi | BM25+ (equivalente) |
+| Complexidade de migração | — | Alta (API de vocabulário compartilhado) |
+
+**Conclusão:** O ganho de 100–500× citado na literatura aplica-se a corpora de 1 M+ documentos. Para o Tusab (200–500 vídeos típicos), `rank_bm25` já indexa em < 5 ms e o overhead de tokenização do `bm25s` (NumPy + vocabulário) supera qualquer ganho. A migração exigiria refatoração significativa do pipeline de cache (`_bm25_cache`) sem benefício perceptível.
+
+**Decisão:** Manter `rank_bm25` até a adoção do **LanceDB** (Sprint 5+), que resolverá indexação incremental e substituirá tanto `rank_bm25` quanto o ChromaDB planejado de uma vez.
+
+**Arquivo de teste:** salvo em `scratchpad/test_bm25s_v3.py` (sessão de jun/2026).
+
+**Impacto em código:** nenhum — `rank_bm25` permanece em `chat.py` e `index.py`. `bm25s` instalado no `.venv` mas não usado — pode ser removido com `pip uninstall bm25s`.
+
+### 12.2 Roadmap de infraestrutura RAG
+
+| Sprint | Item | Status |
+|--------|------|--------|
+| S3 | CrossEncoder ms-marco-MiniLM-L-6-v2 | ✅ Implementado |
+| S3 | Date-aware retrieval + Views boost | ✅ Implementado |
+| S4 | BM25S (drop-in replacement) | ❌ Descartado |
+| S5 | LanceDB (indexação incremental + columnar) | 🔜 Planejado |
+| S6 | Embeddings Ollama + ChromaDB | 🔜 Planejado (pode ser absorvido pelo LanceDB) |
+| S7 | SPLADE (learned sparse retrieval) | 🔜 Planejado (pós-feedback de produção) |

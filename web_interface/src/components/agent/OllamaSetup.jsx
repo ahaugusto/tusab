@@ -142,29 +142,34 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
     ? (darkMode ? 'bg-secondary/5 border-secondary/20'   : 'bg-emerald-50 border-emerald-200')
     : (darkMode ? 'bg-amber-500/5 border-amber-500/20'   : 'bg-amber-50 border-amber-200');
 
+  // Quando Ollama já está rodando com modelo, pula onboarding e mostra estado compacto
+  const jaConfigurado = ollamaStatus.running && hasModel;
+
   return (
     <div className="space-y-3">
 
-      {/* O que é o Ollama */}
-      <div className={`rounded-xl p-3.5 border flex gap-2.5 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-        <Info size={13} className={`shrink-0 mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
-        <div className="space-y-1.5 min-w-0">
-          <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>O que é o Ollama?</p>
-          <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-            O <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>Ollama</strong> roda modelos de IA direto no seu computador — sem internet, sem custo e sem enviar dados para servidores externos.
-          </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
-            <a href="https://ollama.com" target="_blank" rel="noreferrer"
-              className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
-              ollama.com <ExternalLink size={9} />
-            </a>
-            <a href="https://github.com/ollama/ollama" target="_blank" rel="noreferrer"
-              className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
-              GitHub <ExternalLink size={9} />
-            </a>
+      {/* Bloco explicativo — só aparece quando Ollama não está pronto */}
+      {!jaConfigurado && (
+        <div className={`rounded-xl p-3.5 border flex gap-2.5 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+          <Info size={13} className={`shrink-0 mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+          <div className="space-y-1.5 min-w-0">
+            <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>O que é o Ollama?</p>
+            <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+              O <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>Ollama</strong> roda modelos de IA direto no seu computador — sem internet, sem custo e sem enviar dados para servidores externos.
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
+              <a href="https://ollama.com" target="_blank" rel="noreferrer"
+                className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
+                ollama.com <ExternalLink size={9} />
+              </a>
+              <a href="https://github.com/ollama/ollama" target="_blank" rel="noreferrer"
+                className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
+                GitHub <ExternalLink size={9} />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Card de status do Ollama */}
       <div className={`rounded-xl p-4 space-y-3 border ${cardBg}`}>
@@ -286,7 +291,8 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
         )}
       </div>{/* fim card status */}
 
-      {/* Lista de modelos sugeridos */}
+      {/* Lista de modelos sugeridos — sempre visível no onboarding; colapsável via "Trocar modelo" quando já configurado */}
+      {(!jaConfigurado || showAdvanced) && (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className={`text-[10px] font-semibold uppercase tracking-wide ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -400,6 +406,7 @@ function OllamaSetup({ darkMode, ollamaStatus, setOllamaStatus, btnFocus, ollama
         )}
 
       </div>
+      )}{/* fim bloco modelos sugeridos */}
 
     </div>
   );
