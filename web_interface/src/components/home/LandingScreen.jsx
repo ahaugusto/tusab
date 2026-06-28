@@ -34,7 +34,7 @@ function usePulseLogo() {
   return { glowOpacity, scale };
 }
 
-function LandingScreen({ darkMode, onToggleDark, onEnter }) {
+function LandingScreen({ darkMode, onToggleDark, onEnter, appUpdateInfo }) {
   const { t, i18n } = useTranslation();
   const { glowOpacity, scale } = usePulseLogo();
 
@@ -111,6 +111,20 @@ function LandingScreen({ darkMode, onToggleDark, onEnter }) {
         >
           {t('landing.enter')}
         </button>
+
+        {/* Badge de update disponível — aparece abaixo do botão quando há nova versão */}
+        {appUpdateInfo && (
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-semibold border ${
+            darkMode
+              ? 'bg-warning/10 border-warning/30 text-warning'
+              : 'bg-amber-50 border-amber-300 text-amber-700'
+          }`}>
+            <span aria-hidden="true">⬆</span>
+            {appUpdateInfo.downloaded
+              ? `v${appUpdateInfo.version} pronto para instalar`
+              : `v${appUpdateInfo.version} disponível`}
+          </div>
+        )}
       </div>
 
       <p className={`absolute bottom-6 z-10 text-[11px] ${darkMode ? 'text-slate-700' : 'text-slate-400'}`}>

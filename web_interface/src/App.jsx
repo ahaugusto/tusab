@@ -822,7 +822,7 @@ function App() {
         {showLanding && (
           <motion.div key="landing-screen" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
             className="fixed inset-0 z-[9999]">
-            <LandingScreen darkMode={darkMode} onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }} onEnter={() => {
+            <LandingScreen darkMode={darkMode} appUpdateInfo={appUpdateInfo} onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }} onEnter={() => {
               // Fluxo: landing → onboarding → consent → home
               if (!localStorage.getItem('tusab_onboarded')) {
                 setShowOnboarding(true);
@@ -934,7 +934,7 @@ function App() {
 
       {/* Banner de atualização do app disponível */}
       <AnimatePresence>
-        {showUpdateBanner && appUpdateInfo && !showHome && !showLanding && (
+        {showUpdateBanner && appUpdateInfo && !showHome && (
           <motion.div
             key="update-banner"
             initial={{ opacity: 0, y: 40 }}
