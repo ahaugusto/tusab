@@ -81,9 +81,10 @@ Estado de download (`pullProgress`, `pulling`, `pullingModel`, `pullStartTime`) 
 - `chatOpenRef` (useRef) espelha `chatOpen` — manter sincronizado via useEffect para callbacks assíncronos
 
 ### Landing → Onboarding (sem flash)
-- `onEnter` na landing NÃO fecha a landing — abre consent/onboarding por cima (`z-[10000]`)
-- Landing só desaparece no `onDone` do onboarding
+- `onEnter` na landing NÃO fecha a landing — abre onboarding por cima e a landing só some no `onDone`
 - Evita flash da HomeScreen antes do perfil ser escolhido
+- **Invariante de z-index com portal:** `ModalWrapper` usa `createPortal(modal, document.body)` — o modal é renderizado fora da árvore React, portanto qualquer `z-index` aplicado num div pai no caller **é ignorado**. Para empilhar uma modal sobre outro layer fixo, passe `zIndex='z-[N]'` diretamente via prop para o `ModalWrapper`.
+- Implementação atual: landing em `z-[9999]`; onboarding recebe `zIndex='z-[10001]'` quando `showLanding=true`; consent recebe `z-[10000]`. **Bug corrigido em v1.0.12:** wrapper `div z-[10000]` no App.jsx era ineficaz por causa do portal — corrigido passando `zIndex` direto ao componente.
 
 ### CircuitBackground
 - `interactive={false}` (LandingScreen): só pulsos automáticos, sem listener de mouse
