@@ -354,9 +354,57 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     # O toggle de Busca Ampla é a decisão consciente do usuário de querer mais profundidade:
     # BM25 recupera top-2n candidatos, CrossEncoder reordena por relevância semântica real.
     # BM25 puro quando busca_ampla=False — mais rápido, suficiente para busca restrita.
-    top = _rerankar(pergunta, resultados[:n * 2])[:n] if busca_ampla else resultados[:n]
+    candidatos = _rerankar(pergunta, resultados[:n * 2]) if busca_ampla else resultados
+
+    # Deduplicação semântica: remove chunks com sobreposição de tokens > threshold.
+    # Jaccard sobre tokens BM25 (sem stopwords) — rápido, sem modelo extra.
+    # Preserva o chunk de maior score quando há duplicata detectada.
+    top = _deduplicar_chunks(candidatos, n, threshold=0.85)
+    # Fallback: garante ao menos 1 chunk em corpora muito pequenos
+    if not top and chunks:
+        top = chunks[:1]
 
     return top
+
+
+def _deduplicar_chunks(chunks: list, n: int, threshold: float = 0.85) -> list:
+    """Remove chunks semanticamente redundantes usando similaridade Jaccard de tokens.
+
+    Percorre os chunks em ordem de score (maior primeiro) e descarta qualquer
+    chunk cuja sobreposição com um já selecionado supere `threshold`.
+    Retorna no máximo `n` chunks.
+    """
+    def _tokens(texto: str) -> set:
+        return {w for w in re.findall(r'\b[a-záéíóúàâêôãõç]{4,}\b', texto.lower())
+                if w not in _STOPWORDS}
+
+    selecionados = []
+    tokens_selecionados = []
+
+    for chunk in chunks:
+        toks = _tokens(chunk.get('texto', ''))
+        if not toks:
+            selecionados.append(chunk)
+            tokens_selecionados.append(toks)
+            if len(selecionados) >= n:
+                break
+            continue
+        redundante = False
+        for toks_sel in tokens_selecionados:
+            if not toks_sel:
+                continue
+            intersecao = len(toks & toks_sel)
+            uniao = len(toks | toks_sel)
+            if uniao > 0 and intersecao / uniao >= threshold:
+                redundante = True
+                break
+        if not redundante:
+            selecionados.append(chunk)
+            tokens_selecionados.append(toks)
+        if len(selecionados) >= n:
+            break
+
+    return selecionados
 
 
 # ── Verificação de alucinação ─────────────────────────────────────────────────

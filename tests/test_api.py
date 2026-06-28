@@ -183,3 +183,23 @@ def test_criar_projeto_aparece_na_listagem(client):
     r = client.get("/neural/projetos")
     nomes = [p["nome"] for p in r.json()["projetos"]]
     assert nome in nomes
+
+
+# ── GET /canal-info ───────────────────────────────────────────────────────────
+
+def test_canal_info_rejeita_url_invalida(client):
+    r = client.get("/canal-info", params={"url": "https://example.com/canal"})
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
+def test_canal_info_rejeita_url_vazia(client):
+    r = client.get("/canal-info", params={"url": ""})
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
+def test_canal_info_rejeita_path_traversal(client):
+    r = client.get("/canal-info", params={"url": "https://www.youtube.com/@canal/../../../etc/passwd"})
+    assert r.status_code == 200
+    assert r.json().get("error") is True

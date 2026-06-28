@@ -5,6 +5,34 @@
 
 ---
 
+## Agentes especializados
+
+Slash commands disponíveis nesta sessão — cada um carrega o contexto do especialista antes de responder:
+
+| Comando | Papel | Use quando... |
+|---------|-------|---------------|
+| `/qa` | QA Tester | rodar checklist manual completo ou validar um fluxo específico |
+| `/testes` | Engenheiro de Testes | gaps na suite pytest, novos test cases, confiabilidade |
+| `/seguranca` | Engenheiro de Segurança | path traversal, injeção de comando, secrets, Electron, upload |
+| `/integracao` | Engenheiro de Integração | contrato Electron↔FastAPI↔React↔disco, payload, fluxos ponta a ponta |
+| `/backend` | Engenheiro FastAPI/Python | analisar API, thread safety, atomicidade, BM25, RAG |
+| `/frontend` | Engenheiro React/Vite | analisar componentes, hooks, estado, i18n, acessibilidade |
+| `/ux` | Designer UX | avaliar fluxo, jornada, fricção, microcopy e interação por perfil |
+| `/ui` | Designer UI | auditar tokens visuais, estados de componentes, hierarquia tipográfica, consistência dark/light |
+| `/product-designer` | Product Designer | síntese UX + UI + Job to be Done + impacto de negócio — proposta integrada |
+| `/produto` | Product Manager | priorizar features, benchmarking competitivo, estratégia |
+| `/inovacao` | Especialista em Inovação | avaliar oportunidades técnicas e tendências |
+| `/metricas` | Especialista em Analytics | telemetria, KPIs, funil de ativação |
+| `/marketing` | Especialista em Marketing/Growth | canais de aquisição, copy, posicionamento, táticas sem budget |
+| `/memoria` | Memória Institucional | "isso já foi tentado?", "por que X foi descartado?", "quais invariantes não podem ser violados?" |
+| `/memoria-atualizar` | Atualização da Memória | após cada release ou decisão relevante — propõe adições ao `_historia.md` para aprovação |
+
+Os prompts completos ficam em [`agents/`](agents/) e são referenciados pelos comandos em [`.claude/commands/`](.claude/commands/).
+
+**Base de memória compartilhada:** [`agents/_historia.md`](agents/_historia.md) — todos os agentes injetam este arquivo como contexto histórico. Contém: experimentos que falharam (com versão e motivo), padrões que funcionaram, decisões estratégicas permanentes e invariantes técnicas.
+
+---
+
 ## O que é este projeto
 
 Tusab é um sistema de gestão de conhecimento pessoal (PKM) com IA local.

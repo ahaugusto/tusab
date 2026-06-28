@@ -1161,6 +1161,7 @@ function App() {
                     }
                   }}
                   aria-label={label}
+                  aria-describedby={id === 'agente' && (agentStatus.configured || ollamaStatus?.running) ? 'tooltip-agente' : undefined}
                   className={`group relative w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                     ${activeTab === id && !showHome
                       ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
@@ -1174,8 +1175,9 @@ function App() {
                     <>
                       <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${agentStatus.configured ? 'bg-secondary' : 'bg-warning'}`} aria-hidden="true" />
                       <div
+                        id="tooltip-agente"
                         role="tooltip"
-                        className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
+                        className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
                         ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-white text-slate-700 border border-slate-200 shadow-slate-200/60'}`}>
                         {agentStatus.configured
                           ? `Agente pronto · ${agentStatus.provider || 'configurado'}`

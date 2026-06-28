@@ -97,7 +97,6 @@ def _limpar_vtt_interno(caminho_vtt):
     timestamp_inicio = 0
     for linha in linhas:
         if '-->' in linha:
-            # Captura o timestamp de início do primeiro cue encontrado
             if timestamp_inicio == 0:
                 inicio = linha.split('-->')[0].strip()
                 timestamp_inicio = _vtt_ts_para_segundos(inicio)
@@ -114,6 +113,64 @@ def _limpar_vtt_interno(caminho_vtt):
             if texto_limpo[i] != texto_limpo[i - 1]:
                 resultado.append(texto_limpo[i])
     return " ".join(resultado).strip(), timestamp_inicio
+
+
+def _vtt_por_capitulo(caminho_vtt, capitulos: list) -> list:
+    """Divide o VTT em segmentos usando capítulos como fronteiras.
+
+    capitulos: lista de {'start_time': float, 'title': str} ordenada por start_time.
+    Retorna lista de {'texto': str, 'timestamp_inicio': int, 'capitulo': str}.
+    Cai no comportamento padrão (lista com 1 elemento) se não houver capítulos úteis.
+    """
+    if not os.path.exists(caminho_vtt) or not capitulos:
+        texto, ts = _limpar_vtt_interno(caminho_vtt)
+        return [{'texto': texto, 'timestamp_inicio': ts, 'capitulo': ''}]
+
+    with open(caminho_vtt, 'r', encoding='utf-8', errors='replace') as f:
+        linhas = f.readlines()
+
+    # Agrupa linhas de texto por timestamp de cada cue
+    cues = []  # list of (timestamp_segundos, texto_linha)
+    ts_atual = 0
+    for linha in linhas:
+        if '-->' in linha:
+            ts_atual = _vtt_ts_para_segundos(linha.split('-->')[0].strip())
+            continue
+        if linha.strip().isdigit() or 'WEBVTT' in linha:
+            continue
+        linha = re.sub(r'<[^>]*>', '', linha).strip()
+        if linha:
+            cues.append((ts_atual, linha))
+
+    if not cues:
+        return [{'texto': '', 'timestamp_inicio': 0, 'capitulo': ''}]
+
+    # Constrói fronteiras: [cap0_start, cap1_start, ..., +inf]
+    caps_sorted = sorted(capitulos, key=lambda c: c.get('start_time', 0))
+    fronteiras = [c.get('start_time', 0) for c in caps_sorted] + [float('inf')]
+
+    segmentos = []
+    for i, cap in enumerate(caps_sorted):
+        fim = fronteiras[i + 1]
+        linhas_cap = [texto for ts, texto in cues if cap['start_time'] <= ts < fim]
+        # Dedup de linhas consecutivas idênticas (padrão do VTT)
+        dedup = []
+        for ln in linhas_cap:
+            if not dedup or ln != dedup[-1]:
+                dedup.append(ln)
+        texto = ' '.join(dedup).strip()
+        if len(texto) >= 80:
+            segmentos.append({
+                'texto': texto,
+                'timestamp_inicio': int(cap['start_time']),
+                'capitulo': cap.get('title', ''),
+            })
+
+    # Se a segmentação produziu algo útil, retorna; senão cai no texto completo
+    if segmentos:
+        return segmentos
+    texto, ts = _limpar_vtt_interno(caminho_vtt)
+    return [{'texto': texto, 'timestamp_inicio': ts, 'capitulo': ''}]
 
 
 # Idiomas em ordem de tentativa. Baixados em duas passagens para evitar 429:
@@ -723,7 +780,9 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     if erros2:
                         print(f"      ⚠️ yt-dlp (fallback): {erros2[-1][:120]}")
 
-            # Busca data + tags numa única chamada para evitar request extra.
+            # Busca data + tags + descrição numa única chamada.
+            # %(chapters)j fica em chamada separada porque %(description)s pode conter
+            # "|||" nativo (usuários usam pipe como separador), deslocando os índices.
             data_real = video['date']
             tags_str  = ''
             meta_stdout, _, _ = _ytdlp_run(
@@ -747,9 +806,22 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                 if len(partes) > 2:
                     desc = partes[2].strip()
                     if desc and desc not in ('NA', 'None', ''):
-                        # Limita a 500 chars para não inflar o arquivo
                         descricao_str = desc[:500].replace('\n', ' ').strip()
                 break
+
+            # Busca capítulos em chamada isolada — sem campos de texto livre ao lado.
+            capitulos = []
+            caps_stdout, _, _ = _ytdlp_run(
+                ['--skip-download', '--print', '%(chapters)j',
+                 '--js-runtimes', 'node', v_link],
+            )
+            try:
+                caps = json.loads(caps_stdout.strip().splitlines()[0])
+                if isinstance(caps, list) and len(caps) > 1:
+                    capitulos = [{'start_time': c.get('start_time', 0), 'title': c.get('title', '')}
+                                 for c in caps if isinstance(c, dict)]
+            except Exception:
+                pass
 
             vtt_files = [
                 os.path.join(TEMP_DIR, f)
@@ -757,9 +829,10 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                 if f.startswith(temp_base) and f.endswith('.vtt')
             ]
             if vtt_files:
-                texto, ts_inicio = limpar_vtt_com_timestamp(vtt_files[0])
-                if len(texto) > 150:
-                    num_palavras = len(texto.split())
+                segmentos = _vtt_por_capitulo(vtt_files[0], capitulos)
+                texto_total = ' '.join(s['texto'] for s in segmentos)
+                if len(texto_total) > 150:
+                    num_palavras = len(texto_total.split())
 
                     if palavras_atuais + num_palavras > MAX_WORDS_PER_FILE:
                         parte_atual += 1
@@ -775,6 +848,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         print(f"      📂 NOVO ARQUIVO: {nome_arquivo_base}.txt criado.")
                         if dispatch_event:
                             dispatch_event("file_generated")
+
+                    tem_capitulos = len(segmentos) > 1
                     with open(caminho_txt, "a", encoding="utf-8-sig") as f:
                         if file_is_new:
                             handle = meta_canal.get('canal_handle', f'@{canal_nome_raw}')
@@ -788,21 +863,23 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                                 f"# Todos os direitos do conteúdo pertencem ao criador original.\n"
                                 f"{'=' * 70}\n\n"
                             )
-                        f.write(
-                            f"\n{'=' * 70}\n"
-                            f"TITULO: {v_title}\n"
-                            f"ABA: {video['aba']}\n"
-                            f"DATA: {data_real}\n"
-                            f"LINK: {v_link}\n"
-                            f"VIDEO_ID: {v_id}\n"
-                            f"VIEWS: {video.get('views', 0)}\n"
-                            f"TIMESTAMP_INICIO: {ts_inicio}\n"
-                            f"TAGS: {tags_str}\n"
-                            f"DESCRICAO: {descricao_str}\n"
-                            f"{'-' * 70}\n"
-                            f"CONTEUDO:\n{texto}\n"
-                            f"{'=' * 70}\n"
-                        )
+                        for seg in segmentos:
+                            titulo_seg = f"{v_title} — {seg['capitulo']}" if tem_capitulos and seg['capitulo'] else v_title
+                            f.write(
+                                f"\n{'=' * 70}\n"
+                                f"TITULO: {titulo_seg}\n"
+                                f"ABA: {video['aba']}\n"
+                                f"DATA: {data_real}\n"
+                                f"LINK: {v_link}\n"
+                                f"VIDEO_ID: {v_id}\n"
+                                f"VIEWS: {video.get('views', 0)}\n"
+                                f"TIMESTAMP_INICIO: {seg['timestamp_inicio']}\n"
+                                f"TAGS: {tags_str}\n"
+                                f"DESCRICAO: {descricao_str}\n"
+                                f"{'-' * 70}\n"
+                                f"CONTEUDO:\n{seg['texto']}\n"
+                                f"{'=' * 70}\n"
+                            )
 
                     palavras_atuais += num_palavras
                     ids_ja_minerados.add(v_id)

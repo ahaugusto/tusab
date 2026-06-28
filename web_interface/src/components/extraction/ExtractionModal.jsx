@@ -8,9 +8,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { X, Zap } from 'lucide-react';
+import { X, Zap, Loader2 } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
+import { getCanalInfo } from '../../services/api';
 
 /**
  * ExtractionModal — always starts with project name.
@@ -52,6 +53,10 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   // Step URL: channel URL
   const [canalUrl, setCanalUrl] = React.useState('');
 
+  // Mapa de cobertura pré-extração
+  const [canalInfo,        setCanalInfo]        = React.useState(null);
+  const [canalInfoLoading, setCanalInfoLoading] = React.useState(false);
+
   // Step fontes: content types
   const [selected, setSelected] = React.useState(ALL_TYPES.map(t => t.id));
   const allSelected = selected.length === ALL_TYPES.length;
@@ -88,6 +93,23 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
       setProjetoNome(handle || '');
     }
   }, [canalUrl]);
+
+  // Busca mapa de cobertura com debounce de 800ms quando URL parece válida
+  React.useEffect(() => {
+    if (step !== 'url') return;
+    const url = canalUrl.trim();
+    const ytRe = /^https:\/\/(www\.)?youtube\.com\/@[a-zA-Z0-9_.\-]{1,100}\/?$/;
+    if (!ytRe.test(url)) { setCanalInfo(null); return; }
+    setCanalInfo(null);
+    setCanalInfoLoading(true);
+    const timer = setTimeout(() => {
+      getCanalInfo(url)
+        .then(r => setCanalInfo(r.data))
+        .catch(() => setCanalInfo(null))
+        .finally(() => setCanalInfoLoading(false));
+    }, 800);
+    return () => { clearTimeout(timer); setCanalInfoLoading(false); };
+  }, [canalUrl, step]);
 
   const avancar = () => {
     if (step === 'url') {
@@ -203,6 +225,38 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
                   className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                 />
               </div>
+              {/* Mapa de cobertura */}
+              {canalInfoLoading && (
+                <div className={`flex items-center gap-2 py-2 text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                  Verificando canal…
+                </div>
+              )}
+              {canalInfo && !canalInfo.error && (
+                <div className={`rounded-xl border p-3 mb-4 space-y-2 ${darkMode ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
+                  <p className={`text-[10px] font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Visão geral do canal
+                  </p>
+                  <p className={`text-[11px] ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    <strong>{canalInfo.total_videos}</strong> vídeos encontrados
+                    {canalInfo.views_total > 0 && <> · <strong>{(canalInfo.views_total / 1e6).toFixed(1)}M</strong> views</>}
+                  </p>
+                  {canalInfo.topicos?.length > 0 && (
+                    <div>
+                      <p className={`text-[10px] mb-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Tópicos mais frequentes:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {canalInfo.topicos.slice(0, 12).map(t => (
+                          <span key={t.termo}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${darkMode ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                            {t.termo} <span className={`opacity-50`}>{t.frequencia}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={avancar}
                 disabled={!podeAvancarUrl}
