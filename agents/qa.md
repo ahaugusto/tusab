@@ -98,7 +98,7 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 - Onboarding contextual por perfil (Estudante, Especialista, Pesquisador)?
 - Slug `profissional` não é renomeado para `especialista` no localStorage?
 - Snack de primeiro acesso ao chat aparece uma única vez?
-- Landing → Onboarding: sem flash da HomeScreen entre elas (`onEnter` não fecha a landing antes do `onDone`)?
+- **[REGRESSÃO CRÍTICA — testar sempre]** Landing → Onboarding: clicar "Entrar" na landing abre o onboarding por cima (não fica travado na landing)? Limpar localStorage e testar em primeira visita simulada: `localStorage.clear(); location.reload()`. Bug encontrado em v1.0.12: `ModalWrapper` usa `createPortal` — z-index no div pai é ignorado. Onboarding ficava invisível atrás da landing. Corrigido passando `zIndex='z-[10001]'` diretamente ao componente.
 
 ### 9. AUTO-UPDATE E NOTIFICAÇÕES
 - Aba Admin → Privacidade e Rede mostra conexões corretas?
