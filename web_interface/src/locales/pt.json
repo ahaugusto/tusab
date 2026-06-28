@@ -217,6 +217,7 @@
   "chat.hint_select_base": "Selecione uma base acima para enviar esta mensagem",
   "chat.snack_hint": "Pergunte à sua base",
   "chat.open_tooltip": "Abrir chat com o agente",
+  "chat.attach_aria": "Anexar arquivo à base ativa (PDF, DOCX, TXT…)",
   "chat.chunks_indexed": "chunks indexados",
   "chat.switch_base": "Trocar base",
   "chat.clear": "Limpar",

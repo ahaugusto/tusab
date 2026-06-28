@@ -128,3 +128,68 @@ def test_chat_histories_concorrente_sem_excecao(client):
     for t in threads: t.join()
 
     assert not erros
+
+
+# ── _vtt_por_capitulo ─────────────────────────────────────────────────────────
+
+def test_vtt_por_capitulo_sem_arquivo_retorna_lista_com_um_item(tmp_path):
+    from tusab_engine.motor.extraction import _vtt_por_capitulo
+    resultado = _vtt_por_capitulo(str(tmp_path / "inexistente.vtt"), [])
+    assert isinstance(resultado, list)
+    assert len(resultado) == 1
+
+
+def test_vtt_por_capitulo_sem_capitulos_retorna_lista_com_um_item(tmp_path):
+    from tusab_engine.motor.extraction import _vtt_por_capitulo
+    vtt = tmp_path / "v.vtt"
+    vtt.write_text("WEBVTT\n\n00:00:01.000 --> 00:00:05.000\nOlá mundo\n", encoding="utf-8")
+    resultado = _vtt_por_capitulo(str(vtt), [])
+    assert len(resultado) == 1
+    assert resultado[0]["capitulo"] == ""
+
+
+def test_vtt_por_capitulo_um_capitulo_retorna_segmento(tmp_path):
+    from tusab_engine.motor.extraction import _vtt_por_capitulo
+    vtt = tmp_path / "v.vtt"
+    vtt.write_text(
+        "WEBVTT\n\n00:00:01.000 --> 00:00:10.000\nIntrodução\n\n00:00:11.000 --> 00:00:20.000\nDesenvolvimento\n",
+        encoding="utf-8"
+    )
+    caps = [{"start_time": 0, "title": "Intro"}, {"start_time": 10, "title": "Dev"}]
+    resultado = _vtt_por_capitulo(str(vtt), caps)
+    assert len(resultado) >= 1
+    for seg in resultado:
+        assert "texto" in seg
+        assert "capitulo" in seg
+
+
+# ── _deduplicar_chunks ────────────────────────────────────────────────────────
+
+def test_deduplicar_chunks_remove_duplicata_exata(client):
+    from tusab_engine.agent.chat import _deduplicar_chunks
+    chunks = [
+        {"texto": "inteligência artificial aprendizado de máquina redes neurais", "score": 1.0},
+        {"texto": "inteligência artificial aprendizado de máquina redes neurais", "score": 0.9},
+        {"texto": "mercado financeiro bolsa de valores investimentos", "score": 0.8},
+    ]
+    resultado = _deduplicar_chunks(chunks, n=3, threshold=0.85)
+    textos = [r["texto"] for r in resultado]
+    assert len(resultado) == 2
+    assert textos[0] == chunks[0]["texto"]
+
+
+def test_deduplicar_chunks_preserva_diversidade(client):
+    from tusab_engine.agent.chat import _deduplicar_chunks
+    chunks = [
+        {"texto": "python programação backend apis rest fastapi", "score": 1.0},
+        {"texto": "javascript frontend react componentes hooks", "score": 0.9},
+        {"texto": "banco de dados sql postgresql queries index", "score": 0.8},
+    ]
+    resultado = _deduplicar_chunks(chunks, n=3, threshold=0.85)
+    assert len(resultado) == 3
+
+
+def test_deduplicar_chunks_fallback_corpus_vazio(client):
+    from tusab_engine.agent.chat import _deduplicar_chunks
+    resultado = _deduplicar_chunks([], n=3, threshold=0.85)
+    assert resultado == []
