@@ -1001,22 +1001,21 @@ function App() {
 
       <AnimatePresence>
         {showOnboarding && (
-          <div className={showLanding ? 'fixed inset-0 z-[10000]' : ''}>
-            <Onboarding key="onboarding" darkMode={darkMode}
-              onSkip={() => {
-                // Pular no step 0: fecha o onboarding e mantém a landing
-                setShowOnboarding(false);
-              }}
-              onDone={(perfilEscolhido) => {
-                setPerfil(perfilEscolhido);
-                setShowOnboarding(false);
-                if (getConsent() === null) {
-                  setShowConsent(true);
-                } else {
-                  setShowLanding(false);
-                }
-              }} />
-          </div>
+          <Onboarding key="onboarding" darkMode={darkMode}
+            zIndex={showLanding ? 'z-[10001]' : undefined}
+            onSkip={() => {
+              // Pular no step 0: fecha o onboarding e mantém a landing
+              setShowOnboarding(false);
+            }}
+            onDone={(perfilEscolhido) => {
+              setPerfil(perfilEscolhido);
+              setShowOnboarding(false);
+              if (getConsent() === null) {
+                setShowConsent(true);
+              } else {
+                setShowLanding(false);
+              }
+            }} />
         )}
       </AnimatePresence>
       <AnimatePresence>
