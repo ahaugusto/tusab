@@ -1,59 +1,152 @@
-Tusab -- TERMOS DE USO E INFORMACOES DE INSTALACAO
-============================================================
+================================================================
+TUSAB -- TERMOS DE USO / TERMS OF USE / TERMINOS DE USO
+================================================================
+
+----------------------------------------------------------------
+PORTUGUES (BRASIL)
+----------------------------------------------------------------
 
 DOWNLOADS ADICIONAIS NECESSARIOS
-----------------------------------
-O Tusab requer componentes adicionais que serao baixados
-automaticamente na primeira execucao:
+---------------------------------
+O Tusab requer componentes adicionais baixados automaticamente
+na primeira execucao:
 
-  * Ollama (~50 MB)
-    Motor de inteligencia artificial local. Permite usar o Agente IA
-    sem custos e sem conexao com servidores externos.
+  * Ollama (~50 MB) -- motor de IA local
+  * Modelo llama3.2:1b (~1,3 GB) -- baixado ao usar o Agente IA
 
-  * Modelo de linguagem llama3.2:1b (~1,3 GB)
-    Baixado apenas na primeira vez que o Agente IA for utilizado.
-    O download e exibido com barra de progresso dentro do aplicativo.
-
-Uma conexao com a internet e necessaria apenas para esses downloads
-iniciais. Apos a configuracao, o Tusab funciona completamente offline.
-
-------------------------------------------------------------
+Conexao com internet necessaria apenas nesses downloads iniciais.
+Apos a configuracao, o Tusab funciona completamente offline.
 
 TERMOS DE USO
---------------
-Ao instalar o Tusab, voce concorda com os seguintes termos:
+-------------
+Ao instalar o Tusab, voce concorda com:
 
 1. USO PERMITIDO
-   O Tusab destina-se a uso pessoal, educacional e de pesquisa.
-   O usuario e responsavel por garantir que seu uso esteja em
-   conformidade com os Termos de Servico do YouTube e as leis de
-   direitos autorais aplicaveis.
+   Destinado a uso pessoal, educacional e de pesquisa. O usuario
+   e responsavel por conformidade com os Termos de Servico do
+   YouTube e as leis de direitos autorais aplicaveis.
 
 2. USO PROIBIDO
-   E proibido utilizar o Tusab para redistribuicao comercial de
-   conteudo extraido sem o consentimento do criador original.
+   Proibido redistribuir comercialmente conteudo extraido sem
+   consentimento do criador original.
 
-3. INTEGRACAO COM GOOGLE DRIVE
-   O acesso ao Google Drive e limitado a arquivos criados pelo proprio
-   aplicativo (escopo drive.file). Nenhum outro arquivo e acessado.
+3. GOOGLE DRIVE
+   Acesso limitado a arquivos criados pelo proprio aplicativo
+   (escopo drive.file). Nenhum outro arquivo e acessado.
 
 4. CHAVES DE API
-   Chaves de API inseridas pelo usuario sao armazenadas localmente e
-   nunca transmitidas para servidores da CriAugu.
+   Armazenadas localmente. Nunca transmitidas a servidores CriAugu.
 
 5. PRIVACIDADE E DADOS LOCAIS
-   O Tusab processa todos os seus dados localmente. Nenhum conteudo
-   da sua base de conhecimento -- transcricoes, documentos, textos ou
-   conversas -- e enviado a servidores da CriAugu. A telemetria de uso
-   e opcional e requer consentimento explicito na primeira execucao.
+   Todos os dados sao processados localmente. Nenhum conteudo
+   (transcricoes, documentos, conversas) e enviado a CriAugu.
+   Telemetria e opcional e requer consentimento explicito.
 
 6. SEM GARANTIA
-   O Tusab e fornecido "como esta", sem garantias de qualquer tipo.
-   O YouTube pode alterar sua plataforma a qualquer momento.
+   Fornecido "como esta". O YouTube pode alterar sua plataforma
+   a qualquer momento.
 
 7. LIMITACAO DE RESPONSABILIDADE
-   A CriAugu nao se responsabiliza por danos indiretos decorrentes do
-   uso ou impossibilidade de uso do Tusab.
+   A CriAugu nao se responsabiliza por danos indiretos decorrentes
+   do uso ou impossibilidade de uso do Tusab.
 
-------------------------------------------------------------
-(c) 2026 CriAugu -- CNPJ 65.131.075/0001-57  |  tusab@tusab.solutions
+(c) 2026 CriAugu -- CNPJ 65.131.075/0001-57 | tusab@tusab.solutions
+
+----------------------------------------------------------------
+ENGLISH
+----------------------------------------------------------------
+
+ADDITIONAL DOWNLOADS REQUIRED
+------------------------------
+Tusab requires additional components downloaded automatically
+on first run:
+
+  * Ollama (~50 MB) -- local AI engine
+  * Model llama3.2:1b (~1.3 GB) -- downloaded when using the AI Agent
+
+An internet connection is only needed for these initial downloads.
+After setup, Tusab works completely offline.
+
+TERMS OF USE
+------------
+By installing Tusab, you agree to the following:
+
+1. PERMITTED USE
+   Intended for personal, educational and research use. The user
+   is responsible for compliance with YouTube's Terms of Service
+   and applicable copyright laws.
+
+2. PROHIBITED USE
+   Prohibited to commercially redistribute extracted content
+   without the original creator's consent.
+
+3. GOOGLE DRIVE
+   Access limited to files created by the application itself
+   (drive.file scope). No other files are accessed.
+
+4. API KEYS
+   Stored locally. Never transmitted to CriAugu servers.
+
+5. PRIVACY AND LOCAL DATA
+   All data is processed locally. No content (transcriptions,
+   documents, conversations) is sent to CriAugu. Usage telemetry
+   is optional and requires explicit consent.
+
+6. NO WARRANTY
+   Provided "as is". YouTube may change its platform at any time.
+
+7. LIMITATION OF LIABILITY
+   CriAugu is not responsible for indirect damages arising from
+   the use or inability to use Tusab.
+
+(c) 2026 CriAugu -- CNPJ 65.131.075/0001-57 | tusab@tusab.solutions
+
+----------------------------------------------------------------
+ESPANOL
+----------------------------------------------------------------
+
+DESCARGAS ADICIONALES REQUERIDAS
+---------------------------------
+Tusab requiere componentes adicionales descargados automaticamente
+en la primera ejecucion:
+
+  * Ollama (~50 MB) -- motor de IA local
+  * Modelo llama3.2:1b (~1,3 GB) -- descargado al usar el Agente IA
+
+Se necesita conexion a internet solo para estas descargas iniciales.
+Tras la configuracion, Tusab funciona completamente sin conexion.
+
+TERMINOS DE USO
+---------------
+Al instalar Tusab, usted acepta lo siguiente:
+
+1. USO PERMITIDO
+   Destinado a uso personal, educativo y de investigacion. El usuario
+   es responsable de cumplir con los Terminos de Servicio de YouTube
+   y las leyes de derechos de autor aplicables.
+
+2. USO PROHIBIDO
+   Prohibido redistribuir comercialmente contenido extraido sin
+   el consentimiento del creador original.
+
+3. GOOGLE DRIVE
+   Acceso limitado a archivos creados por la propia aplicacion
+   (alcance drive.file). No se accede a ningun otro archivo.
+
+4. CLAVES DE API
+   Almacenadas localmente. Nunca transmitidas a servidores de CriAugu.
+
+5. PRIVACIDAD Y DATOS LOCALES
+   Todos los datos se procesan localmente. Ningun contenido
+   (transcripciones, documentos, conversaciones) se envia a CriAugu.
+   La telemetria de uso es opcional y requiere consentimiento explicito.
+
+6. SIN GARANTIA
+   Proporcionado "tal cual". YouTube puede cambiar su plataforma
+   en cualquier momento.
+
+7. LIMITACION DE RESPONSABILIDAD
+   CriAugu no es responsable de los danos indirectos derivados
+   del uso o la imposibilidad de uso de Tusab.
+
+(c) 2026 CriAugu -- CNPJ 65.131.075/0001-57 | tusab@tusab.solutions
