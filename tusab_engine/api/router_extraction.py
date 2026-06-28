@@ -211,6 +211,87 @@ def queue_remove_item(index: int):
     return {"ok": True}
 
 
+@router.get("/canal-info")
+def canal_info(url: str):
+    """Mapa de cobertura pré-extração: títulos e tópicos do canal sem baixar transcrições.
+
+    Usa yt-dlp --flat-playlist para obter apenas metadados (título, views).
+    Retorna contagem de vídeos e os tópicos mais frequentes extraídos dos títulos.
+    Rápido: sem download de legendas ou transcrições.
+    """
+    import sys as _sys
+
+    url = url.strip()
+    if not url or not _YT_URL_RE.match(url):
+        return {"error": True, "message": "URL inválida"}
+
+    try:
+        import subprocess as _sp
+        import json as _json
+
+        resultado = _sp.run(
+            [_sys.executable, '-m', 'yt_dlp',
+             '--flat-playlist', '--ignore-errors', '--no-warnings',
+             '--print', '%(title)s|||%(view_count)s',
+             '--playlist-end', '500',
+             url],
+            stdout=_sp.PIPE, stderr=_sp.DEVNULL,
+            text=False, check=False,
+            creationflags=getattr(_sp, 'CREATE_NO_WINDOW', 0),
+            timeout=60,
+        )
+        linhas = resultado.stdout.decode('utf-8', errors='replace').strip().splitlines()
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao consultar canal: {e}"}
+
+    titulos = []
+    views_total = 0
+    for linha in linhas:
+        partes = linha.split('|||')
+        titulo = partes[0].strip()
+        if titulo and titulo not in ('[Private video]', '[Deleted video]'):
+            titulos.append(titulo)
+            try:
+                views_total += int(partes[1].strip()) if len(partes) > 1 else 0
+            except (ValueError, IndexError):
+                pass
+
+    if not titulos:
+        return {"error": True, "message": "Nenhum vídeo encontrado. Verifique a URL do canal."}
+
+    # Extrai tópicos por frequência de termos nos títulos (sem stopwords)
+    _STOP = {
+        'de','a','o','que','e','do','da','em','um','para','com','uma','os','no',
+        'se','na','por','mais','as','dos','como','mas','ao','ele','das','seu',
+        'sua','ou','ser','quando','muito','nos','já','também','só','pelo','pela',
+        'até','isso','ela','entre','era','depois','sem','mesmo','aos','ter','seus',
+        'quem','nas','me','esse','eles','vocé','você','essa','nem','suas','meu',
+        'the','a','an','and','or','but','in','on','at','to','for','of','with',
+        'by','from','is','are','was','were','be','have','has','do','does','did',
+        'will','would','could','should','this','that','not','what','how','all',
+        'ep','ft','part','parte','vol','vs','feat',
+    }
+    freq: dict = {}
+    for t in titulos:
+        for palavra in re.findall(r'[a-záéíóúàâêôãõç]{4,}', t.lower()):
+            if palavra not in _STOP:
+                freq[palavra] = freq.get(palavra, 0) + 1
+
+    topicos = [
+        {'termo': termo, 'frequencia': count}
+        for termo, count in sorted(freq.items(), key=lambda x: x[1], reverse=True)[:20]
+        if count >= 2
+    ]
+
+    return {
+        "ok": True,
+        "total_videos": len(titulos),
+        "views_total": views_total,
+        "topicos": topicos,
+        "amostra_titulos": titulos[:10],
+    }
+
+
 class QueueMoveRequest(BaseModel):
     from_index: int
     to_index: int

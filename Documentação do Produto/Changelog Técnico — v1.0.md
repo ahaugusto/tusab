@@ -7,6 +7,155 @@ Organizado por commit, do mais antigo ao mais recente.
 
 ---
 
+## Sprint 28/06/2026 — v1.0.12: Capítulos como fronteiras de chunk, deduplicação semântica, mapa de cobertura pré-extração e sistema de agentes especialistas
+
+**Branch:** main
+
+### Contexto
+
+Sprint focada em três eixos:
+1. **Qualidade do RAG** — capítulos como fronteiras naturais de chunk, deduplicação semântica no pipeline, fallback para corpus pequeno
+2. **Descoberta pré-extração** — mapa de cobertura do canal antes de baixar qualquer transcrição
+3. **Sistema de agentes Claude Code** — prompts especializados por papel (UX, UI, Product Designer, Backend, Frontend, QA, Segurança, Integração, Produto, Inovação, Métricas, Marketing, Memória), mais rotina de atualização de memória institucional
+4. **Acessibilidade** — labels de formulário, tooltips via teclado, aria-live para conteúdo dinâmico
+
+---
+
+### Backend — `tusab_engine/motor/extraction.py`
+
+**`_vtt_por_capitulo(caminho_vtt, capitulos)`** — nova função que divide o VTT em segmentos usando capítulos como fronteiras de chunk:
+
+```python
+def _vtt_por_capitulo(caminho_vtt, capitulos: list) -> list:
+    # capitulos: [{'start_time': float, 'title': str}, ...]
+    # Retorna: [{'texto': str, 'timestamp_inicio': int, 'capitulo': str}, ...]
+    # Fallback automático quando: arquivo não existe, lista vazia, ou todos os
+    # segmentos < 80 chars (capítulos de intro/outro sem conteúdo real)
+```
+
+Cada segmento gera um chunk BM25 independente com título `"Video — Capítulo"`. O timestamp de início é o do primeiro cue VTT dentro do intervalo do capítulo, preservando ancoragem temporal.
+
+**Bug crítico resolvido — delimitador `|||` em descrições:**
+
+A chamada de metadados `%(upload_date)s|||%(tags)j|||%(description)s|||%(chapters)j` falhava silenciosamente quando o campo `%(description)s` continha `|||` (usuários usam pipe como separador de lista). O parse de `parts[3]` ficava com offset errado e `json.loads` falhava sem exceção visível.
+
+Solução: duas chamadas yt-dlp separadas.
+
+```python
+# Chamada 1: metadados sem JSON embutido
+_ytdlp_run(['--print', '%(upload_date)s|||%(tags)j|||%(description)s', v_link])
+
+# Chamada 2: capítulos isolados — sem campo de texto livre ao lado
+_ytdlp_run(['--print', '%(chapters)j', v_link])
+```
+
+---
+
+### Backend — `tusab_engine/agent/chat.py`
+
+**`_deduplicar_chunks(chunks, n, threshold=0.85)`** — nova função de deduplicação semântica por similaridade Jaccard de tokens:
+
+```python
+def _deduplicar_chunks(chunks, n, threshold=0.85):
+    # Remove stopwords, tokeniza só [a-záéíóúàâêôãõç]{4,}
+    # Jaccard: |A ∩ B| / |A ∪ B| >= threshold → descarta
+    # threshold=0.85: chunk quase idêntico (85% overlap) é removido;
+    # conteúdo temático relacionado (≤85%) é preservado
+```
+
+Posição no pipeline: após CrossEncoder (busca ampla) ou após BM25 top-n (busca restrita), antes de retornar ao LLM.
+
+**Fallback para corpus pequeno:** se `_deduplicar_chunks` retornar lista vazia (todos os chunks eram cópias do único chunk disponível), retorna `chunks[:1]` para garantir que o LLM sempre receba ao menos um contexto.
+
+---
+
+### Backend — `tusab_engine/api/router_extraction.py`
+
+**`GET /canal-info`** — novo endpoint de mapa de cobertura pré-extração:
+
+```python
+@router.get("/canal-info")
+def canal_info(url: str):
+    # yt-dlp --flat-playlist --print '%(title)s|||%(view_count)s' --playlist-end 500
+    # Retorna: {ok, total_videos, views_total, topicos, amostra_titulos}
+    # topicos: frequência de termos nos títulos, filtrada por stopwords PT+EN+mídia
+```
+
+Rápido: sem download de legendas. Usado pelo frontend para preview de cobertura antes de configurar a extração.
+
+**Fix regex de termos:** `[a-záéíóúàâêôãõç\w]{4,}` → `[a-záéíóúàâêôãõç]{4,}` — elimina captura de underscores, dígitos e nomes de variável que vazavam dos títulos técnicos.
+
+---
+
+### Frontend — `web_interface/src/`
+
+**`services/api.js` — `getCanalInfo(url)`:**
+
+```js
+export const getCanalInfo = (url) => axios.get(`${API_BASE}/canal-info`, { params: { url } });
+```
+
+**`ExtractionModal.jsx` — preview de cobertura no step URL:**
+
+```jsx
+// Debounce 800ms após URL válida (/^https:\/\/(www\.)?youtube\.com\/@.../)
+// Enquanto carrega: spinner "Verificando canal…"
+// Resultado:  N vídeos · Xm views  +  chips de tópicos (top 12)
+```
+
+O preview aparece entre o input de URL e o botão "Próximo", dando ao usuário visibilidade do conteúdo antes de commitar a extração.
+
+**`ChatDrawer.jsx` — acessibilidade:**
+- `aria-label` no botão de anexo (substituiu `title=` — `title` não é anunciado por leitores de tela ao focar via teclado)
+- Ícones decorativos com `aria-hidden="true"`
+- Textarea com `id="chat-input"` + `aria-label`
+
+**`App.jsx` — tooltip via teclado:**
+- Botão de aba com `aria-describedby` apontando para o tooltip
+- Tooltip com `id`, `role="tooltip"` e `group-focus-visible:opacity-100`
+
+**`locales/pt.json`, `en.json`, `es.json` — nova chave:**
+- `"chat.attach_aria"` em três idiomas
+
+---
+
+### Sistema de agentes Claude Code — `agents/` + `.claude/commands/`
+
+Prompts especializados por papel, ativados via slash commands:
+
+| Agente | Arquivo | Especialidade |
+|--------|---------|---------------|
+| `/ux` | `agents/ux.md` | Fluxo, jornada, fricção, microcopy — sem pixels |
+| `/ui` | `agents/ui.md` | Tokens visuais Tailwind, estados de componente, dark/light |
+| `/product-designer` | `agents/product-designer.md` | Síntese UX+UI+JTBD+negócio |
+| `/memoria-atualizar` | `.claude/commands/memoria-atualizar.md` | Propõe adições ao `_historia.md` para aprovação |
+
+Todos os agentes injetam `agents/_historia.md` como contexto histórico compartilhado.
+
+**Escopo separado UX vs UI (decisão de design de sistema):** `/ux` avalia fluxo e interação, `/ui` audita execução visual. `/product-designer` é a síntese. Evita diagnósticos misturados onde "a tela tá boa mas o fluxo é confuso" se torna um único relatório incoerente.
+
+---
+
+### Skill — `.claude/skills/run-tusab/`
+
+Renomeada de `run-brainiac/` para `run-tusab/`. SKILL.md reescrito com:
+- Tabela de suites (`patch` / `minor` / `full`) e quando usar cada uma
+- Paths corretos do instalador e do `.exe` PyInstaller
+- Gotchas do CLAUDE.md (`TUSAB_DATA_DIR`, `npm run build` via Bash, `Invoke-WebRequest` UTF-8)
+
+---
+
+### Testes — `tests/`
+
+**9 novos test cases (36 total, todos verdes):**
+
+| Arquivo | Testes adicionados |
+|---------|-------------------|
+| `test_confiabilidade.py` | `test_vtt_por_capitulo_*` (3), `test_deduplicar_chunks_*` (3) |
+| `test_api.py` | `test_canal_info_*` (3) — URL inválida, URL vazia, path traversal |
+
+---
+
 ## Sprint 26/06/2026 — v1.0.11: Modo Estudo, RAG denso, histórico de chat e acessibilidade de modais
 
 **Branch:** main

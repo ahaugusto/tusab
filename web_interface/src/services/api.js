@@ -59,6 +59,9 @@ export const setChannel = (canal_url, projeto_nome = '') => axios.post(`${API_BA
 /** Removes the currently configured channel */
 export const removeChannel = () => axios.post(`${API_BASE}/set-channel`, { canal_url: '' });
 
+/** Fetches channel coverage map (titles + topics) without downloading transcriptions */
+export const getCanalInfo = (url) => axios.get(`${API_BASE}/canal-info`, { params: { url } });
+
 // ─── Motor ───────────────────────────────────────────────────────────────────
 
 /** Starts extraction engine with selected content types */
