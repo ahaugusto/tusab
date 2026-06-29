@@ -7,6 +7,79 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.18] — 2026-06-29
+### Corrigido
+- **Menu Electron incompleto**: opções Reload, DevTools, Zoom e Tela Cheia estavam ausentes — restauradas no menu Visualizar
+- **Estabilidade do fluxo de primeiro acesso**: resolução definitiva do conflito de foco/`aria-hidden` que impedia o onboarding em determinados cenários de inicialização
+
+### Interno
+- Protocolos de QA atualizados com verificação obrigatória de Console do browser durante testes de first-run
+
+---
+
+## [1.0.17] — 2026-06-29
+### Adicionado
+- **Notificações do sistema (aba Admin)**: controle funcional com status em tempo real, botão de ativação e instruções contextuais para habilitar/desabilitar
+- **Help / Ajuda (F1) — FAQ de notificações**: como são disparadas, como ativar e como revogar (PT/EN/ES)
+
+### Corrigido
+- CORS no dev server: `API_BASE` detecta o ambiente automaticamente (URL relativa no dev, URL direta no Electron)
+- `UpdateSuccessModal`: não abre mais com versão vazia; link "Ver novidades" aponta para a release correta no GitHub
+
+---
+
+## [1.0.16] — 2026-06-28
+### Adicionado
+- **Janela de ajuda nativa (F1)**: FAQ trilíngue PT/EN/ES, atalhos de teclado, contato e versão dinâmica
+- **Confirmação pós-atualização**: após instalação silenciosa, o app reabre automaticamente exibindo a nova versão e link para as novidades
+
+### Corrigido
+- App reabre automaticamente após instalar uma atualização (`quitAndInstall(false, true)`)
+- `latest.yml` gerado com nome de arquivo correto para o `electron-updater` localizar o instalador
+
+---
+
+## [1.0.15] — 2026-06-28
+### Adicionado
+- Notificação de atualização disponível exibida na tela de entrada com badge de versão e botão de instalação direta
+
+---
+
+## [1.0.14] — 2026-06-28
+### Adicionado
+- Termos de licença do instalador NSIS traduzidos para PT-BR, EN e ES
+
+---
+
+## [1.0.13] — 2026-06-27
+### Adicionado
+- Instalador NSIS multilíngue com detecção automática do idioma do sistema operacional
+
+---
+
+## [1.0.12] — 2026-06-27
+### Adicionado
+- **Sistema de agentes especialistas** internos: QA, Frontend, Backend, Produto, UX, Inovação — com base de memória institucional (`agents/_historia.md`)
+- **Mapa de cobertura pré-extração** (`GET /canal-info`): visualizar quais vídeos do canal já foram extraídos antes de iniciar
+- Capítulos de vídeo como fronteiras de chunk BM25 para melhor granularidade de recuperação
+
+### Corrigido
+- Modal de onboarding renderizando com z-index correto sobre a tela de entrada
+
+---
+
+## [1.0.11] — 2026-06-26
+### Adicionado
+- **RAG denso**: chunking adaptativo por tipo de documento, score mínimo adaptativo por tamanho de corpus, CrossEncoder com janela de 768 chars
+- Histórico de chat indexado como fonte adicional no RAG
+- Sub-abas com underline `border-b-2` unificado em toda a interface
+
+### Corrigido
+- Acessibilidade completa de modais: `role="dialog"`, `aria-modal`, focus trap e restauração de foco via `ModalWrapper`
+- Flashcards: amostragem aleatória do corpus (`random.sample()`) em vez de primeiros N chunks
+
+---
+
 ## [1.0.10] — 2026-06-26
 
 ### New (Sprint 2 — Sprints 1.2, 2.1, 2.2, 2.3)
