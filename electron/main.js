@@ -4,7 +4,7 @@
 
 'use strict'
 
-const { app, BrowserWindow, shell, dialog, ipcMain, safeStorage, Notification } = require('electron')
+const { app, BrowserWindow, shell, dialog, ipcMain, safeStorage, Notification, Menu } = require('electron')
 const { spawn }  = require('child_process')
 const path       = require('path')
 const http       = require('http')
@@ -520,6 +520,77 @@ function setupAutoUpdater () {
   }
 }
 
+// ─── Janela de help ───────────────────────────────────────────────────────
+let helpWindow = null
+
+function openHelpWindow () {
+  if (helpWindow && !helpWindow.isDestroyed()) {
+    helpWindow.focus()
+    return
+  }
+  helpWindow = new BrowserWindow({
+    width:           820,
+    height:          680,
+    minWidth:        560,
+    minHeight:       420,
+    title:           'Tusab — Ajuda',
+    icon:            path.join(RESOURCES, 'assets', 'logo.ico'),
+    backgroundColor: '#0f172a',
+    webPreferences: {
+      preload:          path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration:  false,
+    },
+  })
+  helpWindow.loadFile(path.join(__dirname, 'help.html'))
+  helpWindow.setMenuBarVisibility(false)
+  helpWindow.on('closed', () => { helpWindow = null })
+  // Links externos abrem no browser padrão
+  helpWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  helpWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault()
+      shell.openExternal(url)
+    }
+  })
+}
+
+function setupAppMenu () {
+  const template = [
+    {
+      label: 'Tusab',
+      submenu: [
+        { role: 'about', label: 'Sobre o Tusab' },
+        { type: 'separator' },
+        { role: 'quit', label: 'Sair' },
+      ],
+    },
+    {
+      label: 'Ajuda / Help',
+      submenu: [
+        {
+          label: 'Abrir Ajuda… / Open Help…',
+          accelerator: 'F1',
+          click: () => openHelpWindow(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Reportar bug…',
+          click: () => shell.openExternal('https://github.com/ahaugusto/tusab-public/issues'),
+        },
+        {
+          label: 'E-mail de suporte',
+          click: () => shell.openExternal('mailto:tusab@tusab.solutions'),
+        },
+      ],
+    },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 // ─── Ciclo de vida do app ──────────────────────────────────────────────────
 app.whenReady().then(() => {
   registerIpcHandlers()
@@ -527,6 +598,7 @@ app.whenReady().then(() => {
   spawnBackend()
   createWindow()
   setupAutoUpdater()
+  setupAppMenu()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

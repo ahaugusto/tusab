@@ -1,6 +1,6 @@
 {
   "name": "tusab",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Tusab — Index.Augment.Converse",
   "main": "main.js",
   "author": {
@@ -35,6 +35,7 @@
       "main.js",
       "preload.js",
       "loading.html",
+      "help.html",
       "logo_loading.png"
     ],
     "extraResources": [
