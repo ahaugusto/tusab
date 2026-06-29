@@ -170,7 +170,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex }) {
 
   // ── Steps 1–7 — Content steps ─────────────────────────────────────────────
   return (
-    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label="Introdução ao Tusab">
+    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex}>
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 12 }}
