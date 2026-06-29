@@ -58,6 +58,7 @@ import { DriveToggle }          from './components/sidebar/SidebarContent';
 import CancelQueueModal         from './components/modals/CancelQueueModal';
 import ResetModal               from './components/modals/ResetModal';
 import QueueManagerModal        from './components/modals/QueueManagerModal';
+import UpdateSuccessModal       from './components/modals/UpdateSuccessModal';
 import ExtractionTab            from './components/extraction/ExtractionTab';
 import AgentTab                 from './components/tabs/AgentTab';
 import AdminTab                 from './components/tabs/AdminTab';
@@ -101,6 +102,7 @@ function App() {
   const [autoUpdateChecking,   setAutoUpdateChecking]   = useState(false);
   const [appUpdateInfo,        setAppUpdateInfo]        = useState(null);  // { version, downloaded }
   const [showUpdateBanner,     setShowUpdateBanner]     = useState(false);
+  const [justUpdatedVersion,   setJustUpdatedVersion]   = useState(null);  // versão recém instalada via auto-update
   const [cancelFlash,          setCancelFlash]          = useState(false);
   const [showCancelQueueModal, setShowCancelQueueModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
@@ -310,7 +312,11 @@ function App() {
     });
     // Clique na notificação nativa de update → instala imediatamente
     window.tusab.onTriggerInstallUpdate?.(() => {
-      window.tusab?.installUpdate?.();
+      window.tusab?.installUpdate?.(appUpdateInfo?.version);
+    });
+    // App acabou de reiniciar após auto-update
+    window.tusab.onAppJustUpdated?.((info) => {
+      setJustUpdatedVersion(info.version);
     });
   }, []);
 
@@ -963,7 +969,7 @@ function App() {
             <div className="flex items-center gap-1.5 shrink-0">
               {appUpdateInfo.downloaded && (
                 <button
-                  onClick={() => window.tusab?.installUpdate?.()}
+                  onClick={() => window.tusab?.installUpdate?.(appUpdateInfo?.version)}
                   className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-warning text-white hover:bg-warning/90 transition-colors">
                   Instalar agora
                 </button>
@@ -1094,6 +1100,13 @@ function App() {
           fetchHistory().then(r => setHistory(r.data)).catch(() => {});
           fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
         }}
+      />
+
+      {/* Modal: app recém atualizado via auto-update */}
+      <UpdateSuccessModal
+        version={justUpdatedVersion}
+        darkMode={darkMode}
+        onClose={() => setJustUpdatedVersion(null)}
       />
 
       <AnimatePresence>
@@ -1629,7 +1642,7 @@ function App() {
                 regras={regras}
                 onResetClick={() => setShowResetModal(true)}
                 appUpdateInfo={appUpdateInfo}
-                onInstallUpdate={() => window.tusab?.installUpdate?.()}
+                onInstallUpdate={() => window.tusab?.installUpdate?.(appUpdateInfo?.version)}
               />
             )}
 
