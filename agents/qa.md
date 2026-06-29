@@ -213,6 +213,26 @@ Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 | FAIL-05 | v1.0.19 | **Corrigido** | `Shift+C` chamava `setChatOpen(true)` direto em vez de `handleOpenChat` — snack persistia |
 | FAIL-SR | v1.0.19 | **Corrigido** | `Shift+R` não chamava `setShowHome(false)` — HomeScreen bloqueava a UI |
 
+## Protocolo obrigatório pré-publicação — 5 cliques que substituem análise estática
+
+> **Contexto:** a auditoria de 17 jornadas (jun/2026) mapeou 31 riscos por leitura de código mas não detectou o crash `createPortal sem document.body` (React #299) no modal "Indexar base" do RepositorioTab — porque o agente leu o arquivo mas não clicou no botão. Análise estática não substitui execução.
+
+**Antes de qualquer build, executar os 5 cliques obrigatórios:**
+
+| # | Ação | O que pega |
+|---|------|-----------|
+| 1 | Abrir modal de Extração (botão "Iniciar" na aba Extração) | Crash de renderização no ExtractionModal |
+| 2 | Aba Repositório → botão "Indexar base" → modal aparece | `createPortal` sem container, crash React #299 |
+| 3 | Abrir Chat → enviar mensagem → resposta streaming aparece | Regressão no useChatEngine, falha de stream |
+| 4 | Aba Agente → sub-tab Configurações → campos visíveis sem crash | Crash em AgentTab/useAgentConfig |
+| 5 | `localStorage.clear()` no Console + F5 → landing → onboarding → home completo | Regressão no fluxo de first-run (aria-hidden, z-index, perfil) |
+
+**Regra:** se qualquer um falhar → corrigir antes do build. Sem exceções. Não existe "publicar e corrigir depois" para crashes de renderização que o usuário encontra no primeiro clique.
+
+**Invariante adicionada à `_historia.md`:** `createPortal` sempre precisa de segundo argumento `document.body` — verificar todo novo uso em componentes.
+
+---
+
 ## Roadmap — o que você vai testar nas próximas versões
 
 | Sprint | Feature | O que testar |

@@ -130,6 +130,7 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 9. **`VITE_POSTHOG_KEY` nunca commitado** — fica em `web_interface/.env`
 10. **`credentials.json` e `token.json` nunca no bundle Electron** — não aparecem no `filter` do `extraResources`
 11. **yt-dlp sempre local no IP do usuário** — princípio intocável
+12. **`createPortal` sempre com segundo argumento `document.body`** — omitir causa React error #299 ("Target container is not a DOM element") que crasha o componente inteiro ao tentar renderizar o portal. Verificar todo novo uso.
 
 ---
 
@@ -141,7 +142,7 @@ Auditoria completa de 17 jornadas realizada em jun/2026 identificou os seguintes
 |----|---------|-----------|-----------|--------|
 | FAIL-01 | App.jsx:91, usePerfil.js:8 | MÉDIO | `activeTab='extracao'` default incompatível com perfil `estudante` — useEffect corrige em seguida mas há frame de aba inválida | Aberto |
 | FAIL-02 | ExtractionModal.jsx:44, App.jsx:723 | ALTO | Fluxo normal sem canal nunca passa pelo step de URL — `POST /start` com canal vazio possível quando usuário abre modal sem canal configurado | Aberto |
-| FAIL-03 | web_interface/src/services/api.js:203 | CRÍTICO | `limparCanal()` chama `DELETE /neural/limpar` sem parâmetro `canal` — apaga arquivos de **todos** os projetos. Backend aceita `canal` como parâmetro opcional mas frontend não envia | Aberto |
+| FAIL-03 | web_interface/src/services/api.js:203 | CRÍTICO | `limparCanal()` chama `DELETE /neural/limpar` sem parâmetro `canal` — apaga arquivos de **todos** os projetos. Backend aceita `canal` como parâmetro opcional mas frontend não envia | **Corrigido v1.0.20** |
 | WARN-13 | useChatEngine.js:286 | MÉDIO | Fila de chat cheia (6ª msg): mensagem descartada silenciosamente sem feedback ao usuário | Aberto |
 | WARN-15 | ChatDrawer.jsx:293 | MÉDIO | Falha de export (docx/pdf/xlsx): apenas `console.warn`, sem toast ou mensagem de erro na UI | Aberto |
 | WARN-19 | useAgentConfig.js:97 | ALTO | Sync de idioma envia `api_key: ''` ao backend — pode zerar chave externa se backend não tiver proteção para campo vazio | Aberto |
@@ -153,6 +154,13 @@ Auditoria completa de 17 jornadas realizada em jun/2026 identificou os seguintes
 **Bugs já corrigidos nesta sprint (não reabrir):**
 - FAIL-05: `Shift+C` usava `setChatOpen(true)` direto — snack não era removido. Fix: `handleOpenChat()` + `useCallback`
 - FAIL-SR: `Shift+R` não chamava `setShowHome(false)` — HomeScreen bloqueava UI
+- FAIL-03: `limparCanal()` sem `canal` apagava todos os projetos. Fix: frontend passa `canal_nome`, backend filtra por subdir
+- WARN-19: sync de idioma enviava `api_key:''` zerando chave. Fix: sentinel `'__keep__'`
+- FAIL-02: ExtractionModal pulava step de URL. Fix: `stepInicial='url'` quando `!canalJaConfigurado`
+- WARN-13: mensagem de chat descartada silenciosamente. Fix: input não é limpo quando fila cheia
+- WARN-15: falha de export sem feedback. Fix: snackbar vermelho com i18n
+- FAIL-01: aba inválida para perfil estudante. Fix: lazy initializer lê PERFIS_CONFIG do localStorage
+- **createPortal sem `document.body` (v1.0.20)**: modal "Indexar base" no RepositorioTab crashava com React #299. Análise estática não detectou — descoberto por teste manual. Fix: adicionar `document.body` como segundo argumento.
 
 ---
 
