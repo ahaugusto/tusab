@@ -293,7 +293,8 @@ function ChatDrawer({
       // Se o backend retornou JSON é erro (ex: "Sem histórico")
       if (contentType.includes('application/json')) {
         const data = await response.json();
-        console.warn('[export]', data.message || 'Erro no export');
+        setIndexSnackbar({ msg: data.message || t('export.erro_generico'), type: 'error' });
+        setTimeout(() => setIndexSnackbar(null), 5000);
         return;
       }
       const blob = await response.blob();
@@ -304,9 +305,10 @@ function ChatDrawer({
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
-      console.warn('[export] falha no download:', e);
+      setIndexSnackbar({ msg: t('export.erro_download'), type: 'error' });
+      setTimeout(() => setIndexSnackbar(null), 5000);
     }
-  }, []);
+  }, [t, setIndexSnackbar]);
 
   const prevChatInputRef = useRef(chatInput);
   useEffect(() => {
@@ -1749,17 +1751,23 @@ function ChatDrawer({
               )}
             </AnimatePresence>
 
-            {/* Snackbar de sucesso */}
+            {/* Snackbar de sucesso / erro */}
             <AnimatePresence>
               {indexSnackbar && (
                 <motion.div
                   initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 16, scale: 0.97 }} transition={{ duration: 0.25, ease: 'easeOut' }}
                   className={`absolute bottom-4 left-3 right-3 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border-l-4 text-sm font-semibold
-                    ${darkMode
-                      ? 'bg-[#0f2a1a] border-emerald-400 text-emerald-100 shadow-black/60'
-                      : 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-emerald-100'}`}>
-                  <CheckCircle2 size={20} className={darkMode ? 'text-emerald-400 shrink-0' : 'text-emerald-500 shrink-0'} />
+                    ${indexSnackbar.type === 'error'
+                      ? darkMode
+                        ? 'bg-[#2a0f0f] border-red-400 text-red-100 shadow-black/60'
+                        : 'bg-red-50 border-red-500 text-red-800 shadow-red-100'
+                      : darkMode
+                        ? 'bg-[#0f2a1a] border-emerald-400 text-emerald-100 shadow-black/60'
+                        : 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-emerald-100'}`}>
+                  {indexSnackbar.type === 'error'
+                    ? <AlertTriangle size={20} className={darkMode ? 'text-red-400 shrink-0' : 'text-red-500 shrink-0'} />
+                    : <CheckCircle2  size={20} className={darkMode ? 'text-emerald-400 shrink-0' : 'text-emerald-500 shrink-0'} />}
                   <span>{indexSnackbar.msg}</span>
                 </motion.div>
               )}
