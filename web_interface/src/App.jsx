@@ -5,7 +5,7 @@
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n';
@@ -253,14 +253,14 @@ function App() {
   }, [agentStatus.indexed, chatJaAberto]);
 
   // Marca como "já aberto" quando o usuário abre o chat pela primeira vez
-  const handleOpenChat = () => {
+  const handleOpenChat = useCallback(() => {
     setChatOpen(true);
     if (!chatJaAberto) {
       setChatJaAberto(true);
       setShowChatSnack(false);
       localStorage.setItem('tusab_chat_ja_aberto', '1');
     }
-  };
+  }, [chatJaAberto]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const logContainerRef = useRef(null);
@@ -353,14 +353,14 @@ function App() {
       const key = e.key.toUpperCase();
       if (e.key === '>' && chatOpen && chatExpandido) { setChatExpandido(false); return; }
       if (e.key === '<' && chatOpen && !chatExpandido) { setChatExpandido(true); return; }
-      if (key === 'C' && !chatOpen) { e.preventDefault(); setChatOpen(true); return; }
+      if (key === 'C' && !chatOpen) { e.preventDefault(); handleOpenChat(); return; }
       if (key === 'R' && regras.abas?.includes('extracao')) { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
       const tab = NAV_KEYS[key];
       if (tab && regras.abas?.includes(tab)) { setActiveTab(tab); setShowHome(false); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [chatOpen, chatExpandido, setChatOpen, setChatExpandido, regras]);
+  }, [chatOpen, chatExpandido, setChatOpen, setChatExpandido, regras, handleOpenChat]);
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
