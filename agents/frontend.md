@@ -50,9 +50,21 @@ web_interface/src/
 - `aria-hidden="true"` no `#root` quando qualquer modal está aberta; removido quando todas fecham
 - Contador `openCount` para modais aninhadas (incrementa/decrementa no mount/unmount)
 - `role="dialog"`, `aria-modal="true"`, `aria-label={label}` em todas as modais
-- Focus trap: primeiro elemento focável recebe foco no mount; foco restaurado ao elemento anterior no unmount
+- Focus trap: primeiro elemento focável recebe foco no mount; foco restaurado ao elemento anterior no unmount (só quando `skipAriaHidden=false`)
 - Escape fecha modal (configurável por `disableEscape`); clique no backdrop configurável por `disableBackdrop`
 - **Nunca** envolver `ModalWrapper` em `createPortal` no caller — ele já faz o portal internamente
+
+**⚠️ Regras críticas — violações causaram regressões repetidas:**
+
+1. **`autoFocus` + `aria-hidden` no mesmo `#root` = conflito garantido.** O browser bloqueia `root.setAttribute('aria-hidden', 'true')` quando qualquer elemento com foco está dentro do `#root`. O warning é `"Blocked aria-hidden on an element because its descendant retained focus"` — silencioso no React, mas quebra o processamento de eventos do dialog. **Nunca** adicionar `autoFocus` em elementos da landing, HomeScreen ou qualquer layer que coexista com ModalWrapper.
+
+2. **`skipAriaHidden=true` é obrigatório quando a landing está ativa.** Em `App.jsx`, qualquer `<Onboarding>` ou `<ConsentModal>` que abre sobre a landing (`showLanding=true`) deve receber `skipAriaHidden={showLanding}`. Isso impede o `#root` de receber `aria-hidden` enquanto a landing (que está no `#root`) ainda é visível.
+
+3. **Se um componente tem múltiplos `return` com `ModalWrapper`, TODOS devem receber o mesmo `zIndex`.** Componentes como `Onboarding.jsx` têm retorno separado para step 0 (perfil) e steps 1–7 (conteúdo). Omitir `zIndex` em qualquer um deles causa invisibilidade seletiva.
+
+4. **`skipAriaHidden` no cleanup não deve restaurar foco.** Quando `skipAriaHidden=true`, o cleanup do `useEffect` no `ModalWrapper` **não** chama `prevFocus.current?.focus()` — devolver foco para um elemento da landing reativa o conflito descrito acima.
+
+5. **`openCount` é variável de módulo** — persiste entre remontagens. Em desenvolvimento com HMR, pode acumular se modais desmontam sem cleanup correto. Sempre verificar que o `useEffect` de `ModalWrapper` tem a dependência `[skipAriaHidden]` para evitar stale closure.
 
 ### Sub-abas (padrão consistente)
 - Underline: `border-b-2 border-primary -mb-px` no botão ativo, dentro de um container com `border-b`

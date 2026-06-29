@@ -92,18 +92,32 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 - `search_knowledge` retorna chunks com `score`?
 
 ### 8. ONBOARDING / FIRST RUN
+
+> **⚠️ PROTOCOLO OBRIGATÓRIO antes de testar este fluxo:**
+> 1. Abrir DevTools (F12 ou Visualizar → Ferramentas do desenvolvedor)
+> 2. Ir para a aba **Console**
+> 3. Executar `localStorage.clear()` no console
+> 4. Pressionar F5 (reload)
+> 5. Manter o Console **visível durante todo o teste** — qualquer warning `"Blocked aria-hidden"` ou erro React deve ser registrado como FAIL imediato
+
 - `LandingScreen` aparece no primeiro acesso (sem `localStorage.tusab_perfil`)?
 - Seletor de idioma (PT/EN/ES) muda strings da UI?
 - Toggle de tema (dark/light) funciona na landing?
+- Clicar "Entrar" → Onboarding abre **sobre a landing** (landing visível ao fundo)?
+- Selecionar perfil → botão "Próximo" ativa?
+- Clicar "Próximo" → step 1 do conteúdo aparece (steps 1–8 visíveis, **não** some a modal)?
+- Navegar todos os steps 1–8 sem a modal desaparecer?
 - Onboarding contextual por perfil (Estudante, Especialista, Pesquisador)?
+- Ao terminar onboarding → ConsentModal aparece?
+- Aceitar/recusar → HomeScreen aparece (landing desaparece)?
 - Slug `profissional` não é renomeado para `especialista` no localStorage?
-- Snack de primeiro acesso ao chat aparece uma única vez?
-- **[REGRESSÃO CRÍTICA — testar sempre]** Fluxo completo de primeiro acesso: `localStorage.clear(); location.reload()` → clicar "Entrar" → onboarding aparece? → selecionar perfil → ConsentModal aparece? → aceitar → HomeScreen aparece?
-  - Bug v1.0.12: `ModalWrapper` (createPortal) ignorava z-index do div pai → Onboarding invisível. Fix: `zIndex='z-[10001]'` direto ao componente.
-  - Bug v1.0.13: `ConsentModal` tem `fixed z-50` próprio, também ignorava z-index do div pai → tela voltava à landing após perfil selecionado. Fix: prop `zIndex='z-[10001]'` direto ao `ConsentModal`.
-  - Bug v1.0.15: steps 1–7 do Onboarding usam segundo `ModalWrapper` sem `zIndex` → ao clicar "Próximo" o onboarding ficava invisível abaixo da landing. Fix: `zIndex={zIndex}` em **todos** os `ModalWrapper` do componente.
-  - **Regra:** qualquer componente com `position: fixed` interno (portal ou não) ignora z-index do pai. Se o componente tem múltiplos retornos com `ModalWrapper`, **todos** devem receber o mesmo `zIndex`.
-- **[ADICIONAR AO CHECKLIST]** Verificar se o onboarding avança corretamente (steps 1–7 após selecionar perfil e clicar "Próximo") — não apenas o step 0.
+- Console: **zero warnings** `"Blocked aria-hidden"` durante todo o fluxo?
+- **[REGRESSÃO CRÍTICA — testar SEMPRE com DevTools aberto]**
+  - Bug v1.0.12: `ModalWrapper` (createPortal) ignorava z-index do div pai → Onboarding invisível.
+  - Bug v1.0.13: `ConsentModal` tem `fixed` próprio → voltava à landing após perfil selecionado.
+  - Bug v1.0.15: steps 1–7 do Onboarding usavam segundo `ModalWrapper` sem `zIndex` → ao clicar "Próximo" ficava invisível.
+  - Bug v1.0.17 (causa raiz): `aria-hidden` no `#root` bloqueado pelo browser quando `autoFocus` ativo em elemento da landing. Browser emite `"Blocked aria-hidden on an element because its descendant retained focus"` — warning silencioso que trava o onboarding. Fix: `skipAriaHidden=true` + sem `autoFocus` na landing.
+  - **Regra permanente:** ao testar first-run, sempre verificar o Console por esses warnings antes de declarar PASS.
 
 ### 9. AUTO-UPDATE E NOTIFICAÇÕES
 - Aba Admin → Privacidade e Rede mostra conexões corretas?
