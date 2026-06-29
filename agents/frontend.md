@@ -83,8 +83,11 @@ Estado de download (`pullProgress`, `pulling`, `pullingModel`, `pullStartTime`) 
 ### Landing → Onboarding (sem flash)
 - `onEnter` na landing NÃO fecha a landing — abre onboarding por cima e a landing só some no `onDone`
 - Evita flash da HomeScreen antes do perfil ser escolhido
-- **Invariante de z-index com portal:** `ModalWrapper` usa `createPortal(modal, document.body)` — o modal é renderizado fora da árvore React, portanto qualquer `z-index` aplicado num div pai no caller **é ignorado**. Para empilhar uma modal sobre outro layer fixo, passe `zIndex='z-[N]'` diretamente via prop para o `ModalWrapper`.
-- Implementação atual: landing em `z-[9999]`; onboarding recebe `zIndex='z-[10001]'` quando `showLanding=true`; consent recebe `z-[10000]`. **Bug corrigido em v1.0.12:** wrapper `div z-[10000]` no App.jsx era ineficaz por causa do portal — corrigido passando `zIndex` direto ao componente.
+- **Invariante de z-index com fixed/portal:** qualquer elemento com `position: fixed` interno — seja via `createPortal` (`ModalWrapper`) ou via className `fixed` direto (`ConsentModal`) — cria seu próprio stacking context e **ignora o z-index do div pai**. Para empilhar sobre outro layer fixo, passe `zIndex` diretamente como prop ao componente filho.
+- Implementação atual: landing `z-[9999]`; onboarding `zIndex='z-[10001]'` quando `showLanding=true`; consent `zIndex='z-[10001]'` quando `showLanding=true`.
+- **Bug v1.0.12:** wrapper `div z-[10000]` ignorado (portal). Fix: prop `zIndex` no `Onboarding`.
+- **Bug v1.0.13:** `ConsentModal` com `fixed z-50` próprio também ignorava wrapper. Fix: prop `zIndex` no `ConsentModal`.
+- **Checklist ao criar novo componente com `fixed`:** (1) expõe prop `zIndex`? (2) aplica diretamente no elemento `fixed`? (3) caller passa valor adequado quando há layers sobrepostos?
 
 ### CircuitBackground
 - `interactive={false}` (LandingScreen): só pulsos automáticos, sem listener de mouse
