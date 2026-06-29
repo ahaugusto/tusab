@@ -29,5 +29,6 @@ contextBridge.exposeInMainWorld('tusab', {
   onUpdateAvailable:       (cb) => ipcRenderer.on('update-available',       (_e, info) => cb(info)),
   onUpdateDownloaded:      (cb) => ipcRenderer.on('update-downloaded',      (_e, info) => cb(info)),
   onTriggerInstallUpdate:  (cb) => ipcRenderer.on('trigger-install-update', () => cb()),
-  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onAppJustUpdated:        (cb) => ipcRenderer.on('app-just-updated',       (_e, info) => cb(info)),
+  installUpdate: (version) => ipcRenderer.invoke('install-update', version),
 })

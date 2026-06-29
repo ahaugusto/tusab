@@ -633,6 +633,11 @@
   "proHint.feature1": "Bases ilimitadas",
   "proHint.feature2": "Busca avançada com reranking semântico",
   "proHint.feature3": "Sincronização automática com Google Drive",
-  "proHint.cta": "Entendido, continuar usando"
+  "proHint.cta": "Entendido, continuar usando",
+  "update_success.title": "Tusab atualizado!",
+  "update_success.subtitle": "Você está usando a versão mais recente.",
+  "update_success.version": "Versão instalada",
+  "update_success.changelog": "Ver novidades",
+  "update_success.confirm": "Continuar"
 }
 

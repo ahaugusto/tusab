@@ -634,6 +634,11 @@
   "proHint.feature1": "Bases ilimitadas",
   "proHint.feature2": "Búsqueda avanzada con reranking semántico",
   "proHint.feature3": "Sincronización automática con Google Drive",
-  "proHint.cta": "Entendido, seguir usando"
+  "proHint.cta": "Entendido, seguir usando",
+  "update_success.title": "¡Tusab actualizado!",
+  "update_success.subtitle": "Estás usando la versión más reciente.",
+  "update_success.version": "Versión instalada",
+  "update_success.changelog": "Ver novedades",
+  "update_success.confirm": "Continuar"
 }
 
