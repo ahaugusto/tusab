@@ -69,10 +69,13 @@ function ModalWrapper({
           const root = document.getElementById('root');
           if (root) root.removeAttribute('aria-hidden');
         }
+        // Restore focus only when aria-hidden was active (normal modal flow).
+        // When skipAriaHidden=true the landing is still visible — returning focus
+        // to a landing button would re-trigger the aria-hidden/focus conflict.
+        prevFocus.current?.focus();
       }
-      prevFocus.current?.focus();
     };
-  }, []);
+  }, [skipAriaHidden]);
 
   // Auto-focus first focusable element inside the dialog
   useEffect(() => {
