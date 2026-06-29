@@ -1508,8 +1508,11 @@ function ChatDrawer({
         });
         const toggleTodos = () => {
           if (todosSelecionados) {
+            // Desmarca tudo — inclusive a base principal
+            onSelectCanal?.('');
             setCanaisExtras?.([]);
           } else {
+            // Seleciona tudo: mantém a principal e adiciona as extras
             setCanaisExtras?.(todasBases.filter(b => b.nome !== canalAtualAtivo).map(b => b.nome));
           }
         };
@@ -1589,7 +1592,18 @@ function ChatDrawer({
                 return (
                   <div key={base.nome}
                     onClick={() => {
-                      if (isAtivo || emFila) return;
+                      if (emFila) return;
+                      if (isAtivo) {
+                        // Desmarca a base principal — volta ao estado de seleção livre
+                        onSelectCanal?.('');
+                        setCanaisExtras?.([]);
+                        return;
+                      }
+                      // Se só há uma base e ela é extra, ao clicar nela ela vira a principal
+                      if (!canalConfigurado && !canalAutoUnico) {
+                        onSelectCanal?.(base.nome);
+                        return;
+                      }
                       setCanaisExtras?.(prev =>
                         isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
                       );
