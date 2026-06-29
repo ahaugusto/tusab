@@ -33,6 +33,8 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.12 | jun 2026 | Capítulos como fronteiras de chunk BM25, deduplicação semântica Jaccard (0.85), mapa de cobertura pré-extração (`GET /canal-info`), fix z-index onboarding sobre landing, sistema de agentes especialistas |
 | v1.0.14–v1.0.15 | jun 2026 | Notificação de update na landing, modal pós-atualização automática, fix ConsentModal z-index, fix steps 1–7 do Onboarding sem zIndex |
 | v1.0.17 | jun 2026 | Fix raiz do onboarding (aria-hidden + autoFocus), CORS dev server, notificações funcionais na aba Admin, FAQ de notificações no help trilíngue |
+| v1.0.18 | jun 2026 | Menu Electron restaurado (Reload/DevTools/Zoom/Fullscreen), versão dinâmica via package.json no preload, CHANGELOG atualizado v1.0.11–v1.0.18 |
+| v1.0.19 | jun 2026 | Shift+C via handleOpenChat (snack removido corretamente), Shift+R fecha HomeScreen, QA expandido com 17 jornadas mapeadas, 5 FAILs documentados |
 
 ---
 
@@ -128,6 +130,29 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 9. **`VITE_POSTHOG_KEY` nunca commitado** — fica em `web_interface/.env`
 10. **`credentials.json` e `token.json` nunca no bundle Electron** — não aparecem no `filter` do `extraResources`
 11. **yt-dlp sempre local no IP do usuário** — princípio intocável
+
+---
+
+## Bugs mapeados pela auditoria de jornadas v1.0.19 — status e prioridade
+
+Auditoria completa de 17 jornadas realizada em jun/2026 identificou os seguintes itens abertos:
+
+| ID | Arquivo | Severidade | Descrição | Status |
+|----|---------|-----------|-----------|--------|
+| FAIL-01 | App.jsx:91, usePerfil.js:8 | MÉDIO | `activeTab='extracao'` default incompatível com perfil `estudante` — useEffect corrige em seguida mas há frame de aba inválida | Aberto |
+| FAIL-02 | ExtractionModal.jsx:44, App.jsx:723 | ALTO | Fluxo normal sem canal nunca passa pelo step de URL — `POST /start` com canal vazio possível quando usuário abre modal sem canal configurado | Aberto |
+| FAIL-03 | web_interface/src/services/api.js:203 | CRÍTICO | `limparCanal()` chama `DELETE /neural/limpar` sem parâmetro `canal` — apaga arquivos de **todos** os projetos. Backend aceita `canal` como parâmetro opcional mas frontend não envia | Aberto |
+| WARN-13 | useChatEngine.js:286 | MÉDIO | Fila de chat cheia (6ª msg): mensagem descartada silenciosamente sem feedback ao usuário | Aberto |
+| WARN-15 | ChatDrawer.jsx:293 | MÉDIO | Falha de export (docx/pdf/xlsx): apenas `console.warn`, sem toast ou mensagem de erro na UI | Aberto |
+| WARN-19 | useAgentConfig.js:97 | ALTO | Sync de idioma envia `api_key: ''` ao backend — pode zerar chave externa se backend não tiver proteção para campo vazio | Aberto |
+| WARN-21 | App.jsx:944 | BAIXO | Banner de update invisível na HomeScreen (`!showHome` condition) — usuário na home não vê notificação de atualização | Aberto |
+| WARN-23 | App.jsx:1484 | BAIXO | Fechar painel Drive durante OAuth não cancela o fluxo — OAuth continua em background sem feedback | Aberto |
+| WARN-25 | App.jsx:1356 | BAIXO | Chip de perfil some quando Drive autenticado — usuário não pode trocar perfil sem desconectar Drive (sem explicação visual) | Aberto |
+| WARN-31 | App.jsx:357 | MÉDIO | `Shift+R` com perfil estudante muda `activeTab='extracao'` mas aba não aparece no nav (filtrada por regras.abas) — estado inválido silencioso | Aberto |
+
+**Bugs já corrigidos nesta sprint (não reabrir):**
+- FAIL-05: `Shift+C` usava `setChatOpen(true)` direto — snack não era removido. Fix: `handleOpenChat()` + `useCallback`
+- FAIL-SR: `Shift+R` não chamava `setShowHome(false)` — HomeScreen bloqueava UI
 
 ---
 

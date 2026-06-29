@@ -470,9 +470,11 @@ def agent_config(req: AgentConfigRequest):
         return {"error": True, "message": "Indexação em andamento. Aguarde."}
     config = agent_tusab.carregar_config()
     config["provider"] = req.provider
-    if req.api_key:
+    # '__keep__' é sentinel do frontend para sincronizações parciais (ex.: troca de idioma)
+    # que não devem sobrescrever a chave já persistida (WARN-19).
+    if req.api_key and req.api_key != '__keep__':
         config["api_key"] = req.api_key
-    elif req.provider == "ollama":
+    elif req.provider == "ollama" and req.api_key != '__keep__':
         config["api_key"] = ""
     if req.embed_api_key:
         config["embed_api_key"] = req.embed_api_key

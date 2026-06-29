@@ -39,6 +39,7 @@ class LimparRequest(BaseModel):
     youtube:    bool = False
     documentos: bool = False
     textos:     bool = False
+    canal:      str  = Field(default="", max_length=120)
 
 class LimparHistoricoRequest(BaseModel):
     prefixos: list = []
@@ -746,7 +747,11 @@ def historico_limpar(req: LimparHistoricoRequest):
 
 @router.delete("/neural/limpar")
 def cerebro_limpar(req: LimparRequest):
-    """Remove arquivos selecionados de todas as pastas do neural."""
+    """Remove arquivos selecionados de pastas do neural.
+
+    Se `canal` for informado, limpa apenas aquele projeto.
+    Se omitido, limpa todos (comportamento legado — use com cuidado).
+    """
     neural_dir = motor_tusab.NEURAL_DIR
     deletados  = {'youtube': 0, 'documentos': 0, 'textos': 0}
 
@@ -765,9 +770,20 @@ def cerebro_limpar(req: LimparRequest):
 
     canal_paths = []
     if os.path.exists(neural_dir):
-        for entry in os.scandir(neural_dir):
-            if entry.is_dir():
-                canal_paths.append(entry.path)
+        if req.canal:
+            # Limpa apenas o projeto especificado
+            canal_safe = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal).strip('_')
+            candidate = os.path.join(neural_dir, canal_safe)
+            # Proteção contra path traversal
+            if (canal_safe
+                    and os.path.normpath(candidate).startswith(
+                        os.path.normpath(neural_dir) + os.sep)
+                    and os.path.isdir(candidate)):
+                canal_paths.append(candidate)
+        else:
+            for entry in os.scandir(neural_dir):
+                if entry.is_dir():
+                    canal_paths.append(entry.path)
 
     for canal_path in canal_paths:
         if req.youtube:
