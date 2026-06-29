@@ -7,6 +7,30 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.20] — 2026-06-29
+### Corrigido
+- **[CRÍTICO] Limpar base apagava todos os projetos**: clicar "Limpar" no Repositório para um projeto específico apagava os arquivos de todos os projetos. Backend agora filtra estritamente pelo canal informado; frontend envia o parâmetro obrigatoriamente
+- **[CRÍTICO] Troca de idioma zerando chave de API**: ao trocar o idioma do app, a chave de API externa (OpenAI, Anthropic, Gemini, Groq) era apagada silenciosamente. Corrigido com sentinel interno — a troca de idioma nunca altera a chave configurada
+- **Extração sem canal configurado**: ao abrir o modal de extração sem canal pré-configurado, o step de URL era pulado e a extração podia ser disparada sem destino. Fluxo corrigido — modal inicia pelo step de URL nesses casos
+- **Mensagem de chat perdida silenciosamente**: ao enviar mensagens rapidamente com uma resposta em andamento e a fila cheia, a mensagem era descartada sem aviso e o input era limpo. Agora o input permanece preenchido — o usuário vê que o envio não aconteceu e pode reenviar
+- **Falha de export sem feedback**: ao exportar conversa em DOCX, PDF ou planilha, erros do backend (ex: "sem histórico") geravam apenas log no console. Agora exibe snackbar de erro em vermelho com mensagem explicativa
+- **Aba inválida para perfil Estudante**: no primeiro acesso com perfil Estudante, a aba inicial poderia ser "Extração" (não disponível nesse perfil). A aba inicial é agora determinada pelo perfil gravado, garantindo estado consistente desde o primeiro render
+
+### Interno
+- Auditoria completa de 17 jornadas de usuário com mapeamento de todos os endpoints; resultados incorporados ao agente de QA
+- `_historia.md` atualizado com tabela de bugs da auditoria e decisões de priorização P0/P1/P2
+
+---
+
+## [1.0.19] — 2026-06-29
+### Corrigido
+- Atalho `Shift+C` para abrir o chat agora chama `handleOpenChat()` corretamente — o snack de hint "Pergunte à sua base" desaparecia apenas ao clicar no botão, não ao usar o atalho
+
+### Interno
+- QA expandido com mapeamento de atalhos de teclado, notificações, Drive, agente, repositório e chat RAG
+
+---
+
 ## [1.0.18] — 2026-06-29
 ### Corrigido
 - **Menu Electron incompleto**: opções Reload, DevTools, Zoom e Tela Cheia estavam ausentes — restauradas no menu Visualizar
