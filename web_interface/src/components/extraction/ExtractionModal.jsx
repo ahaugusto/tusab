@@ -41,7 +41,7 @@ function ExtractionModal({ onClose, onConfirm, darkMode, canalNome = '', canalUr
   const totalSteps = 3;
 
   // Step interno: 'url' | 'projeto' | 'fontes'
-  const stepInicial = modoFila ? 'url' : canalJaConfigurado ? 'projeto' : 'projeto';
+  const stepInicial = modoFila ? 'url' : canalJaConfigurado ? 'projeto' : 'url';
   const [step, setStep] = React.useState(stepInicial);
 
   // modoFila: começa vazio — nome vem do handle da URL inserida

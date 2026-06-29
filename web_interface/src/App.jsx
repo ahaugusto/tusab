@@ -88,7 +88,13 @@ function App() {
   const [showResetModal,   setShowResetModal]   = useState(false);
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showHome,         setShowHome]         = useState(true);
-  const [activeTab,        setActiveTab]        = useState('extracao');
+  const [activeTab,        setActiveTab]        = useState(() => {
+    try {
+      const perfil = localStorage.getItem('tusab_perfil');
+      const abas = PERFIS_CONFIG[perfil]?.abas ?? PERFIS_CONFIG.profissional.abas;
+      return abas.includes('extracao') ? 'extracao' : (abas[0] ?? 'repositorio');
+    } catch { return 'extracao'; }
+  });
   const [repoAddOpen,      setRepoAddOpen]      = useState(false);
   const [extracaoSubTab,   setExtracaoSubTab]   = useState('extrair'); // 'extrair' | 'relatorio'
   const [repoIndexarOpen,  setRepoIndexarOpen]  = useState(false);

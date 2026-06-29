@@ -346,6 +346,8 @@
   "chat.broad_title": "Broad search",
   "chat.broad_desc": "Combines your base with the model's general knowledge. More context, less precision.",
   "chat.index_success": "Base indexed successfully!",
+  "export.erro_generico": "Export failed. Please try again.",
+  "export.erro_download": "Download error. Check the backend.",
   "chat.active_bases": "{{count}} active bases",
   "chat.search_broad_label": "Broad",
   "chat.search_restricted_label": "Restricted",
