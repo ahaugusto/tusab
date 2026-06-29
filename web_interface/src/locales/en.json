@@ -634,6 +634,11 @@
   "proHint.feature1": "Unlimited bases",
   "proHint.feature2": "Advanced search with semantic reranking",
   "proHint.feature3": "Automatic sync with Google Drive",
-  "proHint.cta": "Got it, keep using"
+  "proHint.cta": "Got it, keep using",
+  "update_success.title": "Tusab updated!",
+  "update_success.subtitle": "You're running the latest version.",
+  "update_success.version": "Installed version",
+  "update_success.changelog": "See what's new",
+  "update_success.confirm": "Continue"
 }
 
