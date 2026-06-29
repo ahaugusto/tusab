@@ -506,7 +506,8 @@ function setupAutoUpdater () {
       // Grava flag de "acabou de atualizar" para exibir modal pós-restart
       try {
         const store = readKeystore()
-        store['just_updated_version'] = newVersion || autoUpdater.currentVersion?.version || ''
+        const v = newVersion || autoUpdater.currentVersion?.version
+        if (v) store['just_updated_version'] = v
         writeKeystore(store)
       } catch {}
       // false = não fechar imediatamente antes de instalar; true = reabrir o app após instalar

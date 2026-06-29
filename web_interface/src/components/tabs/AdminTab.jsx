@@ -1,5 +1,5 @@
-import React from 'react';
-import { Trash2, Bell, Mail, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PrivacidadeRede from '../agent/PrivacidadeRede';
 import RedesCorporativas from '../agent/RedesCorporativas';
@@ -17,6 +17,21 @@ export default function AdminTab({
   onInstallUpdate,
 }) {
   const { t } = useTranslation();
+
+  const [notifPerm, setNotifPerm] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unavailable'
+  );
+
+  useEffect(() => {
+    if (typeof Notification === 'undefined') return;
+    setNotifPerm(Notification.permission);
+  }, []);
+
+  const handleEnableNotif = useCallback(async () => {
+    if (typeof Notification === 'undefined') return;
+    const result = await Notification.requestPermission();
+    setNotifPerm(result);
+  }, []);
 
   return (
     <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
@@ -115,13 +130,59 @@ export default function AdminTab({
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <Bell size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
-          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Notificações do sistema</h3>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>Em breve</span>
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+            {t('admin.notif_title', 'Notificações do sistema')}
+          </h3>
+          {notifPerm === 'granted' && (
+            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400">
+              <BellRing size={10} /> {t('admin.notif_active', 'Ativo')}
+            </span>
+          )}
+          {notifPerm === 'denied' && (
+            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-500/15 text-red-400">
+              <BellOff size={10} /> {t('admin.notif_blocked', 'Bloqueado')}
+            </span>
+          )}
+          {notifPerm === 'default' && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+              {t('admin.notif_pending', 'Não solicitado')}
+            </span>
+          )}
         </div>
-        <div className="p-5">
-          <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-            Alertas de erros de extração, índice desatualizado, espaço em disco e novas versões do Tusab.
+        <div className="p-5 space-y-3">
+          <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            {t('admin.notif_desc', 'O Tusab envia alertas quando uma extração termina ou quando o chat responde enquanto você está em outra aba.')}
           </p>
+
+          {notifPerm === 'default' && (
+            <button
+              onClick={handleEnableNotif}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/20' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}
+            >
+              <Bell size={13} /> {t('admin.notif_enable', 'Ativar notificações')}
+            </button>
+          )}
+
+          {notifPerm === 'granted' && (
+            <div className={`flex items-start gap-2 text-[11px] px-3 py-2.5 rounded-xl ${darkMode ? 'bg-emerald-500/8 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}>
+              <CheckCircle2 size={13} className="mt-0.5 shrink-0" />
+              <span>{t('admin.notif_granted_info', 'Notificações ativas. Para desativar, clique no ícone de cadeado na barra de endereço do navegador e altere a permissão de notificações.')}</span>
+            </div>
+          )}
+
+          {notifPerm === 'denied' && (
+            <div className={`flex items-start gap-2 text-[11px] px-3 py-2.5 rounded-xl ${darkMode ? 'bg-red-500/8 text-slate-400' : 'bg-red-50 text-slate-600'}`}>
+              <BellOff size={13} className="mt-0.5 shrink-0" />
+              <span>{t('admin.notif_denied_info', 'Notificações bloqueadas pelo navegador. Para habilitar, clique no ícone de cadeado na barra de endereço e permita notificações para este app.')}</span>
+            </div>
+          )}
+
+          {notifPerm === 'unavailable' && (
+            <p className={`text-[11px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+              {t('admin.notif_unavailable', 'Notificações não disponíveis neste ambiente.')}
+            </p>
+          )}
         </div>
       </section>
 
