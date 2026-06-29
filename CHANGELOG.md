@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.21] — 2026-06-29
+### Corrigido
+- **Crash ao clicar "Indexar base" no Repositório**: modal de indexação não abria e gerava erro React #299 (`createPortal` sem container DOM). Corrigido
+
+---
+
 ## [1.0.20] — 2026-06-29
 ### Corrigido
 - **[CRÍTICO] Limpar base apagava todos os projetos**: clicar "Limpar" no Repositório para um projeto específico apagava os arquivos de todos os projetos. Backend agora filtra estritamente pelo canal informado; frontend envia o parâmetro obrigatoriamente
