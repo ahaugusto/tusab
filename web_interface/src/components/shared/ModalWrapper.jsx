@@ -45,23 +45,30 @@ function ModalWrapper({
   zIndex          = 'z-40',
   backdrop        = 'bg-black/75',
   label,
+  skipAriaHidden  = false,
 }) {
   const dialogRef = useRef(null);
   const prevFocus = useRef(null);
 
   // On mount: save focused element, hide #root from screen readers
+  // skipAriaHidden=true quando o modal está sobre a landing (que também está no #root)
+  // — setar aria-hidden causaria conflito com foco na landing
   useEffect(() => {
     prevFocus.current = document.activeElement;
-    openCount += 1;
-    if (openCount === 1) {
-      const root = document.getElementById('root');
-      if (root) root.setAttribute('aria-hidden', 'true');
+    if (!skipAriaHidden) {
+      openCount += 1;
+      if (openCount === 1) {
+        const root = document.getElementById('root');
+        if (root) root.setAttribute('aria-hidden', 'true');
+      }
     }
     return () => {
-      openCount -= 1;
-      if (openCount === 0) {
-        const root = document.getElementById('root');
-        if (root) root.removeAttribute('aria-hidden');
+      if (!skipAriaHidden) {
+        openCount -= 1;
+        if (openCount === 0) {
+          const root = document.getElementById('root');
+          if (root) root.removeAttribute('aria-hidden');
+        }
       }
       prevFocus.current?.focus();
     };

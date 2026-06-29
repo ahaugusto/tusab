@@ -316,7 +316,7 @@ function App() {
     });
     // App acabou de reiniciar após auto-update
     window.tusab.onAppJustUpdated?.((info) => {
-      setJustUpdatedVersion(info.version);
+      if (info.version) setJustUpdatedVersion(info.version);
     });
   }, []);
 
@@ -924,6 +924,7 @@ function App() {
         {showConsent && (
           <ConsentModal key="consent" darkMode={darkMode}
             zIndex={showLanding ? 'z-[10001]' : 'z-50'}
+            skipAriaHidden={showLanding}
             onDone={() => {
               setShowConsent(false);
               setShowLanding(false);
@@ -1009,6 +1010,7 @@ function App() {
         {showOnboarding && (
           <Onboarding key="onboarding" darkMode={darkMode}
             zIndex={showLanding ? 'z-[10001]' : undefined}
+            skipAriaHidden={showLanding}
             onSkip={() => {
               // Pular no step 0: fecha o onboarding e mantém a landing
               setShowOnboarding(false);
