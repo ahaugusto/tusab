@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
@@ -40,9 +40,14 @@ export default function AgentTab({
   handleRemoveApiKey,
   handleTestKey,
   showAgentHint,       setShowAgentHint,
+  initialSubTab,
 }) {
   const { t } = useTranslation();
-  const [subTab, setSubTab]       = useState('funcionalidades');
+  const [subTab, setSubTab]       = useState(initialSubTab ?? 'funcionalidades');
+
+  useEffect(() => {
+    if (initialSubTab) setSubTab(initialSubTab);
+  }, [initialSubTab]);
   const [estudoOpen, setEstudoOpen] = useState(true);
   const projetosIndexados = agentStatus?.canais_indexados || [];
 
