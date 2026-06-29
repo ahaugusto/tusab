@@ -1,6 +1,6 @@
 {
   "name": "tusab",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Tusab — Index.Augment.Converse",
   "main": "main.js",
   "author": {
@@ -65,9 +65,7 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "../assets/logo.ico"
