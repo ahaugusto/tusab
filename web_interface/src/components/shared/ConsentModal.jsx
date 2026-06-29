@@ -49,7 +49,7 @@ const FLOWS = [
  * @param {Function} props.onDone    - called after accept or decline
  * @returns {JSX.Element}
  */
-function ConsentModal({ darkMode, onDone }) {
+function ConsentModal({ darkMode, onDone, zIndex = 'z-50' }) {
   const [expanded, setExpanded] = useState(false);
   const firstBtnRef = useRef(null);
   useAriaHidden();
@@ -75,7 +75,7 @@ function ConsentModal({ darkMode, onDone }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.25 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 ${zIndex} w-full max-w-md px-4`}
     >
       <div
         role="dialog"
