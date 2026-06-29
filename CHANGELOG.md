@@ -7,6 +7,16 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.22] — 2026-06-29
+### Corrigido
+- **Chat: base ativa agora pode ser desmarcada** — ao clicar na base principal no modal de seleção, ela é desmarcada (antes o clique era bloqueado); botão × ao lado do chip de base no toolbar também limpa a seleção
+- **"Tom" abre sub-aba Configurações** — clicar no botão de Tom/Persona no chat agora navega corretamente para a sub-aba Configurações do Agente (antes abria Funcionalidades/Modo Estudo)
+- **Relatório em geração tem feedback visual** — ao abrir a aba Relatório enquanto a extração ainda está rodando, exibe banner animado com Loader indicando que o relatório será disponibilizado ao fim da extração; tela atualiza automaticamente a cada 8s
+- **Toggle do Drive volta ao estado neutro ao cancelar aviso** — se o usuário abre o modal de aviso do Drive e cancela, o toggle volta para desligado (antes ficava ligado sem ter autenticado, exigindo dois cliques extras)
+- **Versão no help.html sempre via IPC** — removido valor hardcoded de versão do arquivo de ajuda; a versão exibida é sempre a do executável instalado
+
+---
+
 ## [1.0.21] — 2026-06-29
 ### Corrigido
 - **Crash ao clicar "Indexar base" no Repositório**: modal de indexação não abria e gerava erro React #299 (`createPortal` sem container DOM). Corrigido
