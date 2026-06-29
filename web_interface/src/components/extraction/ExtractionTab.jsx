@@ -522,6 +522,7 @@ export default function ExtractionTab({
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 custom-scrollbar">
           <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
             canalAtivo={canalConfigurado}
+            isRunning={isRunning}
             onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
         </div>
       )}

@@ -432,10 +432,18 @@ function ChatDrawer({
             ? [principal, ...extras].filter(Boolean)
             : null;
           return todas ? (
-            <div className="relative group/bases inline-block">
+            <div className="relative group/bases inline-block flex items-center gap-0.5">
               <p className={`text-[10px] cursor-default ${darkMode ? 'text-primary/80' : 'text-primary'}`}>
                 {t('chat.active_bases', { count: todas.length })}
               </p>
+              {canalConfigurado && (
+                <button
+                  onClick={() => { onSelectCanal?.(''); setCanaisExtras?.([]); }}
+                  title={t('chat.remove_base_aria', 'Remover base')}
+                  className={`rounded p-0.5 transition-colors ${darkMode ? 'text-primary/50 hover:text-primary hover:bg-white/10' : 'text-primary/50 hover:text-primary hover:bg-violet-100'}`}>
+                  <X size={9} />
+                </button>
+              )}
               <div className={`absolute left-0 top-full mt-1 z-50 hidden group-hover/bases:block
                 rounded-xl border shadow-lg p-2 space-y-0.5 min-w-[140px]
                 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
@@ -448,7 +456,17 @@ function ChatDrawer({
               </div>
             </div>
           ) : (
-            <p className={`text-[10px] truncate max-w-[140px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`} title={`@${principal}`}>@{principal}</p>
+            <span className="flex items-center gap-0.5">
+              <p className={`text-[10px] truncate max-w-[120px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`} title={`@${principal}`}>@{principal}</p>
+              {canalConfigurado && (
+                <button
+                  onClick={() => { onSelectCanal?.(''); setCanaisExtras?.([]); }}
+                  title={t('chat.remove_base_aria', 'Remover base')}
+                  className={`ml-0.5 rounded p-0.5 transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200'}`}>
+                  <X size={9} />
+                </button>
+              )}
+            </span>
           );
         })()}
       </div>

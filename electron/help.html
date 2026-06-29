@@ -278,7 +278,7 @@
   <div class="header-left">
     <div class="logo">T</div>
     <h1>Tusab — Ajuda</h1>
-    <span class="version-badge" id="version-badge">v1.0.15</span>
+    <span class="version-badge" id="version-badge"></span>
   </div>
   <div class="lang-tabs">
     <button class="lang-tab active" onclick="setLang('pt')">PT</button>
@@ -448,7 +448,7 @@
 
     <div class="version-footer">
       <div class="version-info">
-        Tusab <strong id="version-footer-pt">v1.0.15</strong> · CriAugu · CNPJ 65.131.075/0001-57
+        Tusab <strong id="version-footer-pt"></strong> · CriAugu · CNPJ 65.131.075/0001-57
       </div>
       <div class="copyright">© 2026 CriAugu — Todos os direitos reservados</div>
     </div>
@@ -594,7 +594,7 @@
 
     <div class="version-footer">
       <div class="version-info">
-        Tusab <strong id="version-footer-en">v1.0.15</strong> · CriAugu · CNPJ 65.131.075/0001-57
+        Tusab <strong id="version-footer-en"></strong> · CriAugu · CNPJ 65.131.075/0001-57
       </div>
       <div class="copyright">© 2026 CriAugu — All rights reserved</div>
     </div>
@@ -705,7 +705,7 @@
 
     <div class="version-footer">
       <div class="version-info">
-        Tusab <strong id="version-footer-es">v1.0.15</strong> · CriAugu · CNPJ 65.131.075/0001-57
+        Tusab <strong id="version-footer-es"></strong> · CriAugu · CNPJ 65.131.075/0001-57
       </div>
       <div class="copyright">© 2026 CriAugu — Todos los derechos reservados</div>
     </div>
@@ -729,12 +729,14 @@
     item.classList.toggle('open');
   }
 
-  // ── Inject version from Electron IPC (if available) ────────────
-  if (window.tusab && window.tusab.version) {
-    const v = 'v' + window.tusab.version;
+  // ── Inject version from Electron IPC ────────────────────────────
+  (function injectVersion() {
+    const v = window.tusab?.version ? ('v' + window.tusab.version) : '';
+    if (!v) return;
     document.querySelectorAll('[id^="version-footer-"]').forEach(el => el.textContent = v);
-    document.getElementById('version-badge').textContent = v;
-  }
+    const badge = document.getElementById('version-badge');
+    if (badge) badge.textContent = v;
+  })();
 
   // ── Auto-detect language from app (if available) ───────────────
   // Falls back to PT if not detectable

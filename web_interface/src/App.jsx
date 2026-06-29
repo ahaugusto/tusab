@@ -97,6 +97,7 @@ function App() {
   });
   const [repoAddOpen,      setRepoAddOpen]      = useState(false);
   const [extracaoSubTab,   setExtracaoSubTab]   = useState('extrair'); // 'extrair' | 'relatorio'
+  const [agentInitialSubTab, setAgentInitialSubTab] = useState('funcionalidades');
   const [repoIndexarOpen,  setRepoIndexarOpen]  = useState(false);
   const [repoImportOpen,   setRepoImportOpen]   = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
@@ -414,6 +415,11 @@ function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  /** Resets driveOpen when auth fails or is cancelled (status returns to nao_autenticado) */
+  useEffect(() => {
+    if (driveStatus === 'nao_autenticado') setDriveOpen(false);
+  }, [driveStatus]);
 
   /** Polls /queue every 3s while running to keep the inline queue in sync */
   useEffect(() => {
@@ -943,7 +949,7 @@ function App() {
         open={showDriveWarning}
         darkMode={darkMode}
         onConfirm={handleDriveWarningConfirm}
-        onCancel={() => setShowDriveWarning(false)} />
+        onCancel={() => { setShowDriveWarning(false); setDriveOpen(false); }} />
 
       {/* Banner de atualização do app disponível */}
       <AnimatePresence>
@@ -1638,6 +1644,7 @@ function App() {
                 showAgentHint={showAgentHint}
                 setShowAgentHint={setShowAgentHint}
                 onIndexar={handleIndexarDoChat}
+                initialSubTab={agentInitialSubTab}
               />
             )}
 {/* ── Admin tab ── */}
@@ -1659,6 +1666,7 @@ function App() {
               darkMode={darkMode}
               persona={persona}
               onOpenPersona={PERFIS_CONFIG[perfil]?.config_api !== false ? () => {
+                setAgentInitialSubTab('configuracoes');
                 setActiveTab('agente');
                 setChatOpen(false);
                 setTimeout(() => {
