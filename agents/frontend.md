@@ -87,7 +87,9 @@ Estado de download (`pullProgress`, `pulling`, `pullingModel`, `pullStartTime`) 
 - Implementação atual: landing `z-[9999]`; onboarding `zIndex='z-[10001]'` quando `showLanding=true`; consent `zIndex='z-[10001]'` quando `showLanding=true`.
 - **Bug v1.0.12:** wrapper `div z-[10000]` ignorado (portal). Fix: prop `zIndex` no `Onboarding`.
 - **Bug v1.0.13:** `ConsentModal` com `fixed z-50` próprio também ignorava wrapper. Fix: prop `zIndex` no `ConsentModal`.
-- **Checklist ao criar novo componente com `fixed`:** (1) expõe prop `zIndex`? (2) aplica diretamente no elemento `fixed`? (3) caller passa valor adequado quando há layers sobrepostos?
+- **Bug v1.0.15:** `Onboarding.jsx` tem dois branches de retorno com `ModalWrapper`. Step 0 recebia `zIndex={zIndex}`, steps 1–7 não. Clicar "Próximo" renderizava o segundo `ModalWrapper` em `z-40` — abaixo da landing. Fix: `zIndex={zIndex}` em **todos** os `ModalWrapper` do componente.
+- **Regra ampliada:** se um componente tem múltiplos retornos com `ModalWrapper`, **todos** devem receber `zIndex`. Não basta garantir só no primeiro branch.
+- **Checklist ao criar novo componente com `fixed`:** (1) expõe prop `zIndex`? (2) aplica em **todos** os `ModalWrapper` e elementos `fixed` do componente? (3) caller passa valor adequado quando há layers sobrepostos?
 
 ### CircuitBackground
 - `interactive={false}` (LandingScreen): só pulsos automáticos, sem listener de mouse

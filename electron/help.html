@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tusab — Ajuda</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: rgba(255,255,255,0.08);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-light: rgba(99,102,241,0.12);
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 900;
+      color: white;
+      letter-spacing: -1px;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .version-badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+    }
+
+    /* ── Lang tabs ── */
+    .lang-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-tab {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .lang-tab:hover { color: var(--text); border-color: var(--border); }
+    .lang-tab.active { background: var(--primary-light); color: var(--primary); border-color: rgba(99,102,241,0.3); }
+
+    /* ── Content ── */
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .lang-section { display: none; }
+    .lang-section.active { display: block; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 40px; }
+
+    section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── FAQ accordion ── */
+    .faq-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .faq-question {
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.15s;
+    }
+
+    .faq-question:hover { background: rgba(255,255,255,0.04); }
+
+    .faq-chevron {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+    .faq-answer {
+      display: none;
+      padding: 0 16px 14px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+      border-top: 1px solid var(--border);
+    }
+
+    .faq-item.open .faq-answer { display: block; }
+
+    .faq-answer p { padding-top: 12px; }
+    .faq-answer code {
+      background: rgba(255,255,255,0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Cascadia Code', 'JetBrains Mono', monospace;
+    }
+
+    /* ── Shortcuts table ── */
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .shortcut-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .key {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 5px;
+      padding: 2px 7px;
+      color: var(--text);
+    }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .contact-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .contact-label { color: var(--muted); font-size: 11px; }
+    .contact-value { color: var(--text); font-weight: 600; }
+
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Version footer ── */
+    .version-footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .version-info { font-size: 12px; color: var(--muted); }
+    .version-info strong { color: var(--text); }
+
+    .copyright { font-size: 11px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">T</div>
+    <h1>Tusab — Ajuda</h1>
+    <span class="version-badge" id="version-badge">v1.0.15</span>
+  </div>
+  <div class="lang-tabs">
+    <button class="lang-tab active" onclick="setLang('pt')">PT</button>
+    <button class="lang-tab" onclick="setLang('en')">EN</button>
+    <button class="lang-tab" onclick="setLang('es')">ES</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ════════════════════════════════════════════════════════════
+       PORTUGUÊS
+       ══════════════════════════════════════════════════════════ -->
+  <div class="lang-section active" id="lang-pt">
+
+    <section>
+      <h2>Perguntas frequentes</h2>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Como extraio um canal do YouTube?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Abra a aba <strong>Extração</strong> e clique em <strong>Adicionar Canal</strong>. Cole a URL do canal (formatos aceitos: <code>/@canal</code>, <code>/channel/ID</code>, <code>/c/nome</code>). Escolha um nome de projeto, selecione as fontes e clique em <strong>Iniciar</strong>. O progresso aparece em tempo real no painel de logs.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          O que é o Ollama e por que preciso dele?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>O Ollama permite executar modelos de linguagem (LLMs) localmente, sem enviar dados para a nuvem. É a opção recomendada para quem valoriza privacidade. Alternativamente, você pode usar OpenAI, Anthropic, Gemini ou Groq configurando uma chave de API na aba <strong>Agente</strong>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Como funciona o chat com a base de conhecimento?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>O Tusab usa RAG (Retrieval-Augmented Generation): ao fazer uma pergunta, o sistema recupera os trechos mais relevantes da base indexada usando BM25. Esses trechos são enviados ao LLM junto com sua pergunta. Ative a <strong>Busca Ampla</strong> para usar o CrossEncoder e melhorar a qualidade da recuperação (ligeiramente mais lento).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Como indexo minha base para usar o chat?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Na aba <strong>Repositório</strong>, clique em <strong>Indexar base</strong>, marque os projetos que deseja indexar e confirme. Após a indexação, abra o chat e selecione o projeto no seletor de canal.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Meus dados saem da minha máquina?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Por padrão, <strong>não</strong>. O Tusab é local-first: a extração, indexação e busca acontecem inteiramente na sua máquina. Dados saem apenas se você (a) configurar um LLM externo (OpenAI, Anthropic, Gemini, Groq) ou (b) ativar o Google Drive. Você escolhe.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Como adicionar PDFs, DOCXs e textos?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Na aba <strong>Repositório</strong>, abra o projeto desejado e use o botão de upload. São aceitos PDF, DOCX, TXT, CSV, MD. Conversas do WhatsApp (Android e iOS) e transcrições de reunião (Zoom, Teams, Otter) são detectadas automaticamente e estruturadas antes de salvar.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Como atualizo o Tusab?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>O Tusab verifica atualizações automaticamente ao abrir. Quando uma nova versão estiver disponível, um aviso aparece na landing ou em um banner no topo. Clique em <strong>Instalar agora</strong> — o app fecha, instala e reabre automaticamente, exibindo uma confirmação com a nova versão.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Atalhos de teclado</h2>
+      <div class="shortcuts-grid">
+        <div class="shortcut-row">
+          <span class="shortcut-label">Abrir / fechar chat</span>
+          <span class="kbd"><span class="key">C</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Repositório</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">B</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Extração</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">E</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Admin</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">A</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Agente</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">I</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Monitor</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">M</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Voltar à Home</span>
+          <span class="kbd"><span class="key">Esc</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Fechar modal / chat</span>
+          <span class="kbd"><span class="key">Esc</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Contato e suporte</h2>
+      <div class="contact-card">
+        <div class="contact-row">
+          <div class="contact-icon">✉</div>
+          <div>
+            <div class="contact-label">E-mail de suporte</div>
+            <div class="contact-value"><a href="mailto:tusab@tusab.solutions">tusab@tusab.solutions</a></div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">🐛</div>
+          <div>
+            <div class="contact-label">Reportar bugs e sugestões</div>
+            <div class="contact-value"><a href="https://github.com/ahaugusto/tusab-public/issues" target="_blank">github.com/ahaugusto/tusab-public/issues</a></div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">👤</div>
+          <div>
+            <div class="contact-label">Autor</div>
+            <div class="contact-value">Augusto Brasil — <a href="https://linkedin.com/in/augustoalvesbrasil" target="_blank">LinkedIn</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="version-footer">
+      <div class="version-info">
+        Tusab <strong id="version-footer-pt">v1.0.15</strong> · CriAugu · CNPJ 65.131.075/0001-57
+      </div>
+      <div class="copyright">© 2026 CriAugu — Todos os direitos reservados</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       ENGLISH
+       ══════════════════════════════════════════════════════════ -->
+  <div class="lang-section" id="lang-en">
+
+    <section>
+      <h2>Frequently asked questions</h2>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          How do I extract a YouTube channel?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Open the <strong>Extraction</strong> tab and click <strong>Add Channel</strong>. Paste the channel URL (accepted formats: <code>/@channel</code>, <code>/channel/ID</code>, <code>/c/name</code>). Choose a project name, select the sources, and click <strong>Start</strong>. Progress appears in real time in the log panel.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          What is Ollama and do I need it?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Ollama lets you run language models (LLMs) locally without sending your data to the cloud. It's the recommended option for privacy-conscious users. Alternatively, configure an API key in the <strong>Agent</strong> tab to use OpenAI, Anthropic, Gemini, or Groq.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          How does chat with the knowledge base work?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Tusab uses RAG (Retrieval-Augmented Generation): when you ask a question, the system retrieves the most relevant excerpts from the indexed base using BM25. Those excerpts are sent to the LLM together with your question. Enable <strong>Wide Search</strong> to activate the CrossEncoder for better retrieval quality (slightly slower).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          Does my data leave my machine?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>By default, <strong>no</strong>. Tusab is local-first: extraction, indexing, and search happen entirely on your machine. Data leaves only if you (a) configure an external LLM (OpenAI, Anthropic, Gemini, Groq) or (b) enable Google Drive sync. Your choice.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          How do I update Tusab?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Tusab checks for updates automatically on launch. When a new version is available, a notice appears on the landing screen or as a top banner. Click <strong>Install now</strong> — the app closes, installs, and reopens automatically showing a confirmation with the new version number.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Keyboard shortcuts</h2>
+      <div class="shortcuts-grid">
+        <div class="shortcut-row">
+          <span class="shortcut-label">Open / close chat</span>
+          <span class="kbd"><span class="key">C</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Repository tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">B</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Extraction tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">E</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Admin tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">A</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Agent tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">I</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Monitor tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">M</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Back to Home</span>
+          <span class="kbd"><span class="key">Esc</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Close modal / chat</span>
+          <span class="kbd"><span class="key">Esc</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Contact & support</h2>
+      <div class="contact-card">
+        <div class="contact-row">
+          <div class="contact-icon">✉</div>
+          <div>
+            <div class="contact-label">Support email</div>
+            <div class="contact-value"><a href="mailto:tusab@tusab.solutions">tusab@tusab.solutions</a></div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">🐛</div>
+          <div>
+            <div class="contact-label">Report bugs & suggestions</div>
+            <div class="contact-value"><a href="https://github.com/ahaugusto/tusab-public/issues" target="_blank">github.com/ahaugusto/tusab-public/issues</a></div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">👤</div>
+          <div>
+            <div class="contact-label">Author</div>
+            <div class="contact-value">Augusto Brasil — <a href="https://linkedin.com/in/augustoalvesbrasil" target="_blank">LinkedIn</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="version-footer">
+      <div class="version-info">
+        Tusab <strong id="version-footer-en">v1.0.15</strong> · CriAugu · CNPJ 65.131.075/0001-57
+      </div>
+      <div class="copyright">© 2026 CriAugu — All rights reserved</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       ESPAÑOL
+       ══════════════════════════════════════════════════════════ -->
+  <div class="lang-section" id="lang-es">
+
+    <section>
+      <h2>Preguntas frecuentes</h2>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Cómo extraigo un canal de YouTube?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Abre la pestaña <strong>Extracción</strong> y haz clic en <strong>Agregar canal</strong>. Pega la URL del canal (formatos aceptados: <code>/@canal</code>, <code>/channel/ID</code>, <code>/c/nombre</code>). Elige un nombre de proyecto, selecciona las fuentes y haz clic en <strong>Iniciar</strong>. El progreso aparece en tiempo real en el panel de registros.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Mis datos salen de mi máquina?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Por defecto, <strong>no</strong>. Tusab es local-first: la extracción, indexación y búsqueda ocurren completamente en tu máquina. Los datos solo salen si (a) configuras un LLM externo (OpenAI, Anthropic, Gemini, Groq) o (b) activas la sincronización con Google Drive. Tú eliges.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Cómo actualizo Tusab?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Tusab verifica actualizaciones automáticamente al abrirse. Cuando haya una nueva versión disponible, aparecerá un aviso en la pantalla de inicio o como un banner en la parte superior. Haz clic en <strong>Instalar ahora</strong> — la app se cierra, instala y vuelve a abrirse automáticamente mostrando una confirmación con la nueva versión.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Atajos de teclado</h2>
+      <div class="shortcuts-grid">
+        <div class="shortcut-row">
+          <span class="shortcut-label">Abrir / cerrar chat</span>
+          <span class="kbd"><span class="key">C</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Repositorio</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">B</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Extracción</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">E</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Admin</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">A</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Agente</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">I</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Volver a Inicio</span>
+          <span class="kbd"><span class="key">Esc</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Contacto y soporte</h2>
+      <div class="contact-card">
+        <div class="contact-row">
+          <div class="contact-icon">✉</div>
+          <div>
+            <div class="contact-label">Correo de soporte</div>
+            <div class="contact-value"><a href="mailto:tusab@tusab.solutions">tusab@tusab.solutions</a></div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">🐛</div>
+          <div>
+            <div class="contact-label">Reportar errores y sugerencias</div>
+            <div class="contact-value"><a href="https://github.com/ahaugusto/tusab-public/issues" target="_blank">github.com/ahaugusto/tusab-public/issues</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="version-footer">
+      <div class="version-info">
+        Tusab <strong id="version-footer-es">v1.0.15</strong> · CriAugu · CNPJ 65.131.075/0001-57
+      </div>
+      <div class="copyright">© 2026 CriAugu — Todos los derechos reservados</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── Language switching ──────────────────────────────────────────
+  function setLang(lang) {
+    document.querySelectorAll('.lang-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.lang-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('lang-' + lang).classList.add('active');
+    document.querySelector('[onclick="setLang(\'' + lang + '\')"]').classList.add('active');
+    document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
+  }
+
+  // ── FAQ accordion ───────────────────────────────────────────────
+  function toggle(btn) {
+    const item = btn.closest('.faq-item');
+    item.classList.toggle('open');
+  }
+
+  // ── Inject version from Electron IPC (if available) ────────────
+  if (window.tusab && window.tusab.version) {
+    const v = 'v' + window.tusab.version;
+    document.querySelectorAll('[id^="version-footer-"]').forEach(el => el.textContent = v);
+    document.getElementById('version-badge').textContent = v;
+  }
+
+  // ── Auto-detect language from app (if available) ───────────────
+  // Falls back to PT if not detectable
+  try {
+    const uiLang = localStorage.getItem('i18nextLng') || navigator.language || 'pt';
+    if (uiLang.startsWith('en')) setLang('en');
+    else if (uiLang.startsWith('es')) setLang('es');
+  } catch {}
+</script>
+
+</body>
+</html>
