@@ -119,27 +119,99 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
   - Bug v1.0.17 (causa raiz): `aria-hidden` no `#root` bloqueado pelo browser quando `autoFocus` ativo em elemento da landing. Browser emite `"Blocked aria-hidden on an element because its descendant retained focus"` — warning silencioso que trava o onboarding. Fix: `skipAriaHidden=true` + sem `autoFocus` na landing.
   - **Regra permanente:** ao testar first-run, sempre verificar o Console por esses warnings antes de declarar PASS.
 
-### 9. AUTO-UPDATE E NOTIFICAÇÕES
-- Aba Admin → Privacidade e Rede mostra conexões corretas?
-- Notificação desktop ao concluir chat com drawer fechado?
+### 9. ATALHOS DE TECLADO
+Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 
-### 10. GOOGLE DRIVE
+| Atalho | Ação | Pré-condição |
+|--------|------|--------------|
+| `Shift+C` | Abre chat **e** marca `chatJaAberto` (remove snack de hint) | `chatOpen=false`, sem foco em input |
+| `Shift+B` | Aba Repositório + fecha HomeScreen | perfil com `repositorio` |
+| `Shift+E` | Aba Extração + fecha HomeScreen | perfil com `extracao` |
+| `Shift+A` | Aba Admin + fecha HomeScreen | perfil com `admin` |
+| `Shift+I` | Aba Agente + fecha HomeScreen | perfil com `agente` |
+| `Shift+M` | Aba Monitor + fecha HomeScreen | perfil com `monitor` |
+| `Shift+V` | Aba Visão Geral + fecha HomeScreen | perfil com `visao-geral` |
+| `Shift+H` | Aba Histórico + fecha HomeScreen | perfil com `historico` |
+| `Shift+R` | Sub-tab Relatório + fecha HomeScreen | perfil com `extracao` |
+| `Shift+>` | Colapsa drawer expandido | `chatOpen && chatExpandido` |
+| `Shift+<` | Expande drawer | `chatOpen && !chatExpandido` |
+| `Escape` | Colapsa/fecha chat | `chatOpen=true` |
+
+**Verificar:** `Shift+C` com snack visível → snack desaparece após abrir o chat (via `handleOpenChat`, não `setChatOpen` direto).
+**Verificar:** Nenhum atalho funciona quando foco está em `input|textarea|select|contenteditable`.
+**Verificar:** `Escape` fecha chat mesmo com cursor no textarea — comportamento esperado mas documentar.
+
+### 10. AUTO-UPDATE E NOTIFICAÇÕES
+- Aba Admin → seção Notificações mostra status correto (`Ativo/Bloqueado/Não solicitado`)?
+- Botão "Ativar notificações" aparece **somente** quando `permission === 'default'`?
+- Notificação desktop ao concluir extração com janela em background?
+- Notificação desktop ao concluir chat com drawer fechado?
+- Instrução de desativação (ícone de cadeado ou Configurações do Windows) aparece no Help?
+- Banner de update (`fixed bottom-4`) aparece quando `appUpdateInfo` presente e `!showHome`?
+- Banner **não aparece** na HomeScreen (condição `!showHome`) — verificar se badge no admin aparece?
+- Botão "Instalar e reiniciar" só aparece quando `downloaded=true`?
+- Pós-update: `UpdateSuccessModal` aparece com versão instalada?
+
+### 11. GOOGLE DRIVE
 - Fluxo OAuth abre navegador (watchdog thread cancel funciona)?
+- Botão "Cancelar autenticação" aparece durante OAuth em andamento?
+- Fechar painel do Drive durante OAuth **não** cancela automaticamente (drive continua em bg)?
+- Erro de auth: aparece no painel expandido; invisível se painel fechado (WARN-24)?
 - Upload de arquivo para Drive após autenticação?
 - `credentials.json` e `token.json` não aparecem no bundle empacotado?
+- Chip verde de Drive autenticado no page header aparece?
+- Chip de perfil **some** quando Drive autenticado — usuário não pode trocar perfil (WARN-25)?
 
-### 11. ACESSIBILIDADE
+### 12. CONFIGURAÇÃO DE AGENTE — DETALHES
+- Trocar idioma via select: `POST /agent/config` é chamado com `api_key: ''` (WARN-19) — verificar se backend zera chave em config?
+- Salvar config Ollama não remove chave do OS keychain (WARN-16)?
+- Download de modelo: timeout 900s limpa UI sem notificar se não completou (WARN-17)?
+
+### 13. MODO ESTUDO
+- Gerar flashcards para um projeto indexado
+- Flip 3D animado frente/verso funciona?
+- Botões "Sei!" / "Não sei" contabilizam progresso + progress bar?
+- Exportar Anki CSV: arquivo tem formato `frente;verso` por linha?
+- Gerar resumo estruturado: seções (tema central, conceitos-chave, insights, lacunas)?
+- Trocar projeto no select: flashcards do projeto anterior são limpos?
+- Sem botão de cancelar durante geração (WARN-28) — spinner visível por até 5 min?
+
+### 14. REPOSITÓRIO — DETALHES CRÍTICOS
+- **[CRÍTICO — FAIL-03]** `limparCanal()` chama `DELETE /neural/limpar` sem parâmetro `canal` — limpa **todos** os projetos. Verificar `api.js:203`. Antes de testar, confirmar se backend aceita payload sem `canal` ou exige o campo.
+- Upload de arquivo durante indexação em andamento: `_triggerReindex` concorrente com `handleIndexarDoChat` (WARN-09)?
+- Botão "Indexar base" exibido quando `onIndexar=undefined`: confirmar que a UI não mostra o botão sem prop (WARN-10)?
+- Arrastar arquivo acidentalmente abre modal de upload (WARN-11)?
+- Drag global sobre qualquer área do repositório ativa o modal?
+
+### 15. CHAT RAG — DETALHES
+- `@mention` com `@query` → dropdown exibe bases + docs?
+- Selecionar `@mention` → chip aparece, texto limpo; fontes fixadas enviadas ao stream?
+- Falha de stream com fontes fixadas selecionadas → `setFontesFixadas([])` já executado, fontes perdidas (WARN-12)?
+- Fila de mensagens cheia (6ª msg): mensagem descartada sem aviso (WARN-13)?
+- Export falha: apenas `console.warn`, sem feedback visual (WARN-15)?
+- Anexo de arquivo no chat: upload + reindex automático?
+
+### 16. ACESSIBILIDADE
 - Todos os botões de ícone têm `aria-label`?
 - Modais têm `role="dialog"`, `aria-modal="true"` e focus trap?
 - `aria-hidden` no `#root` quando modal está aberta?
 - Escape fecha modal? Clique no backdrop fecha quando esperado?
 - Foco restaurado ao elemento anterior ao fechar modal?
-- Navegação por teclado: C abre chat, B/E/A/I/M trocam abas?
 
-### 12. SEGURANÇA
+### 17. SEGURANÇA
 - Path traversal em `fid` ou `canal` → rejeitado com 400/404?
 - `GET /agent/config` não expõe chave de API em claro?
 - URL inválida no `/set-channel` rejeitada por regex?
+
+## Bugs conhecidos e seu status
+
+| ID | Versão | Status | Descrição |
+|----|--------|--------|-----------|
+| FAIL-01 | v1.0.19 | Aberto | `activeTab='extracao'` default incompatível com perfil `estudante` — useEffect corrige mas frame de aba inválida ocorre |
+| FAIL-02 | v1.0.19 | Aberto | `ExtractionModal` sem canal nunca exibe step de URL em modo normal — `POST /start` pode receber canal vazio |
+| FAIL-03 | v1.0.19 | Aberto | `api.js:203 limparCanal()` sem `canal` no payload → apaga arquivos de **todos** os projetos |
+| FAIL-05 | v1.0.19 | **Corrigido** | `Shift+C` chamava `setChatOpen(true)` direto em vez de `handleOpenChat` — snack persistia |
+| FAIL-SR | v1.0.19 | **Corrigido** | `Shift+R` não chamava `setShowHome(false)` — HomeScreen bloqueava a UI |
 
 ## Roadmap — o que você vai testar nas próximas versões
 
