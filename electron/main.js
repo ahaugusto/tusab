@@ -426,6 +426,24 @@ async function createWindow () {
     await waitForBackend()
     mainWindow.loadURL(`http://127.0.0.1:${PORT}`)
     startWatchdog()
+
+    // Após a página carregar, checar se voltamos de uma atualização automática
+    mainWindow.webContents.once('did-finish-load', () => {
+      try {
+        const store = readKeystore()
+        if (store['just_updated_version']) {
+          const version = store['just_updated_version']
+          delete store['just_updated_version']
+          writeKeystore(store)
+          // Pequeno delay para o React montar antes de receber o evento
+          setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('app-just-updated', { version })
+            }
+          }, 1500)
+        }
+      } catch {}
+    })
   } catch (err) {
     const pyLog = pyStderrLines.length > 0
       ? `\n\nLog do Python (últimas linhas):\n${pyStderrLines.join('\n')}`
@@ -484,8 +502,15 @@ function setupAutoUpdater () {
       }
     })
 
-    ipcMain.handle('install-update', () => {
-      autoUpdater.quitAndInstall()
+    ipcMain.handle('install-update', (_e, newVersion) => {
+      // Grava flag de "acabou de atualizar" para exibir modal pós-restart
+      try {
+        const store = readKeystore()
+        store['just_updated_version'] = newVersion || autoUpdater.currentVersion?.version || ''
+        writeKeystore(store)
+      } catch {}
+      // false = não fechar imediatamente antes de instalar; true = reabrir o app após instalar
+      autoUpdater.quitAndInstall(false, true)
     })
 
     autoUpdater.on('error', e => console.error('[update] erro:', e.message))
