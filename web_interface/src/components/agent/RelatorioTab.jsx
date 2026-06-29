@@ -14,7 +14,7 @@ import { fetchRelatorio, limparHistorico } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtivo }) {
+function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtivo, isRunning }) {
   const { t } = useTranslation();
   const [canal,             setCanal]             = React.useState('');
   const [data,              setData]              = React.useState(null);
@@ -70,8 +70,18 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       .catch(() => setLoading(false));
   }, [canal]);
 
-  const videos = data?.videos || [];
-  const stats  = data?.stats;
+  // Recarrega automaticamente enquanto a extração está rodando (a cada 8s)
+  React.useEffect(() => {
+    if (!isRunning || !canal) return;
+    const iv = setInterval(() => {
+      fetchRelatorio(canal).then(r => { setData(r.data); }).catch(() => {});
+    }, 8000);
+    return () => clearInterval(iv);
+  }, [isRunning, canal]);
+
+  const relatorioNaoGerado = data?.error === true;
+  const videos = relatorioNaoGerado ? [] : (data?.videos || []);
+  const stats  = relatorioNaoGerado ? null : data?.stats;
 
   // Unique tabs present in this canal's data
   const abasDisponiveis = React.useMemo(() => {
@@ -346,7 +356,31 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
         </>
       )}
 
-      {/* Empty state */}
+      {/* Banner: relatório sendo gerado durante extração */}
+      {!loading && relatorioNaoGerado && isRunning && (
+        <div className={`rounded-2xl border p-6 flex items-start gap-4 ${darkMode ? 'border-primary/30 bg-primary/8' : 'border-primary/25 bg-violet-50'}`}>
+          <Loader2 size={20} className="animate-spin text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              {t('relatorio.gerando_titulo', 'Relatório sendo gerado…')}
+            </p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              {t('relatorio.gerando_desc', 'O relatório de {{canal}} estará disponível assim que a extração for concluída. Esta tela atualiza automaticamente.', { canal: `@${canal}` })}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Relatório não encontrado e extração parada */}
+      {!loading && relatorioNaoGerado && !isRunning && (
+        <div className={`rounded-2xl border p-6 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
+          <p className="text-2xl mb-3">📊</p>
+          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('relatorio.nao_encontrado', 'Relatório não encontrado')}</p>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('relatorio.nao_encontrado_desc', 'Inicie uma extração para gerar o relatório deste canal.')}</p>
+        </div>
+      )}
+
+      {/* Empty state — nenhum canal extraído ainda */}
       {!loading && !data && history.length === 0 && (
         <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
           <p className="text-2xl mb-3">📊</p>
