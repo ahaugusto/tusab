@@ -23,7 +23,7 @@ import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
  * @param {boolean} props.darkMode - whether the app is in dark mode (affects modal background and text colors)
  * @returns {JSX.Element}
  */
-function Onboarding({ onDone, onSkip, darkMode = true, zIndex }) {
+function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = false }) {
   const { t } = useTranslation();
   // step 0 = profile selection; steps 1–8 = content steps (mapped from index 0 in STEPS array)
   const [step, setStep] = useState(0);
@@ -102,7 +102,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex }) {
   // ── Step 0 — Profile picker ───────────────────────────────────────────────
   if (isProfileStep) {
     return (
-      <ModalWrapper onClose={skip} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex}>
+      <ModalWrapper onClose={skip} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex} skipAriaHidden={skipAriaHidden}>
         <motion.div
           key="profile-step"
           initial={{ opacity: 0, y: 12 }}
@@ -170,7 +170,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex }) {
 
   // ── Steps 1–7 — Content steps ─────────────────────────────────────────────
   return (
-    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex}>
+    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex} skipAriaHidden={skipAriaHidden}>
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 12 }}

@@ -7,7 +7,11 @@ import ModalWrapper from '../shared/ModalWrapper';
 export default function UpdateSuccessModal({ version, darkMode, onClose }) {
   const { t } = useTranslation();
 
-  const releaseUrl = `https://github.com/ahaugusto/tusab-public/releases/tag/v${version}`;
+  if (!version) return null;
+
+  const releaseUrl = version
+    ? `https://github.com/ahaugusto/tusab-public/releases/tag/v${version}`
+    : 'https://github.com/ahaugusto/tusab-public/releases';
 
   return (
     <ModalWrapper
