@@ -101,7 +101,9 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 - **[REGRESSÃO CRÍTICA — testar sempre]** Fluxo completo de primeiro acesso: `localStorage.clear(); location.reload()` → clicar "Entrar" → onboarding aparece? → selecionar perfil → ConsentModal aparece? → aceitar → HomeScreen aparece?
   - Bug v1.0.12: `ModalWrapper` (createPortal) ignorava z-index do div pai → Onboarding invisível. Fix: `zIndex='z-[10001]'` direto ao componente.
   - Bug v1.0.13: `ConsentModal` tem `fixed z-50` próprio, também ignorava z-index do div pai → tela voltava à landing após perfil selecionado. Fix: prop `zIndex='z-[10001]'` direto ao `ConsentModal`.
-  - **Regra:** qualquer componente com `position: fixed` interno (portal ou não) ignora z-index do pai. Sempre controlar via prop direta.
+  - Bug v1.0.15: steps 1–7 do Onboarding usam segundo `ModalWrapper` sem `zIndex` → ao clicar "Próximo" o onboarding ficava invisível abaixo da landing. Fix: `zIndex={zIndex}` em **todos** os `ModalWrapper` do componente.
+  - **Regra:** qualquer componente com `position: fixed` interno (portal ou não) ignora z-index do pai. Se o componente tem múltiplos retornos com `ModalWrapper`, **todos** devem receber o mesmo `zIndex`.
+- **[ADICIONAR AO CHECKLIST]** Verificar se o onboarding avança corretamente (steps 1–7 após selecionar perfil e clicar "Próximo") — não apenas o step 0.
 
 ### 9. AUTO-UPDATE E NOTIFICAÇÕES
 - Aba Admin → Privacidade e Rede mostra conexões corretas?
