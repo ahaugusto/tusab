@@ -1,9 +1,20 @@
 'use strict'
 const { contextBridge, ipcRenderer } = require('electron')
+const path = require('path')
+
+// Resolve a versão do package.json empacotado — npm_package_version não existe no app instalado
+function resolveVersion () {
+  try {
+    const pkgPath = path.join(__dirname, 'package.json')
+    return require(pkgPath).version
+  } catch {
+    return process.env.npm_package_version || '1.0.0'
+  }
+}
 
 contextBridge.exposeInMainWorld('tusab', {
   platform: process.platform,
-  version:  process.env.npm_package_version || '1.0.0',
+  version:  resolveVersion(),
 
   // Watchdog: recebe eventos do main process quando o backend cai ou volta
   onBackendDead:  (cb) => ipcRenderer.on('backend-dead',  () => cb()),
