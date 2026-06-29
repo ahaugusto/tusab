@@ -1481,7 +1481,8 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
             onConfirmar={handleIndexarConfirmar}
             onFechar={() => setShowIndexar(false)}
           />
-        </ModalWrapper>
+        </ModalWrapper>,
+        document.body
       )}
 
       {/* Snackbar de indexação concluída */}
