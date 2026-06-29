@@ -201,7 +201,7 @@ export const resetTotal = () => axios.delete(`${API_BASE}/reset-total`);
 
 /** Deletes cerebro files + BM25 index for a single canal */
 export const limparCanal = (canal_nome) => Promise.all([
-  axios.delete(`${API_BASE}/neural/limpar`, { data: { youtube: true, documentos: true, textos: true, documents: true, texts: true } }),
+  axios.delete(`${API_BASE}/neural/limpar`, { data: { youtube: true, documentos: true, textos: true, canal: canal_nome } }),
   axios.delete(`${API_BASE}/agent/canal/${encodeURIComponent(canal_nome)}`),
   axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos: [canal_nome.replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '')] } }),
 ]);

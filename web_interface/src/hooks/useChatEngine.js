@@ -279,11 +279,10 @@ export function useChatEngine({
       return;
     }
 
-    setChatInput('');
-
     // Se há resposta em andamento: enfileira (balão "queued" já aparece no histórico)
     if (chatLoading) {
-      if (chatQueueRef.current.length >= QUEUE_LIMIT) return; // fila cheia, ignora silenciosamente
+      if (chatQueueRef.current.length >= QUEUE_LIMIT) return; // fila cheia — não limpa input, usuário vê o que digitou
+      setChatInput('');
       const novaFila = [...chatQueueRef.current, msg];
       chatQueueRef.current = novaFila;
       setChatQueue(novaFila);
@@ -292,6 +291,7 @@ export function useChatEngine({
     }
 
     // Caminho normal: envia imediatamente
+    setChatInput('');
     setChatMessages(prev => [...prev, { role: 'user', content: msg }]);
     await _executarEnvio(msg);
   };

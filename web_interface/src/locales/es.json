@@ -346,6 +346,8 @@
   "chat.broad_title": "Búsqueda amplia",
   "chat.broad_desc": "Combina tu base con el conocimiento general del modelo. Más contexto, menos precisión.",
   "chat.index_success": "¡Base indexada con éxito!",
+  "export.erro_generico": "Error al exportar. Inténtalo de nuevo.",
+  "export.erro_download": "Error al descargar el archivo. Verifica el backend.",
   "chat.active_bases": "{{count}} bases activas",
   "chat.search_broad_label": "Amplia",
   "chat.search_restricted_label": "Restringida",

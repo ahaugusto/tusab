@@ -93,11 +93,12 @@ export function useAgentConfig({ activeTab, showError }) {
     }).catch(() => {});
   }, []);
 
-  /** Syncs UI language to agent_config.json whenever the user changes the language */
+  /** Syncs UI language to agent_config.json whenever the user changes the language.
+   *  Não envia api_key para evitar apagar chave externa configurada (WARN-19). */
   useEffect(() => {
     if (!i18n.language) return;
     const provider = useExternalProvider ? agentProvider : 'ollama';
-    saveAgentConfig({ provider, api_key: '', idioma: i18n.language }).catch(() => {});
+    saveAgentConfig({ provider, api_key: '__keep__', idioma: i18n.language }).catch(() => {});
   }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canalAtivoRef = useRef('');
