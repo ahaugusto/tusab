@@ -98,7 +98,10 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 - Onboarding contextual por perfil (Estudante, Especialista, Pesquisador)?
 - Slug `profissional` não é renomeado para `especialista` no localStorage?
 - Snack de primeiro acesso ao chat aparece uma única vez?
-- **[REGRESSÃO CRÍTICA — testar sempre]** Landing → Onboarding: clicar "Entrar" na landing abre o onboarding por cima (não fica travado na landing)? Limpar localStorage e testar em primeira visita simulada: `localStorage.clear(); location.reload()`. Bug encontrado em v1.0.12: `ModalWrapper` usa `createPortal` — z-index no div pai é ignorado. Onboarding ficava invisível atrás da landing. Corrigido passando `zIndex='z-[10001]'` diretamente ao componente.
+- **[REGRESSÃO CRÍTICA — testar sempre]** Fluxo completo de primeiro acesso: `localStorage.clear(); location.reload()` → clicar "Entrar" → onboarding aparece? → selecionar perfil → ConsentModal aparece? → aceitar → HomeScreen aparece?
+  - Bug v1.0.12: `ModalWrapper` (createPortal) ignorava z-index do div pai → Onboarding invisível. Fix: `zIndex='z-[10001]'` direto ao componente.
+  - Bug v1.0.13: `ConsentModal` tem `fixed z-50` próprio, também ignorava z-index do div pai → tela voltava à landing após perfil selecionado. Fix: prop `zIndex='z-[10001]'` direto ao `ConsentModal`.
+  - **Regra:** qualquer componente com `position: fixed` interno (portal ou não) ignora z-index do pai. Sempre controlar via prop direta.
 
 ### 9. AUTO-UPDATE E NOTIFICAÇÕES
 - Aba Admin → Privacidade e Rede mostra conexões corretas?

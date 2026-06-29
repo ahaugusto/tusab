@@ -916,12 +916,12 @@ function App() {
       {/* Analytics consent — shown once on first launch */}
       <AnimatePresence>
         {showConsent && (
-          <div className="fixed inset-0 z-[10000]">
-            <ConsentModal key="consent" darkMode={darkMode} onDone={() => {
+          <ConsentModal key="consent" darkMode={darkMode}
+            zIndex={showLanding ? 'z-[10001]' : 'z-50'}
+            onDone={() => {
               setShowConsent(false);
               setShowLanding(false);
             }} />
-          </div>
         )}
       </AnimatePresence>
 
