@@ -570,6 +570,20 @@ function setupAppMenu () {
       ],
     },
     {
+      label: 'Visualizar',
+      submenu: [
+        { role: 'reload',         label: 'Recarregar',          accelerator: 'CmdOrCtrl+R' },
+        { role: 'forceReload',    label: 'Forçar recarregamento', accelerator: 'CmdOrCtrl+Shift+R' },
+        { role: 'toggleDevTools', label: 'Ferramentas do desenvolvedor', accelerator: 'CmdOrCtrl+Shift+I' },
+        { type: 'separator' },
+        { role: 'resetZoom',      label: 'Zoom padrão',         accelerator: 'CmdOrCtrl+0' },
+        { role: 'zoomIn',         label: 'Aumentar zoom',       accelerator: 'CmdOrCtrl+=' },
+        { role: 'zoomOut',        label: 'Diminuir zoom',       accelerator: 'CmdOrCtrl+-' },
+        { type: 'separator' },
+        { role: 'togglefullscreen', label: 'Tela cheia',        accelerator: 'F11' },
+      ],
+    },
+    {
       label: 'Ajuda / Help',
       submenu: [
         {
