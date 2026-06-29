@@ -8,8 +8,18 @@
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-/** Base URL for the FastAPI backend */
-export const API_BASE = "http://localhost:8001";
+/**
+ * Base URL for the FastAPI backend.
+ * In Electron or production builds, uses absolute URL.
+ * In Vite dev server, uses empty string so requests go through the proxy.
+ */
+export const API_BASE = (
+  typeof window !== 'undefined' && window.tusab
+    ? 'http://localhost:8001'          // Electron context — direct call
+    : import.meta.env.DEV
+      ? ''                             // Vite dev — proxy handles routing
+      : 'http://localhost:8001'        // production build loaded in browser
+);
 
 // ─── UI ──────────────────────────────────────────────────────────────────────
 

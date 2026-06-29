@@ -7,6 +7,29 @@ const electronPkg = JSON.parse(readFileSync(resolve(__dirname, '../electron/pack
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8001', changeOrigin: true, rewrite: p => p.replace(/^\/api/, '') },
+      '/status': 'http://127.0.0.1:8001',
+      '/history': 'http://127.0.0.1:8001',
+      '/repositorio': 'http://127.0.0.1:8001',
+      '/relatorio': 'http://127.0.0.1:8001',
+      '/set-channel': 'http://127.0.0.1:8001',
+      '/start': 'http://127.0.0.1:8001',
+      '/pause': 'http://127.0.0.1:8001',
+      '/cancel': 'http://127.0.0.1:8001',
+      '/queue': 'http://127.0.0.1:8001',
+      '/canal-info': 'http://127.0.0.1:8001',
+      '/drive-auth': 'http://127.0.0.1:8001',
+      '/open-folder': 'http://127.0.0.1:8001',
+      '/neural': 'http://127.0.0.1:8001',
+      '/historico': 'http://127.0.0.1:8001',
+      '/reset-total': 'http://127.0.0.1:8001',
+      '/export': 'http://127.0.0.1:8001',
+      '/agent': 'http://127.0.0.1:8001',
+      '/log': 'http://127.0.0.1:8001',
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(electronPkg.version),
     __APP_YEAR__:    JSON.stringify(new Date().getFullYear()),

@@ -49,10 +49,10 @@ const FLOWS = [
  * @param {Function} props.onDone    - called after accept or decline
  * @returns {JSX.Element}
  */
-function ConsentModal({ darkMode, onDone, zIndex = 'z-50' }) {
+function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = false }) {
   const [expanded, setExpanded] = useState(false);
   const firstBtnRef = useRef(null);
-  useAriaHidden();
+  useAriaHidden(!skipAriaHidden);
 
   const handleAccept  = () => { acceptAnalytics();  onDone(); };
   const handleDecline = () => { declineAnalytics(); onDone(); };

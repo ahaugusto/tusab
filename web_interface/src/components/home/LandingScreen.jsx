@@ -103,7 +103,6 @@ function LandingScreen({ darkMode, onToggleDark, onEnter, appUpdateInfo }) {
         </p>
         <button
           onClick={onEnter}
-          autoFocus
           className={`mt-1 px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary
             ${darkMode
               ? 'bg-primary text-white hover:bg-primary/90 focus-visible:ring-offset-[#080C18]'
