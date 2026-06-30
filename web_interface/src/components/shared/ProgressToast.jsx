@@ -23,9 +23,10 @@ import { CheckCircle2, AlertCircle, Info, ArrowRight, X } from 'lucide-react';
  * @param {Function} [props.onNext]      - callback for next action button
  * @param {Function} props.onClose       - callback to dismiss
  * @param {number}   [props.autoClose=6000] - ms before auto-dismiss (0 = manual)
+ * @param {number}   [props.offsetRight=24] - px from the right edge — pushed left when the chat drawer is open
  * @returns {JSX.Element}
  */
-function ProgressToast({ darkMode, message, type = 'success', nextStep, onNext, onClose, autoClose = 6000 }) {
+function ProgressToast({ darkMode, message, type = 'success', nextStep, onNext, onClose, autoClose = 6000, offsetRight = 24 }) {
   useEffect(() => {
     if (!autoClose) return;
     const t = setTimeout(onClose, autoClose);
@@ -42,7 +43,8 @@ function ProgressToast({ darkMode, message, type = 'success', nextStep, onNext, 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className={`fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border p-4 shadow-2xl
+      style={{ right: offsetRight }}
+      className={`fixed bottom-24 z-50 max-w-xs rounded-2xl border p-4 shadow-2xl transition-[right] duration-200
         ${isError
           ? darkMode ? 'bg-[#0C1122] border-red-500/30'    : 'bg-white border-red-200 shadow-red-100/60'
           : isInfo
