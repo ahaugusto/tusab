@@ -1063,6 +1063,16 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                 ]
                 with state.hist_lock:
                     state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+                # Persiste resposta completa para o classificador de intenção
+                try:
+                    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+                    state.last_chat_response[canal_prefixo] = {
+                        'pergunta': mensagem,
+                        'resposta': resposta_completa,
+                        'fontes':   refs_acumuladas,
+                    }
+                except Exception:
+                    pass
                 try:
                     _atualizar_chat_stats(req.canal_nome, len(refs_acumuladas))
                 except Exception:
