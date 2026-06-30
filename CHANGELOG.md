@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.25] — 2026-06-30
+### Adicionado
+- **Classificador de intenção no chat** — antes de buscar na base, o LLM classifica a mensagem em BUSCA / CONTEXTO / CONVERSA. Para instruções sobre a resposta anterior ("traduza para inglês", "resume em tópicos", "explica de novo") o BM25 é ignorado e o modelo opera direto sobre o contexto da conversa. Para saudações, responde sem busca. Roda em paralelo com o BM25 — sem latência extra no caso normal. Fallback para BUSCA em qualquer falha.
+
+---
+
 ## [1.0.24] — 2026-06-30
 ### Corrigido
 - **Aba Ferramentas ocultada temporariamente** — Modo Estudo (flashcards, resumo) removido da navegação enquanto backend assíncrono não está pronto; evita timeout de 300s e perda de geração ao trocar de aba. Ferramentas serão reintroduzidas com notificação desktop ao concluir
