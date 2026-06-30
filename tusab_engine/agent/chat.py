@@ -435,6 +435,34 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
         for i in top_idx if scores_full[i] > 0
     ]
 
+    # FTS5 exact-match: garante que termos literais nunca sejam perdidos.
+    # Roda em paralelo ao BM25 e mescla candidatos novos (não duplicados).
+    try:
+        from tusab_engine.agent.fts import buscar_fts, fts_existe
+        if fts_existe(canal_prefixo):
+            fts_rowids = buscar_fts(pergunta, canal_prefixo, n=n)
+            ids_ja_incluidos = {id(r) for r in resultados}
+            chunks_result = cached['chunks']
+            for rid in fts_rowids:
+                if rid < len(chunks_result):
+                    # Verifica se chunk já está nos resultados BM25 pelo índice
+                    ja_incluido = any(
+                        r.get('titulo') == chunks_result[rid].get('titulo') and
+                        r.get('timestamp_inicio') == chunks_result[rid].get('timestamp_inicio')
+                        for r in resultados
+                    )
+                    if not ja_incluido:
+                        # Score simbólico: FTS5 match vale 0.1 (abaixo de qualquer BM25 real)
+                        # para que o CrossEncoder reordene semanticamente depois
+                        resultados.append({
+                            **chunks_result[rid],
+                            'score': 0.1,
+                            'canal': canal_nome,
+                            'fts_match': True,
+                        })
+    except Exception:
+        pass
+
     if canais_extras:
         for canal_extra in canais_extras:
             if canal_extra == canal_nome:
