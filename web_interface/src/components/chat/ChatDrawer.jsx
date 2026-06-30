@@ -114,6 +114,20 @@ const LOADING_PHRASES = [
   'Toda grande descoberta começa com uma boa pergunta. A sua já foi feita.',
   'Se a resposta não veio como esperado, tente reformular. A base é a mesma, o ângulo muda.',
   'Seu cérebro processa informação mesmo quando você não está olhando pra tela.',
+
+  // ── Como perguntar melhor — dicas de uso ─────────────────────────────────
+  'Dica: perguntas específicas geram respostas mais precisas. "Explique X no contexto de Y" bate "o que é X?".',
+  'Dica: adicione contexto à pergunta — "segundo os vídeos sobre marketing digital, qual é…".',
+  'Dica: se a resposta ficou genérica, peça para aprofundar: "detalhe mais o ponto 2".',
+  'Dica: perguntas comparativas funcionam bem — "qual a diferença entre A e B segundo minha base?".',
+  'Dica: peça exemplos concretos — "dê 3 exemplos práticos do que foi dito sobre X".',
+  'Dica: você pode pedir um resumo estruturado — "resuma em tópicos o que minha base diz sobre X".',
+  'Dica: use @ para fixar uma fonte específica e filtrar a busca só naquele documento.',
+  'Dica: ative a Busca Ampla quando quiser varrer toda a base, não só um canal.',
+  'Dica: se a base não tem o tema, o modelo vai avisar — isso é honestidade, não falha.',
+  'Dica: pergunte sobre contradições — "minha base tem visões diferentes sobre X?".',
+  'Dica: peça para o modelo citar a fonte — "cite o trecho exato onde isso é mencionado".',
+  'Dica: perguntas abertas pedem reflexão — "o que posso concluir sobre X a partir da minha base?".',
 ];
 
 function useLoadingPhrase(active) {
