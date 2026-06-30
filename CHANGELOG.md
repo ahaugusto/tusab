@@ -7,6 +7,13 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.24] — 2026-06-30
+### Corrigido
+- **Aba Ferramentas ocultada temporariamente** — Modo Estudo (flashcards, resumo) removido da navegação enquanto backend assíncrono não está pronto; evita timeout de 300s e perda de geração ao trocar de aba. Ferramentas serão reintroduzidas com notificação desktop ao concluir
+- **initialSubTab inválido corrigido** — ao navegar para a aba Agente pela Home, o app tentava abrir a sub-aba 'funcionalidades' (removida); corrigido para abrir 'configuracoes'
+
+---
+
 ## [1.0.23] — 2026-06-30
 ### Adicionado
 - **Chunking temporal por janela para vídeos sem capítulos** — vídeos sem marcadores de capítulo agora geram múltiplos chunks de 2 minutos com overlap de 15s; um vídeo de 12 min passa de 1 chunk (timestamp fixo no segundo 5) para ~7 chunks com timestamps distribuídos ao longo do vídeo, permitindo que o chat aponte para o trecho exato relevante
