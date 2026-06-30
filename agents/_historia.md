@@ -36,6 +36,8 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.18 | jun 2026 | Menu Electron restaurado (Reload/DevTools/Zoom/Fullscreen), versão dinâmica via package.json no preload, CHANGELOG atualizado v1.0.11–v1.0.18 |
 | v1.0.19 | jun 2026 | Shift+C via handleOpenChat (snack removido corretamente), Shift+R fecha HomeScreen, QA expandido com 17 jornadas mapeadas, 5 FAILs documentados |
 | v1.0.23 | jun 2026 | Chunking temporal de vídeos sem capítulos (janelas 120s/overlap 15s), enriquecimento silencioso BM25 via KeyBERT, sumarização LLM por vídeo ("Aprofundar base"), modal pós-config LLM, chunk reduzido 8k→3k chars |
+| v1.0.24 | jun 2026 | Hotfix: aba "Ferramentas" (Modo Estudo) oculta por timeout 300s em Modo Estudo — toda a sub-aba `funcionalidades` removida temporariamente; `agentInitialSubTab` default corrigido para `'configuracoes'` |
+| v1.0.25 | jun 2026 | Onboarding interativo com OllamaSetup no step 5 (download de modelo sem sair do onboarding); classificador de intenção BUSCA/CONTEXTO/CONVERSA; 12 dicas de como perguntar bem nas frases de loading; placeholder agnóstico |
 
 ---
 
@@ -54,6 +56,16 @@ Rate limiting do YouTube é por IP. Extração centralizada = bloqueio garantido
 
 ### BM25 como fundação + CrossEncoder como upgrade
 BM25Okapi (rank_bm25): ~1ms, determinístico, CPU puro, auditável. CrossEncoder (ms-marco-MiniLM-L-6-v2, ~80MB): +236ms, ativado só na Busca Ampla. Decisão de manter BM25 como padrão: velocidade e custo zero para usuários sem paciência para wait. Embeddings vetoriais virão depois (Ollama + nomic-embed-text, P1), como complemento — nunca como substituição obrigatória.
+
+### Classificador de intenção BUSCA/CONTEXTO/CONVERSA (jun/2026, v1.0.25)
+Antes: todo follow-up ("traduza isso", "explique melhor") disparava nova busca BM25, retornando chunks irrelevantes.
+Solução: antes de acionar o BM25, classifica a mensagem via chamada LLM com `max_tokens=5` e `temperature=0.0` em paralelo com a busca (usando `ThreadPoolExecutor` compartilhado no módulo, nunca recriado por request).
+- **BUSCA**: BM25 normal — chunks recuperados alimentam o prompt.
+- **CONTEXTO**: bypassa BM25 completamente; usa `state.last_chat_response[canal_prefixo]` com a resposta anterior. Fallback para BUSCA se primeira mensagem da sessão.
+- **CONVERSA**: responde diretamente sem fontes (casual, saudação, agradecimento).
+**`state.last_chat_response`**: dict em `AppState`, escrito no `finally` do stream e após `chat()` sync. GIL protege contra corrupção de struct; race entre duas streams paralelas do mesmo canal é teoricamente possível mas improvável na prática.
+**Bug crítico encontrado por Integration agent (FAIL-01 original)**: o `_gen()` do stream em `router_agent.py` tinha `except Exception: pass` descartando todos os chunks de texto puro — o stream retorna texto, não JSON, então `json.loads()` lançava na maioria dos chunks e o `pass` fazia `resposta_acumulada` nunca ser populada. Fix: `except Exception: if chunk.strip(): resposta_acumulada.append(chunk)`.
+**Fallback seguro**: qualquer exceção em `_classificar_intencao()` retorna `'BUSCA'` — comportamento idêntico ao pré-feature.
 
 ### Enriquecimento KeyBERT + sumarização LLM (jun/2026, v1.0.23)
 Dois níveis de aprimoramento de RAG implementados:
@@ -121,6 +133,9 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 | Chunking com overlap | v1.0.8+ | Ideias na fronteira de dois chunks aparecem em ambos os candidatos BM25 |
 | Score mínimo adaptativo por corpus | v1.0.11 | Corpus grande tem scores BM25 naturalmente menores; threshold fixo eliminava resultados válidos |
 | `random.sample()` para amostragem de corpus | v1.0.11 | Garante cobertura de todo o corpus nos flashcards, não apenas dos primeiros chunks |
+| Classificação de intenção paralela ao BM25 | v1.0.25 | Submit do future antes do BM25 → classificação LLM sobreposta com busca local → overhead zero no caso BUSCA (mais comum) |
+| `_intent_executor` module-level | v1.0.25 | `ThreadPoolExecutor` criado uma vez no import do módulo — evita overhead de criação de thread por request no hot path do chat |
+| Frases de loading com dicas de uso | v1.0.25 | Usuário aprende como perguntar melhor enquanto aguarda resposta — zero fricção de onboarding |
 
 ---
 
@@ -138,6 +153,9 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 10. **`credentials.json` e `token.json` nunca no bundle Electron** — não aparecem no `filter` do `extraResources`
 11. **yt-dlp sempre local no IP do usuário** — princípio intocável
 12. **`createPortal` sempre com segundo argumento `document.body`** — omitir causa React error #299 ("Target container is not a DOM element") que crasha o componente inteiro ao tentar renderizar o portal. Verificar todo novo uso.
+13. **`_intent_executor` nunca recriar por request** — `ThreadPoolExecutor` é module-level em `chat.py`; recriá-lo por chamada causaria vazamento de threads e overhead no hot path do chat.
+14. **Chat stream acumula `resposta_acumulada` no `except`** — o stream SSE emite texto puro (não JSON) na maioria dos chunks; `json.loads()` lança, e o `except` deve fazer `resposta_acumulada.append(chunk)` — nunca `pass`. Romper isso torna `last_chat_response` vazio e o classificador CONTEXTO completamente inativo.
+15. **`api_key: '__keep__'` ao salvar config parcial** — ao mudar só `ollama_model` ou `persona`, usar o sentinel `'__keep__'` para não zerar chaves de providers externos. Backend interpreta `'__keep__'` mantendo o valor atual em `agent_config.json`.
 
 ---
 
