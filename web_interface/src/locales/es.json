@@ -119,7 +119,7 @@
   "agent.chat_empty_no_index": "Indexa la base de conocimiento para comenzar a conversar con el agente.",
   "agent.chat_empty_ready": "Haz preguntas sobre el contenido de @{{canal}}.",
   "agent.chat_empty_ready_multi": "Haz preguntas cruzando el contenido de las {{count}} bases seleccionadas.",
-  "agent.chat_placeholder_ready": "Pregunta sobre el canal...",
+  "agent.chat_placeholder_ready": "Dime qué necesitas...",
   "agent.chat_placeholder_disabled": "Indexa la base primero...",
   "agent.sources": "Fuentes",
   "agent.send": "Enviar mensaje",

@@ -119,7 +119,7 @@
   "agent.chat_empty_no_index": "Index the knowledge base above to start chatting with the agent.",
   "agent.chat_empty_ready": "Ask questions about @{{canal}}'s content.",
   "agent.chat_empty_ready_multi": "Ask questions crossing the content of {{count}} selected bases.",
-  "agent.chat_placeholder_ready": "Ask about the channel...",
+  "agent.chat_placeholder_ready": "Tell me what you need...",
   "agent.chat_placeholder_disabled": "Index the base first...",
   "agent.sources": "Sources",
   "agent.send": "Send message",
