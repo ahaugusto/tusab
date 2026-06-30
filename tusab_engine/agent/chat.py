@@ -16,7 +16,7 @@ import os
 import re
 import json
 
-from tusab_engine.storage import INDEX_DIR
+from tusab_engine.storage import INDEX_DIR, NEURAL_DIR
 from tusab_engine.agent.config import carregar_config, SENTINEL_KEY
 from tusab_engine.agent.index import (
     _bm25_cache, _bm25_lock,
@@ -367,6 +367,53 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     return top
 
 
+def _carregar_resumos_relevantes(chunks: list, canal_prefixo: str) -> list:
+    """Carrega _resumo.json dos vídeos mais relevantes recuperados pelo BM25.
+
+    Percorre os chunks em ordem de relevância, carrega até 2 resumos distintos.
+    Retorna lista de dicts {tema, subtemas, entidades, conclusao, titulo, video_id}.
+    Falha silenciosa: se nenhum resumo existir, retorna [].
+    """
+    resumos = []
+    vistos = set()
+
+    for chunk in chunks:
+        video_id = chunk.get('video_id', '')
+        if not video_id or video_id in vistos:
+            continue
+        vistos.add(video_id)
+
+        # Tenta localizar o _resumo.json: nova estrutura ou legado
+        # Nova estrutura: neural/{prefixo}/youtube/{canal_sub}/{video_id}_resumo.json
+        youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+        candidatos = []
+
+        if os.path.isdir(youtube_base):
+            for entry in os.scandir(youtube_base):
+                if entry.is_dir():
+                    candidatos.append(os.path.join(entry.path, f'{video_id}_resumo.json'))
+            # Também flat dentro de youtube_base (legado de migração)
+            candidatos.append(os.path.join(youtube_base, f'{video_id}_resumo.json'))
+        # Legado: neural/youtube/
+        candidatos.append(os.path.join(NEURAL_DIR, 'youtube', f'{video_id}_resumo.json'))
+
+        for rpath in candidatos:
+            if os.path.exists(rpath):
+                try:
+                    with open(rpath, 'r', encoding='utf-8') as f:
+                        resumo = json.load(f)
+                    if isinstance(resumo, dict) and resumo.get('tema'):
+                        resumos.append(resumo)
+                        break
+                except Exception:
+                    pass
+
+        if len(resumos) >= 2:
+            break
+
+    return resumos
+
+
 def _deduplicar_chunks(chunks: list, n: int, threshold: float = 0.85) -> list:
     """Remove chunks semanticamente redundantes usando similaridade Jaccard de tokens.
 
@@ -504,19 +551,40 @@ def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, hi
 
 _IDIOMA_LABEL = {"pt": "português", "en": "English", "es": "español"}
 
-def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt') -> str:
+def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt', canal_prefixo: str = '') -> str:
     pergunta = pergunta[:2000].strip()
     handle   = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
     _max_chunk = 1500 if (carregar_config().get('provider') == 'ollama') else 3000
+
+    # Tenta carregar resumos dos vídeos mais relevantes para dar visão macro ao LLM
+    resumo_str = ''
+    if canal_prefixo:
+        try:
+            resumos = _carregar_resumos_relevantes(contexto, canal_prefixo)
+            if resumos:
+                partes_resumo = []
+                for r in resumos:
+                    r_titulo = r.get('titulo', r.get('video_id', ''))
+                    partes_resumo.append(
+                        f"• **{r_titulo}**: {r.get('tema', '')}. "
+                        f"Subtemas: {', '.join(r.get('subtemas', [])[:3])}. "
+                        f"Conclusão: {r.get('conclusao', '')}"
+                    )
+                resumo_str = "## Visão geral dos vídeos mais relevantes\n" + "\n".join(partes_resumo) + "\n\n"
+        except Exception:
+            pass  # degradação graciosa
+
     blocos = []
     for i, c in enumerate(contexto, 1):
+        # Usa texto_original (sem keywords KeyBERT) para exibição ao LLM
+        texto_display = c.get('texto_original') or c.get('texto', '')
         blocos.append(
             f"<source id=\"{i}\">\n"
             f"<title>{c['titulo']}</title>\n"
             f"<date>{c['data']}</date>\n"
             f"<link>{c['link']}</link>\n"
-            f"<content>{c['texto'][:_max_chunk]}</content>\n"
+            f"<content>{texto_display[:_max_chunk]}</content>\n"
             f"</source>"
         )
     contexto_str = "\n".join(blocos)
@@ -569,6 +637,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     return (
         instrucoes
         + hist_str
+        + resumo_str
         + f"<sources canal=\"{handle}\">\n{contexto_str}\n</sources>\n\n"
         + f"<question>{pergunta}</question>\n\nRESPOSTA:"
     )
@@ -758,7 +827,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         if not contexto:
             resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
             return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
-        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
+        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
 
     provider = config['provider']
     api_key  = config['api_key']
@@ -843,7 +912,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         'arquivo':           c.get('arquivo', ''),
         'canal':             c.get('canal', ''),
         'score':             c['score'],
-        'trecho':            c['texto'][:600],
+        'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
         'video_id':          c.get('video_id', ''),
         'timestamp_inicio':  c.get('timestamp_inicio', 0),
     } for c in contexto]
@@ -896,7 +965,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
             yield json.dumps({'done': True})
             return
 
-        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma)
+        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
         fontes = [{
             'titulo':            c['titulo'],
             'aba':               c.get('aba', 'youtube'),
@@ -905,7 +974,7 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
             'arquivo':           c.get('arquivo', ''),
             'canal':             c.get('canal', ''),
             'score':             c['score'],
-            'trecho':            c['texto'][:600],
+            'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
             'video_id':          c.get('video_id', ''),
             'timestamp_inicio':  c.get('timestamp_inicio', 0),
         } for c in contexto]

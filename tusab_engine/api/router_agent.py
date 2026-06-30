@@ -191,6 +191,10 @@ def agent_status(canal: str = ""):
     status["dias_desde_install"] = retencao["dias_desde_install"]
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     status["bases_desatualizadas"] = _bases_com_arquivos_novos(status.get("canais_indexados", []))
+    # Sumarização assíncrona
+    status["summarizing"]          = state.summarizing
+    status["summarize_logs"]       = state.summarize_logs[-20:]
+    status["summarize_progress"]   = dict(state.summarize_progress)
     return status
 
 
@@ -1058,6 +1062,82 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                     pass
 
     return StreamingResponse(_gen(), media_type='text/plain')
+
+
+# ── Sumarização ──────────────────────────────────────────────────────────────
+
+def _run_summarize(canal_prefixo: str):
+    """Dispara resumir_canal() em background e atualiza state.summarize_*."""
+    from tusab_engine.agent.summarize import resumir_canal
+
+    try:
+        state.summarizing = True
+        state.summarize_logs = []
+        state.summarize_stop.clear()
+        state.summarize_progress[canal_prefixo] = {'n': 0, 'total': 0}
+
+        def _cb(n, total):
+            state.summarize_progress[canal_prefixo] = {'n': n, 'total': total}
+            state.summarize_logs.append({
+                'timestamp': time.strftime('%H:%M:%S'),
+                'message': f'Resumindo vídeos: {n}/{total}',
+            })
+
+        resumir_canal(
+            canal_prefixo=canal_prefixo,
+            callback=_cb,
+            stop_event=state.summarize_stop,
+        )
+        state.summarize_logs.append({
+            'timestamp': time.strftime('%H:%M:%S'),
+            'message': f'✅ Sumarização de {canal_prefixo} concluída.',
+        })
+    except Exception as e:
+        state.summarize_logs.append({
+            'timestamp': time.strftime('%H:%M:%S'),
+            'message': f'❌ Erro na sumarização: {e}',
+        })
+    finally:
+        state.summarizing = False
+
+
+@router.get('/agent/summarize/pending')
+def agent_summarize_pending():
+    """Conta vídeos sem _resumo.json por canal.
+
+    Retorna {'total': int, 'canais': [{'prefixo': str, 'pendentes': int}]}.
+    O frontend usa esta rota após salvar config LLM para decidir se oferece
+    sumarização em modal.
+    """
+    from tusab_engine.agent.summarize import pending_por_canal
+    try:
+        return pending_por_canal()
+    except Exception as e:
+        return {'total': 0, 'canais': [], 'error': str(e)}
+
+
+@router.post('/agent/summarize/{canal_prefixo}')
+def agent_summarize_start(canal_prefixo: str, background_tasks: BackgroundTasks):
+    """Dispara sumarização assíncrona de vídeos de um canal em background.
+
+    Progresso disponível em GET /agent/status (campos summarizing + summarize_logs
+    + summarize_progress). Cancelamento via POST /agent/summarize/cancel.
+    """
+    if state.summarizing:
+        return {'error': True, 'message': 'Sumarização já em andamento. Aguarde ou cancele.'}
+    # Sanitiza o prefixo recebido (defesa em profundidade — path param)
+    prefixo_safe = re.sub(r'[<>:"/\\|?*\s]', '_', canal_prefixo).strip('_')
+    if not prefixo_safe:
+        return {'error': True, 'message': 'Prefixo de canal inválido.'}
+    background_tasks.add_task(_run_summarize, prefixo_safe)
+    return {'message': f'Sumarização iniciada para {prefixo_safe}.'}
+
+
+@router.post('/agent/summarize/cancel')
+def agent_summarize_cancel():
+    """Cancela a sumarização em andamento cooperativamente."""
+    state.summarize_stop.set()
+    return {'message': 'Sumarização cancelada.'}
 
 
 @router.delete("/agent/canal/{canal_nome}")

@@ -15,6 +15,9 @@ import {
   fetchOllamaStatus,
   fetchCanalMeta,
   fetchAgentStatus,
+  fetchSummarizePending,
+  startSummarize,
+  cancelSummarize,
 } from '../services/api';
 import { Analytics } from '../services/analytics';
 
@@ -61,6 +64,12 @@ export function useAgentConfig({ activeTab, showError }) {
   const [queryExpansion,       setQueryExpansion]       = useState(false);
   const [persona,              setPersona]              = useState('');
   const [canalMeta,            setCanalMeta]            = useState(null);
+
+  // ─── Aprofundar base ─────────────────────────────────────────────────────
+  const [aprofundarOpen,       setAprofundarOpen]       = useState(false);
+  const [aprofundarPendente,   setAprofundarPendente]   = useState({ total: 0, canais: [] });
+  const [aprofundarRodando,    setAprofundarRodando]    = useState(false);
+  const [aprofundarProgresso,  setAprofundarProgresso]  = useState(0);
 
   // ─── Effects ─────────────────────────────────────────────────────────────
 
@@ -204,6 +213,14 @@ export function useAgentConfig({ activeTab, showError }) {
         setConfigSaved(true);
         Analytics.provedorConfigurado(provider);
         setTimeout(() => setConfigSaved(false), 4000);
+        // Verifica vídeos sem resumo para oferecer "Aprofundar base"
+        try {
+          const pending = await fetchSummarizePending();
+          if (pending.data.total > 0) {
+            setAprofundarPendente({ total: pending.data.total, canais: pending.data.canais || [] });
+            setAprofundarOpen(true);
+          }
+        } catch { /* silencioso — não bloqueia o fluxo principal */ }
       }
     } catch {
       setAgentKeyError(t('agent.key_error_server'));
@@ -227,6 +244,31 @@ export function useAgentConfig({ activeTab, showError }) {
     setTestingKey(false);
   };
 
+  /** Inicia sumarização para todos os canais com pendências */
+  const handleAprofundarConfirm = async () => {
+    if (aprofundarPendente.canais.length === 0) return;
+    setAprofundarRodando(true);
+    setAprofundarProgresso(0);
+    const canais = aprofundarPendente.canais;
+    let processados = 0;
+    for (const c of canais) {
+      try { await startSummarize(c.prefixo); } catch { /* segue */ }
+      processados++;
+      setAprofundarProgresso(Math.round((processados / canais.length) * 100));
+    }
+    setAprofundarProgresso(100);
+    setAprofundarRodando(false);
+  };
+
+  const handleAprofundarClose = () => {
+    if (aprofundarRodando) {
+      cancelSummarize().catch(() => {});
+      setAprofundarRodando(false);
+    }
+    setAprofundarOpen(false);
+    setAprofundarProgresso(0);
+  };
+
   // ─── Return ──────────────────────────────────────────────────────────────
 
   return {
@@ -248,11 +290,15 @@ export function useAgentConfig({ activeTab, showError }) {
     queryExpansion,       setQueryExpansion,
     persona,              setPersona,
     canalMeta,            setCanalMeta,
+    aprofundarOpen,       aprofundarPendente,
+    aprofundarRodando,    aprofundarProgresso,
     // handlers
     handleOllamaModelChange,
     handlePersonaChange,
     handleSaveAgentConfig,
     handleRemoveApiKey,
+    handleAprofundarConfirm,
+    handleAprofundarClose,
     handleTestKey,
     setCanalAtivo,
   };

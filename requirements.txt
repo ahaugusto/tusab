@@ -10,9 +10,10 @@ starlette>=1.1.0
 
 # ── Agente RAG ──────────────────────────────────────────────────────────────
 rank-bm25>=0.2.2
-sentence-transformers>=5.6.0     # CrossEncoder ms-marco-MiniLM-L-6-v2
+sentence-transformers>=5.6.0     # CrossEncoder ms-marco-MiniLM-L-6-v2 + KeyBERT embeddings
 torch>=2.12.1                    # backend do sentence-transformers
 scikit-learn>=1.9.0              # usado internamente pelo sentence-transformers
+keybert>=0.8.0                   # extração de frases-chave para enriquecimento BM25 (opcional, degradação graciosa)
 
 # ── Provedores de IA ────────────────────────────────────────────────────────
 openai>=2.41.1                   # OpenAI + Groq (Groq usa client OpenAI)

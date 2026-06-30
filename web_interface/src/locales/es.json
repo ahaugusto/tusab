@@ -641,6 +641,19 @@
   "update_success.subtitle": "Estás usando la versión más reciente.",
   "update_success.version": "Versión instalada",
   "update_success.changelog": "Ver novedades",
-  "update_success.confirm": "Continuar"
+  "update_success.confirm": "Continuar",
+
+  "aprofundar.title": "Profundizar base",
+  "aprofundar.subtitle": "Activa respuestas más completas y precisas",
+  "aprofundar.body": "Tusab encontró {{count}} video(s) aún no analizados en profundidad. Con el modelo configurado, puede generar un resumen de cada video para que el chat responda con más contexto y precisión.",
+  "aprofundar.n_videos": "{{count}} video(s)",
+  "aprofundar.more_channels": "+ {{count}} proyecto(s)",
+  "aprofundar.note": "El proceso se ejecuta en segundo plano y no interrumpe la indexación. Puedes cerrar esta ventana y seguir usando Tusab con normalidad.",
+  "aprofundar.skip": "Ahora no",
+  "aprofundar.confirm": "Profundizar ahora",
+  "aprofundar.running": "Analizando videos en segundo plano…",
+  "aprofundar.done_sub": "Análisis completado",
+  "aprofundar.done_body": "Todos los videos han sido analizados. Las próximas respuestas del chat tendrán más contexto y profundidad.",
+  "aprofundar.close_done": "¡Genial!"
 }
 
