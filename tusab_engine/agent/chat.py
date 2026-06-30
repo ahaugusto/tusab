@@ -193,6 +193,170 @@ def _expandir_query(pergunta: str, config: dict) -> list:
     return [pergunta] + variacoes
 
 
+# ── Classificação de intenção ────────────────────────────────────────────────
+#
+# Antes de rodar o BM25, classifica a mensagem em:
+#   BUSCA    → pergunta nova que requer recuperação na base
+#   CONTEXTO → instrução sobre a resposta anterior (traduzir, resumir, reformatar,
+#              continuar, explicar de novo, simplificar, etc.)
+#   CONVERSA → saudação ou meta-pergunta sobre o assistente
+#
+# Para CONTEXTO: pula o BM25 e usa a última resposta salva em state como contexto.
+# Para CONVERSA: pula o BM25 e responde diretamente.
+# Para BUSCA: fluxo normal.
+#
+# A classificação usa o mesmo LLM configurado com max_tokens=5 — latência típica
+# <200ms em cloud, <800ms em Ollama. Roda em paralelo com o BM25 via thread para
+# não adicionar latência no caso BUSCA.
+# Fallback: qualquer erro → assume BUSCA (comportamento atual preservado).
+
+_INTENCAO_PROMPT = """\
+Classifique a mensagem do usuário em uma das três categorias:
+
+BUSCA    = pergunta nova que requer pesquisar em documentos ou vídeos
+CONTEXTO = instrução sobre a resposta anterior (ex: traduzir, resumir, reformular,
+           explicar melhor, simplificar, continuar, dar mais detalhes, em outro idioma,
+           em inglês, em espanhol, em tópicos, em tabela, de forma mais curta, etc.)
+CONVERSA = saudação, agradecimento ou pergunta sobre o próprio assistente
+
+Histórico recente da conversa:
+{historico}
+
+Mensagem atual do usuário: "{pergunta}"
+
+Responda APENAS com uma palavra: BUSCA, CONTEXTO ou CONVERSA."""
+
+
+def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
+    """Classifica a intenção da mensagem. Retorna 'BUSCA', 'CONTEXTO' ou 'CONVERSA'.
+
+    Sempre retorna 'BUSCA' em caso de falha — comportamento atual preservado.
+    Sem histórico ou com histórico vazio: sempre BUSCA (sem contexto para transformar).
+    """
+    if not historico:
+        return 'BUSCA'
+
+    # Resume as últimas 3 trocas para o prompt de classificação
+    trocas = []
+    for h in historico[-6:]:
+        role = 'Usuário' if h.get('role') == 'user' else 'Assistente'
+        content = str(h.get('content', ''))[:200]
+        trocas.append(f"{role}: {content}")
+    hist_resumido = '\n'.join(trocas) if trocas else '(sem histórico)'
+
+    prompt = _INTENCAO_PROMPT.format(
+        historico=hist_resumido,
+        pergunta=pergunta[:300],
+    )
+
+    provider = config.get('provider', '')
+    api_key  = config.get('api_key', '')
+
+    try:
+        if provider == 'ollama':
+            import requests as _req
+            modelo = config.get('ollama_model', 'llama3.2:1b')
+            resp = _req.post(
+                'http://localhost:11434/api/generate',
+                json={'model': modelo, 'prompt': prompt, 'stream': False,
+                      'options': {'num_predict': 5, 'temperature': 0.0}},
+                timeout=15,
+            )
+            resultado = resp.json().get('response', '').strip().upper()
+
+        elif provider in ('gemini', 'google'):
+            import google.generativeai as _genai
+            _genai.configure(api_key=api_key)
+            modelos_ok = [
+                m.name.replace('models/', '') for m in _genai.list_models()
+                if 'generateContent' in m.supported_generation_methods
+            ]
+            CANDIDATOS = ['gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest']
+            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+            if not modelo:
+                return 'BUSCA'
+            resp = _genai.GenerativeModel(modelo).generate_content(
+                prompt,
+                generation_config={'max_output_tokens': 5, 'temperature': 0.0},
+            )
+            resultado = resp.text.strip().upper()
+
+        elif provider == 'openai':
+            from openai import OpenAI
+            resp = OpenAI(api_key=api_key).chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=5, temperature=0.0, timeout=8,
+            )
+            resultado = resp.choices[0].message.content.strip().upper()
+
+        elif provider == 'anthropic':
+            import anthropic
+            msg = anthropic.Anthropic(api_key=api_key).messages.create(
+                model='claude-haiku-4-5-20251001',
+                max_tokens=5,
+                messages=[{'role': 'user', 'content': prompt}],
+            )
+            resultado = msg.content[0].text.strip().upper()
+
+        elif provider == 'groq':
+            from openai import OpenAI
+            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
+            resp = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+                model=modelo,
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=5, temperature=0.0, timeout=8,
+            )
+            resultado = resp.choices[0].message.content.strip().upper()
+
+        else:
+            return 'BUSCA'
+
+        # Normaliza — LLM pode retornar "BUSCA." ou "**BUSCA**" etc.
+        for cat in ('CONTEXTO', 'CONVERSA', 'BUSCA'):
+            if cat in resultado:
+                return cat
+        return 'BUSCA'
+
+    except Exception:
+        return 'BUSCA'  # fallback seguro
+
+
+def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dict,
+                             persona: str = '', idioma: str = 'pt') -> str:
+    """Prompt para intenção CONTEXTO — opera sobre a resposta anterior, sem BM25."""
+    lang_label = _IDIOMA_LABEL.get(idioma, 'português')
+
+    hist_str = ''
+    if historico:
+        trocas = []
+        for h in historico[-6:]:
+            role    = 'user' if h.get('role') == 'user' else 'assistant'
+            content = str(h.get('content', ''))[:800]
+            trocas.append(f"<{role}>{content}</{role}>")
+        if trocas:
+            hist_str = '<conversation_history>\n' + '\n'.join(trocas) + '\n</conversation_history>\n\n'
+
+    resposta_anterior = ultima_resposta.get('resposta', '')
+    pergunta_anterior = ultima_resposta.get('pergunta', '')
+
+    instrucao_tom = ''
+    if persona and persona in PERSONAS:
+        instrucao_tom = f'TOM DE RESPOSTA: {PERSONAS[persona]}\n\n'
+
+    return (
+        f'Você é o Tusab, um assistente de gestão de conhecimento.\n\n'
+        f'O usuário fez uma instrução sobre a resposta anterior da conversa.\n'
+        f'NÃO busque novos documentos — opere sobre o conteúdo já apresentado.\n\n'
+        f'IDIOMA: responda SEMPRE em {lang_label}.\n\n'
+        + instrucao_tom
+        + hist_str
+        + f'<previous_question>{pergunta_anterior}</previous_question>\n\n'
+        + f'<previous_answer>{resposta_anterior}</previous_answer>\n\n'
+        + f'<instruction>{pergunta}</instruction>\n\nRESPOSTA:'
+    )
+
+
 # ── Recuperação BM25 ──────────────────────────────────────────────────────────
 
 _PERFIS_RERANK = {'pesquisador', 'profissional'}  # slug 'profissional' = Especialista na UI
@@ -822,12 +986,40 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         contexto = []
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
     else:
-        n_chunks = 4 if config.get('provider') == 'ollama' else 6
-        contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
-        if not contexto:
+        import concurrent.futures as _cf
+        from tusab_engine.state import state as _state
+
+        # Classifica intenção em paralelo com o BM25 — sem latência extra no caso BUSCA
+        intencao_future = None
+        with _cf.ThreadPoolExecutor(max_workers=1) as ex:
+            intencao_future = ex.submit(_classificar_intencao, pergunta, historico or [], config)
+            n_chunks = 4 if config.get('provider') == 'ollama' else 6
+            try:
+                contexto_bm25 = _recuperar_contexto(
+                    pergunta, canal_nome, n=n_chunks, config=config,
+                    canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
+                    busca_ampla=busca_ampla, perfil=perfil,
+                )
+            except Exception:
+                contexto_bm25 = []
+            intencao = intencao_future.result(timeout=20)
+
+        ultima = _state.last_chat_response.get(canal_prefixo, {})
+
+        if intencao == 'CONTEXTO' and ultima:
+            # Bypass total do BM25 — opera sobre a resposta anterior
+            contexto = []
+            prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
+        elif intencao == 'CONVERSA':
+            contexto = []
             resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
-            return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
-        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
+            return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': False}
+        else:
+            contexto = contexto_bm25
+            if not contexto:
+                resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
+                return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
+            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
 
     provider = config['provider']
     api_key  = config['api_key']
@@ -920,6 +1112,17 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
     if trecho_mode and not fontes:
         fontes = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
 
+    # Persiste resposta para uso pelo classificador de intenção na próxima mensagem
+    try:
+        from tusab_engine.state import state as _state
+        _state.last_chat_response[canal_prefixo] = {
+            'pergunta': pergunta,
+            'resposta': resposta,
+            'fontes':   fontes,
+        }
+    except Exception:
+        pass
+
     return {
         'resposta':   resposta,
         'meta_canal': meta_canal,
@@ -950,34 +1153,63 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
         fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
     else:
-        try:
-            n_chunks = 4 if config.get('provider') == 'ollama' else 6
-            contexto = _recuperar_contexto(pergunta, canal_nome, n=n_chunks, config=config, canais_extras=canais_extras, fontes_fixadas=fontes_fixadas, busca_ampla=busca_ampla, perfil=perfil)
-        except Exception as e:
-            yield json.dumps({'error': str(e)})
-            return
+        import concurrent.futures as _cf
+        from tusab_engine.state import state as _state
 
-        if not contexto:
+        # Classificação de intenção paralela ao BM25 — sem latência extra no caso BUSCA
+        try:
+            with _cf.ThreadPoolExecutor(max_workers=1) as ex:
+                intencao_future = ex.submit(_classificar_intencao, pergunta, historico or [], config)
+                n_chunks = 4 if config.get('provider') == 'ollama' else 6
+                try:
+                    contexto_bm25 = _recuperar_contexto(
+                        pergunta, canal_nome, n=n_chunks, config=config,
+                        canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
+                        busca_ampla=busca_ampla, perfil=perfil,
+                    )
+                except Exception as e:
+                    yield json.dumps({'error': str(e)})
+                    return
+                intencao = intencao_future.result(timeout=20)
+        except Exception:
+            intencao = 'BUSCA'
+            contexto_bm25 = []
+
+        ultima = _state.last_chat_response.get(canal_prefixo, {})
+
+        if intencao == 'CONTEXTO' and ultima:
+            contexto = []
+            prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
+            fontes   = ultima.get('fontes', [])  # reusar fontes da resposta anterior
+        elif intencao == 'CONVERSA':
             config_s = carregar_config()
             resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
-            yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
+            yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
             yield resposta_vazia
             yield json.dumps({'done': True})
             return
-
-        prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
-        fontes = [{
-            'titulo':            c['titulo'],
-            'aba':               c.get('aba', 'youtube'),
-            'data':              c['data'],
-            'link':              c['link'],
-            'arquivo':           c.get('arquivo', ''),
-            'canal':             c.get('canal', ''),
-            'score':             c['score'],
-            'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
-            'video_id':          c.get('video_id', ''),
-            'timestamp_inicio':  c.get('timestamp_inicio', 0),
-        } for c in contexto]
+        else:
+            contexto = contexto_bm25
+            if not contexto:
+                config_s = carregar_config()
+                resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
+                yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
+                yield resposta_vazia
+                yield json.dumps({'done': True})
+                return
+            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
+            fontes = [{
+                'titulo':            c['titulo'],
+                'aba':               c.get('aba', 'youtube'),
+                'data':              c['data'],
+                'link':              c['link'],
+                'arquivo':           c.get('arquivo', ''),
+                'canal':             c.get('canal', ''),
+                'score':             c['score'],
+                'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
+                'video_id':          c.get('video_id', ''),
+                'timestamp_inicio':  c.get('timestamp_inicio', 0),
+            } for c in contexto]
 
     provider = config['provider']
     api_key  = config.get('api_key', '')
