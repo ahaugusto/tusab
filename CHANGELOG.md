@@ -7,6 +7,18 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.23] — 2026-06-30
+### Adicionado
+- **Chunking temporal por janela para vídeos sem capítulos** — vídeos sem marcadores de capítulo agora geram múltiplos chunks de 2 minutos com overlap de 15s; um vídeo de 12 min passa de 1 chunk (timestamp fixo no segundo 5) para ~7 chunks com timestamps distribuídos ao longo do vídeo, permitindo que o chat aponte para o trecho exato relevante
+- **Enriquecimento silencioso do corpus BM25** — frases-chave e sinônimos são extraídos automaticamente de cada chunk durante a indexação e adicionados ao corpus invisível; o usuário pergunta "metodologia ágil" e o sistema encontra vídeos que falam "sprint, kanban, iteração" sem correspondência literal
+- **Aprofundar base — sumarização LLM por vídeo** — após configurar um modelo de IA, o Tusab oferece o processo "Aprofundar base": gera um resumo estruturado (tema, subtemas, entidades, conclusão) para cada vídeo ainda não analisado; o resumo é injetado no prompt do chat antes dos chunks, dando ao LLM visão macro do conteúdo antes dos trechos pontuais
+- **Modal "Aprofundar base"** — abre automaticamente após salvar configuração de LLM quando há vídeos sem resumo; mostra quais projetos têm pendências e progresso em tempo real; roda em paralelo à indexação sem conflito
+
+### Corrigido
+- **Chunk de 8.000 para 3.000 chars** — chunks menores aumentam precisão do ranqueamento BM25 e distribuem melhor os timestamps no contexto do chat
+
+---
+
 ## [1.0.22] — 2026-06-29
 ### Corrigido
 - **Chat: base ativa agora pode ser desmarcada** — ao clicar na base principal no modal de seleção, ela é desmarcada (antes o clique era bloqueado); botão × ao lado do chip de base no toolbar também limpa a seleção

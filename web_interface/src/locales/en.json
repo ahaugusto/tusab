@@ -641,6 +641,19 @@
   "update_success.subtitle": "You're running the latest version.",
   "update_success.version": "Installed version",
   "update_success.changelog": "See what's new",
-  "update_success.confirm": "Continue"
+  "update_success.confirm": "Continue",
+
+  "aprofundar.title": "Deepen base",
+  "aprofundar.subtitle": "Enable richer, more complete answers",
+  "aprofundar.body": "Tusab found {{count}} video(s) not yet deeply analyzed. With your model configured, it can generate a summary for each video so the chat answers with more context and accuracy.",
+  "aprofundar.n_videos": "{{count}} video(s)",
+  "aprofundar.more_channels": "+ {{count}} more project(s)",
+  "aprofundar.note": "The process runs in the background and won't interrupt indexing. You can close this window and keep using Tusab normally.",
+  "aprofundar.skip": "Not now",
+  "aprofundar.confirm": "Deepen now",
+  "aprofundar.running": "Analyzing videos in the background…",
+  "aprofundar.done_sub": "Analysis complete",
+  "aprofundar.done_body": "All videos have been analyzed. Future chat responses will have more context and depth.",
+  "aprofundar.close_done": "Great!"
 }
 

@@ -142,6 +142,15 @@ export const startIndexing = (canal_nome) => axios.post(`${API_BASE}/agent/index
 /** Cancels ongoing indexing */
 export const cancelIndexing = () => axios.post(`${API_BASE}/agent/index-cancel`);
 
+/** Returns videos without summary per project */
+export const fetchSummarizePending = () => axios.get(`${API_BASE}/agent/summarize/pending`);
+
+/** Starts deep summarization for a channel prefix */
+export const startSummarize = (canal_prefixo) => axios.post(`${API_BASE}/agent/summarize/${encodeURIComponent(canal_prefixo)}`);
+
+/** Cancels ongoing summarization */
+export const cancelSummarize = () => axios.post(`${API_BASE}/agent/summarize/cancel`);
+
 /** Fetches channel metadata */
 export const fetchCanalMeta = () => axios.get(`${API_BASE}/agent/canal-meta`);
 

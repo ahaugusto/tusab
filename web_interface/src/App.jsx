@@ -29,6 +29,7 @@ import { usePerfil, PERFIS_META, PERFIS_CONFIG } from './hooks/usePerfil';
 import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
+import AprofundarModal from './components/shared/AprofundarModal';
 import {
   fetchHistory, fetchRepositorio, fetchQueue, setChannel, startExtraction, pauseExtraction, queueAdd, queueClear,
   queueRemoveItem, queueMoveItem, saveAutoUpdateConfig, runAutoUpdate, getAutoUpdateConfig,
@@ -192,6 +193,10 @@ function App() {
     handleRemoveApiKey,
     handleTestKey,
     setCanalAtivo,
+    aprofundarOpen,       aprofundarPendente,
+    aprofundarRodando,    aprofundarProgresso,
+    handleAprofundarConfirm,
+    handleAprofundarClose,
   } = useAgentConfig({ activeTab, showError });
 
   const { seen, markSeen, KEYS } = useOnboarding();
@@ -950,6 +955,17 @@ function App() {
         darkMode={darkMode}
         onConfirm={handleDriveWarningConfirm}
         onCancel={() => { setShowDriveWarning(false); setDriveOpen(false); }} />
+
+      {/* Aprofundar base — oferecido após salvar config LLM quando há vídeos sem resumo */}
+      <AprofundarModal
+        open={aprofundarOpen}
+        darkMode={darkMode}
+        totalPendente={aprofundarPendente.total}
+        canais={aprofundarPendente.canais}
+        rodando={aprofundarRodando}
+        progresso={aprofundarProgresso}
+        onConfirm={handleAprofundarConfirm}
+        onClose={handleAprofundarClose} />
 
       {/* Banner de atualização do app disponível */}
       <AnimatePresence>

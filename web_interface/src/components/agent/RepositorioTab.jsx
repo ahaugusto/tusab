@@ -280,6 +280,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     }
   }, [openImport]);
   // ─── Project selector ────────────────────────────────────────────────────────
+  // Carrega projetos (incluindo vazios) na montagem do componente
+  React.useEffect(() => {
+    listarProjetos().then(r => setProjetos(r.data?.projetos || [])).catch(() => {});
+  }, []);
   const [projetos,       setProjetos]       = React.useState([]);
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
   const [forceSelecionarProjeto, setForceSelecionarProjeto] = React.useState(false); // volta ao step de seleção mesmo com canalAtivo
@@ -309,6 +313,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const reload = () => {
     fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
     fetchReadonlyStatus().then(r => setReadonlyMap(r.data || {})).catch(() => {});
+    listarProjetos().then(r => setProjetos(r.data?.projetos || [])).catch(() => {});
   };
 
   const toggleCanal = (nome) =>
@@ -335,7 +340,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         const lista = res?.data?.projetos || [];
         setProjetos(lista);
         const sel = {};
-        lista.forEach(p => { if ((p.n_arquivos ?? 1) > 0) sel[p.nome] = true; });
+        lista.forEach(p => { sel[p.nome] = true; });
         setIndexarSel(sel);
         setShowIndexar(true);
         onOpenIndexarHandled?.();
@@ -349,7 +354,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const handleIndexarConfirmar = async () => {
     const projetosMap = Object.fromEntries(projetos.map(p => [p.nome, p]));
     const selecionados = Object.entries(indexarSel)
-      .filter(([k, v]) => v && (projetosMap[k]?.n_arquivos ?? 1) > 0)
+      .filter(([k, v]) => v)
       .map(([k]) => k);
     if (selecionados.length === 0 || !onIndexar) return;
     setIndexando(true);
@@ -683,7 +688,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               const lista = res?.data?.projetos || projetos;
               setProjetos(lista);
               const sel = {};
-              lista.forEach(p => { if ((p.n_arquivos ?? 1) > 0) sel[p.nome] = true; });
+              lista.forEach(p => { sel[p.nome] = true; });
               setIndexarSel(sel);
               setShowIndexar(true);
             }}
@@ -1305,8 +1310,96 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
         );
       })}
 
+      {/* Projetos vazios — criados mas sem conteúdo ainda */}
+      {(() => {
+        const nomesComConteudo = new Set(canais.map(c => c.nome));
+        const projetosVazios = projetos.filter(p => {
+          const nome = typeof p === 'string' ? p : p.nome;
+          return !nomesComConteudo.has(nome);
+        });
+        if (projetosVazios.length === 0) return null;
+        return projetosVazios.map(p => {
+          const nome = typeof p === 'string' ? p : p.nome;
+          const isOpen = expandedCanais[nome] !== false;
+          const _openUpload = (mode) => {
+            reloadProjetos().then(() => {
+              setProjetoSel(nome);
+              setShowNovoProjeto(false);
+              setMode(mode);
+              setUploadAviso('');
+              setTitle('');
+              setText('');
+              if (mode === 'arquivo') setFiles([]);
+              setShowAdd(true);
+            });
+          };
+          return (
+            <div key={nome} className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className={`px-4 py-3 flex items-center gap-2 ${!isOpen ? '' : `border-b ${darkMode ? 'border-white/10' : 'border-slate-100'}`} ${darkMode ? 'bg-white/4' : 'bg-slate-50'}`}>
+                <button onClick={() => toggleCanal(nome)} className="flex items-center gap-2 flex-1 text-left min-w-0">
+                  <span className="text-sm shrink-0">🧠</span>
+                  <p className={`text-xs font-bold flex-1 truncate ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+                    @{nome}
+                  </p>
+                  <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.item_count', { count: 0 })}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {/* Colar texto */}
+                <button
+                  onClick={e => { e.stopPropagation(); _openUpload('texto'); }}
+                  title={t('repo.add_text_title', { nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-primary/60 hover:text-primary hover:bg-primary/10' : 'text-violet-400 hover:text-violet-700 hover:bg-violet-50'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </button>
+                {/* Upload arquivo */}
+                <button
+                  onClick={e => { e.stopPropagation(); _openUpload('arquivo'); }}
+                  title={t('repo.add_file_title', { nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-accent/60 hover:text-accent hover:bg-accent/10' : 'text-cyan-500 hover:text-cyan-700 hover:bg-cyan-50'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                </button>
+                {/* Abrir pasta local */}
+                <button
+                  onClick={e => { e.stopPropagation(); openFolder('canal_youtube', nome).catch(() => {}); }}
+                  title={t('repo.open_folder_title', { nome })}
+                  className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                </button>
+              </div>
+              {isOpen && (
+                <div className={`px-4 py-6 flex flex-col items-center gap-3 text-center ${darkMode ? 'bg-white/2' : 'bg-slate-50/50'}`}>
+                  <p className="text-xl">📂</p>
+                  <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {t('repo.empty_project_desc', 'Nenhum arquivo ainda — adicione documentos, textos ou extraia um canal YouTube.')}
+                  </p>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => _openUpload('arquivo')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${btnFocus}
+                        ${darkMode ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      {t('repo.add_file_btn', 'Adicionar arquivo')}
+                    </button>
+                    <button
+                      onClick={() => _openUpload('texto')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${btnFocus}
+                        ${darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100'}`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+                      {t('repo.add_text_btn', 'Colar texto')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        });
+      })()}
+
       {/* Empty state */}
-      {total === 0 && (
+      {total === 0 && projetos.length === 0 && (
         <div className={`rounded-2xl border p-8 text-center space-y-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
           <p className="text-2xl">📭</p>
           <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('repo.empty')}</p>
