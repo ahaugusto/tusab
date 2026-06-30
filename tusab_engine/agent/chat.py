@@ -193,6 +193,11 @@ def _expandir_query(pergunta: str, config: dict) -> list:
     return [pergunta] + variacoes
 
 
+# Executor compartilhado para classificação de intenção paralela ao BM25.
+# max_workers=2: suporta dois chats simultâneos sem criar thread a cada request.
+import concurrent.futures as _cf
+_intent_executor = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix='intent')
+
 # ── Classificação de intenção ────────────────────────────────────────────────
 #
 # Antes de rodar o BM25, classifica a mensagem em:
@@ -259,7 +264,7 @@ def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
             resp = _req.post(
                 'http://localhost:11434/api/generate',
                 json={'model': modelo, 'prompt': prompt, 'stream': False,
-                      'options': {'num_predict': 5, 'temperature': 0.0}},
+                      'options': {'num_predict': 5, 'temperature': 0.0, 'stop': ['\n']}},
                 timeout=15,
             )
             resultado = resp.json().get('response', '').strip().upper()
@@ -292,7 +297,7 @@ def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
 
         elif provider == 'anthropic':
             import anthropic
-            msg = anthropic.Anthropic(api_key=api_key).messages.create(
+            msg = anthropic.Anthropic(api_key=api_key, timeout=8).messages.create(
                 model='claude-haiku-4-5-20251001',
                 max_tokens=5,
                 messages=[{'role': 'user', 'content': prompt}],
@@ -986,27 +991,31 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         contexto = []
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
     else:
-        import concurrent.futures as _cf
         from tusab_engine.state import state as _state
 
         # Classifica intenção em paralelo com o BM25 — sem latência extra no caso BUSCA
-        intencao_future = None
-        with _cf.ThreadPoolExecutor(max_workers=1) as ex:
-            intencao_future = ex.submit(_classificar_intencao, pergunta, historico or [], config)
-            n_chunks = 4 if config.get('provider') == 'ollama' else 6
-            try:
-                contexto_bm25 = _recuperar_contexto(
-                    pergunta, canal_nome, n=n_chunks, config=config,
-                    canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
-                    busca_ampla=busca_ampla, perfil=perfil,
-                )
-            except Exception:
-                contexto_bm25 = []
+        intencao_future = _intent_executor.submit(_classificar_intencao, pergunta, historico or [], config)
+        n_chunks = 4 if config.get('provider') == 'ollama' else 6
+        try:
+            contexto_bm25 = _recuperar_contexto(
+                pergunta, canal_nome, n=n_chunks, config=config,
+                canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
+                busca_ampla=busca_ampla, perfil=perfil,
+            )
+        except Exception:
+            contexto_bm25 = []
+        try:
             intencao = intencao_future.result(timeout=20)
+        except Exception:
+            intencao = 'BUSCA'
 
         ultima = _state.last_chat_response.get(canal_prefixo, {})
 
-        if intencao == 'CONTEXTO' and ultima:
+        if intencao == 'CONTEXTO' and not ultima:
+            # Primeira mensagem da sessão — sem resposta anterior; trata como BUSCA
+            intencao = 'BUSCA'
+
+        if intencao == 'CONTEXTO':
             # Bypass total do BM25 — opera sobre a resposta anterior
             contexto = []
             prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
@@ -1096,18 +1105,21 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
     resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
 
-    fontes = [{
-        'titulo':            c['titulo'],
-        'aba':               c.get('aba', 'youtube'),
-        'data':              c['data'],
-        'link':              c['link'],
-        'arquivo':           c.get('arquivo', ''),
-        'canal':             c.get('canal', ''),
-        'score':             c['score'],
-        'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
-        'video_id':          c.get('video_id', ''),
-        'timestamp_inicio':  c.get('timestamp_inicio', 0),
-    } for c in contexto]
+    if not trecho_mode and intencao == 'CONTEXTO' and ultima:
+        fontes = ultima.get('fontes', [])
+    else:
+        fontes = [{
+            'titulo':            c['titulo'],
+            'aba':               c.get('aba', 'youtube'),
+            'data':              c['data'],
+            'link':              c['link'],
+            'arquivo':           c.get('arquivo', ''),
+            'canal':             c.get('canal', ''),
+            'score':             c['score'],
+            'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
+            'video_id':          c.get('video_id', ''),
+            'timestamp_inicio':  c.get('timestamp_inicio', 0),
+        } for c in contexto]
 
     if trecho_mode and not fontes:
         fontes = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
@@ -1153,31 +1165,32 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
         fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
     else:
-        import concurrent.futures as _cf
         from tusab_engine.state import state as _state
 
         # Classificação de intenção paralela ao BM25 — sem latência extra no caso BUSCA
+        intencao_future = _intent_executor.submit(_classificar_intencao, pergunta, historico or [], config)
+        n_chunks = 4 if config.get('provider') == 'ollama' else 6
         try:
-            with _cf.ThreadPoolExecutor(max_workers=1) as ex:
-                intencao_future = ex.submit(_classificar_intencao, pergunta, historico or [], config)
-                n_chunks = 4 if config.get('provider') == 'ollama' else 6
-                try:
-                    contexto_bm25 = _recuperar_contexto(
-                        pergunta, canal_nome, n=n_chunks, config=config,
-                        canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
-                        busca_ampla=busca_ampla, perfil=perfil,
-                    )
-                except Exception as e:
-                    yield json.dumps({'error': str(e)})
-                    return
-                intencao = intencao_future.result(timeout=20)
+            contexto_bm25 = _recuperar_contexto(
+                pergunta, canal_nome, n=n_chunks, config=config,
+                canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
+                busca_ampla=busca_ampla, perfil=perfil,
+            )
+        except Exception as e:
+            yield json.dumps({'error': str(e)})
+            return
+        try:
+            intencao = intencao_future.result(timeout=20)
         except Exception:
             intencao = 'BUSCA'
-            contexto_bm25 = []
 
         ultima = _state.last_chat_response.get(canal_prefixo, {})
 
-        if intencao == 'CONTEXTO' and ultima:
+        if intencao == 'CONTEXTO' and not ultima:
+            # Primeira mensagem da sessão — sem resposta anterior; trata como BUSCA
+            intencao = 'BUSCA'
+
+        if intencao == 'CONTEXTO':
             contexto = []
             prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
             fontes   = ultima.get('fontes', [])  # reusar fontes da resposta anterior
