@@ -12,7 +12,7 @@ import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig, gerarEstudo, exportFlashcardsAnki, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
 
 const SUB_TABS = [
-  { id: 'funcionalidades', label: 'Funcionalidades', icon: LayoutGrid },
+  { id: 'funcionalidades', label: 'Ferramentas', icon: LayoutGrid },
   { id: 'configuracoes',   label: 'Configurações',   icon: Settings   },
 ];
 
@@ -184,7 +184,7 @@ export default function AgentTab({
               <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Configure o Agente em 3 passos</p>
               <ol className={`text-[11px] space-y-0.5 list-none ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                 <li>1. Em <strong>Configurações</strong>: escolha o provedor de IA</li>
-                <li>2. Em <strong>Funcionalidades</strong>: clique em <strong>Indexar Agora</strong></li>
+                <li>2. Em <strong>Ferramentas</strong>: clique em <strong>Indexar Agora</strong></li>
                 <li>3. Use o chat para perguntar sobre o canal</li>
               </ol>
             </div>
