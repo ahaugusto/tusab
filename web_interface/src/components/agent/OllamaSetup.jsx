@@ -9,17 +9,23 @@ import React from 'react';
 import { CheckCircle2, RefreshCw, ChevronDown, Settings2, ExternalLink, Info, Loader2, AlertTriangle } from 'lucide-react';
 import { fetchOllamaStatus, pullOllamaModel } from '../../services/api';
 
-// Modelos sugeridos: [id, label, tamanho, descrição curta]
-const MODELOS_SUGERIDOS = [
+// Modelos principais — exibidos no onboarding (isStandby=false) e na lista expandida
+const MODELOS_PRINCIPAIS = [
   ['llama3.2:1b',    'Llama 3.2 1B',    '~1.3 GB', 'Rápido, leve, ideal para PCs modestos'],
   ['llama3.2:3b',    'Llama 3.2 3B',    '~2.0 GB', 'Bom equilíbrio velocidade/qualidade'],
   ['gemma3:4b',      'Gemma 3 4B',      '~3.3 GB', 'Google, ótimo em português'],
+];
+
+const MODELOS_EXTRAS = [
   ['llama3.1:8b',    'Llama 3.1 8B',    '~4.7 GB', 'Qualidade superior, requer 8 GB RAM'],
   ['qwen2.5:7b',     'Qwen 2.5 7B',     '~4.7 GB', 'Alibaba, multilíngue, muito capaz'],
   ['mistral:7b',     'Mistral 7B',      '~4.1 GB', 'Rápido e preciso para RAG'],
   ['phi4-mini:3.8b', 'Phi-4 Mini 3.8B', '~2.5 GB', 'Microsoft, eficiente em raciocínio'],
   ['gemma3:12b',     'Gemma 3 12B',     '~8.1 GB', 'Google, alta qualidade, 16 GB RAM'],
 ];
+
+// Lista completa para uso na aba Agente (isStandby=true) — exibe todos
+const MODELOS_SUGERIDOS = [...MODELOS_PRINCIPAIS, ...MODELOS_EXTRAS];
 
 function formatarTempo(segundos) {
   if (segundos < 60) return `~${Math.ceil(segundos)}s`;
@@ -93,7 +99,7 @@ function OllamaSetup({
           <Info size={13} className={`shrink-0 mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
           <div className="space-y-1.5 min-w-0">
             <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>O que é o Ollama?</p>
-            <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+            <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
               O <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>Ollama</strong> roda modelos de IA direto no seu computador — sem internet, sem custo e sem enviar dados para servidores externos.
             </p>
             <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
@@ -163,7 +169,7 @@ function OllamaSetup({
             </p>
             <div className="flex gap-2">
               <button onClick={startPull}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors bg-secondary/20 text-secondary hover:bg-secondary/30 ${btnFocus}`}>
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30 focus:ring-2 focus:ring-primary focus:ring-offset-0 ${btnFocus}`}>
                 Baixar llama3.2:1b
               </button>
               <button onClick={refresh} title="Verificar novamente"
@@ -241,7 +247,7 @@ function OllamaSetup({
         </div>
 
         <div className="space-y-1">
-          {MODELOS_SUGERIDOS.map(([id, label, size, desc]) => {
+          {(isStandby ? MODELOS_SUGERIDOS : MODELOS_PRINCIPAIS).map(([id, label, size, desc]) => {
             const instalado    = ollamaStatus.running && ollamaStatus.models?.includes(id);
             const baixandoEste = pullingModel === id;
             const isAtivo      = ollamaStatus.running && modelName === id && instalado;
@@ -269,7 +275,7 @@ function OllamaSetup({
                     disabled={!!pullingModel || !ollamaStatus.running}
                     onClick={() => onBaixarModelo && onBaixarModelo(id)}
                     title={!ollamaStatus.running ? 'Instale o Ollama para baixar modelos' : undefined}
-                    className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-40
+                    className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-40 focus:ring-2 focus:ring-primary focus:ring-offset-0
                       ${baixandoEste
                         ? darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700 border border-violet-300'
                         : darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
@@ -281,7 +287,7 @@ function OllamaSetup({
                   <button
                     onClick={() => !isAtivo && onModelChange && onModelChange(id)}
                     disabled={isAtivo}
-                    className={`shrink-0 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:cursor-default
+                    className={`shrink-0 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:cursor-default focus:ring-2 focus:ring-primary focus:ring-offset-0
                       ${isAtivo
                         ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
                         : darkMode
