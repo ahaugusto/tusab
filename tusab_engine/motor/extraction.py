@@ -115,14 +115,97 @@ def _limpar_vtt_interno(caminho_vtt):
     return " ".join(resultado).strip(), timestamp_inicio
 
 
+def _vtt_por_janela_temporal(caminho_vtt, janela_segundos=120, overlap_segundos=15) -> list:
+    """Divide o VTT em janelas de janela_segundos com overlap_segundos de sobreposição.
+
+    Usada como fallback quando o vídeo não tem capítulos.
+    Retorna lista de {'texto': str, 'timestamp_inicio': int, 'capitulo': str}.
+    Para um vídeo de 12 minutos com janela=120s e overlap=15s gera ~7 chunks
+    com timestamps distribuídos, em vez de 1 chunk com timestamp=5.
+    """
+    if not os.path.exists(caminho_vtt):
+        return [{'texto': '', 'timestamp_inicio': 0, 'capitulo': ''}]
+
+    with open(caminho_vtt, 'r', encoding='utf-8', errors='replace') as f:
+        linhas = f.readlines()
+
+    # Coleta todos os cues com seu timestamp
+    cues = []  # list of (timestamp_segundos, texto)
+    ts_atual = 0
+    for linha in linhas:
+        if '-->' in linha:
+            ts_atual = _vtt_ts_para_segundos(linha.split('-->')[0].strip())
+            continue
+        if linha.strip().isdigit() or 'WEBVTT' in linha:
+            continue
+        linha = re.sub(r'<[^>]*>', '', linha).strip()
+        if linha:
+            cues.append((ts_atual, linha))
+
+    if not cues:
+        return [{'texto': '', 'timestamp_inicio': 0, 'capitulo': ''}]
+
+    duracao = cues[-1][0]
+
+    # Se o vídeo inteiro cabe numa janela, retorna 1 chunk (evita segmentação inútil)
+    if duracao <= janela_segundos:
+        dedup = []
+        for _, texto in cues:
+            if not dedup or texto != dedup[-1]:
+                dedup.append(texto)
+        return [{'texto': ' '.join(dedup).strip(), 'timestamp_inicio': cues[0][0], 'capitulo': ''}]
+
+    segmentos = []
+    inicio = 0
+    passo = janela_segundos - overlap_segundos
+
+    while inicio <= duracao:
+        fim = inicio + janela_segundos
+        textos_janela = [t for ts, t in cues if inicio <= ts < fim]
+
+        # Dedup de linhas consecutivas idênticas (padrão do VTT)
+        dedup = []
+        for t in textos_janela:
+            if not dedup or t != dedup[-1]:
+                dedup.append(t)
+
+        texto = ' '.join(dedup).strip()
+        if len(texto) >= 80:
+            fim_real = min(fim, duracao + 1)
+            label = (f"{inicio // 60}:{inicio % 60:02d}"
+                     f" – {fim_real // 60}:{fim_real % 60:02d}")
+            segmentos.append({
+                'texto':             texto,
+                'timestamp_inicio':  inicio,
+                'capitulo':          label,
+            })
+        inicio += passo
+
+    if segmentos:
+        return segmentos
+
+    # Fallback: texto completo com timestamp do primeiro cue
+    dedup = []
+    for _, texto in cues:
+        if not dedup or texto != dedup[-1]:
+            dedup.append(texto)
+    return [{'texto': ' '.join(dedup).strip(), 'timestamp_inicio': cues[0][0], 'capitulo': ''}]
+
+
 def _vtt_por_capitulo(caminho_vtt, capitulos: list) -> list:
     """Divide o VTT em segmentos usando capítulos como fronteiras.
 
     capitulos: lista de {'start_time': float, 'title': str} ordenada por start_time.
     Retorna lista de {'texto': str, 'timestamp_inicio': int, 'capitulo': str}.
-    Cai no comportamento padrão (lista com 1 elemento) se não houver capítulos úteis.
+    Cai no chunking temporal por janela (2 min / 15s overlap) quando não há capítulos,
+    e no texto completo apenas se o chunking temporal também não produzir nada útil.
     """
     if not os.path.exists(caminho_vtt) or not capitulos:
+        # Sem capítulos: tenta chunking temporal antes de cair no texto único
+        segmentos = _vtt_por_janela_temporal(caminho_vtt)
+        if len(segmentos) > 1:
+            return segmentos
+        # Janela produziu só 1 segmento (vídeo muito curto) — usa texto completo
         texto, ts = _limpar_vtt_interno(caminho_vtt)
         return [{'texto': texto, 'timestamp_inicio': ts, 'capitulo': ''}]
 
