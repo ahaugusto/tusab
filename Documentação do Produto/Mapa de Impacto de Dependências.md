@@ -1,6 +1,6 @@
 # Mapa de Impacto de Dependências — Tusab
 © 2026 CriAugu — CNPJ 65.131.075/0001-57
-Atualizado: Junho 2026 (v1.0.10 — Sprint 3: Timestamp clicável + Date-aware retrieval + Views boost | Decisão S4: BM25S descartado)
+Atualizado: Junho 2026 (v1.0.23 — Sprint 6: Chunking temporal, enriquecimento KeyBERT, sumarização LLM por vídeo)
 
 Este documento é a referência de compliance para mudanças de código.
 **Antes de alterar qualquer módulo listado, consulte a coluna "Quebra".**
@@ -949,3 +949,162 @@ SCHEMA_CHUNKS = pa.schema([
 | S5 | LanceDB (indexação incremental + columnar) | 🔜 Planejado |
 | S6 | Embeddings Ollama + ChromaDB | 🔜 Planejado (pode ser absorvido pelo LanceDB) |
 | S7 | SPLADE (learned sparse retrieval) | 🔜 Planejado (pós-feedback de produção) |
+
+---
+
+## 14. Contratos adicionados no Sprint 6 (jun/2026 — v1.0.23)
+
+### 14.1 Chunking temporal de vídeos sem capítulos
+
+**Implementado em:** `tusab_engine/motor/extraction.py` — função `_vtt_por_janela_temporal()` (linha ~118)
+**Integrado em:** `_vtt_por_capitulo()` (linha ~203) — usado como fallback quando não há capítulos
+
+**Comportamento:** vídeos sem marcadores de capítulo são divididos em janelas de 120s com overlap de 15s. Um vídeo de 12 minutos gera ~7 chunks com timestamps distribuídos ao longo do vídeo.
+
+**Schema de retorno** (mesma estrutura de `_vtt_por_capitulo`):
+```json
+[
+  {
+    "texto":            "string (texto da janela, deduplicado)",
+    "timestamp_inicio": 0,
+    "capitulo":         "0:00 – 2:00"
+  }
+]
+```
+
+**Quebra se:**
+- Formato de retorno de `_vtt_por_janela_temporal` mudar → `_vtt_por_capitulo` não consegue desempacotar
+- `timestamp_inicio` virar float → `_parsear_chunks` em index.py espera int para `?t=SEG` na URL do YouTube
+
+**Checklist:**
+- [ ] Alterar `janela_segundos` ou `overlap_segundos`? → Reindexar todos os projetos (índices antigos têm chunk único por vídeo)
+- [ ] Alterar retorno para dict em vez de lista? → Atualizar todos os callers de `_vtt_por_capitulo`
+
+---
+
+### 14.2 Campo `texto_original` nos chunks BM25
+
+**Adicionado em:** `tusab_engine/agent/index.py` — `_parsear_chunks()` e `_parsear_todos_chunks()`
+**Lido por:** `tusab_engine/agent/chat.py` — `_recuperar_contexto()`, `chat()`, `chat_stream()`
+
+**Dois campos agora coexistem no chunk:**
+
+| Campo | Contém | Usado para |
+|-------|--------|-----------|
+| `texto` | texto + frases-chave KeyBERT appendadas | indexação BM25 (recall ampliado) |
+| `texto_original` | texto limpo, sem keywords | exibição ao usuário nas fontes do chat + prompt LLM |
+
+```json
+{
+  "texto":          "string (enriquecido com keywords)",
+  "texto_original": "string (texto limpo para exibição)",
+  ...
+}
+```
+
+**Retrocompatibilidade:** índices gerados antes do Sprint 6 não têm `texto_original`. `chat.py` usa `c.get('texto_original') or c.get('texto', '')` — degrada para texto enriquecido com keywords (funcional, levemente pior).
+
+**Quebra se:**
+- `texto_original` renomeado → fallback sempre usa `texto` enriquecido para exibição ao usuário
+- `texto` renomeado → KeyBERT nunca enriquece, BM25 usa texto bruto (funcional, recall reduzido)
+- Campo removido de qualquer chunk → `KeyError` em `_recuperar_contexto()` se não usar `.get()`
+
+**Checklist:**
+- [ ] Alterar estrutura de chunk? → Reindexar todos os projetos (novos campos não retroativos)
+- [ ] Adicionar campo ao schema do LanceDB (Sprint 5)? → Incluir `texto_original` no `SCHEMA_CHUNKS`
+
+---
+
+### 14.3 Arquivo `_resumo.json` por vídeo
+
+**Escrito por:** `tusab_engine/agent/summarize.py` — `resumir_canal()`
+**Lido por:** `tusab_engine/agent/chat.py` — `_carregar_resumos_relevantes()`
+**Path:** `data/neural/{prefixo}/youtube/{canal_sub}/{video_id}_resumo.json`
+
+**Schema:**
+```json
+{
+  "tema":      "string",
+  "subtemas":  ["string"],
+  "entidades": ["string"],
+  "conclusao": "string"
+}
+```
+
+**Injeção no prompt:** quando existir, é inserido antes dos `<sources>` em `_montar_prompt()`:
+```
+## Visão geral dos vídeos mais relevantes
+[conteúdo do _resumo.json]
+
+## Trechos relevantes
+<sources>...</sources>
+```
+
+**Sem resumo:** prompt funciona normalmente sem a seção de visão geral. Degradação graciosa total.
+
+**Quebra se:**
+- Schema do JSON mudar (ex: `tema` → `assunto`) → `_carregar_resumos_relevantes()` retorna dict com campo ausente → `_montar_prompt()` formata `None` como string
+- Path de `_resumo.json` mudar → arquivos existentes nunca são encontrados; sumarização re-gera do zero
+
+**Checklist:**
+- [ ] Renomear campo do schema? → Atualizar `summarize.py` (geração) E `chat.py` (leitura) E este mapa
+- [ ] Mover path? → Atualizar `resumir_canal()`, `pending_por_canal()` e `_carregar_resumos_relevantes()`
+
+---
+
+### 14.4 Rotas de sumarização
+
+**Módulo:** `tusab_engine/api/router_agent.py`
+**Consome:** `tusab_engine/agent/summarize.py`
+**Frontend:** `web_interface/src/services/api.js` + `useAgentConfig.js` + `AprofundarModal.jsx`
+
+| Rota | Método | Retorno |
+|------|--------|---------|
+| `/agent/summarize/pending` | GET | `{ "total": N, "canais": [{"prefixo": str, "total": int}] }` |
+| `/agent/summarize/{canal_prefixo}` | POST | `{ "message": str }` (inicia background task) |
+| `/agent/summarize/cancel` | POST | `{ "message": str }` |
+
+**Progresso:** campos `summarizing` (bool), `summarize_progress` (0–100), `summarize_logs` (list[str]) adicionados ao retorno de `GET /agent/status`.
+
+**Contrato de `agentStatus` atualizado** (acrescentar ao §3.4):
+```json
+{
+  "configured": true,
+  "...campos anteriores...",
+  "summarizing":        false,
+  "summarize_progress": 0,
+  "summarize_logs":     []
+}
+```
+
+**Gatilho de uso:** frontend chama `GET /agent/summarize/pending` logo após `POST /agent/config` retornar `ok`. Se `total > 0`, abre `AprofundarModal`. Usuário confirma → `POST /agent/summarize/{prefixo}` por canal.
+
+**Quebra se:**
+- `total` ausente no retorno de `/pending` → `aprofundarPendente.total` fica `undefined` → modal não abre
+- `summarizing` ausente em `/agent/status` → `AprofundarModal` nunca detecta conclusão via polling
+- `POST /summarize/cancel` não executa `state.summarize_stop.set()` → tarefa continua em background mesmo após fechar modal
+
+**Checklist:**
+- [ ] Alterar shape de `/pending`? → Atualizar `useAgentConfig.js:handleSaveAgentConfig` (desestrutura `pending.data.total`)
+- [ ] Adicionar campo a `/agent/status`? → Atualizar `DEFAULT_AGENT_STATUS` em `useAgentConfig.js`
+- [ ] `AprofundarModal` exibe `progresso` calculado localmente (canais iniciados / total) — não reflete progresso real de vídeos no backend. Para progresso preciso, fazer polling de `summarize_progress` de `/agent/status`
+
+---
+
+### 14.5 Novos campos no AppState
+
+**Adicionado em:** `tusab_engine/state.py`
+
+| Campo | Tipo | Inicial | Propósito |
+|-------|------|---------|-----------|
+| `state.summarizing` | bool | False | indica sumarização em andamento |
+| `state.summarize_logs` | list[str] | [] | logs de progresso (máx recomendado: 100 entradas) |
+| `state.summarize_stop` | threading.Event | — | cancelamento cooperativo |
+| `state.summarize_progress` | int | 0 | 0–100%, progresso de vídeos processados |
+
+**Quebra se:**
+- Qualquer campo renomeado → `router_agent.py` (leitura em `/agent/status`) e `summarize.py` (escrita) ficam dessincronizados
+- `summarize_stop` não chamado com `.set()` antes de nova sumarização → tarefa anterior continua em paralelo
+
+**Checklist:**
+- [ ] Adicionar novo campo ao AppState? → Adicionar ao retorno de `GET /agent/status` E ao estado inicial de `useAgentConfig.js`
