@@ -5,13 +5,15 @@
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2, Bell } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from './ModalWrapper';
 import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
+import OllamaSetup from '../agent/OllamaSetup';
+import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress, saveAgentConfig } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -30,6 +32,57 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const { setPerfil } = usePerfil();
+
+  // ── Estado do step de IA (step 5) ────────────────────────────────────────
+  const [ollamaStatus,  setOllamaStatus]  = useState({ running: false, models: [] });
+  const [pulling,       setPulling]       = useState(false);
+  const [pullingModel,  setPullingModel]  = useState(null);
+  const [pullProgress,  setPullProgress]  = useState(null);
+  const [pullStartTime, setPullStartTime] = useState(null);
+  const [ollamaModel,   setOllamaModel]   = useState('llama3.2:1b');
+  const pullIntervalRef = useRef(null);
+
+  // Detecta Ollama ao entrar no step 5 (contentStep === 4)
+  const contentStep = step - 1;
+  useEffect(() => {
+    if (contentStep !== 4) return;
+    fetchOllamaStatus().then(r => setOllamaStatus(r.data)).catch(() => {});
+  }, [contentStep]);
+
+  // Polling do progresso de download
+  useEffect(() => {
+    if (!pulling) { clearInterval(pullIntervalRef.current); return; }
+    pullIntervalRef.current = setInterval(async () => {
+      try {
+        const r = await fetchOllamaPullProgress();
+        setPullProgress(r.data);
+        if (r.data.status === 'done') {
+          setPulling(false);
+          clearInterval(pullIntervalRef.current);
+          const s = await fetchOllamaStatus();
+          setOllamaStatus(s.data);
+          if (r.data.model) setOllamaModel(r.data.model);
+        } else if (r.data.status === 'error') {
+          setPulling(false);
+          clearInterval(pullIntervalRef.current);
+        }
+      } catch {}
+    }, 1500);
+    return () => clearInterval(pullIntervalRef.current);
+  }, [pulling]);
+
+  const handleBaixarModelo = async (modelId) => {
+    setPullingModel(modelId);
+    setPullProgress({ pct: 0, status: 'pulling', message: 'Iniciando…' });
+    setPullStartTime(Date.now());
+    setPulling(true);
+    await pullOllamaModel(modelId).catch(() => {});
+  };
+
+  const handleModelChange = (model) => {
+    setOllamaModel(model);
+    saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model }).catch(() => {});
+  };
 
   const requestNotifPermission = async () => {
     if (typeof Notification === 'undefined') return;
@@ -203,6 +256,25 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
         {/* Content */}
         <h2 className={`text-lg font-bold mb-2 ${textTitle}`}>{current.title}</h2>
         <p className={`text-sm leading-relaxed mb-4 ${textSub}`}>{current.body}</p>
+
+        {/* Step 5 — Configurar IA: OllamaSetup interativo */}
+        {contentStep === 4 && (
+          <div className="mt-1 mb-2">
+            <OllamaSetup
+              darkMode={darkMode}
+              ollamaStatus={ollamaStatus}
+              setOllamaStatus={setOllamaStatus}
+              btnFocus={BTN_FOCUS}
+              ollamaModel={ollamaModel}
+              onModelChange={handleModelChange}
+              pulling={pulling}
+              pullingModel={pullingModel}
+              pullProgress={pullProgress}
+              pullStartTime={pullStartTime}
+              onBaixarModelo={handleBaixarModelo}
+            />
+          </div>
+        )}
 
         {/* Step de notificações — botão de ativação */}
         {current.isNotif && (

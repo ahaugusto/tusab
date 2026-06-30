@@ -1322,7 +1322,7 @@ function App() {
               darkMode={darkMode} history={history} repositorio={repositorio}
               agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               regras={regras}
-              onNavigate={(id) => { setActiveTab(id); setShowHome(false); }}
+              onNavigate={(id) => { if (id === 'agente') setAgentInitialSubTab('configuracoes'); setActiveTab(id); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onImportBase={() => { setActiveTab('repositorio'); setShowHome(false); setRepoImportOpen(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
