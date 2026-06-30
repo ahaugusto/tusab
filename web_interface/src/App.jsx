@@ -485,6 +485,14 @@ function App() {
     setCanalAtivo(canalChat || agentStatus.canal_indexado || '');
   }, [canalChat, agentStatus.canal_indexado]);
 
+  // Inicializa canalChat com o canal já indexado quando o usuário ainda não escolheu
+  // Evita "Selecionar base" ao abrir o chat com apenas uma sessão já indexada
+  useEffect(() => {
+    if (!canalChat && agentStatus.canal_indexado) {
+      setCanalChat(agentStatus.canal_indexado);
+    }
+  }, [agentStatus.canal_indexado]);
+
   /** Auto-scrolls log container to the bottom while extraction runs */
   useEffect(() => {
     if (status.is_running && status.logs.length > 0 && logContainerRef.current) {
