@@ -15,8 +15,7 @@ import remarkBreaks from 'remark-breaks';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
-
-const LOADING_PHRASES = [
+export const LOADING_PHRASES = [
   // ── Funcionais — o que está acontecendo agora ────────────────────────────
   'Buscando nos seus documentos…',
   'Recuperando contexto relevante…',
@@ -869,32 +868,31 @@ function ChatDrawer({
                         ) : (
                           <div className="markdown-body">
                             <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
                               children={(() => {
-                                let t = msg.content;
-                                // Todo ** que não esteja no início de linha → nova linha antes
-                                t = t.replace(/([^\n])(\*\*)/g, '$1\n\n$2');
-                                // Remove excesso de linhas em branco
-                                t = t.replace(/\n{3,}/g, '\n\n');
-                                return t;
+                                // Remove excesso de linhas em branco (3+ → 2)
+                                return msg.content.replace(/\n{3,}/g, '\n\n');
                               })()}
                               components={{
-                                p:      ({children}) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
-                                strong: ({children}) => <strong className="font-bold">{children}</strong>,
+                                p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                                strong: ({children}) => <strong className="font-semibold">{children}</strong>,
                                 em:     ({children}) => <em className="italic">{children}</em>,
                                 del:    ({children}) => <del className="line-through opacity-70">{children}</del>,
                                 a:      ({href, children}) => <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-2 opacity-80 hover:opacity-100 break-all">{children}</a>,
-                                ul:     ({children}) => <ul className="list-disc pl-4 mb-3 space-y-1">{children}</ul>,
-                                ol:     ({children}) => <ol className="list-decimal pl-4 mb-3 space-y-1">{children}</ol>,
+                                ul:     ({children}) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
+                                ol:     ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
                                 li:     ({children}) => <li className="leading-relaxed">{children}</li>,
-                                h1:     ({children}) => <p className="font-bold text-sm mb-2 mt-3">{children}</p>,
-                                h2:     ({children}) => <p className="font-bold text-xs mb-2 mt-3">{children}</p>,
-                                h3:     ({children}) => <p className="font-semibold text-xs mb-1.5 mt-2">{children}</p>,
+                                h1:     ({children}) => <p className="font-bold text-sm mb-2 mt-3 border-b pb-1 border-current/20">{children}</p>,
+                                h2:     ({children}) => <p className="font-bold text-xs mb-1.5 mt-2">{children}</p>,
+                                h3:     ({children}) => <p className="font-semibold text-xs mb-1 mt-2 opacity-80">{children}</p>,
                                 code:   ({inline, children}) => inline
                                   ? <code className={`px-1 py-0.5 rounded text-[10px] font-mono ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}>{children}</code>
                                   : <pre className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto mb-2 ${darkMode ? 'bg-black/30' : 'bg-slate-100'}`}><code>{children}</code></pre>,
-                                blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-2 opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
+                                blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-2 italic opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
                                 hr:     () => <hr className={`my-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
+                                table:  ({children}) => <div className="overflow-x-auto mb-2"><table className="text-[10px] border-collapse w-full">{children}</table></div>,
+                                th:     ({children}) => <th className={`px-2 py-1 text-left font-semibold border ${darkMode ? 'border-white/15 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>{children}</th>,
+                                td:     ({children}) => <td className={`px-2 py-1 border ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>{children}</td>,
                               }}
                             />
                             {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
@@ -1533,19 +1531,22 @@ function ChatDrawer({
           ...indexadas.map(c => ({ nome: c.nome, chunks: c.chunks || c.index_count || 0, indexado: true, indexed_at: c.indexed_at || null })),
           ...naoIndexadas.map(n => ({ nome: n, chunks: 0, indexado: false, indexed_at: null })),
         ];
-        const canalAtualAtivo = canalConfigurado || agentStatus.canal_indexado;
+        // Usa apenas canalConfigurado (escolha explícita do usuário) — sem fallback para
+        // agentStatus.canal_indexado, para que desmarcar realmente limpe a seleção no modal.
+        const canalAtualAtivo = canalConfigurado || '';
         const todosSelecionados = todasBases.every(b => {
           if (b.nome === canalAtualAtivo) return true;
           return (canaisExtras || []).includes(b.nome);
         });
         const toggleTodos = () => {
           if (todosSelecionados) {
-            // Desmarca tudo — inclusive a base principal
             onSelectCanal?.('');
             setCanaisExtras?.([]);
           } else {
-            // Seleciona tudo: mantém a principal e adiciona as extras
-            setCanaisExtras?.(todasBases.filter(b => b.nome !== canalAtualAtivo).map(b => b.nome));
+            // Se não há principal, elege a primeira indexada como principal
+            const principal = canalAtualAtivo || (todasBases.find(b => b.indexado)?.nome ?? todasBases[0]?.nome ?? '');
+            if (!canalAtualAtivo && principal) onSelectCanal?.(principal);
+            setCanaisExtras?.(todasBases.filter(b => b.nome !== principal).map(b => b.nome));
           }
         };
 
@@ -1709,13 +1710,19 @@ function ChatDrawer({
                         <div
                           onClick={e => {
                             e.stopPropagation();
-                            if (isAtivo) return;
-                            setCanaisExtras?.(prev =>
-                              isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
-                            );
+                            if (isAtivo) {
+                              onSelectCanal?.('');
+                              setCanaisExtras?.([]);
+                            } else {
+                              setCanaisExtras?.(prev =>
+                                isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
+                              );
+                            }
                           }}
-                          className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
-                            ${isAtivo ? 'border-primary bg-primary cursor-default' : isExtra ? 'border-primary bg-primary cursor-pointer' : darkMode ? 'border-white/20 cursor-pointer hover:border-primary/60' : 'border-slate-300 cursor-pointer hover:border-primary/60'}`}>
+                          className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 cursor-pointer
+                            ${selecionado
+                              ? 'border-primary bg-primary hover:bg-primary/70 hover:border-primary/70'
+                              : darkMode ? 'border-white/20 hover:border-primary/60' : 'border-slate-300 hover:border-primary/60'}`}>
                           {selecionado && <span className="text-white text-[8px] font-bold">✓</span>}
                         </div>
                       </div>
@@ -1726,32 +1733,51 @@ function ChatDrawer({
             </div>
 
             {/* Rodapé: seleção ativa + botão confirmar */}
-            {!agentStatus.indexing && todasBases.length > 0 && (
-              <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-[10px] font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {(canaisExtras || []).length > 0 ? t('chat.bases_selected', { count: (canaisExtras || []).length + 1 }) : t('chat.base_selected_one')}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {[canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean).map(nome => (
-                        <span key={nome} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
-                          ${nome === canalAtualAtivo
-                            ? darkMode ? 'bg-primary/25 text-primary' : 'bg-violet-100 text-violet-700'
-                            : darkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
-                          @{nome}
-                        </span>
-                      ))}
+            {!agentStatus.indexing && todasBases.length > 0 && (() => {
+              const nenhumaSelecionada = !canalAtualAtivo && (canaisExtras || []).length === 0;
+              const selecionadasNomes = [canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean);
+              return (
+                <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+                  {nenhumaSelecionada ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[10px] font-semibold ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                          Selecione ao menos uma base para continuar.
+                        </p>
+                      </div>
+                      <button
+                        disabled
+                        className="shrink-0 px-4 py-2 rounded-xl bg-primary/30 text-white/50 text-xs font-bold cursor-not-allowed">
+                        {t('chat.confirm_bases')}
+                      </button>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => setShowBaseModal(false)}
-                    className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
-                    {t('chat.confirm_bases')}
-                  </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[10px] font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {selecionadasNomes.length > 1 ? t('chat.bases_selected', { count: selecionadasNomes.length }) : t('chat.base_selected_one')}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selecionadasNomes.map(nome => (
+                            <span key={nome} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
+                              ${nome === canalAtualAtivo
+                                ? darkMode ? 'bg-primary/25 text-primary' : 'bg-violet-100 text-violet-700'
+                                : darkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
+                              @{nome}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowBaseModal(false)}
+                        className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
+                        {t('chat.confirm_bases')}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Overlay de indexação em andamento */}
             <AnimatePresence>
@@ -1903,7 +1929,7 @@ function ChatDrawer({
                     onSelectCanal?.(trocaBaseAlvoRef.current);
                     setCanaisExtras?.([]);
                     setShowTrocarBaseModal(false);
-                    setShowRepoModal(false);
+                    setShowBaseModal(false);
                     trocaBaseAlvoRef.current = null;
                   }}
                   className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
