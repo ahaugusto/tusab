@@ -12,8 +12,7 @@ import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig, gerarEstudo, exportFlashcardsAnki, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
 
 const SUB_TABS = [
-  { id: 'funcionalidades', label: 'Ferramentas', icon: LayoutGrid },
-  { id: 'configuracoes',   label: 'Configurações',   icon: Settings   },
+  { id: 'configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 export default function AgentTab({
@@ -43,7 +42,7 @@ export default function AgentTab({
   initialSubTab,
 }) {
   const { t } = useTranslation();
-  const [subTab, setSubTab]       = useState(initialSubTab ?? 'funcionalidades');
+  const [subTab, setSubTab]       = useState(initialSubTab ?? 'configuracoes');
 
   useEffect(() => {
     if (initialSubTab) setSubTab(initialSubTab);
