@@ -98,7 +98,7 @@ function App() {
   });
   const [repoAddOpen,      setRepoAddOpen]      = useState(false);
   const [extracaoSubTab,   setExtracaoSubTab]   = useState('extrair'); // 'extrair' | 'relatorio'
-  const [agentInitialSubTab, setAgentInitialSubTab] = useState('funcionalidades');
+  const [agentInitialSubTab, setAgentInitialSubTab] = useState('configuracoes');
   const [repoIndexarOpen,  setRepoIndexarOpen]  = useState(false);
   const [repoImportOpen,   setRepoImportOpen]   = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
