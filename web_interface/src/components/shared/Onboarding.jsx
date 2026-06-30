@@ -42,12 +42,11 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
   const [ollamaModel,   setOllamaModel]   = useState('llama3.2:1b');
   const pullIntervalRef = useRef(null);
 
-  // Detecta Ollama ao entrar no step 5 (contentStep === 4)
-  const contentStep = step - 1;
+  // Detecta Ollama ao entrar no step 5 (step === 5, contentStep === 4)
   useEffect(() => {
-    if (contentStep !== 4) return;
+    if (step !== 5) return;
     fetchOllamaStatus().then(r => setOllamaStatus(r.data)).catch(() => {});
-  }, [contentStep]);
+  }, [step]);
 
   // Polling do progresso de download
   useEffect(() => {
