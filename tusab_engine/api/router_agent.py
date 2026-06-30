@@ -1150,7 +1150,7 @@ def agent_summarize_start(canal_prefixo: str, background_tasks: BackgroundTasks)
     from tusab_engine.agent.summarize import pending_por_canal
     _pendentes = pending_por_canal()
     _canal_info = next((c for c in _pendentes.get('canais', []) if c.get('prefixo') == prefixo_safe), None)
-    if not _canal_info or _canal_info.get('total', 0) == 0:
+    if not _canal_info or _canal_info.get('pendentes', 0) == 0:
         return {'error': True, 'message': 'Nenhum vídeo pendente de análise neste projeto.'}
     background_tasks.add_task(_run_summarize, prefixo_safe)
     return {'message': f'Sumarização iniciada para {prefixo_safe}.'}
