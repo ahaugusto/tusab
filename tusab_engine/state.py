@@ -89,6 +89,14 @@ class AppState:
         self.extraction_queue: list = []
         self.queue_lock = threading.Lock()
 
+        # Sumarização assíncrona de vídeos
+        self.summarizing: bool = False
+        self.summarize_logs: list = []       # [{"timestamp", "message"}]
+        self.summarize_stop: threading.Event = threading.Event()
+        self.summarize_progress: dict = {    # progresso por canal_prefixo
+            # canal_prefixo: {"n": int, "total": int}
+        }
+
     # ── API de eventos estruturados ───────────────────────────────────────────
     # Substitui o contrato implícito de emojis/strings do LogRedirector.
     # O motor chama dispatch_event() em vez de depender de padrões de texto.
