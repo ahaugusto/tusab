@@ -787,7 +787,7 @@ function ChatDrawer({
                       })()}
 
                       {canaisIndexados.length > 1 && (
-                        <button onClick={() => setShowRepoModal(true)}
+                        <button onClick={() => setShowBaseModal(true)}
                           className={`text-[10px] underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                           {t('chat.switch_base')}
                         </button>

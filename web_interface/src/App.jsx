@@ -140,6 +140,8 @@ function App() {
   // ─── Canal state ───────────────────────────────────────────────────────────
   const [canalInput,       setCanalInput]       = useState('');
   const [canalConfigurado, setCanalConfigurado] = useState(() => localStorage.getItem('tusab_canal_configurado') || '');
+  // Estado do chat: independente do canal de extração
+  const [canalChat,        setCanalChat]        = useState(() => localStorage.getItem('tusab_canal_chat') || '');
   const [canalError,       setCanalError]       = useState('');
   const [configurando,     setConfigurando]     = useState(false);
   // Bloqueia restauração automática pelo polling quando o usuário remove manualmente
@@ -224,7 +226,7 @@ function App() {
     agentProvider,
     agentStatus,
     ollamaStatus,
-    canalConfigurado,
+    canalConfigurado: canalChat,
     canaisExtras,
     useExternalProvider,
     showError,
@@ -460,7 +462,7 @@ function App() {
     return () => clearInterval(interval);
   }, [canalConfigurado]);
 
-  // Persiste base selecionada para sobreviver a reloads
+  // Persiste canal de extração para sobreviver a reloads
   useEffect(() => {
     if (canalConfigurado) {
       localStorage.setItem('tusab_canal_configurado', canalConfigurado);
@@ -469,10 +471,19 @@ function App() {
     }
   }, [canalConfigurado]);
 
-  // Sincroniza canal ativo com o hook para que o polling de /agent/status passe o canal correto
+  // Persiste canal do chat separadamente — independente da extração
   useEffect(() => {
-    setCanalAtivo(canalConfigurado || agentStatus.canal_indexado || '');
-  }, [canalConfigurado, agentStatus.canal_indexado]);
+    if (canalChat) {
+      localStorage.setItem('tusab_canal_chat', canalChat);
+    } else {
+      localStorage.removeItem('tusab_canal_chat');
+    }
+  }, [canalChat]);
+
+  // Sincroniza canal ativo com o hook (usa canal do chat, não da extração)
+  useEffect(() => {
+    setCanalAtivo(canalChat || agentStatus.canal_indexado || '');
+  }, [canalChat, agentStatus.canal_indexado]);
 
   /** Auto-scrolls log container to the bottom while extraction runs */
   useEffect(() => {
@@ -1713,13 +1724,13 @@ function App() {
               onSend={handleChatSend}
               onRecriarIndice={handleAgentIndex}
               onClearHistory={() => {
-                const canal = agentStatus.canal_indexado || canalConfigurado;
+                const canal = agentStatus.canal_indexado || canalChat;
                 if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
               }}
               agentStatus={agentStatus}
               indexingDoneCount={indexingDoneCount}
-              canalConfigurado={canalConfigurado}
-              onSelectCanal={setCanalConfigurado}
+              canalConfigurado={canalChat}
+              onSelectCanal={setCanalChat}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
               canaisExtraidos={[

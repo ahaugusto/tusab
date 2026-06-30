@@ -392,7 +392,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                     f"O índice de '{canal_nome}' está corrompido ou vazio. "
                     f"Vá em Configurar Agente e clique em 'Indexar Agora' para recriá-lo."
                 )
-            corpus = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks]
+            corpus = [_enriquecer_documento(c.get('texto_original') or c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks]
             _bm25_cache[canal_prefixo] = {
                 'chunks': chunks,
                 'bm25':   BM25Okapi(corpus),
@@ -418,7 +418,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     def _scores_para_queries(bm25_obj, qs, indices_ativos):
         """Roda BM25 para os índices ativos e retorna scores mapeados."""
         all_s = [bm25_obj.get_scores(q.lower().split()) for q in qs]
-        scores_full = np.mean(all_s, axis=0) if len(all_s) > 1 else all_s[0]
+        scores_full = np.max(all_s, axis=0) if len(all_s) > 1 else all_s[0]
         return scores_full
 
     scores_full = _scores_para_queries(cached['bm25'], queries, [])
@@ -451,7 +451,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                         with open(idx_extra, 'r', encoding='utf-8') as f:
                             data_e = json.load(f)
                         chunks_e = data_e['chunks']
-                        corpus_e = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks_e]
+                        corpus_e = [_enriquecer_documento(c.get('texto_original') or c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks_e]
                         _bm25_cache[prefixo_extra] = {'chunks': chunks_e, 'bm25': BM25Okapi(corpus_e), 'mtime': mtime_e}
                     cached_e = _bm25_cache[prefixo_extra]
                 scores_e = _scores_para_queries(cached_e['bm25'], queries, [])
@@ -467,16 +467,9 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     # Score mínimo adaptativo: corpora grandes (>2k chunks) têm IDF menor por documento
     # — textos informais/WhatsApp sofrem mais porque termos são menos únicos.
     # Reduz o threshold progressivamente para não silenciar resultados válidos.
-    n_chunks_total = len(cached['chunks'])
-    if n_chunks_total > 5000:
-        SCORE_MINIMO = 0.15
-    elif n_chunks_total > 2000:
-        SCORE_MINIMO = 0.25
-    elif n_chunks_total > 500:
-        SCORE_MINIMO = 0.35
-    else:
-        SCORE_MINIMO = 0.5
-    resultados = [r for r in resultados if r['score'] >= SCORE_MINIMO]
+    # Score mínimo: apenas remove scores zero — sem threshold arbitrário que corta resultados válidos.
+    # Termos literalmente presentes no arquivo sempre têm score > 0 no BM25.
+    resultados = [r for r in resultados if r['score'] > 0]
 
     # S3.2 — Filtro de data: quando a query contém termos temporais, prioriza conteúdo recente.
     # Detecta anos explícitos (ex: "2024") ou palavras como "recente", "último", "agora".
