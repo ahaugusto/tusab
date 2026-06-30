@@ -192,9 +192,16 @@ def agent_status(canal: str = ""):
     status["retencao_dia"]       = retencao["retencao_dia"]   # 1 | 7 | 30 | None
     status["bases_desatualizadas"] = _bases_com_arquivos_novos(status.get("canais_indexados", []))
     # Sumarização assíncrona
-    status["summarizing"]          = state.summarizing
-    status["summarize_logs"]       = state.summarize_logs[-20:]
-    status["summarize_progress"]   = dict(state.summarize_progress)
+    status["summarizing"]        = state.summarizing
+    status["summarize_logs"]     = state.summarize_logs[-20:]
+    # Converte dict {prefixo: {n, total}} em percentual agregado 0-100
+    prog = state.summarize_progress
+    if prog:
+        total_all = sum(v.get('total', 0) for v in prog.values())
+        done_all  = sum(v.get('n', 0)     for v in prog.values())
+        status["summarize_progress"] = int(done_all / total_all * 100) if total_all else 0
+    else:
+        status["summarize_progress"] = 0
     return status
 
 
@@ -1082,6 +1089,8 @@ def _run_summarize(canal_prefixo: str):
                 'timestamp': time.strftime('%H:%M:%S'),
                 'message': f'Resumindo vídeos: {n}/{total}',
             })
+            if len(state.summarize_logs) > 100:
+                state.summarize_logs = state.summarize_logs[-100:]
 
         resumir_canal(
             canal_prefixo=canal_prefixo,
@@ -1092,11 +1101,15 @@ def _run_summarize(canal_prefixo: str):
             'timestamp': time.strftime('%H:%M:%S'),
             'message': f'✅ Sumarização de {canal_prefixo} concluída.',
         })
+        if len(state.summarize_logs) > 100:
+            state.summarize_logs = state.summarize_logs[-100:]
     except Exception as e:
         state.summarize_logs.append({
             'timestamp': time.strftime('%H:%M:%S'),
             'message': f'❌ Erro na sumarização: {e}',
         })
+        if len(state.summarize_logs) > 100:
+            state.summarize_logs = state.summarize_logs[-100:]
     finally:
         state.summarizing = False
 
@@ -1129,6 +1142,16 @@ def agent_summarize_start(canal_prefixo: str, background_tasks: BackgroundTasks)
     prefixo_safe = re.sub(r'[<>:"/\\|?*\s]', '_', canal_prefixo).strip('_')
     if not prefixo_safe:
         return {'error': True, 'message': 'Prefixo de canal inválido.'}
+    # Valida LLM configurado
+    _cfg = agent_tusab.carregar_config()
+    if _cfg.get('provider') and _cfg['provider'] != 'ollama' and not _cfg.get('api_key'):
+        return {'error': True, 'message': 'Configure um modelo de IA antes de aprofundar a base.'}
+    # Valida que há vídeos pendentes
+    from tusab_engine.agent.summarize import pending_por_canal
+    _pendentes = pending_por_canal()
+    _canal_info = next((c for c in _pendentes.get('canais', []) if c.get('prefixo') == prefixo_safe), None)
+    if not _canal_info or _canal_info.get('total', 0) == 0:
+        return {'error': True, 'message': 'Nenhum vídeo pendente de análise neste projeto.'}
     background_tasks.add_task(_run_summarize, prefixo_safe)
     return {'message': f'Sumarização iniciada para {prefixo_safe}.'}
 
