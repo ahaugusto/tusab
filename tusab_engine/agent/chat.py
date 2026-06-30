@@ -446,10 +446,15 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
             for rid in fts_rowids:
                 if rid < len(chunks_result):
                     # Verifica se chunk já está nos resultados BM25 pelo índice
+                    # Chave robusta: fallback para índice quando titulo/timestamp ausentes
+                    # (docs PDF/texto não têm timestamp — evita colapso de chunks distintos)
+                    c = chunks_result[rid]
+                    chave_titulo = c.get('titulo') or f'chunk_{rid}'
+                    chave_ts     = c.get('timestamp_inicio') if c.get('timestamp_inicio') is not None else ''
                     ja_incluido = any(
-                        r.get('titulo') == chunks_result[rid].get('titulo') and
-                        r.get('timestamp_inicio') == chunks_result[rid].get('timestamp_inicio')
-                        for r in resultados
+                        (r.get('titulo') or f'chunk_{i}') == chave_titulo and
+                        (r.get('timestamp_inicio') if r.get('timestamp_inicio') is not None else '') == chave_ts
+                        for i, r in enumerate(resultados)
                     )
                     if not ja_incluido:
                         # Score simbólico: FTS5 match vale 0.1 (abaixo de qualquer BM25 real)
@@ -684,6 +689,20 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho
     return resposta
 
 
+# Pontuação duplicada que LLMs ocasionalmente emitem ao colar tópicos em sequência
+# (ex.: "**Tópico**: texto.." ou "frase:."). Rede de segurança além da instrução de prompt.
+_RE_PONTUACAO_DUPLICADA = re.compile(r'([.!?]){2,}')
+_RE_DOISPONTOS_PONTO = re.compile(r':\s*\.')
+# "**Tópico**: texto" seguido de novo "**Tópico**" sem quebra de linha → força lista Markdown
+_RE_BOLD_SEM_QUEBRA = re.compile(r'(?<=[a-zÀ-ɏ0-9.)])\s+(?=\*\*[^*\n]+\*\*:)', re.UNICODE)
+
+def _normalizar_markdown(resposta: str) -> str:
+    resposta = _RE_DOISPONTOS_PONTO.sub(':', resposta)
+    resposta = _RE_PONTUACAO_DUPLICADA.sub(r'\1', resposta)
+    resposta = _RE_BOLD_SEM_QUEBRA.sub('\n- ', resposta)
+    return resposta
+
+
 # ── Detecção de trecho injetado ───────────────────────────────────────────────
 
 _RE_TRECHO_INJETADO = re.compile(r'^\[([^\]]+\.(?:txt|pdf|docx|xlsx|csv|md))\]\s*\n(.+)', re.DOTALL | re.IGNORECASE)
@@ -796,7 +815,13 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}, independentemente do idioma das fontes.\n\n"
 
-    fmt_instr = "FORMATO: use parágrafos separados por linha em branco. Cada seção deve começar em uma nova linha.\n\n"
+    fmt_instr = (
+        "FORMATO: escreva em Markdown limpo.\n"
+        "- Parágrafos separados por linha em branco.\n"
+        "- Para listar tópicos, use UMA linha por item começando com \"- \" (lista Markdown) — nunca junte vários tópicos na mesma linha.\n"
+        "- Não repita pontuação (nunca escreva \"..\" ou \":.\" — use apenas \".\" ou \":\").\n"
+        "- Não coloque \":\" logo após um termo em **negrito** seguido de texto na mesma linha de outros tópicos; cada tópico em negrito deve abrir sua própria linha de lista.\n\n"
+    )
 
     if busca_ampla:
         instrucoes = (
@@ -1125,6 +1150,7 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         raise ValueError(f"Provedor desconhecido: {provider}")
 
     resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
+    resposta = _normalizar_markdown(resposta)
 
     if not trecho_mode and intencao == 'CONTEXTO' and ultima:
         fontes = ultima.get('fontes', [])
