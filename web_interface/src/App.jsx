@@ -53,7 +53,7 @@ import VisaoGeralTab            from './components/agent/VisaoGeralTab';
 import MonitorTab               from './components/agent/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
 import LandingScreen            from './components/home/LandingScreen';
-import ChatDrawer               from './components/chat/ChatDrawer';
+import ChatDrawer, { LOADING_PHRASES } from './components/chat/ChatDrawer';
 import HistoricoTab             from './components/agent/HistoricoTab';
 import { DriveToggle }          from './components/sidebar/SidebarContent';
 import CancelQueueModal         from './components/modals/CancelQueueModal';
@@ -71,6 +71,70 @@ function StatusDot({ isRunning, isPaused }) {
   if (!isRunning) return <span className="w-2 h-2 rounded-full bg-slate-500 shrink-0" aria-hidden="true" />;
   if (isPaused)   return <span className="w-2 h-2 rounded-full bg-warning shrink-0" aria-hidden="true" />;
   return              <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" aria-hidden="true" />;
+}
+
+// ─── ChatFloatButton ──────────────────────────────────────────────────────────
+// Botão flutuante do chat com pulso periódico a cada 60s (sem anéis duplos).
+
+function ChatFloatButton({ darkMode, indexed, configured, msgCount, onClick, title }) {
+  const [pulsing, setPulsing] = React.useState(false);
+  React.useEffect(() => {
+    const fire = () => { setPulsing(true); setTimeout(() => setPulsing(false), 900); };
+    const first = setTimeout(fire, 3000);
+    const interval = setInterval(fire, 60000);
+    return () => { clearTimeout(first); clearInterval(interval); };
+  }, []);
+
+  // Verde = base + LLM prontos; âmbar = só base (LLM não configurado); sem badge = nada
+  const badgeColor = indexed && configured ? 'bg-secondary'
+    : indexed && !configured  ? 'bg-amber-400'
+    : null;
+
+  const badgeTitle = indexed && configured ? 'Base indexada e agente configurado'
+    : indexed ? 'Base indexada — configure o agente para conversar'
+    : null;
+
+  const glowBase = darkMode
+    ? '0 0 0 3px rgba(109,40,217,0.25), 0 8px 32px rgba(0,0,0,0.65), 0 2px 8px rgba(109,40,217,0.35)'
+    : '0 0 0 3px rgba(109,40,217,0.12), 0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(109,40,217,0.20)';
+  const glowPulse = darkMode
+    ? '0 0 0 7px rgba(109,40,217,0.4), 0 8px 32px rgba(0,0,0,0.65), 0 4px 20px rgba(109,40,217,0.55)'
+    : '0 0 0 7px rgba(109,40,217,0.22), 0 8px 32px rgba(0,0,0,0.16), 0 4px 20px rgba(109,40,217,0.38)';
+
+  return (
+    <motion.button
+      initial={{ scale: 0, opacity: 0 }}
+      animate={pulsing
+        ? { scale: [1, 1.12, 0.96, 1.06, 1], boxShadow: [glowBase, glowPulse, glowBase] }
+        : { scale: 1, opacity: 1, boxShadow: glowBase }}
+      transition={pulsing
+        ? { duration: 0.75, ease: 'easeInOut' }
+        : { delay: 0.3, type: 'spring', stiffness: 200, opacity: { duration: 0.3 } }}
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="relative w-16 h-16 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+      style={{ boxShadow: glowBase }}>
+      <img
+        src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
+        alt=""
+        className="w-full h-full object-contain rounded-full"
+        draggable={false}
+      />
+      {badgeColor && (
+        <span
+          title={badgeTitle}
+          className={`absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full border-2 ${badgeColor}
+            ${darkMode ? 'border-[#0C1122]' : 'border-white'}`} />
+      )}
+      {msgCount > 0 && (
+        <span className={`absolute top-0 left-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[9px] font-bold text-white border-2
+          ${darkMode ? 'border-[#0C1122]' : 'border-white'}`}>
+          {msgCount}
+        </span>
+      )}
+    </motion.button>
+  );
 }
 
 // ─── App ─────────────────────────────────────────────────────────────────────
@@ -234,7 +298,7 @@ function App() {
     chatOpenRef,
     onPrimeiraFonte: () => setProgressToast({
       type: 'info',
-      message: t('citation.snackbar'),
+      message: LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)],
     }),
   });
 
@@ -251,27 +315,36 @@ function App() {
   const [chatJaAberto, setChatJaAberto] = useState(
     () => localStorage.getItem('tusab_chat_ja_aberto') === '1'
   );
-  // Snack lateral "Pergunte à sua base →" — aparece 4 s após indexação ficar pronta
+  // Snack lateral "Pergunte à sua base →" — convite para o chat
   const [showChatSnack, setShowChatSnack] = useState(false);
-  const chatSnackFiredRef = useRef(false); // dispara no máximo uma vez por sessão
 
-  // Quando o índice fica pronto pela primeira vez na sessão, exibe o snack
+  // Reabre o convite a cada nova indexação concluída (true→false), não só uma vez por sessão —
+  // o usuário deve ser convidado a interagir sempre que houver base nova/atualizada disponível.
   useEffect(() => {
-    if (!agentStatus.indexed) return;
-    if (chatJaAberto) return;
-    if (chatSnackFiredRef.current) return;
-    chatSnackFiredRef.current = true;
+    const wasIndexing = prevIndexingRef.current;
+    if (!wasIndexing || agentStatus.indexing) return;
+    if (!agentStatus.indexed || chatOpen) return;
     setShowChatSnack(true);
     const t = setTimeout(() => setShowChatSnack(false), 10000);
     return () => clearTimeout(t);
-  }, [agentStatus.indexed, chatJaAberto]);
+  }, [agentStatus.indexing, agentStatus.indexed, chatOpen]);
+
+  // Também convida após uma extração terminar (caso a base já esteja indexada e não precise reindexar)
+  useEffect(() => {
+    if (status.stats.status === 'Finalizado ✓' && prevExtractionStatus.current !== 'Finalizado ✓'
+        && agentStatus.indexed && !chatOpen) {
+      setShowChatSnack(true);
+      const t = setTimeout(() => setShowChatSnack(false), 10000);
+      return () => clearTimeout(t);
+    }
+  }, [status.stats.status]);
 
   // Marca como "já aberto" quando o usuário abre o chat pela primeira vez
   const handleOpenChat = useCallback(() => {
     setChatOpen(true);
+    setShowChatSnack(false);
     if (!chatJaAberto) {
       setChatJaAberto(true);
-      setShowChatSnack(false);
       localStorage.setItem('tusab_chat_ja_aberto', '1');
     }
   }, [chatJaAberto]);
@@ -1040,7 +1113,7 @@ function App() {
 
       {/* Progress toast — contextual next-step guidance */}
       <AnimatePresence>
-        {progressToast && !showHome && !showLanding && (
+        {progressToast && !showHome && !showLanding && !(chatOpen && progressToast.type === 'info') && (
           <ProgressToast
             key="progress-toast"
             darkMode={darkMode}
@@ -1049,6 +1122,7 @@ function App() {
             nextStep={progressToast.nextStep}
             onNext={progressToast.onNext}
             onClose={() => setProgressToast(null)}
+            offsetRight={chatOpen ? 440 : 24}
           />
         )}
       </AnimatePresence>
@@ -1767,7 +1841,7 @@ function App() {
 
             {/* Floating chat button */}
             {!chatOpen && (
-              <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+              <div className={`fixed right-6 z-40 flex items-center gap-3 transition-all duration-300 ${activeTab === 'repositorio' ? 'bottom-20' : 'bottom-6'}`}>
                 {/* Snack lateral */}
                 <AnimatePresence>
                   {showChatSnack && (
@@ -1793,43 +1867,15 @@ function App() {
                   )}
                 </AnimatePresence>
 
-                {/* Botão + anel pulsante */}
-                <div className="relative">
-                  {/* Anel ping — visível enquanto indexado e chat nunca aberto */}
-                  {agentStatus.indexed && !chatJaAberto && (
-                    <>
-                      <span className={`absolute inset-0 rounded-full animate-ping opacity-50
-                        ${darkMode ? 'bg-violet-500' : 'bg-violet-400'}`} />
-                      <span className={`absolute inset-0 rounded-full animate-ping opacity-25 animation-delay-300
-                        ${darkMode ? 'bg-violet-400' : 'bg-violet-300'}`}
-                        style={{ animationDelay: '0.4s' }} />
-                    </>
-                  )}
-                  <motion.button
-                    initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
-                    onClick={handleOpenChat}
-                    title={t('chat.open_tooltip')}
-                    className="group relative w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
-                    style={{ boxShadow: darkMode
-                      ? '0 8px 24px 0 rgba(0,0,0,0.55), 0 2px 8px 0 rgba(0,0,0,0.35)'
-                      : '0 8px 24px 0 rgba(0,0,0,0.22), 0 2px 8px 0 rgba(0,0,0,0.12)' }}
-                    aria-label={t('chat.open_tooltip')}>
-                    <img
-                      src={darkMode ? '/chat_btn_dark.svg' : '/chat_btn_light.svg'}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                    {agentStatus.indexed && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-secondary border-2 border-white" />
-                    )}
-                    {chatMessages.filter(m => m.role === 'assistant').length > 0 && (
-                      <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-primary border-2 border-white flex items-center justify-center text-[9px] font-bold text-white">
-                        {chatMessages.filter(m => m.role === 'assistant').length}
-                      </span>
-                    )}
-                  </motion.button>
-                </div>
+                {/* Botão flutuante do chat */}
+                <ChatFloatButton
+                  darkMode={darkMode}
+                  indexed={agentStatus.indexed}
+                  configured={agentStatus.configured}
+                  msgCount={chatMessages.filter(m => m.role === 'assistant').length}
+                  onClick={handleOpenChat}
+                  title={t('chat.open_tooltip')}
+                />
               </div>
             )}
 

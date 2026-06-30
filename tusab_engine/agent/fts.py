@@ -13,12 +13,12 @@ Pipeline de uso:
 Banco de dados: data/indexes/{canal_prefixo}_fts.db (SQLite, criado ao indexar)
 Schema FTS5:
   CREATE VIRTUAL TABLE chunks USING fts5(
-      rowid,          -- índice numérico do chunk no JSON
       texto,          -- texto_original sem enriquecimento KeyBERT
       titulo,
       tags,
       tokenize='unicode61 remove_diacritics 2'
   )
+  -- rowid é implícito no SQLite FTS5 (não declarado como coluna, mas acessível em INSERT/SELECT)
 
 Tokenizador unicode61: suporte nativo a UTF-8, acentos e maiúsculas/minúsculas.
 remove_diacritics=2: trata "ação" e "acao" como equivalentes — busca robusta para
@@ -26,16 +26,21 @@ usuários que digitam sem acentos.
 """
 
 import os
+import re
 import sqlite3
 import threading
 
 from tusab_engine.storage import INDEX_DIR
 
+def _sanitizar_prefixo(canal_prefixo: str) -> str:
+    """Garante que o prefixo não contenha path traversal — defesa em profundidade."""
+    return re.sub(r'[^\w\-]', '_', canal_prefixo)
+
 _fts_lock = threading.Lock()
 
 
 def _fts_path(canal_prefixo: str) -> str:
-    return os.path.join(INDEX_DIR, f"{canal_prefixo}_fts.db")
+    return os.path.join(INDEX_DIR, f"{_sanitizar_prefixo(canal_prefixo)}_fts.db")
 
 
 def construir_fts(canal_prefixo: str, chunks: list) -> None:
