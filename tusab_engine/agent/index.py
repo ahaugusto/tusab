@@ -268,8 +268,10 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
             if tags_m:
                 tags = [t.strip() for t in tags_m.group(1).split(',') if t.strip()]
 
+            texto_limpo = texto[:3000]
             chunks.append({
-                'texto':             texto[:8000],
+                'texto':             _enriquecer_com_keywords(texto_limpo),
+                'texto_original':    texto_limpo,
                 'titulo':            titulo.group(1).strip()   if titulo   else '',
                 'aba':               aba.group(1).strip()      if aba      else 'youtube',
                 'data':              data.group(1).strip()     if data     else '',
@@ -336,19 +338,84 @@ def _parsear_todos_chunks(canal_prefixo: str) -> list:
                     if len(parte) < 80:
                         continue
                     chunks.append({
-                        'texto':     parte,
-                        'titulo':    fname.replace('.txt', ''),
-                        'aba':       aba_label,
-                        'data':      '',
-                        'link':      '',
-                        'tags':      [],
-                        'arquivo':   fname,
-                        'canal':     canal_dir,
-                        'descricao': '',
+                        'texto':          _enriquecer_com_keywords(parte),
+                        'texto_original': parte,
+                        'titulo':         fname.replace('.txt', ''),
+                        'aba':            aba_label,
+                        'data':           '',
+                        'link':           '',
+                        'tags':           [],
+                        'arquivo':        fname,
+                        'canal':          canal_dir,
+                        'descricao':      '',
                     })
             except Exception:
                 pass
     return chunks
+
+
+# ── Enriquecimento KeyBERT ───────────────────────────────────────────────────
+#
+# KeyBERT extrai frases-chave do texto usando embeddings semânticos. Ao appendar
+# essas frases ao texto antes do BM25, aumentamos o recall para consultas que
+# usam sinônimos ou paráfrases do conteúdo original.
+#
+# Lazy load do modelo: carregado na primeira chamada, compartilhado com o CrossEncoder
+# sempre que possível (reutiliza o mesmo all-MiniLM-L6-v2 já baixado).
+# Degradação graciosa: se KeyBERT não estiver instalado ou falhar, retorna texto intacto.
+# O campo `texto_original` preserva o texto limpo para exibição ao usuário no chat.
+
+_keybert_model = None
+_keybert_lock = threading.Lock()
+
+
+def _get_keybert():
+    """Retorna instância KeyBERT (lazy, singleton). Retorna None se indisponível."""
+    global _keybert_model
+    if _keybert_model is not None:
+        return _keybert_model if _keybert_model is not False else None
+    with _keybert_lock:
+        if _keybert_model is not None:
+            return _keybert_model if _keybert_model is not False else None
+        try:
+            from keybert import KeyBERT as _KB
+            # Reutiliza o mesmo modelo do CrossEncoder quando disponível
+            try:
+                from sentence_transformers import SentenceTransformer as _ST
+                _keybert_model = _KB(model=_ST('all-MiniLM-L6-v2'))
+            except Exception:
+                _keybert_model = _KB()
+        except Exception:
+            _keybert_model = False  # sentinel: tentativa feita, indisponível
+    return _keybert_model if _keybert_model else None
+
+
+def _enriquecer_com_keywords(texto: str) -> str:
+    """Extrai top-8 frases-chave e appenda ao texto para melhorar recall BM25.
+
+    Retorna `texto + " " + keywords` se KeyBERT disponível; caso contrário `texto`.
+    Nunca lança exceção — falha silenciosa garante degradação graciosa.
+    """
+    if not texto or len(texto) < 100:
+        return texto
+    kw_model = _get_keybert()
+    if kw_model is None:
+        return texto
+    try:
+        keyphrases = kw_model.extract_keywords(
+            texto[:3000],
+            keyphrase_ngram_range=(1, 2),
+            stop_words=None,   # None é o mais seguro (sem dependência externa de nltk)
+            top_n=8,
+            use_mmr=True,
+            diversity=0.5,
+        )
+        if not keyphrases:
+            return texto
+        kws = ' '.join(kp for kp, _ in keyphrases if kp)
+        return texto + ' ' + kws if kws else texto
+    except Exception:
+        return texto
 
 
 # ── Enriquecimento BM25 ───────────────────────────────────────────────────────
