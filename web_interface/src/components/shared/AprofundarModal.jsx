@@ -81,7 +81,7 @@ function AprofundarModal({ open, darkMode, totalPendente, canais = [], rodando, 
                     {canais.slice(0, 5).map(c => (
                       <li key={c.prefixo} className="flex justify-between">
                         <span className="font-mono truncate max-w-[200px]">{c.prefixo}</span>
-                        <span>{t('aprofundar.n_videos', { count: c.total })}</span>
+                        <span>{t('aprofundar.n_videos', { count: c.pendentes })}</span>
                       </li>
                     ))}
                     {canais.length > 5 && (
