@@ -1050,7 +1050,9 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                     if data.get("fontes"):
                         refs_acumuladas.extend(data["fontes"])
                 except Exception:
-                    pass
+                    # chunk é texto puro (não JSON) — acumula para histórico e last_chat_response
+                    if chunk.strip():
+                        resposta_acumulada.append(chunk)
                 yield chunk + '\n'
         except Exception as e:
             yield json.dumps({'error': str(e)}) + '\n'
