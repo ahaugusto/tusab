@@ -89,6 +89,10 @@ class AppState:
         self.extraction_queue: list = []
         self.queue_lock = threading.Lock()
 
+        # Última resposta completa por canal — usada pelo classificador de intenção
+        # para montar prompt de "CONTEXTO" sem precisar do BM25
+        self.last_chat_response: dict = {}  # canal_prefixo -> {resposta, fontes, pergunta}
+
         # Sumarização assíncrona de vídeos
         self.summarizing: bool = False
         self.summarize_logs: list = []       # [{"timestamp", "message"}]
