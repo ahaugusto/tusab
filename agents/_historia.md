@@ -35,6 +35,7 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.17 | jun 2026 | Fix raiz do onboarding (aria-hidden + autoFocus), CORS dev server, notificações funcionais na aba Admin, FAQ de notificações no help trilíngue |
 | v1.0.18 | jun 2026 | Menu Electron restaurado (Reload/DevTools/Zoom/Fullscreen), versão dinâmica via package.json no preload, CHANGELOG atualizado v1.0.11–v1.0.18 |
 | v1.0.19 | jun 2026 | Shift+C via handleOpenChat (snack removido corretamente), Shift+R fecha HomeScreen, QA expandido com 17 jornadas mapeadas, 5 FAILs documentados |
+| v1.0.23 | jun 2026 | Chunking temporal de vídeos sem capítulos (janelas 120s/overlap 15s), enriquecimento silencioso BM25 via KeyBERT, sumarização LLM por vídeo ("Aprofundar base"), modal pós-config LLM, chunk reduzido 8k→3k chars |
 
 ---
 
@@ -53,6 +54,12 @@ Rate limiting do YouTube é por IP. Extração centralizada = bloqueio garantido
 
 ### BM25 como fundação + CrossEncoder como upgrade
 BM25Okapi (rank_bm25): ~1ms, determinístico, CPU puro, auditável. CrossEncoder (ms-marco-MiniLM-L-6-v2, ~80MB): +236ms, ativado só na Busca Ampla. Decisão de manter BM25 como padrão: velocidade e custo zero para usuários sem paciência para wait. Embeddings vetoriais virão depois (Ollama + nomic-embed-text, P1), como complemento — nunca como substituição obrigatória.
+
+### Enriquecimento KeyBERT + sumarização LLM (jun/2026, v1.0.23)
+Dois níveis de aprimoramento de RAG implementados:
+1. **KeyBERT** (offline, transparente): frases-chave appendadas ao campo `texto` de cada chunk antes de indexar. Campo `texto_original` preserva o texto limpo para exibição. Usa `all-MiniLM-L6-v2` já presente. Sem dependência nova de modelo.
+2. **Sumarização LLM** (opcional, gatilho pós-config): `summarize.py` gera `{tema, subtemas, entidades, conclusao}` por vídeo com timeout 30s. Salvo em `_resumo.json` ao lado do `.txt`. Injetado no prompt antes dos chunks como "Visão geral". Gatilho: usuário salva config LLM → modal "Aprofundar base" oferece processar pendências.
+**Princípio:** nenhuma das duas pode quebrar o produto. Degradação graciosa total — sem KeyBERT ou sem resumo, BM25 e chat funcionam normalmente.
 
 ### Brazil First
 PT como idioma primário. Groq destacado como melhor alternativa gratuita para quem não tem cartão internacional. AUVP como caso de origem e case de referência para B2B Creator (Camada 2).
