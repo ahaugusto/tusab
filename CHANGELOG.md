@@ -10,6 +10,13 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ## [1.0.25] — 2026-06-30
 ### Adicionado
 - **Classificador de intenção no chat** — antes de buscar na base, o LLM classifica a mensagem em BUSCA / CONTEXTO / CONVERSA. Para instruções sobre a resposta anterior ("traduza para inglês", "resume em tópicos", "explica de novo") o BM25 é ignorado e o modelo opera direto sobre o contexto da conversa. Para saudações, responde sem busca. Roda em paralelo com o BM25 — sem latência extra no caso normal. Fallback para BUSCA em qualquer falha.
+- **Dicas de uso nas frases de loading** — 12 novas frases ensinam como perguntar melhor enquanto o modelo processa: perguntas específicas, comparativas, pedindo citação de fonte, pedindo exemplos concretos, usando @fonte para fixar documento.
+- **Placeholder agnóstico no chat** — "Me diga o que você precisa..." em vez de "Pergunte sobre o canal..." — induz o usuário a usar comandos mais diretos e explícitos.
+
+### Corrigido
+- **[CRÍTICO] Stream de chat nunca atualizava contexto** — o `_gen()` do SSE tinha `except: pass` descartando todos os chunks de texto puro; `resposta_acumulada` ficava vazia e o classificador CONTEXTO era completamente inativo. Corrigido para acumular chunks no `except`.
+- **Fallback seguro CONTEXTO→BUSCA** — quando a primeira mensagem da sessão é classificada como CONTEXTO (sem resposta anterior), o sistema faz fallback limpo para BUSCA sem passar `prompt=None` ao LLM.
+- **Stop token `'.'` removido do Ollama** — podia truncar a classificação em `B` antes de completar `BUSCA`; fallback cobre mas era risco desnecessário.
 
 ---
 
