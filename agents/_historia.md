@@ -38,6 +38,7 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.23 | jun 2026 | Chunking temporal de vídeos sem capítulos (janelas 120s/overlap 15s), enriquecimento silencioso BM25 via KeyBERT, sumarização LLM por vídeo ("Aprofundar base"), modal pós-config LLM, chunk reduzido 8k→3k chars |
 | v1.0.24 | jun 2026 | Hotfix: aba "Ferramentas" (Modo Estudo) oculta por timeout 300s em Modo Estudo — toda a sub-aba `funcionalidades` removida temporariamente; `agentInitialSubTab` default corrigido para `'configuracoes'` |
 | v1.0.25 | jun 2026 | Onboarding interativo com OllamaSetup no step 5 (download de modelo sem sair do onboarding); classificador de intenção BUSCA/CONTEXTO/CONVERSA; 12 dicas de como perguntar bem nas frases de loading; placeholder agnóstico |
+| v1.0.26 | jun 2026 | SQLite FTS5 exact-match paralelo ao BM25; 4 fixes de recall BM25 (texto_original, np.max, score>0, deduplicação FTS5); desacoplamento canalChat/canalConfigurado; markdown rendering no chat; modal de base com deselecção total |
 
 ---
 
@@ -113,6 +114,7 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 | `google-generativeai` SDK legado | v1.0.8 | Eliminado do requirements.txt — substituído pelo SDK atual |
 | `allow_origins=["*"]` no CORS | < v1.0.8 | Fix de segurança aplicado em v1.0.8 (12 fixes de segurança nessa sprint) |
 | Pill/segmented control nas sub-abas | v1.0.11 | Inconsistência visual com aba de Extração (que já usava underline). Unificado para `border-b-2` |
+| Score mínimo BM25 adaptativo por tamanho de corpus | v1.0.11–v1.0.26 | Threshold adaptativo (0.15/0.25/0.35/0.5 por corpus size) substituído por `score > 0` + FTS5 como rede de segurança. Qualquer threshold arbitrário corta chunks BM25-legítimos de termos frequentes. A combinação score>0 + FTS5 é mais robusta que qualquer threshold estático ou adaptativo. |
 
 ---
 
@@ -136,6 +138,11 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 | Classificação de intenção paralela ao BM25 | v1.0.25 | Submit do future antes do BM25 → classificação LLM sobreposta com busca local → overhead zero no caso BUSCA (mais comum) |
 | `_intent_executor` module-level | v1.0.25 | `ThreadPoolExecutor` criado uma vez no import do módulo — evita overhead de criação de thread por request no hot path do chat |
 | Frases de loading com dicas de uso | v1.0.25 | Usuário aprende como perguntar melhor enquanto aguarda resposta — zero fricção de onboarding |
+| SQLite FTS5 como camada de exact-match paralela ao BM25 | v1.0.26 | BM25 falha em termos frequentes (IDF baixo) e quando KeyBERT dilui o campo texto. FTS5 com `unicode61 remove_diacritics 2` garante recall de termos literais independente do BM25. Merge: BM25 ranqueia, FTS5 garante que nada óbvio fique de fora. Score simbólico 0.1 para chunks FTS-only mantém CrossEncoder como árbitro final. |
+| `texto_original` para corpus BM25 (não campo KeyBERT) | v1.0.26 | KeyBERT enriquece o índice para cobertura de sinônimos mas inflaciona IDF dos termos originais. BM25 deve receber `texto_original` (sem keywords sintéticas) para scoring preciso. KeyBERT contribui apenas no campo `texto` persistido no índice, não no corpus de scoring em memória. |
+| `np.max` para agregação multi-query (não `np.mean`) | v1.0.26 | Query expansion gera variantes da pergunta; `np.mean` dilui o melhor score quando variantes menos relevantes pontuam baixo. `np.max` preserva o sinal: chunk que responde bem a qualquer variante deve ser recuperado. |
+| Deduplicação FTS5+BM25 com fallback `chunk_{rid}` | v1.0.26 | Docs PDF/texto têm `titulo=None` e `timestamp_inicio=None` — deduplicação por esses campos colapsava chunks distintos. Chave robusta: `titulo or f'chunk_{rid}'`. Descoberto pelo agente de integração antes do merge. |
+| `canalChat` desacoplado de `canalConfigurado` | v1.0.26 | Estado único compartilhado causava conflito: mudar canal de extração resetava base do chat e vice-versa. Separados em dois estados com localStorage distintos (`tusab_canal_chat` / `tusab_canal_configurado`). Extração e chat são fluxos independentes e devem permanecer assim. |
 
 ---
 
@@ -156,6 +163,8 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 13. **`_intent_executor` nunca recriar por request** — `ThreadPoolExecutor` é module-level em `chat.py`; recriá-lo por chamada causaria vazamento de threads e overhead no hot path do chat.
 14. **Chat stream acumula `resposta_acumulada` no `except`** — o stream SSE emite texto puro (não JSON) na maioria dos chunks; `json.loads()` lança, e o `except` deve fazer `resposta_acumulada.append(chunk)` — nunca `pass`. Romper isso torna `last_chat_response` vazio e o classificador CONTEXTO completamente inativo.
 15. **`api_key: '__keep__'` ao salvar config parcial** — ao mudar só `ollama_model` ou `persona`, usar o sentinel `'__keep__'` para não zerar chaves de providers externos. Backend interpreta `'__keep__'` mantendo o valor atual em `agent_config.json`.
+16. **`canalAtualAtivo` no modal de base usa só `canalConfigurado`, sem fallback para `agentStatus.canal_indexado`** — `agentStatus` é estado do servidor e não muda com cliques no modal. Fallback para `agentStatus` impede que desmarcar reflita no visual. Seleção do modal = escolha explícita do usuário, nunca inferida do backend.
+17. **`fts.py/_fts_path` sanitiza `canal_prefixo` localmente** — não depender da sanitização do chamador. `re.sub(r'[^\w\-]', '_', prefixo)` antes de compor o path. Defesa em profundidade contra path traversal mesmo que o router já sanitize.
 
 ---
 
