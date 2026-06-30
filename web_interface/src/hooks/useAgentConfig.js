@@ -47,6 +47,9 @@ export function useAgentConfig({ activeTab, showError }) {
     indexing: false,
     index_logs: [],
     canais_indexados: [],
+    summarizing: false,
+    summarize_progress: 0,
+    summarize_logs: [],
   });
   const [agentProvider,        setAgentProvider]        = useState('gemini');
   const [agentApiKey,          setAgentApiKey]          = useState('');
@@ -150,6 +153,17 @@ export function useAgentConfig({ activeTab, showError }) {
       .catch(() => {});
   }, [activeTab, agentStatus.canal_indexado]);
 
+  // Sincroniza progresso de sumarização com o backend via polling de agentStatus
+  useEffect(() => {
+    if (!aprofundarRodando) return;
+    if (agentStatus.summarizing) {
+      setAprofundarProgresso(agentStatus.summarize_progress ?? 0);
+    } else if (aprofundarProgresso > 0) {
+      setAprofundarProgresso(100);
+      setAprofundarRodando(false);
+    }
+  }, [agentStatus.summarizing, agentStatus.summarize_progress, aprofundarRodando]);
+
   // ─── Handlers ────────────────────────────────────────────────────────────
 
   /** Saves selected Ollama model to config and switches provider to Ollama */
@@ -249,15 +263,10 @@ export function useAgentConfig({ activeTab, showError }) {
     if (aprofundarPendente.canais.length === 0) return;
     setAprofundarRodando(true);
     setAprofundarProgresso(0);
-    const canais = aprofundarPendente.canais;
-    let processados = 0;
-    for (const c of canais) {
+    // Dispara todos os canais; progresso real vem via polling de agentStatus.summarize_progress
+    for (const c of aprofundarPendente.canais) {
       try { await startSummarize(c.prefixo); } catch { /* segue */ }
-      processados++;
-      setAprofundarProgresso(Math.round((processados / canais.length) * 100));
     }
-    setAprofundarProgresso(100);
-    setAprofundarRodando(false);
   };
 
   const handleAprofundarClose = () => {
