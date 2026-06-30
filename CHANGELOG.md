@@ -7,6 +7,28 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.26] — 2026-06-30
+### Adicionado
+- **FTS5 (SQLite) como camada de busca exata** — em paralelo ao BM25, agora existe um índice SQLite FTS5 por canal com tokenizador `unicode61 remove_diacritics 2`; garante recall de termos literalmente presentes mesmo quando o BM25 perde por IDF diluído (ex.: nomes próprios, siglas, termos técnicos raros)
+- **Botão flutuante de chat redesenhado** — glow pulsante a cada 60s, badge de status verde (base + LLM prontos) ou âmbar (base sem LLM), sem os "círculos estranhos" anteriores; posicionado acima do botão de lixeira no Repositório para não sobrepor ações
+- **Renderização Markdown no chat** — `react-markdown` + `remark-gfm` + `remark-breaks`; listas, negrito, tabelas e quebras de linha agora renderizam corretamente
+- **Snack de convite ao chat** — reaparece após cada indexação ou extração concluída (não só uma vez por sessão); frase aleatória das LOADING_PHRASES em vez de texto fixo
+- **Toast de citação desloca com o chat** — `offsetRight` prop em ProgressToast: se o chat está aberto, o toast aparece ao lado (440px da borda) e não sobre o drawer
+
+### Corrigido
+- **4 fixes de recall BM25** — `texto_original` (não enriquecido pelo KeyBERT) usado para scoring; `np.max` em vez de `np.mean` na agregação multi-query; threshold adaptativo substituído por `score > 0`; deduplicação FTS5 com fallback `chunk_{rid}` para docs sem metadados
+- **`canalChat` desacoplado do modal de bases** — `canalAtualAtivo` usa `canalConfigurado || ''` sem fallback para `agentStatus.canal_indexado`; evita trocar a base silenciosamente ao abrir o modal
+- **Modal de bases: desmarcar todas exibe aviso âmbar** — ao desmarcar todos os checkboxes, botão "Confirmar" fica desabilitado e aparece mensagem "Selecione ao menos uma base"
+- **Toasts info suprimidos com chat aberto** — notificações informativas não aparecem sobre o drawer do chat
+- **[Segurança] Path traversal em `fts.py`** — `_sanitizar_prefixo()` remove caracteres fora de `\w-` antes de montar o caminho do banco; defesa em profundidade independente do caller
+
+### Técnico
+- `_normalizar_markdown()` no pipeline de chat (não-streaming): remove pontuação duplicada (`.!?` repetidos), `: .` e converte sequências `**Texto**:` sem quebra de linha em itens de lista
+- Prompt do agente fortalecido: instrução explícita para usar listas Markdown e evitar pontuação dupla
+- `LOADING_PHRASES` exportada como named export de `ChatDrawer.jsx` para uso em App.jsx
+
+---
+
 ## [1.0.25] — 2026-06-30
 ### Adicionado
 - **Classificador de intenção no chat** — antes de buscar na base, o LLM classifica a mensagem em BUSCA / CONTEXTO / CONVERSA. Para instruções sobre a resposta anterior ("traduza para inglês", "resume em tópicos", "explica de novo") o BM25 é ignorado e o modelo opera direto sobre o contexto da conversa. Para saudações, responde sem busca. Roda em paralelo com o BM25 — sem latência extra no caso normal. Fallback para BUSCA em qualquer falha.
