@@ -81,7 +81,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
 
   const handleModelChange = (model) => {
     setOllamaModel(model);
-    saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model }).catch(() => {});
+    saveAgentConfig({ provider: 'ollama', api_key: '__keep__', ollama_model: model }).catch(() => {});
   };
 
   const requestNotifPermission = async () => {
