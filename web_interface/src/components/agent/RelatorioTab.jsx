@@ -9,7 +9,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { fetchRelatorio, limparHistorico } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -26,6 +26,13 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
   const [limparSel,         setLimparSel]         = React.useState({});
   const [limpando,          setLimpando]          = React.useState(false);
   const [showCoberturaInfo, setShowCoberturaInfo] = React.useState(true);
+  const [sortCol,           setSortCol]           = React.useState('Data_Pub');
+  const [sortDir,           setSortDir]           = React.useState('desc');
+
+  const handleSort = col => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
 
   const toggleSel = (prefixo) =>
     setLimparSel(s => ({ ...s, [prefixo]: !s[prefixo] }));
@@ -89,9 +96,9 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
     return [...set].sort();
   }, [videos]);
 
-  // Apply all filters
+  // Apply all filters + sort
   const filtrados = React.useMemo(() => {
-    return videos.filter(v => {
+    const base = videos.filter(v => {
       if (filtroStatus !== 'todos' && v.Status !== filtroStatus) return false;
       if (filtroAba    !== 'todas' && v.Aba    !== filtroAba)    return false;
       if (busca.trim()) {
@@ -100,7 +107,23 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       }
       return true;
     });
-  }, [videos, filtroStatus, filtroAba, busca]);
+
+    return [...base].sort((a, b) => {
+      let va = a[sortCol] ?? '';
+      let vb = b[sortCol] ?? '';
+      // Numeric sort for Views
+      if (sortCol === 'Views') { va = Number(va) || 0; vb = Number(vb) || 0; }
+      // Date sort: DD/MM/YYYY → YYYY-MM-DD for correct string comparison
+      else if (sortCol === 'Data_Pub' || sortCol === 'Data_Extracao') {
+        const toIso = s => { const p = (s || '').split(/[/\-]/); return p.length === 3 ? (s.includes('/') ? `${p[2]}-${p[1]}-${p[0]}` : s) : s; };
+        va = toIso(va); vb = toIso(vb);
+      }
+      else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [videos, filtroStatus, filtroAba, busca, sortCol, sortDir]);
 
   const todosSelected = history.length > 0 && history.every(h => limparSel[h.canal]);
   const algumSelected = history.some(h => limparSel[h.canal]);
@@ -308,13 +331,28 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                 <caption className="sr-only">{t('relatorio.table_caption')}</caption>
                 <thead>
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_title')}</th>
-                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_date')}</th>
-                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Extração</th>
-                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Views</th>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_tab')}</th>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_status')}</th>
-                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Arquivo</th>
+                    {[
+                      { col: 'Titulo',        label: t('relatorio.col_title'),  cls: '' },
+                      { col: 'Data_Pub',      label: t('relatorio.col_date'),   cls: 'whitespace-nowrap' },
+                      { col: 'Data_Extracao', label: 'Extração',                cls: 'whitespace-nowrap' },
+                      { col: 'Views',         label: 'Views',                   cls: 'whitespace-nowrap' },
+                      { col: 'Aba',           label: t('relatorio.col_tab'),    cls: '' },
+                      { col: 'Status',        label: t('relatorio.col_status'), cls: '' },
+                      { col: 'Local',         label: 'Arquivo',                 cls: '' },
+                    ].map(({ col, label, cls }) => (
+                      <th key={col}
+                        onClick={() => handleSort(col)}
+                        className={`text-left px-4 py-2.5 font-bold cursor-pointer select-none group ${cls} ${darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <div className="flex items-center gap-1">
+                          {label}
+                          <span className={`transition-opacity ${sortCol === col ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}>
+                            {sortCol === col
+                              ? (sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)
+                              : <ChevronsUpDown size={11} />}
+                          </span>
+                        </div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
