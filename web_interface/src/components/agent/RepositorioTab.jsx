@@ -25,6 +25,22 @@ function _emojiTipo(item) {
   return '📄';
 }
 
+// Destaca ocorrências do termo no trecho de busca
+function HighlightTrecho({ texto, query, darkMode }) {
+  if (!query || !texto) return <>{texto}</>;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = texto.split(new RegExp(`(${escaped})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase()
+          ? <mark key={i} className={`rounded px-0.5 font-semibold not-italic ${darkMode ? 'bg-amber-400/30 text-amber-200' : 'bg-amber-200 text-amber-900'}`}>{part}</mark>
+          : part
+      )}
+    </>
+  );
+}
+
 // Tipos aceitos para input e drag-drop
 const ACCEPT_TYPES = '.pdf,.docx,.xlsx,.csv,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac';
 
@@ -266,7 +282,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [indexando,      setIndexando]      = React.useState(false);
   const [filaStatus,     setFilaStatus]     = React.useState({});   // { nome: 'aguardando'|'indexando'|'ok'|'erro' }
   const [indexSnackbar,  setIndexSnackbar]  = React.useState(null);
-  const prevIndexingRef = React.useRef(false);
   const [exportando,     setExportando]     = React.useState(false);
   const [importando,     setImportando]     = React.useState(false);
   const [shareSnackbar,  setShareSnackbar]  = React.useState(null);
@@ -338,16 +353,6 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
   const reloadProjetos = () =>
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
-
-  // Detecta fim da indexação via agentStatus e exibe snackbar
-  React.useEffect(() => {
-    const agora = agentStatus?.indexing;
-    if (prevIndexingRef.current && !agora) {
-      setIndexSnackbar(t('repo.index_success'));
-      setTimeout(() => setIndexSnackbar(null), 4000);
-    }
-    prevIndexingRef.current = agora;
-  }, [agentStatus?.indexing]);
 
   // Abrir modal de indexação externamente (ex: vindo do chat)
   React.useEffect(() => {
@@ -1237,7 +1242,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                               </div>
                             )}
                           </div>
-                          <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>…{r.trecho}…</p>
+                          <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>…<HighlightTrecho texto={r.trecho} query={b.query} darkMode={darkMode} />…</p>
                         </div>
                       ))}
                     </div>
@@ -1385,6 +1390,17 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
                 </button>
+                {/* Excluir projeto vazio */}
+                {!readonlyMap[nome] && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setLimparCanalNome(nome); }}
+                    title={t('repo.delete_canal_title', { nome })}
+                    className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-red-400/60 hover:text-red-400 hover:bg-red-400/10' : 'text-red-400 hover:text-red-600 hover:bg-red-50'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                )}
               </div>
               {isOpen && (
                 <div className={`px-4 py-6 flex flex-col items-center gap-3 text-center ${darkMode ? 'bg-white/2' : 'bg-slate-50/50'}`}>

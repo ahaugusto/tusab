@@ -180,6 +180,9 @@ export const listarHistoricosChat = (canal_nome) => axios.get(`${API_BASE}/agent
 /** Lists mentionable items (bases + documents) for @ dropdown in chat */
 export const fetchMencoes = (canal_nome) => axios.get(`${API_BASE}/agent/mencoes/${encodeURIComponent(canal_nome)}`);
 
+/** Lists individual files inside a project for @@ dropdown in chat */
+export const fetchArquivos = (canal_nome) => axios.get(`${API_BASE}/agent/arquivos/${encodeURIComponent(canal_nome)}`);
+
 /** Fetches Ollama service status and installed models */
 export const fetchOllamaStatus = () => axios.get(`${API_BASE}/agent/ollama/status`);
 
