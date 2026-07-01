@@ -310,14 +310,17 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_title')}</th>
                     <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_date')}</th>
+                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Extração</th>
+                    <th className={`text-left px-4 py-2.5 font-bold whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Views</th>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_tab')}</th>
                     <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('relatorio.col_status')}</th>
+                    <th className={`text-left px-4 py-2.5 font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Arquivo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtrados.length === 0 && (
                     <tr>
-                      <td colSpan={4} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <td colSpan={7} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                         {t('relatorio.no_results')}
                       </td>
                     </tr>
@@ -330,22 +333,29 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                           {v.Titulo}
                         </a>
                       </td>
-                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Pub}</td>
+                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Pub || '—'}</td>
+                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Extracao || '—'}</td>
+                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {v.Views ? Number(v.Views).toLocaleString('pt-BR') : '—'}
+                      </td>
                       <td className="px-4 py-2">
-                        {v.Aba && (
+                        {v.Aba ? (
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
                             ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
                             {v.Aba.startsWith('Playlist:') ? '▶ ' + v.Aba.replace('Playlist: ', '') : v.Aba}
                           </span>
-                        )}
+                        ) : '—'}
                       </td>
                       <td className="px-4 py-2">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold
                           ${v.Status === 'Sucesso' ? (darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700')
                           : v.Status === 'Sem Legenda' ? (darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500')
                           : darkMode ? 'bg-warning/15 text-warning' : 'bg-amber-100 text-amber-700'}`}>
-                          {v.Status}
+                          {v.Status || '—'}
                         </span>
+                      </td>
+                      <td className={`px-4 py-2 whitespace-nowrap font-mono text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                        {v.Local || '—'}
                       </td>
                     </tr>
                   ))}
