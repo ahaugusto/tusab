@@ -600,6 +600,20 @@ function ChatDrawer({
                         </button>
                       )}
                     </>
+                  ) : precisaSelecionarBase ? (
+                    <>
+                      <Database size={32} className={darkMode ? 'text-amber-500/50' : 'text-amber-400/60'} aria-hidden="true" />
+                      <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                        {t('chat.select_base_to_start', 'Você tem várias bases indexadas. Escolha uma para começar a conversa.')}
+                      </p>
+                      <button
+                        onClick={() => setShowBaseModal(true)}
+                        className={`mt-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
+                          ${darkMode ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}>
+                        <Database size={13} aria-hidden="true" />
+                        {t('chat.select_base_link')}
+                      </button>
+                    </>
                   ) : !temBase ? (
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
