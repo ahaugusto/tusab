@@ -366,134 +366,192 @@ def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dic
 
 _PERFIS_RERANK = {'pesquisador', 'profissional'}  # slug 'profissional' = Especialista na UI
 
-def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '') -> list:
+# Cache de corpus merged: keyed por frozenset de (prefixo, mtime) de todos os projetos.
+# Evita reconstruir o BM25 unificado a cada query quando os índices não mudaram.
+_merged_cache: dict = {}
+_merged_lock = __import__('threading').Lock()
+
+
+def _carregar_projeto_cache(prefixo: str) -> dict | None:
+    """Carrega (ou retorna do cache) o índice de um projeto. Retorna None se não existir."""
     from rank_bm25 import BM25Okapi
-
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    idx_path      = _index_path(canal_prefixo)
-
+    idx_path = _index_path(prefixo)
     if not os.path.exists(idx_path):
-        raise ValueError(f"Índice não encontrado para '{canal_nome}'. Clique em Indexar Agora.")
-
+        return None
     mtime = os.path.getmtime(idx_path)
-
     with _bm25_lock:
-        cached = _bm25_cache.get(canal_prefixo)
-
+        cached = _bm25_cache.get(prefixo)
         if cached is None or cached['mtime'] != mtime:
             try:
                 with open(idx_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 chunks = data['chunks']
                 if not isinstance(chunks, list) or not chunks:
-                    raise ValueError("índice sem chunks")
+                    return None
             except (json.JSONDecodeError, KeyError, ValueError, TypeError):
-                raise ValueError(
-                    f"O índice de '{canal_nome}' está corrompido ou vazio. "
-                    f"Vá em Configurar Agente e clique em 'Indexar Agora' para recriá-lo."
-                )
+                return None
             corpus = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', '')) for c in chunks]
-            _bm25_cache[canal_prefixo] = {
-                'chunks': chunks,
-                'bm25':   BM25Okapi(corpus),
-                'mtime':  mtime,
-            }
+            _bm25_cache[prefixo] = {'chunks': chunks, 'bm25': BM25Okapi(corpus), 'mtime': mtime}
+        return _bm25_cache[prefixo]
 
-        cached = _bm25_cache[canal_prefixo]
+
+def _obter_corpus_merged(prefixos: list[str]) -> dict | None:
+    """Constrói (ou retorna do cache) um BM25 unificado sobre todos os prefixos.
+
+    Quando há múltiplos projetos, indexar separadamente torna os scores BM25
+    incomparáveis — um corpus de 400 chunks tem IDF muito menor que um de 50.
+    O merge resolve isso: todos os chunks entram no mesmo vocabulário, os scores
+    são calculados sobre o mesmo IDF global e o CrossEncoder reordena com justiça.
+    """
+    from rank_bm25 import BM25Okapi
+
+    projetos = []
+    cache_key_parts = []
+    for prefixo in prefixos:
+        c = _carregar_projeto_cache(prefixo)
+        if c:
+            projetos.append((prefixo, c))
+            cache_key_parts.append((prefixo, c['mtime']))
+
+    if not projetos:
+        return None
+
+    cache_key = frozenset(cache_key_parts)
+    with _merged_lock:
+        if cache_key in _merged_cache:
+            return _merged_cache[cache_key]
+
+        # Concatena todos os chunks marcando a origem de cada um
+        chunks_merged = []
+        for prefixo, c in projetos:
+            for chunk in c['chunks']:
+                chunks_merged.append({**chunk, '_prefixo': prefixo})
+
+        corpus_merged = [
+            _enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', ''))
+            for c in chunks_merged
+        ]
+        bm25_merged = BM25Okapi(corpus_merged)
+        entry = {'chunks': chunks_merged, 'bm25': bm25_merged}
+        _merged_cache[cache_key] = entry
+        # Limita o cache a 8 corpora merged para não explodir memória
+        if len(_merged_cache) > 8:
+            oldest = next(iter(_merged_cache))
+            del _merged_cache[oldest]
+        return entry
+
+
+def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '') -> list:
+    import numpy as np
+
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+
+    # Separa fontes_fixadas em três categorias:
+    #   @@pasta/arquivo.txt  → arquivo específico (@ no chat → dropdown de arquivos)
+    #   @@fts:termo          → busca por termo/título (@@ no chat → FTS5 direto)
+    #   @projeto             → base inteira de outro projeto (legado)
+    #   arquivo.txt          → arquivo sem prefixo (retrocompat)
+    fts_termos    = [f[6:] for f in (fontes_fixadas or []) if f.startswith('@@fts:')]
+    arquivos_fixados = [f[2:].split('/', 1)[-1] for f in (fontes_fixadas or [])
+                        if f.startswith('@@') and not f.startswith('@@fts:')]
+    if not arquivos_fixados and not fts_termos:
+        arquivos_fixados = [f for f in (fontes_fixadas or []) if not f.startswith('@')]
+    bases_fixadas = [f[1:] for f in (fontes_fixadas or []) if f.startswith('@') and not f.startswith('@@')]
 
     usar_expansion = config.get('query_expansion', False) if config else False
     queries = _expandir_query(pergunta, config) if (config and usar_expansion) else [pergunta]
 
-    import numpy as np
-
-    # Separa fontes_fixadas em bases (@canal) e arquivos individuais
-    bases_fixadas   = [f[1:] for f in (fontes_fixadas or []) if f.startswith('@')]
-    arquivos_fixados = [f for f in (fontes_fixadas or []) if not f.startswith('@')]
-
-    # Filtra chunks pelos arquivos fixados (se houver)
-    chunks_ativos = cached['chunks']
-    if arquivos_fixados:
-        chunks_ativos = [c for c in chunks_ativos if c.get('arquivo', '') in arquivos_fixados]
-
-    def _scores_para_queries(bm25_obj, qs, indices_ativos):
-        """Roda BM25 para os índices ativos e retorna scores mapeados."""
+    def _scores_para_queries(bm25_obj, qs):
         all_s = [bm25_obj.get_scores(q.lower().split()) for q in qs]
-        scores_full = np.max(all_s, axis=0) if len(all_s) > 1 else all_s[0]
-        return scores_full
+        return np.max(all_s, axis=0) if len(all_s) > 1 else all_s[0]
 
-    scores_full = _scores_para_queries(cached['bm25'], queries, [])
-
-    # Aplica filtragem: usa só os índices dos chunks ativos
-    if arquivos_fixados and chunks_ativos:
-        chunk_indices = [i for i, c in enumerate(cached['chunks']) if c.get('arquivo', '') in arquivos_fixados]
-        top_idx = sorted(chunk_indices, key=lambda i: scores_full[i], reverse=True)[:n]
-    else:
-        top_idx = sorted(range(len(scores_full)), key=lambda i: scores_full[i], reverse=True)[:n]
-
-    resultados = [
-        {**cached['chunks'][i], 'score': round(float(scores_full[i]), 3), 'canal': canal_nome}
-        for i in top_idx if scores_full[i] > 0
+    # ── Modo unificado: corpus merged quando há múltiplos projetos ────────────
+    # Constrói um único BM25 sobre todos os chunks de todos os projetos ativos.
+    # Scores são comparáveis porque o IDF é calculado sobre o vocabulário completo.
+    todos_projetos = [canal_prefixo] + [
+        re.sub(r'[<>:"/\\|?*\s]', '_', e).strip('_')
+        for e in (canais_extras or []) if e != canal_nome
     ]
 
-    # FTS5 exact-match: garante que termos literais nunca sejam perdidos.
-    # Roda em paralelo ao BM25 e mescla candidatos novos (não duplicados).
-    try:
-        from tusab_engine.agent.fts import buscar_fts, fts_existe
-        if fts_existe(canal_prefixo):
-            fts_rowids = buscar_fts(pergunta, canal_prefixo, n=n)
-            ids_ja_incluidos = {id(r) for r in resultados}
-            chunks_result = cached['chunks']
-            for rid in fts_rowids:
-                if rid < len(chunks_result):
-                    # Verifica se chunk já está nos resultados BM25 pelo índice
-                    # Chave robusta: fallback para índice quando titulo/timestamp ausentes
-                    # (docs PDF/texto não têm timestamp — evita colapso de chunks distintos)
-                    c = chunks_result[rid]
-                    chave_titulo = c.get('titulo') or f'chunk_{rid}'
-                    chave_ts     = c.get('timestamp_inicio') if c.get('timestamp_inicio') is not None else ''
-                    ja_incluido = any(
-                        (r.get('titulo') or f'chunk_{i}') == chave_titulo and
-                        (r.get('timestamp_inicio') if r.get('timestamp_inicio') is not None else '') == chave_ts
-                        for i, r in enumerate(resultados)
-                    )
-                    if not ja_incluido:
-                        # Score simbólico: FTS5 match vale 0.1 (abaixo de qualquer BM25 real)
-                        # para que o CrossEncoder reordene semanticamente depois
-                        resultados.append({
-                            **chunks_result[rid],
-                            'score': 0.1,
-                            'canal': canal_nome,
-                            'fts_match': True,
-                        })
-    except Exception:
-        pass
+    if len(todos_projetos) > 1 and not arquivos_fixados:
+        merged = _obter_corpus_merged(todos_projetos)
+        if merged is None:
+            raise ValueError(f"Índice não encontrado para '{canal_nome}'. Clique em Indexar Agora.")
 
-    if canais_extras:
-        for canal_extra in canais_extras:
-            if canal_extra == canal_nome:
-                continue
-            try:
-                prefixo_extra = re.sub(r'[<>:"/\\|?*\s]', '_', canal_extra).strip('_')
-                idx_extra = _index_path(prefixo_extra)
-                if not os.path.exists(idx_extra):
-                    continue
-                mtime_e = os.path.getmtime(idx_extra)
-                with _bm25_lock:
-                    cached_e = _bm25_cache.get(prefixo_extra)
-                    if cached_e is None or cached_e['mtime'] != mtime_e:
-                        with open(idx_extra, 'r', encoding='utf-8') as f:
-                            data_e = json.load(f)
-                        chunks_e = data_e['chunks']
-                        corpus_e = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', '')) for c in chunks_e]
-                        _bm25_cache[prefixo_extra] = {'chunks': chunks_e, 'bm25': BM25Okapi(corpus_e), 'mtime': mtime_e}
-                    cached_e = _bm25_cache[prefixo_extra]
-                scores_e = _scores_para_queries(cached_e['bm25'], queries, [])
-                top_e = sorted(range(len(scores_e)), key=lambda i: scores_e[i], reverse=True)[:3]
-                for i in top_e:
-                    if scores_e[i] > 0:
-                        resultados.append({**cached_e['chunks'][i], 'score': round(float(scores_e[i]), 3), 'canal': canal_extra})
-            except Exception:
-                pass
+        scores = _scores_para_queries(merged['bm25'], queries)
+        # Recupera top-2n para o CrossEncoder ter candidatos suficientes de todos os projetos
+        top_n = n * 2
+        top_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_n]
+        resultados = [
+            {**merged['chunks'][i], 'score': round(float(scores[i]), 3),
+             'canal': merged['chunks'][i].get('_prefixo', canal_prefixo)}
+            for i in top_idx if scores[i] > 0
+        ]
+        # Normaliza '_prefixo' → nome legível do projeto
+        prefixo_para_nome = {canal_prefixo: canal_nome}
+        for extra in (canais_extras or []):
+            p = re.sub(r'[<>:"/\\|?*\s]', '_', extra).strip('_')
+            prefixo_para_nome[p] = extra
+        for r in resultados:
+            r['canal'] = prefixo_para_nome.get(r['canal'], r['canal'])
+        resultados.sort(key=lambda x: x['score'], reverse=True)
+
+    else:
+        # ── Modo single: BM25 no projeto principal (comportamento original) ───
+        cached = _carregar_projeto_cache(canal_prefixo)
+        if cached is None:
+            raise ValueError(f"Índice não encontrado para '{canal_nome}'. Clique em Indexar Agora.")
+
+        chunks_ativos = cached['chunks']
+        if arquivos_fixados:
+            chunks_ativos = [c for c in chunks_ativos if c.get('arquivo', '') in arquivos_fixados]
+
+        # @@fts:termo — filtra chunks por título/label que contenha o termo
+        if fts_termos:
+            termos_lower = [t.lower() for t in fts_termos]
+            chunks_fts = [c for c in cached['chunks']
+                          if any(t in (c.get('titulo', '') or c.get('arquivo', '')).lower() for t in termos_lower)]
+            if chunks_fts:
+                chunks_ativos = chunks_fts
+
+        scores_full = _scores_para_queries(cached['bm25'], queries)
+
+        if (arquivos_fixados or fts_termos) and chunks_ativos:
+            chunk_indices = [i for i, c in enumerate(cached['chunks']) if c in chunks_ativos]
+            top_idx = sorted(chunk_indices, key=lambda i: scores_full[i], reverse=True)[:n]
+        else:
+            top_idx = sorted(range(len(scores_full)), key=lambda i: scores_full[i], reverse=True)[:n]
+
+        resultados = [
+            {**cached['chunks'][i], 'score': round(float(scores_full[i]), 3), 'canal': canal_nome}
+            for i in top_idx if scores_full[i] > 0
+        ]
+
+        # FTS5 exact-match no projeto principal
+        try:
+            from tusab_engine.agent.fts import buscar_fts, fts_existe
+            if fts_existe(canal_prefixo):
+                fts_rowids = buscar_fts(pergunta, canal_prefixo, n=n)
+                chunks_result = cached['chunks']
+                for rid in fts_rowids:
+                    if rid < len(chunks_result):
+                        c = chunks_result[rid]
+                        chave_titulo = c.get('titulo') or f'chunk_{rid}'
+                        chave_ts     = c.get('timestamp_inicio') if c.get('timestamp_inicio') is not None else ''
+                        ja_incluido = any(
+                            (r.get('titulo') or f'chunk_{i}') == chave_titulo and
+                            (r.get('timestamp_inicio') if r.get('timestamp_inicio') is not None else '') == chave_ts
+                            for i, r in enumerate(resultados)
+                        )
+                        if not ja_incluido:
+                            resultados.append({
+                                **chunks_result[rid],
+                                'score': 0.1,
+                                'canal': canal_nome,
+                                'fts_match': True,
+                            })
+        except Exception:
+            pass
 
     resultados.sort(key=lambda x: x['score'], reverse=True)
 
@@ -558,22 +616,25 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     # Fallback: garante ao menos 1 chunk em corpora muito pequenos
     if not top and resultados:
         top = resultados[:1]
-    elif not top and cached['chunks']:
+    elif not top and 'cached' in locals() and cached and cached.get('chunks'):
         top = [{**cached['chunks'][0], 'score': 0.0, 'canal': canal_nome}]
 
     return top
 
 
-def buscar_trechos(query: str, canais: list, n: int = 8, busca_ampla: bool = True) -> list:
+def buscar_trechos(query: str, canais: list = None, n: int = 8, busca_ampla: bool = True, projetos: list = None) -> list:
     """Pipeline completo de recuperação (BM25 + query expansion + CrossEncoder) sem gerar resposta.
 
     Retorna lista de chunks ranqueados prontos para o usuário selecionar e injetar no chat.
     Cada item: {titulo, texto_original, score, canal, aba, link, data, arquivo, timestamp_inicio}
+    `projetos` é o nome novo para o parâmetro; `canais` mantido para retrocompatibilidade.
     """
     config = carregar_config()
     resultados = []
+    # Normaliza: projetos tem prioridade sobre canais (legado)
+    lista_projetos = projetos if projetos is not None else (canais or [])
 
-    for canal_nome in canais:
+    for canal_nome in lista_projetos:
         try:
             chunks = _recuperar_contexto(
                 pergunta=query,
@@ -911,10 +972,25 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
 # ── Resposta sem contexto ────────────────────────────────────────────────────
 
 _SAUDACOES = {
-    'oi', 'olá', 'ola', 'opa', 'eai', 'e ai', 'e aí',
-    'boa tarde', 'bom dia', 'boa noite', 'boa',
-    'tudo bem', 'tudo bom', 'como vai', 'como você vai',
-    'hello', 'hi', 'hey', 'good morning', 'good afternoon',
+    # PT-BR
+    'oi', 'olá', 'ola', 'opa', 'eai', 'e ai', 'e aí', 'ei',
+    'bom dia', 'boa tarde', 'boa noite', 'boa',
+    'tudo bem', 'tudo bom', 'tudo certo', 'tudo ótimo', 'tudo otimo',
+    'como vai', 'como você está', 'como voce esta', 'como você tá', 'como voce ta',
+    'como está', 'como ta', 'como tá', 'e então', 'e entao',
+    'salve', 'salve salve', 'fala', 'fala aí', 'fala ai',
+    # EN
+    'hello', 'hi', 'hey', 'howdy', 'greetings',
+    'good morning', 'good afternoon', 'good evening', 'good night',
+    'how are you', 'how are you doing', "how's it going", 'how is it going',
+    "what's up", 'whats up', 'sup',
+    # ES
+    'hola', 'buenas', 'buenos días', 'buenos dias',
+    'buenas tardes', 'buenas noches',
+    'cómo estás', 'como estas', 'cómo está', 'como esta',
+    'qué tal', 'que tal', 'qué hay', 'que hay',
+    'saludos', 'hey', 'ey',
+    # Neutras (qualquer idioma)
     'teste', 'test', 'ping', 'ok', 'okay',
 }
 
@@ -1060,7 +1136,9 @@ def _fallback_sem_contexto(canal_nome: str) -> str:
 
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
-def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '') -> dict:
+def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '') -> dict:
+    canal_nome = projeto_nome          # alias interno — não altera o restante do código
+    canais_extras = projetos_extras or []
     config   = carregar_config()
     provider = config.get('provider', '')
     if not provider or (not _api_key_valida(config) and provider != 'ollama'):
@@ -1100,8 +1178,13 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         ultima = _state.last_chat_response.get(canal_prefixo, {})
 
         if intencao == 'CONTEXTO' and not ultima:
-            # Primeira mensagem da sessão — sem resposta anterior; trata como BUSCA
             intencao = 'BUSCA'
+
+        # Saudações conhecidas são sempre CONVERSA — mesmo sem histórico o classificador
+        # retorna BUSCA por design, mas "oi"/"olá" nunca deve disparar BM25 nem mostrar fontes.
+        pergunta_lower_strip = pergunta.strip().lower().rstrip('!?.')
+        if pergunta_lower_strip in _SAUDACOES:
+            intencao = 'CONVERSA'
 
         if intencao == 'CONTEXTO':
             # Bypass total do BM25 — opera sobre a resposta anterior
@@ -1233,8 +1316,10 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
 
 # ── Chat (streaming) ──────────────────────────────────────────────────────────
 
-def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = ''):
+def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = ''):
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
+    canal_nome = projeto_nome          # alias interno — não altera o restante do código
+    canais_extras = projetos_extras or []
     config = carregar_config()
     if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') != 'ollama'):
         yield json.dumps({'error': 'Configure a chave de API antes de usar o chat.'})
@@ -1276,8 +1361,13 @@ def chat_stream(pergunta: str, canal_nome: str, historico: list = None, canais_e
         ultima = _state.last_chat_response.get(canal_prefixo, {})
 
         if intencao == 'CONTEXTO' and not ultima:
-            # Primeira mensagem da sessão — sem resposta anterior; trata como BUSCA
             intencao = 'BUSCA'
+
+        # Saudações conhecidas são sempre CONVERSA — mesmo sem histórico o classificador
+        # retorna BUSCA por design, mas "oi"/"olá" nunca deve disparar BM25 nem mostrar fontes.
+        pergunta_lower_strip = pergunta.strip().lower().rstrip('!?.')
+        if pergunta_lower_strip in _SAUDACOES:
+            intencao = 'CONVERSA'
 
         if intencao == 'CONTEXTO':
             contexto = []
