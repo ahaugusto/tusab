@@ -7,6 +7,23 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.27] — 2026-07-01
+### Adicionado
+- **Menção `@arquivo` no chat** — digitar `@` abre dropdown com todos os arquivos do projeto ativo (YouTube, documentos, textos); selecionar fixa o arquivo como filtro BM25 — o LLM lê apenas chunks daquele arquivo
+- **Menção `@@busca` no chat** — digitar `@@termo` (mín. 2 chars) executa busca BM25 real na base, igual à busca do Repositório; resultados aparecem no dropdown com o termo destacado em âmbar; selecionar injeta o trecho como contexto fixo
+- **Chips de arquivo na bolha da mensagem** — arquivos/trechos fixados via `@`/`@@` aparecem como chips coloridos acima do texto na bolha do usuário (âmbar para `@`, ciano para `@@`), tornando o contexto referenciado visível
+- **Highlight de termo nos resultados de busca do Repositório** — o termo buscado aparece destacado com fundo âmbar e negrito dentro de cada trecho encontrado
+
+### Corrigido
+- **Fila de chat: resposta aparecia na mensagem errada** — `setChatMessages` usava posição `msgs.length-1` e atingia a mensagem enfileirada. Fix: `streamId` único por envio; todas as atualizações usam identidade (`_streamId === streamId`) em vez de posição
+- **Saudações traziam fontes irrelevantes** — `_SAUDACOES` expandido para PT-BR/EN/ES; verificação pós-classificador força `CONVERSA` mesmo quando o LLM retorna `BUSCA` para inputs curtos
+- **Fontes exibidas mesmo sem contexto** — frontend agora suprime o bloco de fontes quando `sem_contexto: true`, independente de o array `fontes` estar preenchido
+- **`/agent/arquivos` retornava vazio** — endpoint não percorria subdiretórios de `youtube/` (estrutura real: `youtube/NomeCanal/*.txt`); corrigido para percorrer um nível de subpastas
+- **`NameError` no fallback multi-projeto** — `cached` não era definido no caminho merged (`len(todos_projetos) > 1`); corrigido com `'cached' in locals()` antes de acessar
+- **`AttributeError` em `_meta.json` malformado** — validação de schema (`isinstance(data, dict)`) antes de usar como mapa de títulos
+
+---
+
 ## [1.0.26] — 2026-06-30
 ### Adicionado
 - **FTS5 (SQLite) como camada de busca exata** — em paralelo ao BM25, agora existe um índice SQLite FTS5 por canal com tokenizador `unicode61 remove_diacritics 2`; garante recall de termos literalmente presentes mesmo quando o BM25 perde por IDF diluído (ex.: nomes próprios, siglas, termos técnicos raros)
