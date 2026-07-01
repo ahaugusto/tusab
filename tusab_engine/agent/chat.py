@@ -441,7 +441,23 @@ def _obter_corpus_merged(prefixos: list[str]) -> dict | None:
         return entry
 
 
-def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '') -> list:
+def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '', trechos_fixados: list = None) -> list:
+    # Trechos fixados via @@ já passaram pelo pipeline BM25+CrossEncoder no momento da busca.
+    # Retorná-los diretamente evita dupla pesquisa e garante que o LLM vê exatamente o que o usuário selecionou.
+    if trechos_fixados:
+        return [
+            {
+                'texto_original': t.get('texto', ''),
+                'texto':          t.get('texto', ''),
+                'titulo':         t.get('titulo', t.get('arquivo', '')),
+                'arquivo':        t.get('arquivo', t.get('titulo', '')),
+                'canal':          canal_nome,
+                'score':          1.0,
+                'aba':            'documento',
+            }
+            for t in trechos_fixados if t.get('texto')
+        ]
+
     import numpy as np
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
@@ -1136,7 +1152,7 @@ def _fallback_sem_contexto(canal_nome: str) -> str:
 
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
-def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '') -> dict:
+def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None) -> dict:
     canal_nome = projeto_nome          # alias interno — não altera o restante do código
     canais_extras = projetos_extras or []
     config   = carregar_config()
@@ -1167,6 +1183,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
                 pergunta, canal_nome, n=n_chunks, config=config,
                 canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
                 busca_ampla=busca_ampla, perfil=perfil,
+                trechos_fixados=trechos_fixados or [],
             )
         except Exception:
             contexto_bm25 = []
@@ -1185,6 +1202,10 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
         pergunta_lower_strip = pergunta.strip().lower().rstrip('!?.')
         if pergunta_lower_strip in _SAUDACOES:
             intencao = 'CONVERSA'
+
+        # Trechos fixados pelo usuário (@@): forçar BUSCA para não descartar o contexto
+        if trechos_fixados and intencao != 'CONTEXTO':
+            intencao = 'BUSCA'
 
         if intencao == 'CONTEXTO':
             # Bypass total do BM25 — opera sobre a resposta anterior
@@ -1316,7 +1337,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
 
 # ── Chat (streaming) ──────────────────────────────────────────────────────────
 
-def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = ''):
+def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None):
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
     canal_nome = projeto_nome          # alias interno — não altera o restante do código
     canais_extras = projetos_extras or []
@@ -1349,6 +1370,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 pergunta, canal_nome, n=n_chunks, config=config,
                 canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
                 busca_ampla=busca_ampla, perfil=perfil,
+                trechos_fixados=trechos_fixados or [],
             )
         except Exception as e:
             yield json.dumps({'error': str(e)})
@@ -1368,6 +1390,10 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         pergunta_lower_strip = pergunta.strip().lower().rstrip('!?.')
         if pergunta_lower_strip in _SAUDACOES:
             intencao = 'CONVERSA'
+
+        # Trechos fixados pelo usuário (@@): forçar BUSCA para não descartar o contexto
+        if trechos_fixados and intencao != 'CONTEXTO':
+            intencao = 'BUSCA'
 
         if intencao == 'CONTEXTO':
             contexto = []

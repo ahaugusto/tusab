@@ -113,6 +113,7 @@ class AgentChatRequest(BaseModel):
     projetos_extras:  list = []
     busca_ampla:      bool = False
     fontes_fixadas:   list = []
+    trechos_fixados:  list = []
     perfil:           str  = Field(default='', max_length=30)
     # campos legados — aceitos mas normalizados via model_validator:
     canal_nome:     str  = Field(default="", max_length=120)
@@ -180,6 +181,7 @@ class AgentChatStreamRequest(BaseModel):
     projetos_extras:  list = []
     busca_ampla:      bool = False
     fontes_fixadas:   list = []
+    trechos_fixados:  list = []
     perfil:           str  = Field(default='', max_length=30)
     # campos legados — aceitos mas normalizados via model_validator:
     canal_nome:     str  = Field(default="", max_length=120)
@@ -1199,7 +1201,7 @@ def agent_chat(req: AgentChatRequest):
         with state.agent_chat_lock:
             with state.hist_lock:
                 hist = list(state.chat_histories.get(req.projeto_nome, []))
-            resultado = agent_tusab.chat(mensagem, req.projeto_nome, hist, req.projetos_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''))
+            resultado = agent_tusab.chat(mensagem, req.projeto_nome, hist, req.projetos_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''), getattr(req, 'trechos_fixados', []))
             if not resultado.get("error"):
                 novo_hist = hist + [
                     {"role": "user",      "content": mensagem},
@@ -1238,7 +1240,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 
     def _gen():
         try:
-            for chunk in agent_tusab.chat_stream(mensagem, req.projeto_nome, hist, req.projetos_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', '')):
+            for chunk in agent_tusab.chat_stream(mensagem, req.projeto_nome, hist, req.projetos_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''), getattr(req, 'trechos_fixados', [])):
                 try:
                     data = json.loads(chunk)
                     if data.get("texto"):
