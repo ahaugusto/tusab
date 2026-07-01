@@ -240,7 +240,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled, projetoInicial, onProjetoInicialHandled, buscaInicial, onBuscaInicialHandled }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onAnexarArquivo, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled, projetoInicial, onProjetoInicialHandled, buscaInicial, onBuscaInicialHandled }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -1225,22 +1225,22 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                             <p className={`text-[11px] font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                               {r.tipo === 'youtube' ? '🎬' : r.tipo === 'documento' ? '📄' : '📝'} {r.arquivo}
                             </p>
-                            {onInjetarContexto && (
-                              <div className="flex gap-1 shrink-0">
+                            <div className="flex gap-1 shrink-0">
+                              {onInjetarContexto && (
                                 <button onClick={() => onInjetarContexto(r.trecho, r.arquivo)}
                                   title={t('repo.inject_excerpt_title')}
                                   className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors ${darkMode ? 'bg-secondary/20 text-secondary hover:bg-secondary/30' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                                   {t('repo.inject_excerpt_btn')}
                                 </button>
-                                <button onClick={async () => {
-                                    try { const res = await lerArquivo(r.caminho); if (res.data?.ok) onInjetarContexto(res.data.conteudo, r.arquivo); } catch {}
-                                  }}
-                                  title={t('repo.inject_file_title')}
-                                  className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors ${darkMode ? 'bg-white/10 text-slate-400 hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
+                              )}
+                              {onAnexarArquivo && (
+                                <button onClick={() => onAnexarArquivo(r.arquivo, r.tipo)}
+                                  title="Anexar arquivo ao chat"
+                                  className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors ${darkMode ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}>
                                   {t('repo.inject_file_btn')}
                                 </button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                           <p className={`text-[11px] leading-relaxed italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>…<HighlightTrecho texto={r.trecho} query={b.query} darkMode={darkMode} />…</p>
                         </div>
