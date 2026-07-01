@@ -1179,14 +1179,26 @@ def agent_summarize_cancel():
 def agent_canal_delete(canal_nome: str):
     import re as _re
     canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    idx_path = agent_tusab._index_path(canal_prefixo)
     agent_tusab._invalidar_cache(canal_prefixo)
+    # Remove índice BM25 se existir
+    idx_path = agent_tusab._index_path(canal_prefixo)
     if os.path.exists(idx_path):
-        os.remove(idx_path)
-        config = agent_tusab.carregar_config()
-        if config.get('canal_indexado') == canal_nome:
-            config['canal_indexado'] = ''
-            agent_tusab.salvar_config(config)
-        return {"ok": True}
-    return {"error": True, "message": "Índice não encontrado"}
+        try:
+            os.remove(idx_path)
+        except Exception:
+            pass
+    # Remove banco FTS5 se existir
+    from tusab_engine.agent.fts import _fts_path, _sanitizar_prefixo
+    fts_path = _fts_path(canal_prefixo)
+    if os.path.exists(fts_path):
+        try:
+            os.remove(fts_path)
+        except Exception:
+            pass
+    # Limpa config se este era o canal ativo
+    config = agent_tusab.carregar_config()
+    if config.get('canal_indexado') == canal_nome:
+        config['canal_indexado'] = ''
+        agent_tusab.salvar_config(config)
+    return {"ok": True}
 
