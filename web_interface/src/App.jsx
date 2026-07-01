@@ -1700,6 +1700,16 @@ function App() {
                     setChatInput(prev => (prev ? prev + '\n\n' : '') + `[${arquivo}]\n${trecho}`);
                     setChatOpen(true);
                   }}
+                  onAnexarArquivo={(arquivo, tipo) => {
+                    setFontesFixadas(prev => {
+                      const sub = tipo === 'documento' ? 'documents' : tipo === 'texto' ? 'texts' : 'youtube';
+                      const emoji = tipo === 'documento' ? '📄' : tipo === 'texto' ? '📝' : '🎬';
+                      const id = `@@${sub}/${arquivo}`;
+                      if (prev.some(f => f.id === id)) return prev;
+                      return [...prev, { tipo: 'arquivo', id, label: arquivo.replace('.txt','').replace(/_/g,' '), emoji, arquivo, _modo: '@' }];
+                    });
+                    setChatOpen(true);
+                  }}
                   onIndexar={handleIndexarDoChat}
                   agentStatus={agentStatus}
                   openIndexar={repoIndexarOpen}
