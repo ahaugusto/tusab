@@ -785,6 +785,8 @@ def cerebro_limpar(req: LimparRequest):
                 if entry.is_dir():
                     canal_paths.append(entry.path)
 
+    excluir_pasta = req.canal and req.youtube and req.documentos and req.textos
+
     for canal_path in canal_paths:
         if req.youtube:
             # Nova estrutura: youtube/{canal_slug}/*.txt — apaga em cada subpasta de canal
@@ -803,6 +805,14 @@ def cerebro_limpar(req: LimparRequest):
             deletados['documentos'] += _limpar_dir(os.path.join(canal_path, 'documents'))
         if req.textos:
             deletados['textos']     += _limpar_dir(os.path.join(canal_path, 'texts'))
+
+        # Exclusão total do projeto: remove a pasta inteira quando todas as fontes são limpas
+        if excluir_pasta:
+            try:
+                import shutil as _shutil
+                _shutil.rmtree(canal_path, ignore_errors=True)
+            except Exception:
+                pass
 
     if req.youtube:
         deletados['youtube']    += _limpar_dir(motor_tusab.LOCAL_TXT_DIR)

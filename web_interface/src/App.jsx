@@ -1806,7 +1806,7 @@ function App() {
               onSend={handleChatSend}
               onRecriarIndice={handleAgentIndex}
               onClearHistory={() => {
-                const canal = agentStatus.canal_indexado || canalChat;
+                const canal = canalChat || agentStatus.canal_indexado;
                 if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
               }}
               agentStatus={agentStatus}
