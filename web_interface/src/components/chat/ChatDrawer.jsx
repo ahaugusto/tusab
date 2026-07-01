@@ -1303,14 +1303,6 @@ function ChatDrawer({
         {(agentStatus?.canal_indexado || canalConfigurado) && (
           <>
             <button
-              onClick={() => { setReferenciarQuery(chatInput.trim()); setShowReferenciarModal(true); }}
-              aria-label="Referenciar trecho no chat"
-              title="Referenciar trecho no chat"
-              className={`shrink-0 p-1.5 rounded-lg transition-colors
-                ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
-              <Search size={13} aria-hidden="true" />
-            </button>
-            <button
               onClick={() => anexoInputRef.current?.click()}
               disabled={anexoLoading}
               aria-label={t('chat.attach_aria')}

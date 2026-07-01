@@ -46,8 +46,12 @@ function Fetch($method, $path, $body = $null) {
         $reader = New-Object System.IO.StreamReader($resp.GetResponseStream(), [System.Text.Encoding]::UTF8)
         return @{ status = [int]$resp.StatusCode; body = $reader.ReadToEnd() }
     } catch [System.Net.WebException] {
-        $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-        return @{ status = [int]$_.Exception.Response.StatusCode; body = $reader.ReadToEnd() }
+        $errResp = $_.Exception.Response
+        if ($errResp -ne $null) {
+            $reader = New-Object System.IO.StreamReader($errResp.GetResponseStream(), [System.Text.Encoding]::UTF8)
+            return @{ status = [int]$errResp.StatusCode; body = $reader.ReadToEnd() }
+        }
+        return @{ status = 0; body = "connection error: $($_.Exception.Message)" }
     }
 }
 
@@ -200,16 +204,29 @@ if ($r.status -eq 200 -and $r.body -notmatch '"api_key":"[^"*]{5,}"') {
 
 section "Chat"
 
-$chatBody = '{"mensagem":"Smoke test.","canal_nome":"CanaldoEslen","historico":[],"canais_extras":[],"busca_ampla":false}'
-$r = Fetch "POST" "/agent/chat" $chatBody
+$chatBody = '{"mensagem":"Smoke test.","canal_nome":"smoke_test_canal","historico":[],"canais_extras":[],"busca_ampla":false}'
+$req2 = [System.Net.HttpWebRequest]::Create("$API/agent/chat")
+$req2.Method = "POST"; $req2.Timeout = 90000
+$bytes2 = [System.Text.Encoding]::UTF8.GetBytes($chatBody)
+$req2.ContentType = "application/json; charset=utf-8"; $req2.ContentLength = $bytes2.Length
+$s2 = $req2.GetRequestStream(); $s2.Write($bytes2, 0, $bytes2.Length); $s2.Close()
+$r = try {
+    $resp2 = $req2.GetResponse()
+    $rd2 = New-Object System.IO.StreamReader($resp2.GetResponseStream(), [System.Text.Encoding]::UTF8)
+    @{ status = [int]$resp2.StatusCode; body = $rd2.ReadToEnd() }
+} catch [System.Net.WebException] {
+    $errR = $_.Exception.Response
+    if ($errR) { $rd2 = New-Object System.IO.StreamReader($errR.GetResponseStream(), [System.Text.Encoding]::UTF8); @{ status = [int]$errR.StatusCode; body = $rd2.ReadToEnd() } }
+    else { @{ status = 0; body = "timeout or connection error" } }
+}
 if ($r.status -eq 200 -and $r.body -match '"resposta"') {
     ok "/agent/chat retornou resposta"
     $parsed = $r.body | ConvertFrom-Json
-    info "Reply: $($parsed.resposta.Substring(0,[Math]::Min(80,$parsed.resposta.Length)))"
+    if ($parsed.resposta) { info "Reply: $($parsed.resposta.Substring(0,[Math]::Min(80,$parsed.resposta.Length)))" }
 } elseif ($r.status -eq 200 -and $r.body -match '"error":true') {
     ok "/agent/chat retornou erro esperado (canal sem indice -- comportamento correto)"
     info $r.body.Substring(0,[Math]::Min(100,$r.body.Length))
-} else { fail "/agent/chat $($r.status): $($r.body.Substring(0,[Math]::Min(80,$r.body.Length)))" }
+} else { fail "/agent/chat status=$($r.status) body=$($r.body.Substring(0,[Math]::Min(80,$r.body.Length)))" }
 
 section "Frontend"
 
