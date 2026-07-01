@@ -7,6 +7,15 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.30] — 2026-07-01
+### Adicionado
+- **`@@` injeta trecho diretamente no LLM** — trechos selecionados via `@@busca` no chat são enviados como contexto fixo, sem re-processar pelo BM25. O LLM vê exatamente o trecho que o usuário selecionou no dropdown. Campo `trechos_fixados` adicionado ao contrato do endpoint `/agent/chat/stream`.
+
+### Corrigido
+- **Banner de atualização do app** — ao detectar nova versão disponível, mostra "Baixando automaticamente…" + link "Baixar manualmente" (GitHub Releases) como fallback. Quando o download termina, botão muda para "Instalar e reiniciar" com instrução clara. Removida mensagem contraditória "Feche o app para instalar automaticamente" quando o botão já executa a instalação.
+
+---
+
 ## [1.0.28] — 2026-07-01
 ### Corrigido
 - **`+ Arquivo` no Repositório vira chip no chat** — botão agora adiciona o arquivo como chip âmbar de contexto fixado (mesmo comportamento do `@` no chat), em vez de injetar o conteúdo completo no input. Suporta YouTube, documentos e textos. Chat abre automaticamente com o chip visível.
