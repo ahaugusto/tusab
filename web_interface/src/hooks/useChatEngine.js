@@ -172,15 +172,21 @@ export function useChatEngine({
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', fontes: [], streaming: true, _streamId: streamId }]);
 
     try {
-      const idsFixados = fontesFixadas.map(f => f.id);
+      const idsFixados     = fontesFixadas.filter(f => !f.trecho).map(f => f.id);
+      const trechosFixados = fontesFixadas.filter(f => f.trecho).map(f => ({
+        texto:   f.trecho,
+        titulo:  f.label,
+        arquivo: f.arquivo || f.label,
+      }));
       setFontesFixadas([]);
       const response = await sendChatStream({
-        mensagem:       msg,
-        canal_nome:     canalConfigurado || agentStatus.canal_indexado,
-        canais_extras:  canaisExtras,
-        busca_ampla:    buscaAmpla,
-        fontes_fixadas: idsFixados,
-        perfil:         perfil,
+        mensagem:        msg,
+        canal_nome:      canalConfigurado || agentStatus.canal_indexado,
+        canais_extras:   canaisExtras,
+        busca_ampla:     buscaAmpla,
+        fontes_fixadas:  idsFixados,
+        trechos_fixados: trechosFixados.length > 0 ? trechosFixados : undefined,
+        perfil:          perfil,
       });
 
       const reader  = response.body.getReader();
