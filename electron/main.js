@@ -407,6 +407,7 @@ async function createWindow () {
       preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration:  false,
+      sandbox:          false,  // preload precisa de require() para Node built-ins no Electron 20+
     },
   })
 
@@ -541,6 +542,7 @@ function openHelpWindow () {
       preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration:  false,
+      sandbox:          false,  // preload precisa de require() para Node built-ins no Electron 20+
     },
   })
   helpWindow.loadFile(path.join(__dirname, 'help.html'))
