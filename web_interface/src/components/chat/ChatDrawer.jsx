@@ -14,7 +14,7 @@ import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 export const LOADING_PHRASES = [
@@ -159,7 +159,7 @@ function useLoadingPhrase(active) {
  * @param {boolean}  props.chatLoading         - true while streaming a response
  * @param {Function} props.onSend             - callback to send the current message
  * @param {Object}   props.agentStatus         - agent status including indexed/canal_indexado
- * @param {string}   props.canalConfigurado    - currently configured canal name
+ * @param {string}   props.projetoSelecionado   - currently selected project name
  * @param {Object}   props.canalMeta           - canal metadata (handle etc.)
  * @param {React.RefObject} props.chatEndRef   - ref to scroll anchor at end of messages
  * @param {boolean}  props.buscaAmpla          - enables broader LLM knowledge beyond indexed base
@@ -183,15 +183,15 @@ function ChatDrawer({
   onClearHistory,
   onRecriarIndice,
   agentStatus,
-  canalConfigurado,
-  onSelectCanal,
+  projetoSelecionado,
+  onSelectProjeto,
   canalMeta,
   chatEndRef,
   buscaAmpla,
   setBuscaAmpla,
   canaisExtraidos,
-  canaisExtras,
-  setCanaisExtras,
+  projetosExtras,
+  setProjetosExtras,
   onIndexar,
   fontesFixadas,
   setFontesFixadas,
@@ -243,11 +243,13 @@ function ChatDrawer({
   const [anexoLoading, setAnexoLoading] = useState(false);
   const anexoInputRef = useRef(null);
 
+  // @ mention — arquivo específico dentro do projeto ativo
   const [mencaoQuery,       setMencaoQuery]       = useState('');
-  const [mencaoItens,       setMencaoItens]       = useState({ bases: [], documentos: [] });
+  const [mencaoItens,       setMencaoItens]       = useState([]);   // lista de arquivos
   const [showMencao,        setShowMencao]        = useState(false);
   const [mencaoLoading,     setMencaoLoading]     = useState(false);
-  const mencaoStartRef = useRef(-1);
+  const mencaoStartRef    = useRef(-1);
+  const mencaoModoRef     = useRef('@');  // '@' | '@@'
   const textareaRef = useRef(null);
   const [copiedIdx,         setCopiedIdx]         = useState(null);
   const [fontePreview,      setFontePreview]      = useState(null); // { titulo, trecho, link, data, arquivo }
@@ -272,7 +274,7 @@ function ChatDrawer({
   const MIN_CHARS_EXPORT = 200;
 
   const handleAnexo = useCallback(async (arquivo) => {
-    const canal = agentStatus?.canal_indexado || canalConfigurado;
+    const canal = agentStatus?.canal_indexado || projetoSelecionado;
     if (!canal) return;
     setAnexoLoading(true);
     // Mensagem de status no chat
@@ -304,7 +306,7 @@ function ChatDrawer({
     } finally {
       setAnexoLoading(false);
     }
-  }, [agentStatus, canalConfigurado, setChatMessages]);
+  }, [agentStatus, projetoSelecionado, setChatMessages]);
 
   const triggerDownload = useCallback(async (responsePromise, filename) => {
     try {
@@ -344,37 +346,31 @@ function ChatDrawer({
     prevChatInputRef.current = chatInput;
   }, [chatInput]);
 
-  // Exibe snackbar sempre que uma indexação terminar (detectado no hook, via contador)
-  useEffect(() => {
-    if (indexingDoneCount === 0) return;
-    setIndexSnackbar({ msg: t('chat.index_success'), type: 'ok' });
-    const timer = setTimeout(() => setIndexSnackbar(null), 7000);
-    return () => clearTimeout(timer);
-  }, [indexingDoneCount, t]);
-
   const loadingPhrase = useLoadingPhrase(chatLoading);
-  const canaisIndexadosTodos = agentStatus.canais_indexados || [];
-  // Filtra índices órfãos (n_arquivos_fonte === 0 significa que a fonte sumiu)
-  const canaisIndexados = canaisIndexadosTodos.filter(c => (c.n_arquivos_fonte ?? 1) > 0);
-  const nomesIndexados = new Set(canaisIndexados.map(c => c.nome));
-  const temBase = canaisIndexados.length > 0;
+  const projetosIndexadosTodos = agentStatus.canais_indexados || [];
+  // Filtra índices órfãos (n_arquivos_fonte === 0 significa que a fonte sumiu) — para auto-select e contagem
+  const projetosIndexados = projetosIndexadosTodos.filter(c => (c.n_arquivos_fonte ?? 1) > 0);
+  const nomesIndexados    = new Set(projetosIndexados.map(c => c.nome));
+  // Para validar seleção explícita do usuário, aceita qualquer projeto que tenha índice (mesmo sem fonte detectada)
+  const nomesTodosIndexados = new Set(projetosIndexadosTodos.map(c => c.nome));
+  const temBase = projetosIndexadosTodos.length > 0;
   // Auto-seleciona apenas quando há exatamente 1 base com fonte e nenhuma foi configurada
-  const canalAutoUnico = !canalConfigurado && canaisIndexados.length === 1 ? canaisIndexados[0].nome : null;
+  const projetoAutoUnico = !projetoSelecionado && projetosIndexados.length === 1 ? projetosIndexados[0].nome : null;
   // canal_indexado do backend só vale se ainda estiver na lista de índices válidos
-  const canalIndexadoValido = nomesIndexados.has(agentStatus.canal_indexado) ? agentStatus.canal_indexado : null;
-  // canalConfigurado só vale se ainda estiver indexado — evita chip fantasma após exclusão
-  const canalConfiguradoValido = nomesIndexados.has(canalConfigurado) ? canalConfigurado : null;
-  const canalAtivo = canalConfiguradoValido || canalAutoUnico || canalIndexadoValido;
-  // Requer seleção explícita quando há mais de uma base disponível com fonte
-  const precisaSelecionarBase = !canalConfiguradoValido && canaisIndexados.length > 1;
-  const chatHabilitado = temBase && !!canalAtivo && !precisaSelecionarBase;
+  const projetoIndexadoValido = nomesTodosIndexados.has(agentStatus.canal_indexado) ? agentStatus.canal_indexado : null;
+  // projetoSelecionado só vale se ainda estiver indexado — evita chip fantasma após exclusão
+  const projetoSelecionadoValido = nomesTodosIndexados.has(projetoSelecionado) ? projetoSelecionado : null;
+  const projetoAtivo = projetoSelecionadoValido || projetoAutoUnico || projetoIndexadoValido;
+  // Requer seleção explícita quando há mais de uma base disponível
+  const precisaSelecionarBase = !projetoSelecionadoValido && projetosIndexadosTodos.length > 1;
+  const chatHabilitado = temBase && !!projetoAtivo && !precisaSelecionarBase;
 
-  // Limpa canalConfigurado se ele não está mais indexado (base excluída ou índice removido)
+  // Limpa projetoSelecionado se ele não está mais indexado (base excluída ou índice removido)
   useEffect(() => {
-    if (canalConfigurado && nomesIndexados.size > 0 && !nomesIndexados.has(canalConfigurado)) {
-      onSelectCanal?.('');
+    if (projetoSelecionado && nomesTodosIndexados.size > 0 && !nomesTodosIndexados.has(projetoSelecionado)) {
+      onSelectProjeto?.('');
     }
-  }, [canalConfigurado, agentStatus.canais_indexados]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projetoSelecionado, agentStatus.canais_indexados]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Abre modal de seleção de base automaticamente — apenas na primeira vez que o chat abre
   // com múltiplas bases e nenhuma selecionada. Não reabre se o usuário já dispensou.
@@ -387,50 +383,101 @@ function ChatDrawer({
       setShowBaseModal(true);
     }
   }, [precisaSelecionarBase, chatOpen]);
+  // Invalida cache de arquivos quando o projeto ativo muda
+  useEffect(() => { mencaoArquivosRef.current = []; setMencaoItens([]); }, [projetoAtivo]);
+
   // Ollama selecionado mas não detectado — sem provider externo configurado
   const ollamaNaoDisponivel = agentProvider === 'ollama' && !ollamaStatus?.running;
   // Ollama rodando mas nenhum modelo baixado ainda
   const ollamaSemModelo = agentProvider === 'ollama' && ollamaStatus?.running && !(ollamaStatus?.models?.length > 0);
 
-  // Handler de @mention: detecta @ no input e busca itens mencionáveis
+  // Cache dos arquivos do projeto para @/@@
+  const mencaoArquivosRef = useRef([]);
+
+  // Handler de @mention e @@mention
+  // @      → lista todos os arquivos do projeto ativo (filtrada por query enquanto digita)
+  // @@termo → filtra arquivos cujo label/título contém o termo
   const handleInputChange = async (e) => {
     const val = e.target.value;
     setChatInput(val);
     const cursor = e.target.selectionStart;
-    // Busca @ mais próximo antes do cursor
     const beforeCursor = val.slice(0, cursor);
-    const atIdx = beforeCursor.lastIndexOf('@');
-    if (atIdx >= 0) {
-      const query = beforeCursor.slice(atIdx + 1);
-      // Só abre dropdown se não tiver espaço após o @
-      if (!query.includes(' ')) {
-        mencaoStartRef.current = atIdx;
-        setMencaoQuery(query);
-        setShowMencao(true);
-        if (canalAtivo && mencaoItens.bases.length === 0 && mencaoItens.documentos.length === 0) {
-          setMencaoLoading(true);
-          try {
-            const r = await fetchMencoes(canalAtivo);
-            setMencaoItens(r.data);
-          } catch { /* silencioso */ }
-          finally { setMencaoLoading(false); }
-        }
-        return;
+
+    // Detecta @@ antes de @ (evitar falso positivo no segundo @)
+    const dblIdx = beforeCursor.lastIndexOf('@@');
+    const sglIdx = beforeCursor.lastIndexOf('@');
+    const isDouble = dblIdx >= 0 && (sglIdx === dblIdx || sglIdx === dblIdx + 1);
+    const triggerIdx = isDouble ? dblIdx : sglIdx;
+    const modo = isDouble ? '@@' : '@';
+
+    if (triggerIdx < 0) { setShowMencao(false); return; }
+
+    const query = beforeCursor.slice(triggerIdx + modo.length);
+    // Fecha se houver espaço (fim da palavra de menção)
+    if (query.includes(' ')) { setShowMencao(false); return; }
+
+    mencaoStartRef.current = triggerIdx;
+    mencaoModoRef.current  = modo;
+    setMencaoQuery(query);
+    setShowMencao(true);
+
+    if (!projetoAtivo) return;
+
+    // Carrega lista de arquivos — usa cache (mencaoArquivosRef) para não re-fetch a cada tecla
+    if (mencaoArquivosRef.current.length === 0) {
+      setMencaoLoading(true);
+      try {
+        const r = await fetchArquivos(projetoAtivo);
+        mencaoArquivosRef.current = r.data?.arquivos || [];
+      } catch { /* silencioso */ }
+      finally { setMencaoLoading(false); }
+    }
+
+    if (modo === '@') {
+      // @ → lista arquivos do projeto, filtrados pela query digitada após @
+      const todos = mencaoArquivosRef.current;
+      setMencaoItens(
+        query
+          ? todos.filter(a => a.label.toLowerCase().includes(query.toLowerCase()))
+          : todos
+      );
+    } else {
+      // @@ → busca BM25 real na base (igual busca do Repositório) — mín 2 chars
+      if (query.length < 2) {
+        setMencaoItens([]);
+      } else {
+        setMencaoLoading(true);
+        try {
+          const r = await buscarTrechos(query, [projetoAtivo], 8, false);
+          const trechos = r.data?.trechos || [];
+          setMencaoItens(trechos.map(t => ({
+            tipo:    'trecho',
+            id:      `@@fts:${t.arquivo}:${t.titulo || t.arquivo}`,
+            label:   t.titulo || t.arquivo,
+            emoji:   '🎬',
+            arquivo: t.arquivo,
+            trecho:  t.texto_original || t.texto,
+            _query:  query,
+          })));
+        } catch { setMencaoItens([]); }
+        finally { setMencaoLoading(false); }
       }
     }
-    setShowMencao(false);
   };
 
   const handleSelecionarMencao = (item) => {
     const start = mencaoStartRef.current;
+    const modo  = mencaoModoRef.current;
     if (start < 0) return;
-    // Já está fixada?
     const jaFixada = (fontesFixadas || []).some(f => f.id === item.id);
     if (!jaFixada && setFontesFixadas) {
-      setFontesFixadas(prev => [...prev, item]);
+      setFontesFixadas(prev => [...prev, { ...item, _modo: modo }]);
     }
-    // Remove @query do input
-    const novoTexto = chatInput.slice(0, start) + chatInput.slice(chatInput.indexOf(' ', start + 1) < 0 ? chatInput.length : chatInput.indexOf(' ', start + 1));
+    // Remove o trigger (@query ou @@query) do input
+    const endIdx = chatInput.indexOf(' ', start + modo.length) < 0
+      ? chatInput.length
+      : chatInput.indexOf(' ', start + modo.length);
+    const novoTexto = chatInput.slice(0, start) + chatInput.slice(endIdx);
     setChatInput(novoTexto.trim() ? novoTexto : '');
     setShowMencao(false);
     mencaoStartRef.current = -1;
@@ -438,14 +485,8 @@ function ChatDrawer({
   };
 
   const itensFiltrados = mencaoQuery
-    ? [
-        ...(mencaoItens.bases || []).filter(b => b.label.toLowerCase().includes(mencaoQuery.toLowerCase())),
-        ...(mencaoItens.documentos || []).filter(d => d.label.toLowerCase().includes(mencaoQuery.toLowerCase())),
-      ]
-    : [
-        ...(mencaoItens.bases || []),
-        ...(mencaoItens.documentos || []),
-      ];
+    ? mencaoItens.filter(it => it.label.toLowerCase().includes(mencaoQuery.toLowerCase()))
+    : mencaoItens;
 
   // Conteúdo interno compartilhado entre drawer e modo expandido
   const conteudo = (onFechar) => (<>
@@ -462,9 +503,9 @@ function ChatDrawer({
             <Database size={9} />
             {t('chat.select_base_link')}
           </button>
-        ) : canalAtivo && (() => {
-          const principal = canalAtivo;
-          const extras = (canaisExtras || []).filter(e => nomesIndexados.has(e));
+        ) : projetoAtivo && (() => {
+          const principal = projetoAtivo;
+          const extras = (projetosExtras || []).filter(e => nomesTodosIndexados.has(e));
           const todas = extras.length > 0
             ? [principal, ...extras].filter(Boolean)
             : null;
@@ -473,9 +514,9 @@ function ChatDrawer({
               <p className={`text-[10px] cursor-default ${darkMode ? 'text-primary/80' : 'text-primary'}`}>
                 {t('chat.active_bases', { count: todas.length })}
               </p>
-              {canalConfiguradoValido && (
+              {projetoSelecionadoValido && (
                 <button
-                  onClick={() => { onSelectCanal?.(''); setCanaisExtras?.([]); }}
+                  onClick={() => { onSelectProjeto?.(''); setProjetosExtras?.([]); }}
                   title={t('chat.remove_base_aria', 'Remover base')}
                   className={`rounded p-0.5 transition-colors ${darkMode ? 'text-primary/50 hover:text-primary hover:bg-white/10' : 'text-primary/50 hover:text-primary hover:bg-violet-100'}`}>
                   <X size={9} />
@@ -495,9 +536,9 @@ function ChatDrawer({
           ) : (
             <span className="flex items-center gap-0.5">
               <p className={`text-[10px] truncate max-w-[120px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`} title={`@${principal}`}>@{principal}</p>
-              {canalConfiguradoValido && (
+              {projetoSelecionadoValido && (
                 <button
-                  onClick={() => { onSelectCanal?.(''); setCanaisExtras?.([]); }}
+                  onClick={() => { onSelectProjeto?.(''); setProjetosExtras?.([]); }}
                   title={t('chat.remove_base_aria', 'Remover base')}
                   className={`ml-0.5 rounded p-0.5 transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200'}`}>
                   <X size={9} />
@@ -716,7 +757,7 @@ function ChatDrawer({
                         )}
                       </AnimatePresence>
                     </>
-                  ) : canaisIndexados.length === 0 && !canalAtivo ? (
+                  ) : projetosIndexados.length === 0 && !projetoAtivo ? (
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
@@ -736,17 +777,17 @@ function ChatDrawer({
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {(canaisExtras || []).length > 0
-                          ? t('agent.chat_empty_ready_multi', { count: (canaisExtras || []).length + 1 })
-                          : t('agent.chat_empty_ready', { canal: canalAtivo })}
+                        {(projetosExtras || []).length > 0
+                          ? t('agent.chat_empty_ready_multi', { count: (projetosExtras || []).length + 1 })
+                          : t('agent.chat_empty_ready', { canal: projetoAtivo })}
                       </p>
 
                       {/* ── Chips das bases ativas ── */}
                       {(() => {
-                        const todasAtivas = [...new Set([canalAtivo, ...(canaisExtras || [])].filter(Boolean))];
-                        const nomesIndexados = new Set(canaisIndexados.map(c => c.nome));
+                        const todasAtivas = [...new Set([projetoAtivo, ...(projetosExtras || [])].filter(Boolean))];
+                        const nomesIndexados = new Set(projetosIndexados.map(c => c.nome));
                         const desatualizadas = new Set(agentStatus.bases_desatualizadas || []);
-                        // Nunca indexadas: ativas mas fora de canaisIndexados
+                        // Nunca indexadas: ativas mas fora de projetosIndexados
                         const naoIndexadas = todasAtivas.filter(n => !nomesIndexados.has(n));
                         // Indexadas mas com arquivos mais novos
                         const comArquivosNovos = todasAtivas.filter(n => desatualizadas.has(n));
@@ -757,7 +798,7 @@ function ChatDrawer({
                               <div className="flex flex-wrap gap-1.5 justify-center">
                                 {todasAtivas.map(nome => {
                                   const problema = comProblema.has(nome);
-                                  const isExtra = (canaisExtras || []).includes(nome);
+                                  const isExtra = (projetosExtras || []).includes(nome);
                                   return (
                                     <span key={nome}
                                       title={problema ? (naoIndexadas.includes(nome) ? 'Esta base ainda não foi indexada' : 'Há arquivos novos não indexados') : ''}
@@ -774,7 +815,7 @@ function ChatDrawer({
                                       @{nome}
                                       {isExtra && (
                                         <button
-                                          onClick={() => setCanaisExtras(prev => (prev || []).filter(n => n !== nome))}
+                                          onClick={() => setProjetosExtras(prev => (prev || []).filter(n => n !== nome))}
                                           title={`Remover @${nome}`}
                                           className={`ml-0.5 rounded-full hover:opacity-80 transition-opacity leading-none ${problema ? 'text-amber-400' : 'text-primary'}`}>
                                           ×
@@ -823,13 +864,13 @@ function ChatDrawer({
                         );
                       })()}
 
-                      {canaisIndexados.length > 1 && (
+                      {projetosIndexados.length > 1 && (
                         <button onClick={() => setShowBaseModal(true)}
                           className={`text-[10px] underline ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                           {t('chat.switch_base')}
                         </button>
                       )}
-                      {agentStatus?.perguntas_sugeridas?.length > 0 && (!canaisExtras || canaisExtras.length === 0) && (
+                      {agentStatus?.perguntas_sugeridas?.length > 0 && (!projetosExtras || projetosExtras.length === 0) && (
                         <div className="w-full mt-3 space-y-1.5">
                           <p className={`text-[10px] font-semibold text-center uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                             {t('chat.suggested_questions')}
@@ -902,7 +943,24 @@ function ChatDrawer({
                             ? (darkMode ? 'bg-danger/15 border border-danger/30 text-danger' : 'bg-red-50 text-red-700 border border-red-200') + ' rounded-bl-sm'
                             : (darkMode ? 'bg-white/8 border border-white/10 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm') + ' rounded-bl-sm'}`}>
                         {msg.role === 'user' ? (
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <>
+                            {msg.anexos && msg.anexos.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-1.5">
+                                {msg.anexos.map(a => (
+                                  <span key={a.id} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border
+                                    ${a._modo === '@@'
+                                      ? darkMode ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300' : 'bg-cyan-50 border-cyan-300 text-cyan-700'
+                                      : darkMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-700'
+                                    }`}>
+                                    <span>{a.emoji}</span>
+                                    <span className="font-mono opacity-70 text-[9px]">{a._modo || '@'}</span>
+                                    <span className="max-w-[140px] truncate">{a.label}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          </>
                         ) : (
                           <>
                           <div className="markdown-body">
@@ -951,7 +1009,7 @@ function ChatDrawer({
                                     onClick={() => {
                                       const pergunta = i > 0 ? chatMessages[i - 1]?.content || '' : '';
                                       setFeedbackMap(prev => ({ ...prev, [i]: 'up' }));
-                                      enviarFeedback(canalAtivo || agentStatus.canal_indexado, pergunta, msg.content, true).catch(() => {});
+                                      enviarFeedback(projetoAtivo || agentStatus.canal_indexado, pergunta, msg.content, true).catch(() => {});
                                     }}
                                     className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-slate-300 hover:text-emerald-600 hover:bg-emerald-50'}`}>
                                     <ThumbsUp size={11} />
@@ -961,7 +1019,7 @@ function ChatDrawer({
                                     onClick={() => {
                                       const pergunta = i > 0 ? chatMessages[i - 1]?.content || '' : '';
                                       setFeedbackMap(prev => ({ ...prev, [i]: 'down' }));
-                                      enviarFeedback(canalAtivo || agentStatus.canal_indexado, pergunta, msg.content, false).catch(() => {});
+                                      enviarFeedback(projetoAtivo || agentStatus.canal_indexado, pergunta, msg.content, false).catch(() => {});
                                     }}
                                     className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-600 hover:text-red-400 hover:bg-red-500/10' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`}>
                                     <ThumbsDown size={11} />
@@ -974,7 +1032,7 @@ function ChatDrawer({
                         )}
                         {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && (
                           <button
-                            onClick={() => onRecriarIndice(canalAtivo)}
+                            onClick={() => onRecriarIndice(projetoAtivo)}
                             className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100 transition-opacity">
                             <RefreshCw size={9} aria-hidden="true" />
                             {t('agent.rebuild_index')}
@@ -1012,7 +1070,7 @@ function ChatDrawer({
                             </button>
                           </div>
                         )}
-                        {msg.fontes && msg.fontes.length > 0 && !msg.streaming && (
+                        {msg.fontes && msg.fontes.length > 0 && !msg.streaming && !msg.sem_contexto && (
                           <div className={`pt-2 border-t space-y-1.5 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                             <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('agent.sources')}</p>
                             {msg.fontes.map((f, j) => {
@@ -1107,7 +1165,7 @@ function ChatDrawer({
                         )}
                         {/* ── Action bar — aparece ao hover na mensagem do assistente ── */}
                         {msg.role === 'assistant' && !msg.streaming && (() => {
-                          const canal = agentStatus?.canal_indexado || canalConfigurado;
+                          const canal = agentStatus?.canal_indexado || projetoSelecionado;
                           // Conteúdo total das respostas do assistente na conversa
                           const totalChars = chatMessages
                             .filter(m => m.role === 'assistant')
@@ -1216,23 +1274,30 @@ function ChatDrawer({
       {/* Chips de fontes fixadas */}
       {fontesFixadas && fontesFixadas.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
-          {fontesFixadas.map(f => (
-            <span key={f.id}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border
-                ${darkMode ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-700'}`}>
-              <span>{f.emoji}</span>
-              <span className="max-w-[100px] truncate">@{f.label}</span>
-              <button
-                onClick={() => setFontesFixadas && setFontesFixadas(prev => prev.filter(x => x.id !== f.id))}
-                className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity">
-                <X size={9} />
-              </button>
-            </span>
-          ))}
+          {fontesFixadas.map(f => {
+            const isDouble = f._modo === '@@';
+            return (
+              <span key={f.id}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border
+                  ${isDouble
+                    ? darkMode ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300' : 'bg-cyan-50 border-cyan-300 text-cyan-700'
+                    : darkMode ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-700'
+                  }`}>
+                <span>{f.emoji}</span>
+                <span className="font-mono opacity-70">{f._modo || '@'}</span>
+                <span className="max-w-[100px] truncate">{f.label}</span>
+                <button
+                  onClick={() => setFontesFixadas && setFontesFixadas(prev => prev.filter(x => x.id !== f.id))}
+                  className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                  <X size={9} />
+                </button>
+              </span>
+            );
+          })}
         </div>
       )}
 
-      {/* Dropdown de @mention */}
+      {/* Dropdown de @mention e @@mention */}
       <AnimatePresence>
         {showMencao && (
           <motion.div
@@ -1242,6 +1307,15 @@ function ChatDrawer({
             transition={{ duration: 0.12 }}
             className={`mb-1.5 rounded-xl border shadow-lg overflow-hidden max-h-48 overflow-y-auto
               ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200 shadow-slate-200/60'}`}>
+            {/* Header do modo */}
+            <div className={`px-3 py-1.5 border-b flex items-center gap-1.5 ${darkMode ? 'border-white/8 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
+              <span className={`text-[10px] font-bold font-mono ${mencaoModoRef.current === '@@' ? (darkMode ? 'text-cyan-400' : 'text-cyan-600') : (darkMode ? 'text-primary' : 'text-violet-600')}`}>
+                {mencaoModoRef.current}
+              </span>
+              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                {mencaoModoRef.current === '@@' ? 'Busca por trecho na base' : 'Arquivo do projeto'}
+              </span>
+            </div>
             {mencaoLoading ? (
               <div className="flex items-center gap-2 px-3 py-2.5">
                 <Loader2 size={12} className={`animate-spin ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
@@ -1249,23 +1323,41 @@ function ChatDrawer({
               </div>
             ) : itensFiltrados.length === 0 ? (
               <div className={`px-3 py-2.5 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                {t('chat.mention_empty')}
+                {mencaoModoRef.current === '@@' && mencaoQuery.length < 2
+                  ? 'Digite pelo menos 2 caracteres para buscar…'
+                  : t('chat.mention_empty')}
               </div>
             ) : (
               itensFiltrados.map(item => (
                 <button
                   key={item.id}
                   onMouseDown={e => { e.preventDefault(); handleSelecionarMencao(item); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors
-                    ${darkMode ? 'hover:bg-white/8 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>
-                  <span className="text-sm shrink-0">{item.emoji}</span>
+                  className={`w-full flex items-start gap-2 px-3 py-2.5 text-left text-xs transition-colors border-b last:border-b-0
+                    ${darkMode ? 'hover:bg-white/8 text-slate-200 border-white/5' : 'hover:bg-slate-50 text-slate-700 border-slate-100'}`}>
+                  <span className="text-sm shrink-0 mt-0.5">{item.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate font-medium">@{item.label}</p>
-                    {item.tipo === 'base' && (
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.chunks} {t('chat.chunks_indexed')}</p>
-                    )}
-                    {item.tipo === 'documento' && (
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{item.pasta}</p>
+                    <p className="truncate font-semibold text-[11px] mb-0.5">
+                      <span className={`font-mono text-[10px] mr-0.5 ${mencaoModoRef.current === '@@' ? (darkMode ? 'text-cyan-400' : 'text-cyan-600') : (darkMode ? 'text-primary/70' : 'text-violet-400')}`}>
+                        {mencaoModoRef.current}
+                      </span>
+                      {item.label}
+                    </p>
+                    {item.trecho ? (
+                      <p className={`text-[10px] leading-relaxed line-clamp-2 italic ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        …{(() => {
+                          const q = item._query || '';
+                          if (!q) return item.trecho;
+                          const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                          const parts = item.trecho.split(new RegExp(`(${escaped})`, 'gi'));
+                          return parts.map((p, pi) =>
+                            p.toLowerCase() === q.toLowerCase()
+                              ? <mark key={pi} className={`rounded px-0.5 font-semibold not-italic ${darkMode ? 'bg-amber-400/30 text-amber-200' : 'bg-amber-200 text-amber-900'}`}>{p}</mark>
+                              : p
+                          );
+                        })()}…
+                      </p>
+                    ) : (
+                      <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{item.pasta}</p>
                     )}
                   </div>
                 </button>
@@ -1300,7 +1392,7 @@ function ChatDrawer({
 
       <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
         {/* Botão de anexo */}
-        {(agentStatus?.canal_indexado || canalConfigurado) && (
+        {(agentStatus?.canal_indexado || projetoSelecionado) && (
           <>
             <button
               onClick={() => anexoInputRef.current?.click()}
@@ -1324,13 +1416,13 @@ function ChatDrawer({
             if (e.key === 'Escape' && showMencao) { setShowMencao(false); return; }
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
-          disabled={!chatHabilitado || chatLoading || ollamaSemModelo}
+          disabled={!chatHabilitado || ollamaSemModelo}
           autoFocus
           style={{ resize: 'none', overflow: 'hidden' }}
           className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed leading-relaxed ${darkMode ? 'text-white' : 'text-slate-800'}`} />
         <button
           onClick={onSend}
-          disabled={!chatHabilitado || !chatInput.trim() || chatLoading || ollamaSemModelo}
+          disabled={!chatHabilitado || !chatInput.trim() || ollamaSemModelo}
           className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
           aria-label={t('agent.send')}>
           <Send size={13} />
@@ -1338,7 +1430,7 @@ function ChatDrawer({
       </div>
 
       {/* Hint: texto injetado mas sem base selecionada */}
-      {chatInput.trim() && !chatHabilitado && canaisIndexados.length > 0 && (
+      {chatInput.trim() && !chatHabilitado && projetosIndexados.length > 0 && (
         <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-500 dark:text-amber-400 px-1 -mt-1 animate-pulse">
           <span>↑</span>
           {t('chat.hint_select_base')}
@@ -1351,12 +1443,12 @@ function ChatDrawer({
         <button
           onClick={() => setShowBaseModal(true)}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors
-            ${canaisExtras?.length > 0
+            ${projetosExtras?.length > 0
               ? darkMode ? 'text-primary hover:bg-primary/10' : 'text-primary hover:bg-violet-50'
               : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
           aria-label={t('chat.base_btn_aria')}>
           <Database size={12} />
-          <span>{t('chat.base_btn')}{canaisExtras?.length > 0 ? ` (${canaisExtras.length + 1})` : ''}</span>
+          <span>{t('chat.base_btn')}{projetosExtras?.length > 0 ? ` (${projetosExtras.length + 1})` : ''}</span>
         </button>
 
         {/* Histórico rápido — dropdown com últimas 10 conversas */}
@@ -1402,7 +1494,7 @@ function ChatDrawer({
                       onClick={() => {
                         setHistQuickTab(tab.id);
                         if (tab.id === 'salvos' && histSalvos.length === 0) {
-                          const canal = agentStatus?.canal_indexado || canalConfigurado;
+                          const canal = agentStatus?.canal_indexado || projetoSelecionado;
                           if (canal) {
                             setHistSalvosLoading(true);
                             listarHistoricosSalvos(canal)
@@ -1502,7 +1594,7 @@ function ChatDrawer({
                           {!h.indexado && (
                             <button
                               onClick={async () => {
-                                const canal = agentStatus?.canal_indexado || canalConfigurado;
+                                const canal = agentStatus?.canal_indexado || projetoSelecionado;
                                 if (!canal) return;
                                 setInjetando(h.id);
                                 try {
@@ -1643,22 +1735,22 @@ function ChatDrawer({
           ...indexadas.map(c => ({ nome: c.nome, chunks: c.chunks || c.index_count || 0, indexado: true, indexed_at: c.indexed_at || null })),
           ...naoIndexadas.map(n => ({ nome: n, chunks: 0, indexado: false, indexed_at: null })),
         ];
-        // Usa apenas canalConfigurado (escolha explícita do usuário) — sem fallback para
+        // Usa apenas projetoSelecionado (escolha explícita do usuário) — sem fallback para
         // agentStatus.canal_indexado, para que desmarcar realmente limpe a seleção no modal.
-        const canalAtualAtivo = canalConfigurado || '';
+        const projetoAtualAtivo = projetoSelecionado || '';
         const todosSelecionados = todasBases.every(b => {
-          if (b.nome === canalAtualAtivo) return true;
-          return (canaisExtras || []).includes(b.nome);
+          if (b.nome === projetoAtualAtivo) return true;
+          return (projetosExtras || []).includes(b.nome);
         });
         const toggleTodos = () => {
           if (todosSelecionados) {
-            onSelectCanal?.('');
-            setCanaisExtras?.([]);
+            onSelectProjeto?.('');
+            setProjetosExtras?.([]);
           } else {
             // Se não há principal, elege a primeira indexada como principal
-            const principal = canalAtualAtivo || (todasBases.find(b => b.indexado)?.nome ?? todasBases[0]?.nome ?? '');
-            if (!canalAtualAtivo && principal) onSelectCanal?.(principal);
-            setCanaisExtras?.(todasBases.filter(b => b.nome !== principal).map(b => b.nome));
+            const principal = projetoAtualAtivo || (todasBases.find(b => b.indexado)?.nome ?? todasBases[0]?.nome ?? '');
+            if (!projetoAtualAtivo && principal) onSelectProjeto?.(principal);
+            setProjetosExtras?.(todasBases.filter(b => b.nome !== principal).map(b => b.nome));
           }
         };
 
@@ -1693,7 +1785,7 @@ function ChatDrawer({
                   onClick={async () => {
                     setIndexandoBase('__todos__');
                     setFilaStatusChat({});
-                    const selecionadas = [canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean);
+                    const selecionadas = [projetoAtualAtivo, ...(projetosExtras || [])].filter(Boolean);
                     await onIndexar?.(selecionadas, (nome, status) =>
                       setFilaStatusChat(prev => ({ ...prev, [nome]: status }))
                     );
@@ -1718,8 +1810,8 @@ function ChatDrawer({
                   <p className="text-xs">{t('chat.no_base')}</p>
                 </div>
               ) : todasBases.map(base => {
-                const isAtivo = base.nome === canalAtualAtivo;
-                const isExtra = (canaisExtras || []).includes(base.nome);
+                const isAtivo = base.nome === projetoAtualAtivo;
+                const isExtra = (projetosExtras || []).includes(base.nome);
                 const selecionado = isAtivo || isExtra;
                 const st = filaStatusChat[base.nome]; // 'aguardando'|'indexando'|'ok'|'erro'
                 const emFila = !!st;
@@ -1738,20 +1830,33 @@ function ChatDrawer({
                   <div key={base.nome}
                     onClick={() => {
                       if (emFila) return;
+                      const extras = projetosExtras || [];
                       if (isAtivo) {
-                        // Desmarca a base principal — volta ao estado de seleção livre
-                        onSelectCanal?.('');
-                        setCanaisExtras?.([]);
+                        // Desmarca a principal: promove o primeiro extra, ou limpa tudo
+                        if (extras.length > 0) {
+                          const [novaP, ...restExtras] = extras;
+                          baseModalDismissedRef.current = true;
+                          onSelectProjeto?.(novaP);
+                          setProjetosExtras?.(restExtras);
+                        } else {
+                          onSelectProjeto?.('');
+                          setProjetosExtras?.([]);
+                        }
                         return;
                       }
-                      // Se só há uma base e ela é extra, ao clicar nela ela vira a principal
-                      if (!canalConfigurado && !canalAutoUnico) {
-                        onSelectCanal?.(base.nome);
+                      if (isExtra) {
+                        // Desmarca extra
+                        setProjetosExtras?.(extras.filter(c => c !== base.nome));
                         return;
                       }
-                      setCanaisExtras?.(prev =>
-                        isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
-                      );
+                      // Não selecionada: se não há principal, vira a principal; senão vai para extras
+                      const principal = projetoAtualAtivo;
+                      if (!principal) {
+                        baseModalDismissedRef.current = true;
+                        onSelectProjeto?.(base.nome);
+                      } else {
+                        setProjetosExtras?.(prev => [...(prev || []), base.nome]);
+                      }
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${emFila ? 'cursor-default' : 'cursor-pointer'} ${cardClass}`}>
                     {/* Avatar */}
@@ -1823,10 +1928,10 @@ function ChatDrawer({
                           onClick={e => {
                             e.stopPropagation();
                             if (isAtivo) {
-                              onSelectCanal?.('');
-                              setCanaisExtras?.([]);
+                              onSelectProjeto?.('');
+                              setProjetosExtras?.([]);
                             } else {
-                              setCanaisExtras?.(prev =>
+                              setProjetosExtras?.(prev =>
                                 isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
                               );
                             }
@@ -1846,8 +1951,8 @@ function ChatDrawer({
 
             {/* Rodapé: seleção ativa + botão confirmar */}
             {!agentStatus.indexing && todasBases.length > 0 && (() => {
-              const nenhumaSelecionada = !canalAtualAtivo && (canaisExtras || []).length === 0;
-              const selecionadasNomes = [canalAtualAtivo, ...(canaisExtras || [])].filter(Boolean);
+              const nenhumaSelecionada = !projetoAtualAtivo && (projetosExtras || []).length === 0;
+              const selecionadasNomes = [projetoAtualAtivo, ...(projetosExtras || [])].filter(Boolean);
               return (
                 <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
                   {nenhumaSelecionada ? (
@@ -1872,7 +1977,7 @@ function ChatDrawer({
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selecionadasNomes.map(nome => (
                             <span key={nome} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
-                              ${nome === canalAtualAtivo
+                              ${nome === projetoAtualAtivo
                                 ? darkMode ? 'bg-primary/25 text-primary' : 'bg-violet-100 text-violet-700'
                                 : darkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
                               @{nome}
@@ -1881,7 +1986,16 @@ function ChatDrawer({
                         </div>
                       </div>
                       <button
-                        onClick={() => { baseModalDismissedRef.current = true; setShowBaseModal(false); }}
+                        onClick={() => {
+                          // Garante que sempre haja uma principal ao confirmar
+                          if (!projetoAtualAtivo && (projetosExtras || []).length > 0) {
+                            const [novaP, ...restExtras] = projetosExtras;
+                            onSelectProjeto?.(novaP);
+                            setProjetosExtras?.(restExtras);
+                          }
+                          baseModalDismissedRef.current = true;
+                          setShowBaseModal(false);
+                        }}
                         className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
                         {t('chat.confirm_bases')}
                       </button>
@@ -1993,7 +2107,7 @@ function ChatDrawer({
               <div className="flex items-center justify-between">
                 <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Base atual</span>
                 <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  @{canalAtivo}{canaisExtras?.length > 0 ? ` +${canaisExtras.length}` : ''}
+                  @{projetoAtivo}{projetosExtras?.length > 0 ? ` +${projetosExtras.length}` : ''}
                 </span>
               </div>
               {trocaBaseAlvoRef.current && (
@@ -2008,18 +2122,18 @@ function ChatDrawer({
             </div>
 
             {/* Lista de bases para escolher (quando não há base alvo pré-definida) */}
-            {!trocaBaseAlvoRef.current && canaisIndexados.length > 0 && (
+            {!trocaBaseAlvoRef.current && projetosIndexados.length > 0 && (
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   Escolha a nova base
                 </p>
-                {canaisIndexados.filter(c => c.nome !== canalAtivo).map(c => (
+                {projetosIndexados.filter(c => c.nome !== projetoAtivo).map(c => (
                   <button
                     key={c.nome}
                     onClick={() => {
                       onNovaConversa?.();
-                      onSelectCanal?.(c.nome);
-                      setCanaisExtras?.([]);
+                      onSelectProjeto?.(c.nome);
+                      setProjetosExtras?.([]);
                       setShowTrocarBaseModal(false);
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-left text-xs transition-all hover:scale-[1.01]
@@ -2038,8 +2152,8 @@ function ChatDrawer({
                 <button
                   onClick={() => {
                     onNovaConversa?.();
-                    onSelectCanal?.(trocaBaseAlvoRef.current);
-                    setCanaisExtras?.([]);
+                    onSelectProjeto?.(trocaBaseAlvoRef.current);
+                    setProjetosExtras?.([]);
                     setShowTrocarBaseModal(false);
                     setShowBaseModal(false);
                     trocaBaseAlvoRef.current = null;
@@ -2190,7 +2304,7 @@ function ChatDrawer({
                   <button
                     key={h.id}
                     onClick={async () => {
-                      const canal_prefixo = (agentStatus?.canal_indexado || canalConfigurado || '').replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '') || '_avulso';
+                      const canal_prefixo = (agentStatus?.canal_indexado || projetoSelecionado || '').replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '') || '_avulso';
                       setHistLoading(true);
                       try {
                         const r = await lerArquivo(`${canal_prefixo}/textos/${h.nome_txt}`);

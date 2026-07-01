@@ -165,8 +165,11 @@ export function useChatEngine({
   /** Núcleo do envio — executa a chamada de streaming para uma mensagem já confirmada */
   const _executarEnvio = async (msg) => {
     Analytics.chatPergunta(buscaAmpla ? 'ampla' : 'restrita', useExternalProvider ? agentProvider : 'ollama');
+    // ID único para este stream — evita que atualizações usem msgs.length-1 e peguem
+    // mensagens queued ou de outros streams quando há fila de mensagens.
+    const streamId = `stream_${Date.now()}_${Math.random()}`;
     setChatLoading(true);
-    setChatMessages(prev => [...prev, { role: 'assistant', content: '', fontes: [], streaming: true }]);
+    setChatMessages(prev => [...prev, { role: 'assistant', content: '', fontes: [], streaming: true, _streamId: streamId }]);
 
     try {
       const idsFixados = fontesFixadas.map(f => f.id);
@@ -197,19 +200,15 @@ export function useChatEngine({
             const parsed = JSON.parse(line);
             if (parsed.error) {
               const isModeloLento = /timeout|timed out|read timeout|connection.*reset|model.*load/i.test(parsed.error);
-              setChatMessages(prev => {
-                const msgs = [...prev];
-                msgs[msgs.length - 1] = { role: 'error', content: parsed.error, modelo_lento: isModeloLento };
-                return msgs;
-              });
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { role: 'error', content: parsed.error, modelo_lento: isModeloLento } : m
+              ));
             } else if (parsed.fontes !== undefined) {
               const fontes = parsed.fontes;
               const semCtx = !!parsed.sem_contexto;
-              setChatMessages(prev => {
-                const msgs = [...prev];
-                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], fontes, sem_contexto: semCtx };
-                return msgs;
-              });
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, fontes, sem_contexto: semCtx } : m
+              ));
               if (fontes.length > 0 && agentStatus.primeiro_uso) {
                 const minutos = Math.round((Date.now() / 1000 - agentStatus.primeiro_uso) / 60);
                 Analytics.primeiraRespostaUtil(minutos, useExternalProvider ? agentProvider : 'ollama');
@@ -219,11 +218,9 @@ export function useChatEngine({
                 onPrimeiraFonte();
               }
             } else if (parsed.done) {
-              setChatMessages(prev => {
-                const msgs = [...prev];
-                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], streaming: false };
-                return msgs;
-              });
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, streaming: false } : m
+              ));
               // Notificação desktop quando o chat está fechado/minimizado
               if (chatOpenRef && !chatOpenRef.current && Notification.permission === 'granted') {
                 const canal = canalConfigurado || agentStatus?.canal_indexado || '';
@@ -234,23 +231,18 @@ export function useChatEngine({
               }
             }
           } catch {
-            setChatMessages(prev => {
-              const msgs = [...prev];
-              const last = msgs[msgs.length - 1];
-              msgs[msgs.length - 1] = { ...last, content: (last.content || '') + line };
-              return msgs;
-            });
+            setChatMessages(prev => prev.map(m =>
+              m._streamId === streamId ? { ...m, content: (m.content || '') + line } : m
+            ));
           }
         }
       }
     } catch (err) {
       const msg = err?.message || '';
       const isModeloLento = /timeout|timed out/i.test(msg);
-      setChatMessages(prev => {
-        const msgs = [...prev];
-        msgs[msgs.length - 1] = { role: 'error', content: 'Erro ao conectar com o servidor.', modelo_lento: isModeloLento };
-        return msgs;
-      });
+      setChatMessages(prev => prev.map(m =>
+        m._streamId === streamId ? { role: 'error', content: 'Erro ao conectar com o servidor.', modelo_lento: isModeloLento } : m
+      ));
     }
     setChatLoading(false);
   };
@@ -292,7 +284,8 @@ export function useChatEngine({
 
     // Caminho normal: envia imediatamente
     setChatInput('');
-    setChatMessages(prev => [...prev, { role: 'user', content: msg }]);
+    const anexos = fontesFixadas.length > 0 ? [...fontesFixadas] : undefined;
+    setChatMessages(prev => [...prev, { role: 'user', content: msg, anexos }]);
     await _executarEnvio(msg);
   };
 
