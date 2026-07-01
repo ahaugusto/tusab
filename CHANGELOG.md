@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.28] — 2026-07-01
+### Corrigido
+- **`+ Arquivo` no Repositório vira chip no chat** — botão agora adiciona o arquivo como chip âmbar de contexto fixado (mesmo comportamento do `@` no chat), em vez de injetar o conteúdo completo no input. Suporta YouTube, documentos e textos. Chat abre automaticamente com o chip visível.
+
+---
+
 ## [1.0.27] — 2026-07-01
 ### Adicionado
 - **Menção `@arquivo` no chat** — digitar `@` abre dropdown com todos os arquivos do projeto ativo (YouTube, documentos, textos); selecionar fixa o arquivo como filtro BM25 — o LLM lê apenas chunks daquele arquivo
