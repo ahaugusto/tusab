@@ -556,8 +556,10 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     # Preserva o chunk de maior score quando há duplicata detectada.
     top = _deduplicar_chunks(candidatos, n, threshold=0.85)
     # Fallback: garante ao menos 1 chunk em corpora muito pequenos
-    if not top and chunks:
-        top = chunks[:1]
+    if not top and resultados:
+        top = resultados[:1]
+    elif not top and cached['chunks']:
+        top = [{**cached['chunks'][0], 'score': 0.0, 'canal': canal_nome}]
 
     return top
 
@@ -1156,13 +1158,13 @@ def chat(pergunta: str, canal_nome: str, historico: list = None, canais_extras: 
         fontes = ultima.get('fontes', [])
     else:
         fontes = [{
-            'titulo':            c['titulo'],
+            'titulo':            c.get('titulo', ''),
             'aba':               c.get('aba', 'youtube'),
-            'data':              c['data'],
-            'link':              c['link'],
+            'data':              c.get('data', ''),
+            'link':              c.get('link', ''),
             'arquivo':           c.get('arquivo', ''),
             'canal':             c.get('canal', ''),
-            'score':             c['score'],
+            'score':             c.get('score', 0.0),
             'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
             'video_id':          c.get('video_id', ''),
             'timestamp_inicio':  c.get('timestamp_inicio', 0),
