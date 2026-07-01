@@ -173,11 +173,11 @@ export default function ExtractionTab({
                     <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>Extraídos anteriormente</p>
                     <div className="relative group/hint">
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className={`cursor-default ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
-                      <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
+                      <div className={`absolute left-0 bottom-full mb-2 w-56 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
                         opacity-0 group-hover/hint:opacity-100 transition-opacity duration-150 z-50 shadow-xl
                         ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-slate-900 text-white'}`}>
                         Selecione um canal já extraído para carregá-lo como ativo e extrair novos vídeos sem redigitar a URL.
-                        <div className={`absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 rotate-45 -translate-y-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-900'}`} />
+                        <div className={`absolute left-3 top-full w-2 h-2 rotate-45 -translate-y-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-900'}`} />
                       </div>
                     </div>
                   </div>

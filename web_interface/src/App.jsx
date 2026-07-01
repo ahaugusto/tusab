@@ -206,7 +206,7 @@ function App() {
   const [canalInput,       setCanalInput]       = useState('');
   const [canalConfigurado, setCanalConfigurado] = useState(() => localStorage.getItem('tusab_canal_configurado') || '');
   // Estado do chat: independente do canal de extração
-  const [canalChat,        setCanalChat]        = useState(() => localStorage.getItem('tusab_canal_chat') || '');
+  const [projetoChat,      setProjetoChat]      = useState(() => localStorage.getItem('tusab_canal_chat') || '');
   const [canalError,       setCanalError]       = useState('');
   const [configurando,     setConfigurando]     = useState(false);
   // Bloqueia restauração automática pelo polling quando o usuário remove manualmente
@@ -226,7 +226,7 @@ function App() {
   const [showIndexInfo,    setShowIndexInfo]    = useState(false);
   const [lastIndexLogs,    setLastIndexLogs]    = useState([]);
   const [showAgentHint,    setShowAgentHint]    = useState(false);
-  const [canaisExtras,     setCanaisExtras]     = useState([]);
+  const [projetosExtras,   setProjetosExtras]   = useState([]);
   const [agentIndexError,  setAgentIndexError]  = useState('');
 
   // ─── Consent / analytics ──────────────────────────────────────────────────
@@ -291,8 +291,8 @@ function App() {
     agentProvider,
     agentStatus,
     ollamaStatus,
-    canalConfigurado: canalChat,
-    canaisExtras,
+    canalConfigurado: projetoChat,
+    canaisExtras: projetosExtras,
     useExternalProvider,
     showError,
     perfil: perfil ?? '',
@@ -545,33 +545,35 @@ function App() {
     }
   }, [canalConfigurado]);
 
-  // Persiste canal do chat separadamente — independente da extração
+  // Persiste projeto do chat separadamente — independente da extração
   useEffect(() => {
-    if (canalChat) {
-      localStorage.setItem('tusab_canal_chat', canalChat);
+    if (projetoChat) {
+      localStorage.setItem('tusab_canal_chat', projetoChat);
     } else {
       localStorage.removeItem('tusab_canal_chat');
     }
-  }, [canalChat]);
+  }, [projetoChat]);
 
-  // Sincroniza canal ativo com o hook (usa canal do chat, não da extração)
+  // Sincroniza canal ativo com o hook (usa projeto do chat, não da extração)
   useEffect(() => {
-    setCanalAtivo(canalChat || agentStatus.canal_indexado || '');
-  }, [canalChat, agentStatus.canal_indexado]);
+    setCanalAtivo(projetoChat || agentStatus.canal_indexado || '');
+  }, [projetoChat, agentStatus.canal_indexado]);
 
-  // Inicializa canalChat quando o usuário ainda não escolheu — só com projetos realmente indexados
-  // Um projeto com índice mas sem arquivos fonte (n_arquivos_fonte === 0) é órfão e não conta
+  // Inicializa projetoChat quando o usuário ainda não escolheu — só com projetos realmente indexados
+  // Um projeto com índice mas sem arquivos fonte (n_arquivos_fonte === 0) é órfão e não conta para auto-select,
+  // mas ainda é válido para manter a seleção explícita do usuário.
   useEffect(() => {
-    const indexados = (agentStatus.canais_indexados || []).filter(c => (c.n_arquivos_fonte ?? 1) > 0);
-    const nomesValidos = new Set(indexados.map(c => c.nome));
-    // Limpa canalChat se o projeto saiu da lista de indexados válidos
-    if (canalChat && !nomesValidos.has(canalChat)) {
-      setCanalChat('');
+    const todos     = agentStatus.canais_indexados || [];
+    const indexados = todos.filter(c => (c.n_arquivos_fonte ?? 1) > 0);
+    const nomesTodosValidos = new Set(todos.map(c => c.nome));
+    // Limpa projetoChat apenas se o projeto desapareceu completamente da lista de indexados
+    if (projetoChat && nomesTodosValidos.size > 0 && !nomesTodosValidos.has(projetoChat)) {
+      setProjetoChat('');
       return;
     }
-    // Auto-seleciona apenas se há exatamente 1 projeto indexado e nenhum foi escolhido
-    if (!canalChat && indexados.length === 1) {
-      setCanalChat(indexados[0].nome);
+    // Auto-seleciona apenas se há exatamente 1 projeto com fonte e nenhum foi escolhido
+    if (!projetoChat && indexados.length === 1) {
+      setProjetoChat(indexados[0].nome);
     }
   }, [agentStatus.canais_indexados]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -827,7 +829,7 @@ function App() {
   const handleDeleteCanal = async (nome) => {
     const ok = await deleteCanalIndex(nome).then(() => true).catch(() => false);
     if (!ok) { showError(t('error.remove_canal')); return; }
-    setCanaisExtras(prev => prev.filter(c => c !== nome));
+    setProjetosExtras(prev => prev.filter(c => c !== nome));
   };
 
   /** Opens the extraction-type modal, or shows canal error if none configured */
@@ -1220,7 +1222,7 @@ function App() {
           }));
           setChatMessages([]);
           setChatOpen(false);
-          setCanaisExtras([]);
+          setProjetosExtras([]);
           setAgentStatus(a => ({
             ...a,
             canal_indexado: '', canais_indexados: [], indexed: false,
@@ -1826,13 +1828,13 @@ function App() {
               onSend={handleChatSend}
               onRecriarIndice={handleAgentIndex}
               onClearHistory={() => {
-                const canal = canalChat || agentStatus.canal_indexado;
+                const canal = projetoChat || agentStatus.canal_indexado;
                 if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
               }}
               agentStatus={agentStatus}
               indexingDoneCount={indexingDoneCount}
-              canalConfigurado={canalChat}
-              onSelectCanal={setCanalChat}
+              projetoSelecionado={projetoChat}
+              onSelectProjeto={setProjetoChat}
               canalMeta={canalMeta}
               chatEndRef={chatEndRef}
               canaisExtraidos={[
@@ -1841,8 +1843,8 @@ function App() {
                   ...history.filter(h => h.canal_nome).map(h => h.canal_nome),
                 ])
               ]}
-              canaisExtras={canaisExtras}
-              setCanaisExtras={setCanaisExtras}
+              projetosExtras={projetosExtras}
+              setProjetosExtras={setProjetosExtras}
               onIndexar={handleIndexarDoChat}
               buscaAmpla={regras.busca_ampla ? buscaAmpla : false}
               setBuscaAmpla={(updater) => {
