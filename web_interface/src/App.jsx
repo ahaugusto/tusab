@@ -1083,35 +1083,34 @@ function App() {
             style={{ minWidth: 300, maxWidth: 420 }}>
             <span className="text-warning text-base">⬆</span>
             <div className="flex-1 min-w-0">
-              {appUpdateInfo.downloaded ? (
-                <p className="text-xs font-semibold">
-                  Tusab <span className="text-warning">{appUpdateInfo.version}</span> pronto para instalar
-                </p>
-              ) : (
-                <p className="text-xs font-semibold">
-                  Nova versão disponível: <span className="text-warning">{appUpdateInfo.version}</span>
-                </p>
-              )}
+              <p className="text-xs font-semibold">
+                {appUpdateInfo.downloaded
+                  ? <>Tusab <span className="text-warning">{appUpdateInfo.version}</span> pronto para instalar</>
+                  : <>Nova versão <span className="text-warning">{appUpdateInfo.version}</span> disponível</>
+                }
+              </p>
               <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 {appUpdateInfo.downloaded
-                  ? 'Feche o app para instalar automaticamente.'
-                  : 'Baixando em segundo plano…'}
+                  ? 'Clique em "Instalar e reiniciar" para aplicar agora.'
+                  : 'Baixando em segundo plano automaticamente…'}
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {appUpdateInfo.downloaded && (
+              {appUpdateInfo.downloaded ? (
                 <button
                   onClick={() => window.tusab?.installUpdate?.(appUpdateInfo?.version)}
                   className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-warning text-white hover:bg-warning/90 transition-colors">
-                  Instalar agora
+                  Instalar e reiniciar
                 </button>
+              ) : (
+                <a
+                  href="https://github.com/ahaugusto/tusab-public/releases/latest"
+                  target="_blank" rel="noreferrer"
+                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors
+                    ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                  Baixar manualmente
+                </a>
               )}
-              <button
-                onClick={() => { setShowUpdateBanner(false); setActiveTab('admin'); setShowHome(false); }}
-                className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors
-                  ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-                Ver detalhes
-              </button>
               <button onClick={() => setShowUpdateBanner(false)}
                 aria-label="Fechar"
                 className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
