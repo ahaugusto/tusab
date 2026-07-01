@@ -233,6 +233,22 @@ Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 
 ---
 
+### Checklist pré-publicação de instalador (obrigatório)
+
+> **Contexto:** v1.0.30 chegou aos usuários com `preload.js` falhando silenciosamente — `require('path')` lançava `Error: module not found: path` no app instalado porque Electron 20+ ativa sandbox por padrão nos preloads. O smoke suite não detectou porque testa o backend FastAPI em dev, não o instalador. Resultado: `window.tusab = undefined` → CORS bloqueava tudo → app inoperante em máquinas de usuários.
+
+**Antes de publicar o `.exe`, verificar em máquina com o app instalado (ou conta diferente):**
+
+| # | Verificação | Como checar | O que pega |
+|---|-------------|-------------|-----------|
+| 6 | `window.tusab` definido | DevTools (F12) → Console → `window.tusab` | Falha de preload (sandbox, asar, module not found) |
+| 7 | Indexação funciona | Abrir aba Repositório → Indexar base → modal aparece e indexa | CORS bloqueando backend, preload undefined |
+| 8 | Chat responde | Enviar mensagem no chat → resposta chega | CORS, API_BASE errado |
+
+**Regra:** se `window.tusab` for `undefined` no instalador → não publicar. Verificar `webPreferences.sandbox` e `require()` em `preload.js`.
+
+---
+
 ## Roadmap — o que você vai testar nas próximas versões
 
 | Sprint | Feature | O que testar |
