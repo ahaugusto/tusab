@@ -11,7 +11,7 @@ import time
 
 from fastapi import APIRouter, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 import agent_tusab
 from tusab_engine.state import state
@@ -107,13 +107,24 @@ class AgentConfigRequest(BaseModel):
     idioma:        str  = Field(default="pt", max_length=10)
 
 class AgentChatRequest(BaseModel):
-    mensagem:       str  = Field(max_length=4000)
-    canal_nome:     str  = Field(max_length=120)
-    historico:      list = []
+    mensagem:         str  = Field(max_length=4000)
+    projeto_nome:     str  = Field(default="", max_length=120)
+    historico:        list = []
+    projetos_extras:  list = []
+    busca_ampla:      bool = False
+    fontes_fixadas:   list = []
+    perfil:           str  = Field(default='', max_length=30)
+    # campos legados — aceitos mas normalizados via model_validator:
+    canal_nome:     str  = Field(default="", max_length=120)
     canais_extras:  list = []
-    busca_ampla:    bool = False
-    fontes_fixadas: list = []
-    perfil:         str  = Field(default='', max_length=30)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        if not self.projetos_extras and self.canais_extras:
+            self.projetos_extras = self.canais_extras
+        return self
 
 class BuscarTrechosRequest(BaseModel):
     query:       str  = Field(max_length=1000)
@@ -122,30 +133,65 @@ class BuscarTrechosRequest(BaseModel):
     busca_ampla: bool = True  # CrossEncoder ativo por padrão na busca manual
 
 class AgentIndexRequest(BaseModel):
-    canal_nome: str = Field(default="", max_length=120)
+    projeto_nome: str  = Field(default="", max_length=120)
+    # campo legado — normalizado via model_validator:
+    canal_nome:   str  = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 class FeedbackRequest(BaseModel):
-    canal_nome: str  = Field(max_length=120)
-    pergunta:   str  = Field(max_length=4000)
-    resposta:   str  = Field(max_length=20000)
-    util:       bool = True   # True = salva; False = descarta (apenas registra log)
+    projeto_nome: str  = Field(default="", max_length=120)
+    pergunta:     str  = Field(max_length=4000)
+    resposta:     str  = Field(max_length=20000)
+    util:         bool = True   # True = salva; False = descarta (apenas registra log)
+    # campo legado — normalizado via model_validator:
+    canal_nome:   str  = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 class SalvarHistoricoRequest(BaseModel):
-    canal_nome: str  = Field(max_length=120)
-    mensagens:  list = []
+    projeto_nome: str  = Field(default="", max_length=120)
+    mensagens:    list = []
+    # campo legado — normalizado via model_validator:
+    canal_nome:   str  = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 class TestKeyRequest(BaseModel):
     provider: str = Field(default='', max_length=30)
     api_key:  str = Field(default='', max_length=300)
 
 class AgentChatStreamRequest(BaseModel):
-    mensagem:       str  = Field(max_length=4000)
-    canal_nome:     str  = Field(max_length=120)
-    historico:      list = []
+    mensagem:         str  = Field(max_length=4000)
+    projeto_nome:     str  = Field(default="", max_length=120)
+    historico:        list = []
+    projetos_extras:  list = []
+    busca_ampla:      bool = False
+    fontes_fixadas:   list = []
+    perfil:           str  = Field(default='', max_length=30)
+    # campos legados — aceitos mas normalizados via model_validator:
+    canal_nome:     str  = Field(default="", max_length=120)
     canais_extras:  list = []
-    busca_ampla:    bool = False
-    fontes_fixadas: list = []
-    perfil:         str  = Field(default='', max_length=30)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        if not self.projetos_extras and self.canais_extras:
+            self.projetos_extras = self.canais_extras
+        return self
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -283,12 +329,12 @@ def agent_base_summary():
     return {"projetos": projetos}
 
 
-@router.get("/agent/mencoes/{canal_nome}")
-def agent_mencoes(canal_nome: str):
-    """Lista itens mencionáveis via @ no chat: bases indexadas + documentos do canal ativo."""
+@router.get("/agent/mencoes/{projeto_nome}")
+def agent_mencoes(projeto_nome: str):
+    """Lista itens mencionáveis via @ no chat: bases indexadas + documentos do projeto ativo."""
     from tusab_engine.storage import NEURAL_DIR
 
-    # Bases indexadas (canais com índice BM25)
+    # Bases indexadas (projetos com índice BM25)
     bases = []
     status = agent_tusab.get_agent_status()
     for c in status.get("canais_indexados", []):
@@ -300,9 +346,9 @@ def agent_mencoes(canal_nome: str):
             "chunks": c.get("chunks", 0),
         })
 
-    # Documentos do canal ativo
+    # Documentos do projeto ativo
     documentos = []
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     canal_dir = os.path.join(NEURAL_DIR, canal_prefixo)
 
     _EMOJIS = {
@@ -338,6 +384,85 @@ def agent_mencoes(canal_nome: str):
                 _listar_pasta(sub_path, sub, _EMOJIS.get(sub, "📁"))
 
     return {"bases": bases, "documentos": documentos}
+
+
+@router.get("/agent/arquivos/{projeto_nome}")
+def agent_arquivos(projeto_nome: str):
+    """Lista arquivos individuais do projeto para @@ no chat.
+
+    Retorna YouTube (por título de vídeo), documents e texts — cada um como item
+    selecionável que vira um filtro de arquivo no BM25 ao ser fixado no chat.
+    """
+    from tusab_engine.storage import NEURAL_DIR
+    import json as _json
+
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    canal_dir = os.path.join(NEURAL_DIR, canal_prefixo)
+
+    _EMOJIS = {
+        "youtube":   "🎬",
+        "documents": "📄",
+        "texts":     "📝",
+    }
+
+    arquivos = []
+
+    def _listar_dir(pasta_path: str, sub: str):
+        """Lista .txt de uma pasta, carregando _meta.json para títulos legíveis."""
+        if not os.path.isdir(pasta_path):
+            return
+        emoji = _EMOJIS.get(sub, "📁")
+        meta_map: dict = {}
+        for meta_name in ("_meta.json", f"{os.path.basename(pasta_path)}_meta.json"):
+            meta_path = os.path.join(pasta_path, meta_name)
+            if os.path.exists(meta_path):
+                try:
+                    with open(meta_path, "r", encoding="utf-8") as _f:
+                        data = _json.load(_f)
+                    if isinstance(data, dict):
+                        meta_map = data
+                    break
+                except Exception:
+                    pass
+
+        for fname in sorted(os.listdir(pasta_path)):
+            if fname.startswith("_") or not fname.endswith(".txt"):
+                continue
+            meta_entry = meta_map.get(fname, {})
+            titulo = (meta_entry.get("titulo") if isinstance(meta_entry, dict) else None) \
+                     or fname.replace(".txt", "").replace("_", " ")
+            arquivos.append({
+                "tipo":    "arquivo",
+                "id":      f"@@{sub}/{fname}",
+                "label":   titulo,
+                "emoji":   emoji,
+                "pasta":   sub,
+                "arquivo": fname,
+            })
+
+    def _listar(pasta_path: str, sub: str):
+        if not os.path.isdir(pasta_path):
+            return
+        # youtube/ guarda os .txt dentro de subpastas por canal (ex: youtube/FGV/)
+        # documents/ e texts/ guardam os .txt direto na pasta
+        has_subdirs = any(
+            os.path.isdir(os.path.join(pasta_path, e))
+            for e in os.listdir(pasta_path)
+            if not e.startswith("_")
+        )
+        if sub == "youtube" and has_subdirs:
+            for entry in sorted(os.listdir(pasta_path)):
+                sub_path = os.path.join(pasta_path, entry)
+                if os.path.isdir(sub_path) and not entry.startswith("_"):
+                    _listar_dir(sub_path, sub)
+        else:
+            _listar_dir(pasta_path, sub)
+
+    if os.path.isdir(canal_dir):
+        for sub in ["youtube", "documents", "texts"]:
+            _listar(os.path.join(canal_dir, sub), sub)
+
+    return {"arquivos": arquivos}
 
 
 @router.get("/log", response_class=HTMLResponse)
@@ -520,9 +645,9 @@ def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None
     if state.is_running:
         return {"error": True, "message": "Aguarde a extração terminar antes de indexar."}
 
-    # req.canal_nome tem prioridade — usuário escolheu explicitamente no modal.
-    # Fallback para state.stats só quando o request não especifica canal.
-    canal_nome = (req.canal_nome if req and req.canal_nome else "") or state.stats.get("canal_nome", "")
+    # req.projeto_nome tem prioridade — usuário escolheu explicitamente no modal.
+    # Fallback para state.stats só quando o request não especifica projeto.
+    canal_nome = (req.projeto_nome if req and req.projeto_nome else "") or state.stats.get("canal_nome", "")
     if not canal_nome:
         canal_nome = "repositorio"
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
@@ -799,7 +924,7 @@ def agent_feedback(req: FeedbackRequest):
     util=False → descarta silenciosamente (sem side-effects no corpus).
     """
     import time as _time
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
 
     if not req.util:
         return {"ok": True, "action": "discarded"}
@@ -832,10 +957,10 @@ def agent_feedback(req: FeedbackRequest):
 def agent_chat_clear(req: AgentChatRequest):
     """Limpa histórico de conversa do lado do servidor e auto-salva em _chat_history/."""
     with state.hist_lock:
-        hist = list(state.chat_histories.pop(req.canal_nome, []))
+        hist = list(state.chat_histories.pop(req.projeto_nome, []))
     # Auto-save silencioso fora do lock
     if hist:
-        _auto_salvar_historico(req.canal_nome, hist)
+        _auto_salvar_historico(req.projeto_nome, hist)
     return {"message": "Histórico limpo."}
 
 
@@ -874,15 +999,15 @@ def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
     if not req.mensagens:
         return {"error": True, "message": "Nenhuma mensagem para salvar"}
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     if not canal_prefixo:
-        return {"error": True, "message": "Canal não especificado."}
+        return {"error": True, "message": "Projeto não especificado."}
     txt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts")
     os.makedirs(txt_dir, exist_ok=True)
 
     ts = _dt.now().strftime("%Y%m%d_%H%M%S")
     fid = str(_uuid.uuid4())[:8]
-    titulo = f"Histórico do chat — {req.canal_nome} — {_dt.now().strftime('%d/%m/%Y %H:%M')}"
+    titulo = f"Histórico do chat — {req.projeto_nome} — {_dt.now().strftime('%d/%m/%Y %H:%M')}"
     nome_arquivo = f"{fid}_historico_chat_{ts}.txt"
     txt_path = os.path.join(txt_dir, nome_arquivo)
 
@@ -1073,19 +1198,19 @@ def agent_chat(req: AgentChatRequest):
         # hist_lock DENTRO do agent_chat_lock — leitura+LLM+escrita como operação atômica
         with state.agent_chat_lock:
             with state.hist_lock:
-                hist = list(state.chat_histories.get(req.canal_nome, []))
-            resultado = agent_tusab.chat(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''))
+                hist = list(state.chat_histories.get(req.projeto_nome, []))
+            resultado = agent_tusab.chat(mensagem, req.projeto_nome, hist, req.projetos_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', ''))
             if not resultado.get("error"):
                 novo_hist = hist + [
                     {"role": "user",      "content": mensagem},
                     {"role": "assistant", "content": resultado.get("resposta", "")},
                 ]
                 with state.hist_lock:
-                    state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+                    state.chat_histories[req.projeto_nome] = novo_hist[-_MAX_HIST_MSGS:]
         if not resultado.get("error"):
             try:
                 n_refs = len(resultado.get("fontes", []))
-                _atualizar_chat_stats(req.canal_nome, n_refs)
+                _atualizar_chat_stats(req.projeto_nome, n_refs)
             except Exception:
                 pass
         return resultado
@@ -1106,14 +1231,14 @@ def agent_chat_stream(req: AgentChatStreamRequest):
     # agent_chat_lock garante que dois streams do mesmo canal não entrelacem histórico.
     with state.agent_chat_lock:
         with state.hist_lock:
-            hist = list(state.chat_histories.get(req.canal_nome, []))
+            hist = list(state.chat_histories.get(req.projeto_nome, []))
 
     resposta_acumulada = []
     refs_acumuladas = []
 
     def _gen():
         try:
-            for chunk in agent_tusab.chat_stream(mensagem, req.canal_nome, hist, req.canais_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', '')):
+            for chunk in agent_tusab.chat_stream(mensagem, req.projeto_nome, hist, req.projetos_extras, req.busca_ampla, getattr(req, 'fontes_fixadas', []), getattr(req, 'perfil', '')):
                 try:
                     data = json.loads(chunk)
                     if data.get("texto"):
@@ -1135,10 +1260,10 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                     {"role": "assistant", "content": resposta_completa},
                 ]
                 with state.hist_lock:
-                    state.chat_histories[req.canal_nome] = novo_hist[-_MAX_HIST_MSGS:]
+                    state.chat_histories[req.projeto_nome] = novo_hist[-_MAX_HIST_MSGS:]
                 # Persiste resposta completa para o classificador de intenção
                 try:
-                    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+                    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
                     state.last_chat_response[canal_prefixo] = {
                         'pergunta': mensagem,
                         'resposta': resposta_completa,
@@ -1147,7 +1272,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                 except Exception:
                     pass
                 try:
-                    _atualizar_chat_stats(req.canal_nome, len(refs_acumuladas))
+                    _atualizar_chat_stats(req.projeto_nome, len(refs_acumuladas))
                 except Exception:
                     pass
 
@@ -1246,10 +1371,11 @@ def agent_summarize_cancel():
     return {'message': 'Sumarização cancelada.'}
 
 
-@router.delete("/agent/canal/{canal_nome}")
-def agent_canal_delete(canal_nome: str):
+@router.delete("/agent/projeto/{projeto_nome}")
+@router.delete("/agent/canal/{projeto_nome}")  # alias legado
+def agent_canal_delete(projeto_nome: str):
     import re as _re
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     agent_tusab._invalidar_cache(canal_prefixo)
     # Remove índice BM25 se existir
     idx_path = agent_tusab._index_path(canal_prefixo)
@@ -1268,7 +1394,7 @@ def agent_canal_delete(canal_nome: str):
             pass
     # Limpa config se este era o canal ativo
     config = agent_tusab.carregar_config()
-    if config.get('canal_indexado') == canal_nome:
+    if config.get('canal_indexado') == projeto_nome:
         config['canal_indexado'] = ''
         agent_tusab.salvar_config(config)
     return {"ok": True}
