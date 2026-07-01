@@ -12,6 +12,16 @@ import ModalWrapper from '../shared/ModalWrapper';
 import { Loader2, Search, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { fetchRelatorio, limparHistorico } from '../../services/api';
 
+// Normaliza qualquer formato de data para DD/MM/YYYY
+function fmtData(s) {
+  if (!s) return '—';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y, m, d] = s.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return s;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtivo, isRunning }) {
@@ -333,9 +343,8 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                     {[
                       { col: 'Titulo',        label: t('relatorio.col_title'),  cls: '' },
-                      { col: 'Data_Pub',      label: t('relatorio.col_date'),   cls: 'whitespace-nowrap' },
-                      { col: 'Data_Extracao', label: 'Extração',                cls: 'whitespace-nowrap' },
-                      { col: 'Views',         label: 'Views',                   cls: 'whitespace-nowrap' },
+                      { col: 'Data_Pub',      label: 'Data Publicação',         cls: 'whitespace-nowrap' },
+                      { col: 'Data_Extracao', label: 'Data Extração',           cls: 'whitespace-nowrap' },
                       { col: 'Aba',           label: t('relatorio.col_tab'),    cls: '' },
                       { col: 'Status',        label: t('relatorio.col_status'), cls: '' },
                       { col: 'Local',         label: 'Arquivo',                 cls: '' },
@@ -358,7 +367,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                 <tbody>
                   {filtrados.length === 0 && (
                     <tr>
-                      <td colSpan={7} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <td colSpan={6} className={`px-4 py-8 text-center text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                         {t('relatorio.no_results')}
                       </td>
                     </tr>
@@ -371,11 +380,8 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                           {v.Titulo}
                         </a>
                       </td>
-                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Pub || '—'}</td>
-                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{v.Data_Extracao || '—'}</td>
-                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {v.Views ? Number(v.Views).toLocaleString('pt-BR') : '—'}
-                      </td>
+                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{fmtData(v.Data_Pub)}</td>
+                      <td className={`px-4 py-2 whitespace-nowrap ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{fmtData(v.Data_Extracao)}</td>
                       <td className="px-4 py-2">
                         {v.Aba ? (
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
