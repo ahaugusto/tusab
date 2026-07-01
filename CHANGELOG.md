@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.31] — 2026-07-01
+### Corrigido
+- **[CRÍTICO] Preload falha no app empacotado** — `require('path')` lançava `Error: module not found: path` em `preload.js` ao rodar o instalador no Windows. Causa: Electron 20+ ativa sandbox por padrão nos preloads, bloqueando `require()` de Node built-ins. Fix: `sandbox: false` em `webPreferences` das duas janelas (main + help). Com preload falhando, `window.tusab` ficava `undefined`, `API_BASE` caía para `localhost`, e todas as requisições ao backend (`127.0.0.1:8001`) eram bloqueadas por CORS — tornando indexação e chat inoperantes.
+
+---
+
 ## [1.0.30] — 2026-07-01
 ### Adicionado
 - **`@@` injeta trecho diretamente no LLM** — trechos selecionados via `@@busca` no chat são enviados como contexto fixo, sem re-processar pelo BM25. O LLM vê exatamente o trecho que o usuário selecionou no dropdown. Campo `trechos_fixados` adicionado ao contrato do endpoint `/agent/chat/stream`.
