@@ -115,6 +115,10 @@ export const disconnectDrive = () => axios.post(`${API_BASE}/drive-disconnect`);
 export const buscarBase = (query, canal = '') =>
   axios.post(`${API_BASE}/neural/buscar`, { query, canal });
 
+/** Pipeline completo BM25+CrossEncoder sem LLM — retorna chunks ranqueados para seleção */
+export const buscarTrechos = (query, canais = [], n = 8, buscaAmpla = true) =>
+  axios.post(`${API_BASE}/agent/buscar-trechos`, { query, canais, n, busca_ampla: buscaAmpla });
+
 /** Reads the full content of a TXT file by relative path (from NEURAL_DIR) */
 export const lerArquivo = (caminho) =>
   axios.post(`${API_BASE}/neural/ler-arquivo`, { caminho });
@@ -267,6 +271,9 @@ export const listarHistoricosSalvos = (canal) => axios.get(`${API_BASE}/agent/ch
 
 /** Move um histórico de _chat_history/ para texts/ — torna-o indexável */
 export const injetarHistorico = (canal_nome, hist_id) => axios.post(`${API_BASE}/agent/chat/injetar-historico`, { canal_nome, hist_id });
+
+export const enviarFeedback = (canal_nome, pergunta, resposta, util) =>
+  axios.post(`${API_BASE}/agent/feedback`, { canal_nome, pergunta, resposta, util });
 
 /** Exporta flashcards como CSV compatível com Anki (frente;verso) */
 export const exportFlashcardsAnki = (canal) => fetch(`${API_BASE}/export/flashcards/${encodeURIComponent(canal)}`);

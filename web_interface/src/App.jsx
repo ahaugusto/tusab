@@ -164,6 +164,7 @@ function App() {
   const [extracaoSubTab,   setExtracaoSubTab]   = useState('extrair'); // 'extrair' | 'relatorio'
   const [agentInitialSubTab, setAgentInitialSubTab] = useState('configuracoes');
   const [repoIndexarOpen,  setRepoIndexarOpen]  = useState(false);
+  const [repoBuscaInicial, setRepoBuscaInicial] = useState('');
   const [repoImportOpen,   setRepoImportOpen]   = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
@@ -558,13 +559,21 @@ function App() {
     setCanalAtivo(canalChat || agentStatus.canal_indexado || '');
   }, [canalChat, agentStatus.canal_indexado]);
 
-  // Inicializa canalChat com o canal já indexado quando o usuário ainda não escolheu
-  // Evita "Selecionar base" ao abrir o chat com apenas uma sessão já indexada
+  // Inicializa canalChat quando o usuário ainda não escolheu — só com projetos realmente indexados
+  // Um projeto com índice mas sem arquivos fonte (n_arquivos_fonte === 0) é órfão e não conta
   useEffect(() => {
-    if (!canalChat && agentStatus.canal_indexado) {
-      setCanalChat(agentStatus.canal_indexado);
+    const indexados = (agentStatus.canais_indexados || []).filter(c => (c.n_arquivos_fonte ?? 1) > 0);
+    const nomesValidos = new Set(indexados.map(c => c.nome));
+    // Limpa canalChat se o projeto saiu da lista de indexados válidos
+    if (canalChat && !nomesValidos.has(canalChat)) {
+      setCanalChat('');
+      return;
     }
-  }, [agentStatus.canal_indexado]);
+    // Auto-seleciona apenas se há exatamente 1 projeto indexado e nenhum foi escolhido
+    if (!canalChat && indexados.length === 1) {
+      setCanalChat(indexados[0].nome);
+    }
+  }, [agentStatus.canais_indexados]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Auto-scrolls log container to the bottom while extraction runs */
   useEffect(() => {
@@ -615,8 +624,8 @@ function App() {
         if (!showHome && !showLanding) {
           setProgressToast({
             message: t('toast.base_indexed', { count: agentStatus.index_count }),
-            nextStep: t('toast.open_chat'),
-            onNext: () => setChatOpen(true),
+            nextStep: chatOpen ? null : t('toast.open_chat'),
+            onNext: chatOpen ? null : () => setChatOpen(true),
           });
         }
       }
@@ -1303,6 +1312,9 @@ function App() {
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
+                  {id === 'extracao' && isRunning && (
+                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
+                  )}
                   {id === 'admin' && appUpdateInfo && (
                     <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
                   )}
@@ -1694,6 +1706,8 @@ function App() {
                   onOpenImportHandled={() => setRepoImportOpen(false)}
                   projetoInicial={repoProjetoInicial}
                   onProjetoInicialHandled={() => setRepoProjetoInicial('')}
+                  buscaInicial={repoBuscaInicial}
+                  onBuscaInicialHandled={() => setRepoBuscaInicial('')}
                   regras={regras}
                 />
               </div>
@@ -1797,6 +1811,12 @@ function App() {
                 setActiveTab('repositorio');
                 setShowHome(false);
                 setTimeout(() => setRepoIndexarOpen(true), 80);
+              }}
+              onAbrirBuscaRepositorio={(query) => {
+                setChatOpen(false);
+                setActiveTab('repositorio');
+                setShowHome(false);
+                if (query) setRepoBuscaInicial(query);
               }}
               chatOpen={chatOpen} setChatOpen={setChatOpen}
               expandido={chatExpandido} setExpandido={setChatExpandido}

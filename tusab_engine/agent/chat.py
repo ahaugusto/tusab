@@ -392,7 +392,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                     f"O índice de '{canal_nome}' está corrompido ou vazio. "
                     f"Vá em Configurar Agente e clique em 'Indexar Agora' para recriá-lo."
                 )
-            corpus = [_enriquecer_documento(c.get('texto_original') or c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks]
+            corpus = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', '')) for c in chunks]
             _bm25_cache[canal_prefixo] = {
                 'chunks': chunks,
                 'bm25':   BM25Okapi(corpus),
@@ -484,7 +484,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                         with open(idx_extra, 'r', encoding='utf-8') as f:
                             data_e = json.load(f)
                         chunks_e = data_e['chunks']
-                        corpus_e = [_enriquecer_documento(c.get('texto_original') or c['texto'], c.get('tags', []), c.get('descricao', '')) for c in chunks_e]
+                        corpus_e = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', '')) for c in chunks_e]
                         _bm25_cache[prefixo_extra] = {'chunks': chunks_e, 'bm25': BM25Okapi(corpus_e), 'mtime': mtime_e}
                     cached_e = _bm25_cache[prefixo_extra]
                 scores_e = _scores_para_queries(cached_e['bm25'], queries, [])
@@ -562,6 +562,47 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
         top = [{**cached['chunks'][0], 'score': 0.0, 'canal': canal_nome}]
 
     return top
+
+
+def buscar_trechos(query: str, canais: list, n: int = 8, busca_ampla: bool = True) -> list:
+    """Pipeline completo de recuperação (BM25 + query expansion + CrossEncoder) sem gerar resposta.
+
+    Retorna lista de chunks ranqueados prontos para o usuário selecionar e injetar no chat.
+    Cada item: {titulo, texto_original, score, canal, aba, link, data, arquivo, timestamp_inicio}
+    """
+    config = carregar_config()
+    resultados = []
+
+    for canal_nome in canais:
+        try:
+            chunks = _recuperar_contexto(
+                pergunta=query,
+                canal_nome=canal_nome,
+                n=n,
+                config=config,
+                canais_extras=[],
+                busca_ampla=busca_ampla,
+                perfil='',
+            )
+            for c in chunks:
+                resultados.append({
+                    'titulo':            c.get('titulo', ''),
+                    'trecho':            c.get('texto_original') or c.get('texto', ''),
+                    'score':             c.get('score', 0.0),
+                    'canal':             canal_nome,
+                    'aba':               c.get('aba', ''),
+                    'link':              c.get('link', ''),
+                    'data':              c.get('data', ''),
+                    'arquivo':           c.get('arquivo', ''),
+                    'timestamp_inicio':  c.get('timestamp_inicio', ''),
+                    'fts_match':         c.get('fts_match', False),
+                })
+        except Exception:
+            pass
+
+    # Ordena globalmente por score — melhor trecho de qualquer base aparece primeiro
+    resultados.sort(key=lambda x: x['score'], reverse=True)
+    return resultados
 
 
 def _carregar_resumos_relevantes(chunks: list, canal_prefixo: str) -> list:
@@ -691,17 +732,24 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho
     return resposta
 
 
-# Pontuação duplicada que LLMs ocasionalmente emitem ao colar tópicos em sequência
-# (ex.: "**Tópico**: texto.." ou "frase:."). Rede de segurança além da instrução de prompt.
+# Normalização de markdown gerado por LLMs — corrige padrões comuns de saída malformada
 _RE_PONTUACAO_DUPLICADA = re.compile(r'([.!?]){2,}')
-_RE_DOISPONTOS_PONTO = re.compile(r':\s*\.')
-# "**Tópico**: texto" seguido de novo "**Tópico**" sem quebra de linha → força lista Markdown
-_RE_BOLD_SEM_QUEBRA = re.compile(r'(?<=[a-zÀ-ɏ0-9.)])\s+(?=\*\*[^*\n]+\*\*:)', re.UNICODE)
+_RE_DOISPONTOS_PONTO    = re.compile(r':\s*\.')
+# "texto.- **Tópico**" ou "texto.**Tópico**" → quebra antes do bold (padrão Ollama)
+_RE_BOLD_COLADO         = re.compile(r'([.!?,;])\s*-?\s*(?=\*\*)', re.UNICODE)
+# "- **Tópico**: texto **OutroTópico**:" na mesma linha → quebra antes do segundo bold com ":"
+_RE_BOLD_INLINE         = re.compile(r'(?<=\S)\s+(?=\*\*[^*\n]+\*\*\s*:)', re.UNICODE)
 
 def _normalizar_markdown(resposta: str) -> str:
     resposta = _RE_DOISPONTOS_PONTO.sub(':', resposta)
     resposta = _RE_PONTUACAO_DUPLICADA.sub(r'\1', resposta)
-    resposta = _RE_BOLD_SEM_QUEBRA.sub('\n- ', resposta)
+    # Quebra tópicos bold colados na mesma linha em itens de lista separados
+    resposta = _RE_BOLD_COLADO.sub(r'\1\n- ', resposta)
+    resposta = _RE_BOLD_INLINE.sub('\n- ', resposta)
+    # Garante linha em branco antes de cada item de lista para separar blocos
+    resposta = re.sub(r'([^\n])\n(- )', r'\1\n\n\2', resposta)
+    # Fecha ** não fechado no final de linha (modelo às vezes esquece o fechamento)
+    resposta = re.sub(r'\*\*([^*\n]+)\n-\s\*\*', r'**\1**\n- ', resposta)
     return resposta
 
 
@@ -873,21 +921,16 @@ _SAUDACOES = {
 def _prompt_sem_contexto(idioma: str = 'pt') -> str:
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     return (
-        "Você é o Tusab, um assistente de gestão de conhecimento.\n\n"
-        "A busca na base de conhecimento não retornou trechos relevantes para a mensagem do usuário.\n\n"
-        "Regras:\n"
-        "1. Se for uma saudação, cumprimento ou teste (ex: 'oi', 'olá', 'teste'), responda de forma breve "
-        "e simpática, apresentando-se como Tusab e explicando como pode ajudar com a base de conhecimento.\n"
-        "2. Se for uma pergunta temática real, explique educadamente que não encontrou informações "
-        "relevantes no índice atual. Mencione que a base pode conter:\n"
-        "   - Transcrições de vídeos do YouTube\n"
-        "   - Documentos enviados (PDF, DOCX, planilhas, imagens, áudios)\n"
-        "   - Textos colados pelo usuário\n"
-        "   E que todos precisam estar indexados para aparecer na busca.\n"
-        "3. Convide o usuário a reformular a pergunta, verificar se o conteúdo foi indexado "
-        "ou adicionar mais arquivos à base.\n"
-        f"4. Seja conciso (máximo 3 parágrafos), responda SEMPRE em {lang_label}, sem mencionar BM25 ou termos técnicos.\n\n"
-        "{mensagem}\n\nRESPOSTA:"
+        "Você é o Tusab, um assistente de gestão de conhecimento pessoal.\n\n"
+        "A busca na base de conhecimento NÃO retornou trechos relevantes para a pergunta do usuário.\n\n"
+        f"Responda SEMPRE em {lang_label}. Seja conciso (máximo 2 parágrafos).\n\n"
+        "REGRAS ABSOLUTAS:\n"
+        "- NUNCA invente nomes, pessoas, fatos ou informações — você não tem acesso ao conteúdo da base agora.\n"
+        "- NUNCA elabore sobre o tema perguntado — você não tem essa informação.\n"
+        "- Se for saudação simples, apresente-se brevemente como Tusab.\n"
+        "- Se for pergunta temática, informe claramente que não encontrou esse tema na base atual.\n"
+        "  Não especule, não liste possibilidades, não invente subtópicos relacionados.\n\n"
+        "Mensagem do usuário: {mensagem}\n\nRESPOSTA:"
     )
 
 
@@ -941,11 +984,8 @@ def _responder_sem_contexto(pergunta: str, config: dict, canal_nome: str) -> str
         }
         return _sem_llm_i18n.get(idioma, (
             f"Não encontrei conteúdo relevante para essa pergunta na base de conhecimento.\n\n"
-            f"Isso pode acontecer porque:\n"
-            f"• O conteúdo ainda não foi indexado — use o botão **Indexar Agora** nas configurações do agente\n"
-            f"• A pergunta usa termos diferentes dos que aparecem nos seus arquivos — tente reformular\n"
-            f"• O tema não está coberto pelos vídeos, documentos ou textos da sua base\n\n"
-            f"Lembre-se: a base pode incluir transcrições do YouTube, PDFs, planilhas, imagens e textos colados."
+            f"**Dica:** vá ao Repositório, busque pelo tema e clique em **\"Referenciar no chat\"** "
+            f"para injetar o trecho ou vídeo diretamente aqui — assim consigo responder com precisão."
         ))
 
     prompt = _prompt_sem_contexto(idioma).format(mensagem=pergunta[:1000])
@@ -1013,8 +1053,8 @@ def _fallback_sem_contexto(canal_nome: str) -> str:
     handle = f'@{canal_nome}' if canal_nome else 'esta base'
     return (
         f"Não encontrei conteúdo relevante para essa pergunta em {handle}.\n\n"
-        f"Verifique se o conteúdo foi indexado ou tente reformular a pergunta usando "
-        f"termos que aparecem nos seus vídeos, documentos ou textos."
+        f"**Dica:** vá ao Repositório, busque pelo tema e clique em **\"Referenciar no chat\"** "
+        f"para injetar o trecho ou vídeo diretamente aqui — assim consigo responder com precisão."
     )
 
 

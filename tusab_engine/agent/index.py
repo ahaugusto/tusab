@@ -269,10 +269,13 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
                 tags = [t.strip() for t in tags_m.group(1).split(',') if t.strip()]
 
             texto_limpo = texto[:3000]
+            titulo_str = titulo.group(1).strip() if titulo else ''
+            # Prefixar título no texto garante que FTS5 e BM25 em disco encontram por título
+            texto_com_titulo = (f"TITULO: {titulo_str}\n\n" + texto_limpo) if titulo_str else texto_limpo
             chunks.append({
-                'texto':             _enriquecer_com_keywords(texto_limpo),
+                'texto':             _enriquecer_com_keywords(texto_com_titulo),
                 'texto_original':    texto_limpo,
-                'titulo':            titulo.group(1).strip()   if titulo   else '',
+                'titulo':            titulo_str,
                 'aba':               aba.group(1).strip()      if aba      else 'youtube',
                 'data':              data.group(1).strip()     if data     else '',
                 'link':              link.group(1).strip()     if link     else '',
@@ -420,7 +423,7 @@ def _enriquecer_com_keywords(texto: str) -> str:
 
 # ── Enriquecimento BM25 ───────────────────────────────────────────────────────
 
-def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keywords: int = 15) -> list:
+def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keywords: int = 15, titulo: str = '') -> list:
     palavras = re.findall(r'\b[a-záéíóúàâêôãõçñüäöï]{4,}\b', texto.lower())
     freq: dict = {}
     for p in palavras:
@@ -431,7 +434,10 @@ def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keyword
     tags_norm = [re.sub(r'[^a-záéíóúàâêôãõç\w]', '_', t.lower()).strip('_')
                  for t in tags if t]
 
-    prefixo = tags_norm * 3 + top_keywords * 2
+    # Título repetido 5x: garante que queries com palavras do título sempre acertam
+    titulo_tokens = titulo.lower().split() if titulo else []
+
+    prefixo = titulo_tokens * 5 + tags_norm * 3 + top_keywords * 2
     desc_tokens = descricao.lower().split() if descricao else []
     return prefixo + desc_tokens + texto.lower().split()
 

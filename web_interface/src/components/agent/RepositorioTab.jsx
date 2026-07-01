@@ -224,7 +224,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
  * @param {string}   props.canalAtivo     - canal currently active
  * @returns {JSX.Element}
  */
-function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled, projetoInicial, onProjetoInicialHandled }) {
+function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled, projetoInicial, onProjetoInicialHandled, buscaInicial, onBuscaInicialHandled }) {
   const { t } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
@@ -302,6 +302,23 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       onProjetoInicialHandled?.();
     }
   }, [projetoInicial]);
+
+  // Pré-popula busca quando vindo do chat (botão "Buscar no Repositório")
+  React.useEffect(() => {
+    if (!buscaInicial) return;
+    // Usa o canal ativo, ou o primeiro projeto disponível
+    const alvo = canalAtivo || (projetos[0]?.nome ?? '');
+    if (alvo) {
+      _setBusca(alvo, { query: buscaInicial });
+      setExpandedCanais(prev => ({ ...prev, [alvo]: true }));
+      // Dispara a busca automaticamente
+      buscarBase(buscaInicial, alvo)
+        .then(res => _setBusca(alvo, { resultados: res.data, buscando: false }))
+        .catch(() => _setBusca(alvo, { resultados: { resultados: [], total: 0 }, buscando: false }));
+      _setBusca(alvo, { buscando: true });
+    }
+    onBuscaInicialHandled?.();
+  }, [buscaInicial]);
 
   const closeAddModal = () => {
     setShowAdd(false);

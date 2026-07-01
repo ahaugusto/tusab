@@ -326,7 +326,7 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                     <tr key={i} className={`border-b last:border-0 ${darkMode ? 'border-white/5 hover:bg-white/4' : 'border-slate-50 hover:bg-slate-50'}`}>
                       <td className="px-4 py-2">
                         <a href={v.Link} target="_blank" rel="noreferrer"
-                          className={`hover:underline truncate block min-w-[120px] max-w-[260px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                          className={`hover:underline truncate block min-w-[120px] max-w-[520px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                           {v.Titulo}
                         </a>
                       </td>

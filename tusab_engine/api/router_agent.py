@@ -115,8 +115,20 @@ class AgentChatRequest(BaseModel):
     fontes_fixadas: list = []
     perfil:         str  = Field(default='', max_length=30)
 
+class BuscarTrechosRequest(BaseModel):
+    query:       str  = Field(max_length=1000)
+    canais:      list = []   # lista de nomes de canal/projeto para buscar
+    n:           int  = Field(default=8, ge=1, le=30)
+    busca_ampla: bool = True  # CrossEncoder ativo por padrão na busca manual
+
 class AgentIndexRequest(BaseModel):
     canal_nome: str = Field(default="", max_length=120)
+
+class FeedbackRequest(BaseModel):
+    canal_nome: str  = Field(max_length=120)
+    pergunta:   str  = Field(max_length=4000)
+    resposta:   str  = Field(max_length=20000)
+    util:       bool = True   # True = salva; False = descarta (apenas registra log)
 
 class SalvarHistoricoRequest(BaseModel):
     canal_nome: str  = Field(max_length=120)
@@ -778,6 +790,44 @@ def _auto_salvar_historico(canal_nome: str, mensagens: list) -> None:
         pass  # nunca bloqueia o clear
 
 
+@router.post("/agent/feedback")
+def agent_feedback(req: FeedbackRequest):
+    """Registra feedback do usuário sobre uma resposta do agente.
+
+    util=True  → salva o par pergunta+resposta em texts/ do canal como corpus BM25.
+                 Entra na base na próxima indexação — RLHF local.
+    util=False → descarta silenciosamente (sem side-effects no corpus).
+    """
+    import time as _time
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+
+    if not req.util:
+        return {"ok": True, "action": "discarded"}
+
+    texts_dir = os.path.join(
+        __import__('tusab_engine.storage', fromlist=['NEURAL_DIR']).NEURAL_DIR,
+        canal_prefixo, 'texts'
+    )
+    os.makedirs(texts_dir, exist_ok=True)
+
+    ts = int(_time.time())
+    fname = f"feedback_{ts}.txt"
+    conteudo = (
+        f"PERGUNTA: {req.pergunta.strip()}\n\n"
+        f"RESPOSTA ÚTIL:\n{req.resposta.strip()}\n"
+    )
+    caminho = os.path.join(texts_dir, fname)
+    try:
+        with open(caminho, 'w', encoding='utf-8') as f:
+            f.write(conteudo)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    # Invalida cache BM25 para que o novo arquivo seja lido na próxima query
+    agent_tusab._invalidar_cache(canal_prefixo)
+    return {"ok": True, "action": "saved", "arquivo": fname}
+
+
 @router.post("/agent/chat/clear")
 def agent_chat_clear(req: AgentChatRequest):
     """Limpa histórico de conversa do lado do servidor e auto-salva em _chat_history/."""
@@ -991,6 +1041,27 @@ def agent_chat_injetar_historico(req: InjetarHistoricoRequest):
     salvar_json_atomico(idx, idx_path, indent=2)
 
     return {"ok": True, "message": "Histórico adicionado ao corpus. Indexe a base para ativá-lo."}
+
+
+@router.post("/agent/buscar-trechos")
+def agent_buscar_trechos(req: BuscarTrechosRequest):
+    """Pipeline completo de recuperação (BM25 + query expansion + CrossEncoder) sem LLM.
+
+    Retorna chunks ranqueados de uma ou mais bases para o usuário selecionar e injetar no chat.
+    """
+    from tusab_engine.agent.chat import buscar_trechos
+    if not req.query.strip():
+        return {"trechos": [], "total": 0}
+    try:
+        trechos = buscar_trechos(
+            query=req.query.strip(),
+            canais=req.canais,
+            n=req.n,
+            busca_ampla=req.busca_ampla,
+        )
+        return {"trechos": trechos, "total": len(trechos)}
+    except Exception as e:
+        return {"trechos": [], "total": 0, "erro": str(e)}
 
 
 @router.post("/agent/chat")

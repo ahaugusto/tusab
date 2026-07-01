@@ -5,14 +5,16 @@
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
+const ReferenciarModal = lazy(() => import('./ReferenciarModal'));
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip, AlertTriangle } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip, AlertTriangle, Search, ThumbsUp, ThumbsDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 export const LOADING_PHRASES = [
@@ -199,6 +201,7 @@ function ChatDrawer({
   agentProvider,
   ollamaStatus,
   onAbrirIndexacaoRepositorio,
+  onAbrirBuscaRepositorio,
   onGoToAgent,
   chatHistory,
   onRetomar,
@@ -223,8 +226,12 @@ function ChatDrawer({
   const [histSalvosLoading, setHistSalvosLoading] = useState(false);
   const [injetando,         setInjetando]         = useState(null); // hist_id em injeção
   const [showBaseModal,     setShowBaseModal]     = useState(false);
-  const [showBuscaModal,    setShowBuscaModal]    = useState(false);
-  const [indexandoBase,     setIndexandoBase]     = useState(null);
+  const baseModalDismissedRef = useRef(false); // evita reabrir após usuário fechar manualmente
+  const [showBuscaModal,       setShowBuscaModal]       = useState(false);
+  const [showReferenciarModal, setShowReferenciarModal] = useState(false);
+  const [referenciarQuery,     setReferenciarQuery]     = useState('');
+  const [feedbackMap,          setFeedbackMap]          = useState({});  // { msgIdx: 'up'|'down' }
+  const [indexandoBase,        setIndexandoBase]        = useState(null);
   const [filaStatusChat,    setFilaStatusChat]    = useState({}); // { nome: 'aguardando'|'indexando'|'ok'|'erro' }
   const [indexSnackbar,     setIndexSnackbar]     = useState(null); // { msg, type }
   // Modal de confirmação ao trocar base com conversa ativa
@@ -349,17 +356,34 @@ function ChatDrawer({
   const canaisIndexadosTodos = agentStatus.canais_indexados || [];
   // Filtra índices órfãos (n_arquivos_fonte === 0 significa que a fonte sumiu)
   const canaisIndexados = canaisIndexadosTodos.filter(c => (c.n_arquivos_fonte ?? 1) > 0);
+  const nomesIndexados = new Set(canaisIndexados.map(c => c.nome));
   const temBase = canaisIndexados.length > 0;
   // Auto-seleciona apenas quando há exatamente 1 base com fonte e nenhuma foi configurada
   const canalAutoUnico = !canalConfigurado && canaisIndexados.length === 1 ? canaisIndexados[0].nome : null;
-  const canalAtivo = canalConfigurado || canalAutoUnico || agentStatus.canal_indexado;
+  // canal_indexado do backend só vale se ainda estiver na lista de índices válidos
+  const canalIndexadoValido = nomesIndexados.has(agentStatus.canal_indexado) ? agentStatus.canal_indexado : null;
+  // canalConfigurado só vale se ainda estiver indexado — evita chip fantasma após exclusão
+  const canalConfiguradoValido = nomesIndexados.has(canalConfigurado) ? canalConfigurado : null;
+  const canalAtivo = canalConfiguradoValido || canalAutoUnico || canalIndexadoValido;
   // Requer seleção explícita quando há mais de uma base disponível com fonte
-  const precisaSelecionarBase = !canalConfigurado && canaisIndexados.length > 1;
+  const precisaSelecionarBase = !canalConfiguradoValido && canaisIndexados.length > 1;
   const chatHabilitado = temBase && !!canalAtivo && !precisaSelecionarBase;
 
-  // Abre modal de seleção de base automaticamente quando há mais de uma disponível e nenhuma selecionada
+  // Limpa canalConfigurado se ele não está mais indexado (base excluída ou índice removido)
   useEffect(() => {
-    if (precisaSelecionarBase && chatOpen) {
+    if (canalConfigurado && nomesIndexados.size > 0 && !nomesIndexados.has(canalConfigurado)) {
+      onSelectCanal?.('');
+    }
+  }, [canalConfigurado, agentStatus.canais_indexados]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Abre modal de seleção de base automaticamente — apenas na primeira vez que o chat abre
+  // com múltiplas bases e nenhuma selecionada. Não reabre se o usuário já dispensou.
+  useEffect(() => {
+    if (!chatOpen) {
+      baseModalDismissedRef.current = false; // reseta ao fechar o chat
+      return;
+    }
+    if (precisaSelecionarBase && !baseModalDismissedRef.current) {
       setShowBaseModal(true);
     }
   }, [precisaSelecionarBase, chatOpen]);
@@ -438,9 +462,9 @@ function ChatDrawer({
             <Database size={9} />
             {t('chat.select_base_link')}
           </button>
-        ) : agentStatus.indexed && (() => {
-          const principal = canalConfigurado || canalAutoUnico || agentStatus.canal_indexado;
-          const extras = canaisExtras || [];
+        ) : canalAtivo && (() => {
+          const principal = canalAtivo;
+          const extras = (canaisExtras || []).filter(e => nomesIndexados.has(e));
           const todas = extras.length > 0
             ? [principal, ...extras].filter(Boolean)
             : null;
@@ -449,7 +473,7 @@ function ChatDrawer({
               <p className={`text-[10px] cursor-default ${darkMode ? 'text-primary/80' : 'text-primary'}`}>
                 {t('chat.active_bases', { count: todas.length })}
               </p>
-              {canalConfigurado && (
+              {canalConfiguradoValido && (
                 <button
                   onClick={() => { onSelectCanal?.(''); setCanaisExtras?.([]); }}
                   title={t('chat.remove_base_aria', 'Remover base')}
@@ -471,7 +495,7 @@ function ChatDrawer({
           ) : (
             <span className="flex items-center gap-0.5">
               <p className={`text-[10px] truncate max-w-[120px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`} title={`@${principal}`}>@{principal}</p>
-              {canalConfigurado && (
+              {canalConfiguradoValido && (
                 <button
                   onClick={() => { onSelectCanal?.(''); setCanaisExtras?.([]); }}
                   title={t('chat.remove_base_aria', 'Remover base')}
@@ -880,6 +904,7 @@ function ChatDrawer({
                         {msg.role === 'user' ? (
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         ) : (
+                          <>
                           <div className="markdown-body">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -911,6 +936,41 @@ function ChatDrawer({
                             />
                             {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
                           </div>
+                          {/* Feedback de resposta — só aparece após streaming concluído */}
+                          {!msg.streaming && msg.role === 'assistant' && (
+                            <div className="mt-2 flex items-center gap-1">
+                              {feedbackMap[i] ? (
+                                <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {feedbackMap[i] === 'up' ? '✓ Salvo na base' : '✓ Descartado'}
+                                </span>
+                              ) : (
+                                <>
+                                  <span className={`text-[10px] mr-1 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>Esta resposta foi útil?</span>
+                                  <button
+                                    title="Resposta útil — salvar na base"
+                                    onClick={() => {
+                                      const pergunta = i > 0 ? chatMessages[i - 1]?.content || '' : '';
+                                      setFeedbackMap(prev => ({ ...prev, [i]: 'up' }));
+                                      enviarFeedback(canalAtivo || agentStatus.canal_indexado, pergunta, msg.content, true).catch(() => {});
+                                    }}
+                                    className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-slate-300 hover:text-emerald-600 hover:bg-emerald-50'}`}>
+                                    <ThumbsUp size={11} />
+                                  </button>
+                                  <button
+                                    title="Resposta não útil — descartar"
+                                    onClick={() => {
+                                      const pergunta = i > 0 ? chatMessages[i - 1]?.content || '' : '';
+                                      setFeedbackMap(prev => ({ ...prev, [i]: 'down' }));
+                                      enviarFeedback(canalAtivo || agentStatus.canal_indexado, pergunta, msg.content, false).catch(() => {});
+                                    }}
+                                    className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-600 hover:text-red-400 hover:bg-red-500/10' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`}>
+                                    <ThumbsDown size={11} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          </>
                         )}
                         {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && (
                           <button
@@ -927,14 +987,30 @@ function ChatDrawer({
                             <span>Este modelo pode ser pesado demais para o seu hardware. Tente um modelo menor como <strong>Llama 3.2 1B</strong> ou <strong>Llama 3.2 3B</strong> na aba <strong>Agente</strong>.</span>
                           </div>
                         )}
-                        {msg.sem_contexto && !msg.streaming && !agentStatus.indexed && (
-                          <button
-                            onClick={() => setShowBaseModal(true)}
-                            className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
-                              ${darkMode ? 'bg-accent/20 text-accent hover:bg-accent/30' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
-                            <Zap size={11} aria-hidden="true" />
-                            {t('chat.index_base_now_btn')}
-                          </button>
+                        {msg.sem_contexto && !msg.streaming && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {!agentStatus.indexed && (
+                              <button
+                                onClick={() => setShowBaseModal(true)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
+                                  ${darkMode ? 'bg-accent/20 text-accent hover:bg-accent/30' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
+                                <Zap size={11} aria-hidden="true" />
+                                {t('chat.index_base_now_btn')}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                const idx = chatMessages.indexOf(msg);
+                                const pergunta = idx > 0 ? chatMessages[idx - 1]?.content || '' : '';
+                                setReferenciarQuery(pergunta);
+                                setShowReferenciarModal(true);
+                              }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.98]
+                                ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}>
+                              <Search size={11} aria-hidden="true" />
+                              Referenciar trecho
+                            </button>
+                          </div>
                         )}
                         {msg.fontes && msg.fontes.length > 0 && !msg.streaming && (
                           <div className={`pt-2 border-t space-y-1.5 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
@@ -1225,14 +1301,24 @@ function ChatDrawer({
       <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
         {/* Botão de anexo */}
         {(agentStatus?.canal_indexado || canalConfigurado) && (
-          <button
-            onClick={() => anexoInputRef.current?.click()}
-            disabled={anexoLoading}
-            aria-label={t('chat.attach_aria')}
-            className={`shrink-0 p-1.5 rounded-lg transition-colors disabled:opacity-40
-              ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
-            {anexoLoading ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Paperclip size={13} aria-hidden="true" />}
-          </button>
+          <>
+            <button
+              onClick={() => { setReferenciarQuery(chatInput.trim()); setShowReferenciarModal(true); }}
+              aria-label="Referenciar trecho no chat"
+              title="Referenciar trecho no chat"
+              className={`shrink-0 p-1.5 rounded-lg transition-colors
+                ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+              <Search size={13} aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => anexoInputRef.current?.click()}
+              disabled={anexoLoading}
+              aria-label={t('chat.attach_aria')}
+              className={`shrink-0 p-1.5 rounded-lg transition-colors disabled:opacity-40
+                ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+              {anexoLoading ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Paperclip size={13} aria-hidden="true" />}
+            </button>
+          </>
         )}
         <textarea
           ref={textareaRef}
@@ -1482,6 +1568,26 @@ function ChatDrawer({
       </div>
     </div>
 
+    {/* Modal: Referenciar trecho no chat */}
+    {showReferenciarModal && createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }}
+        onClick={e => { if (e.target === e.currentTarget) setShowReferenciarModal(false); }}>
+        <Suspense fallback={null}>
+          <ReferenciarModal
+            darkMode={darkMode}
+            canaisIndexados={(agentStatus.canais_indexados || []).filter(c => (c.n_arquivos_fonte ?? 1) > 0)}
+            queryInicial={referenciarQuery}
+            onInjetar={blocos => {
+              setChatInput(prev => (prev ? prev + '\n\n' : '') + blocos);
+              setShowReferenciarModal(false);
+            }}
+            onFechar={() => setShowReferenciarModal(false)}
+          />
+        </Suspense>
+      </div>,
+      document.body
+    )}
+
     {/* Modal explicativo: Busca Ampla vs Restrita */}
     <AnimatePresence>
       {showBuscaModal && (
@@ -1573,7 +1679,7 @@ function ChatDrawer({
             {/* Header */}
             <div className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
               <button
-                onClick={() => setShowBaseModal(false)}
+                onClick={() => { baseModalDismissedRef.current = true; setShowBaseModal(false); }}
                 className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
                 <ArrowLeft size={14} />
               </button>
@@ -1783,7 +1889,7 @@ function ChatDrawer({
                         </div>
                       </div>
                       <button
-                        onClick={() => setShowBaseModal(false)}
+                        onClick={() => { baseModalDismissedRef.current = true; setShowBaseModal(false); }}
                         className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
                         {t('chat.confirm_bases')}
                       </button>
@@ -2138,10 +2244,10 @@ function ChatDrawer({
     <AnimatePresence>
       {chatOpen && (
         <>
-          {/* Mobile backdrop */}
+          {/* Backdrop — fecha o chat ao clicar fora */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/20 lg:bg-transparent"
             onClick={() => setChatOpen(false)} />
 
           {/* Drawer panel */}
