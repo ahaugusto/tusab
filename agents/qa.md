@@ -258,8 +258,9 @@ Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 | P0-e | Mapa de conceitos | Grafo renderiza? Zoom/pan funciona? Acessível por teclado? |
 | P1-b | Citações navegáveis | Clique na fonte → painel com trecho original? Funciona para YouTube, PDF e texto? |
 | P2 | Scheduler | Toggle por canal aparece? Extração roda automaticamente após `proxima_execucao` no passado? |
-| P3 | OAuth Drive público | Fluxo OAuth completo sem conta autorizada manualmente? |
 | P4 | Landing page | Proposta de valor em 3 segundos? Download funciona? CTAs claros? |
+
+> **P3 concluído (jul/2026):** o consent screen do Google foi publicado — OAuth Drive funciona para qualquer conta, sem autorização manual de test users. Falhas de auth no Drive em máquinas de usuários com v1.0.30 eram o bug do preload/CORS (invariante 13 da `_historia.md`), não o OAuth.
 
 **Tendências que o QA deve antecipar:**
 - **Testes de regressão visual**: conforme o app ganha mais features, screenshots de referência + diff visual detectam mudanças visuais não intencionais — Playwright visual comparison ou Percy
