@@ -1,0 +1,18 @@
+# Tusab Enterprise — dependências adicionais da edição enterprise
+# © 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Uso (build do python_env enterprise — Fase 1 do Plano B2B):
+#   python -m pip install -r requirements.txt -r requirements-enterprise.txt
+#
+# Estas libs ficam FORA do instalador B2C por decisão estratégica (jul/2026):
+# ~2,5 GB instaladas, +0,5-1 GB RAM em runtime — inviável em PC modesto.
+# Ver: agents/_historia.md → "Stack semântica reservada à edição institucional B2B"
+# e "Documentação do Produto/Plano B2B — Tusab Enterprise.md".
+#
+# QA obrigatório pós-build (lição do CrossEncoder): verificação POSITIVA no
+# app instalado — cada lib deve carregar; degradação graciosa mascara falha.
+
+torch                      # CPU-only; base da stack semântica
+sentence-transformers      # CrossEncoder ms-marco-MiniLM-L-6-v2 (Busca Ampla)
+scikit-learn               # dependência do KeyBERT
+keybert                    # enriquecimento do corpus BM25 com keyphrases
