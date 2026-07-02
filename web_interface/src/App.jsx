@@ -1616,8 +1616,8 @@ function App() {
                     </svg>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('drive.title')}</p>
-                      <p className={`text-[10px] ${driveStatus === 'autenticado' ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {driveStatus === 'autenticado' ? t('drive.connected') : t('drive.not_authenticated')}
+                      <p className={`text-[10px] ${driveStatus === 'autenticado' ? 'text-secondary' : driveStatus === 'sem_credenciais' ? 'text-warning' : darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {driveStatus === 'autenticado' ? t('drive.connected') : driveStatus === 'sem_credenciais' ? t('drive.no_credentials_title') : t('drive.not_authenticated')}
                       </p>
                     </div>
                     {/* Toggle switch */}
@@ -1628,7 +1628,9 @@ function App() {
                       onClick={() => {
                         const willOpen = !driveOpen;
                         setDriveOpen(willOpen);
-                        if (willOpen && driveStatus !== 'autenticado') handleDriveAuth();
+                        // sem_credenciais: abre o painel para mostrar a instrução, mas não chama
+                        // o backend — a auth falharia com FileNotFoundError críptico
+                        if (willOpen && driveStatus !== 'autenticado' && driveStatus !== 'sem_credenciais') handleDriveAuth();
                       }}
                       className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${BTN_FOCUS}
                         ${driveStatus === 'autenticado' ? 'bg-secondary' : driveOpen ? 'bg-primary/60' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
@@ -1646,6 +1648,11 @@ function App() {
                       {status.drive_auth_error && (
                         <p className={`text-[11px] text-danger flex items-center gap-1`}>
                           <AlertTriangle size={10} /> {status.drive_auth_error}
+                        </p>
+                      )}
+                      {driveStatus === 'sem_credenciais' && (
+                        <p className="text-[11px] text-warning flex items-center gap-1" role="alert">
+                          <AlertTriangle size={10} /> {t('drive.no_credentials_reinstall')}
                         </p>
                       )}
                       {driveStatus === 'em_progresso' && (
