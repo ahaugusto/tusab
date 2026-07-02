@@ -105,6 +105,9 @@ def get_status():
 
 @router.post("/drive-auth")
 def start_drive_auth(background_tasks: BackgroundTasks):
+    if motor_tusab.get_drive_status() == 'sem_credenciais':
+        state.drive_auth_error = "Credenciais do Drive ausentes da instalação. Reinstale o Tusab."
+        return {"message": state.drive_auth_error, "error": True}
     if state.drive_auth_running:
         return {"message": "Autenticação já está em progresso"}
     if state.is_running:
