@@ -197,6 +197,7 @@ function App() {
   const [history,          setHistory]          = useState([]);
   const [repositorio,      setRepositorio]      = useState({ youtube: [], documentos: [], textos: [], canais: [] });
   const prevExtractionStatus = useRef('');
+  const prevDriveStatus      = useRef('');
   const prevIndexingRef      = useRef(false);
   const indexacaoLoteRef     = useRef(null); // null = sem lote; { total, done } = lote em andamento
   const [backendOnline,    setBackendOnline]    = useState(true);
@@ -666,6 +667,15 @@ function App() {
     prevExtractionStatus.current = s;
   }, [status.stats.status]);
 
+  /** Tracks Drive auth success for the D1 funnel (drive vs chat usage) */
+  useEffect(() => {
+    const ds = status.drive_status;
+    if (ds === 'autenticado' && prevDriveStatus.current && prevDriveStatus.current !== 'autenticado') {
+      Analytics.driveAuthConcluida();
+    }
+    prevDriveStatus.current = ds;
+  }, [status.drive_status]);
+
   /** Tracks tab visits for the activation funnel (repositório / relatório) */
   useEffect(() => {
     if (activeTab === 'repositorio') {
@@ -919,6 +929,7 @@ function App() {
 
   /** Initiates Drive OAuth flow — shows one-time security warning first */
   const handleDriveAuth = () => {
+    Analytics.driveAuthIniciada();
     if (!hasSeenWarning()) {
       setShowDriveWarning(true);
     } else {
@@ -937,7 +948,7 @@ function App() {
   const handleDriveCancel = () => cancelDriveAuth();
 
   /** Disconnects Google Drive by removing the stored token */
-  const handleDriveDisconnect = () => disconnectDrive().catch(() => {});
+  const handleDriveDisconnect = () => { Analytics.driveDesconectado(); return disconnectDrive().catch(() => {}); };
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
