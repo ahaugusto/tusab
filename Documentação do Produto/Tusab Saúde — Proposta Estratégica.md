@@ -6,6 +6,9 @@
 
 ---
 
+> **⚠️ Atualização (jul/2026) — reposicionamento sob o Tusab Enterprise:** este vertical é um **pacote de go-to-market do Tusab Enterprise**, a edição institucional definida em [Plano B2B — Tusab Enterprise.md](Plano B2B — Tusab Enterprise.md). Todos os verticais compartilham a mesma base de código e o mesmo instalador enterprise (com a stack semântica completa: CrossEncoder + KeyBERT); a diferenciação entre eles é comercial — empacotamento, curadoria de conteúdo e persona — nunca fork técnico. Gatilho de execução: primeiro lead concreto do segmento (Fase 1 do plano).
+
+
 ## Por que saúde é o segmento de maior potencial — e maior complexidade
 
 **O mercado:** hospitais brasileiros gastam bilhões em treinamento de equipes, gestão de protocolos clínicos e educação continuada. O corpus é imenso: protocolos da ANVISA, diretrizes do CFM, bulas, literaturas científicas, treinamentos internos.
