@@ -63,4 +63,5 @@ def get_metrics():
         current = dict(_bg_snap) if _bg_snap else {"ts": int(time.time()), "ram_mb": 0.0, "cpu_pct": 0.0, "sys_cpu": 0.0}
     with _history_lock:
         hist = list(_history)
-    return {"current": current, "history": hist}
+    # available=False sinaliza psutil ausente — a UI mostra aviso em vez de zeros silenciosos
+    return {"current": current, "history": hist, "available": _proc is not None}

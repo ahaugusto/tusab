@@ -85,9 +85,10 @@ export default function MonitorTab({ darkMode, btnFocus, onGoToAdmin }) {
   const cpuHist  = hist.map(h => h.sys_cpu ?? h.cpu_pct);
   const maxRam   = Math.max(...ramHist, 1);
 
-  // Detecta métricas zeradas — psutil sem permissão em ambientes corporativos
-  const metricsUnavailable = metrics && cur &&
-    cur.ram_mb === 0 && cur.cpu_pct === 0 && cur.sys_cpu === 0;
+  // available=false: psutil ausente/bloqueado (flag explícito do backend);
+  // fallback de zeros cobre backends antigos sem o flag
+  const metricsUnavailable = metrics && (metrics.available === false ||
+    (cur && cur.ram_mb === 0 && cur.cpu_pct === 0 && cur.sys_cpu === 0));
 
   const card = `rounded-2xl border p-4 ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`;
   const label = `text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`;

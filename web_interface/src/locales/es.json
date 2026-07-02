@@ -565,7 +565,7 @@
   "monitor.footer": "Mostrando las 20 muestras más recientes · Actualizado cada 2s",
   "monitor.note": "Métricas referentes exclusivamente al proceso Tusab",
   "monitor.unavailable_title": "Métricas no disponibles en este entorno",
-  "monitor.unavailable_desc": "El módulo de monitoreo no pudo leer los datos del proceso. Esto suele ocurrir en redes corporativas donde las políticas de seguridad (EDR, GPO) restringen el acceso a las métricas del sistema.",
+  "monitor.unavailable_desc": "El módulo de monitoreo no pudo leer los datos del proceso. Actualiza Tusab a la versión más reciente; si persiste, las políticas de seguridad corporativas (EDR, GPO) pueden estar restringiendo el acceso a las métricas del sistema.",
   "monitor.unavailable_cta": "Ver diagnóstico de redes corporativas →",
   "perfil.estudante": "Estudiante",
   "perfil.estudante_desc": "Recibo bases listas de profesores y uso el chat para estudiar.",
