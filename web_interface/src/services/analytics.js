@@ -93,4 +93,9 @@ export const Analytics = {
   primeiraRespostaUtil: (minutos, provider)   => track('primeira_resposta_util', { minutos_desde_install: minutos, provider }),
   // A3 — retenção: disparado quando o usuário cruza 1, 7 ou 30 dias
   retencaoDia:          (dia, dias_total)     => track(`retencao_dia${dia}`, { dias_desde_install: dias_total }),
+  // D1 — funil do Drive: responde "que % de quem usa Drive nunca usa o chat?"
+  // (decisão estratégica jul/2026: medir antes de reposicionar o Drive sync)
+  driveAuthIniciada:    ()                    => track('drive_auth_iniciada'),
+  driveAuthConcluida:   ()                    => track('drive_auth_concluida'),
+  driveDesconectado:    ()                    => track('drive_desconectado'),
 };
