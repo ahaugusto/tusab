@@ -7,7 +7,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [Não lançado] — próxima release (v1.0.32)
+## [1.0.32] — 2026-07-02
 ### Adicionado
 - **Funil D1 do Drive (analytics)** — eventos `drive_auth_iniciada`, `drive_auth_concluida`, `drive_desconectado` para medir uso do Drive vs chat antes de decidir o reposicionamento da feature
 - **Lista de modelos Ollama ampliada de 8 para 12** — gemma3:1b (ultra leve), mistral-nemo:12b (128k ctx), qwen2.5:14b e phi4:14b; modelos thinking (qwen3, deepseek-r1) ficam de fora até o backend tratar o campo `thinking`
