@@ -16,12 +16,18 @@ const MODELOS_PRINCIPAIS = [
   ['gemma3:4b',      'Gemma 3 4B',      '~3.3 GB', 'Google, ótimo em português'],
 ];
 
+// Nota: modelos com "thinking" nativo (qwen3, deepseek-r1) ficam de fora até o
+// backend tratar o campo thinking do /api/generate — senão blocos <think> vazam no chat
 const MODELOS_EXTRAS = [
-  ['llama3.1:8b',    'Llama 3.1 8B',    '~4.7 GB', 'Qualidade superior, requer 8 GB RAM'],
-  ['qwen2.5:7b',     'Qwen 2.5 7B',     '~4.7 GB', 'Alibaba, multilíngue, muito capaz'],
-  ['mistral:7b',     'Mistral 7B',      '~4.1 GB', 'Rápido e preciso para RAG'],
-  ['phi4-mini:3.8b', 'Phi-4 Mini 3.8B', '~2.5 GB', 'Microsoft, eficiente em raciocínio'],
-  ['gemma3:12b',     'Gemma 3 12B',     '~8.1 GB', 'Google, alta qualidade, 16 GB RAM'],
+  ['gemma3:1b',        'Gemma 3 1B',        '~815 MB', 'Google, o mais leve — roda em qualquer PC'],
+  ['phi4-mini:3.8b',   'Phi-4 Mini 3.8B',   '~2.5 GB', 'Microsoft, eficiente em raciocínio'],
+  ['mistral:7b',       'Mistral 7B',        '~4.1 GB', 'Rápido e preciso para RAG'],
+  ['llama3.1:8b',      'Llama 3.1 8B',      '~4.7 GB', 'Qualidade superior, requer 8 GB RAM'],
+  ['qwen2.5:7b',       'Qwen 2.5 7B',       '~4.7 GB', 'Alibaba, multilíngue, muito capaz'],
+  ['mistral-nemo:12b', 'Mistral Nemo 12B',  '~7.1 GB', 'Contexto de 128k tokens, multilíngue forte'],
+  ['gemma3:12b',       'Gemma 3 12B',       '~8.1 GB', 'Google, alta qualidade, 16 GB RAM'],
+  ['qwen2.5:14b',      'Qwen 2.5 14B',      '~9.0 GB', 'Alibaba, excelente em português, 16 GB RAM'],
+  ['phi4:14b',         'Phi-4 14B',         '~9.1 GB', 'Microsoft, topo da categoria, 16 GB RAM'],
 ];
 
 // Lista completa para uso na aba Agente (isStandby=true) — exibe todos
