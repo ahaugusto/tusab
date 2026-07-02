@@ -26,6 +26,8 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/marketing` | Especialista em Marketing/Growth | canais de aquisição, copy, posicionamento, táticas sem budget |
 | `/comercial-b2b` | Comercial B2B/Enterprise | oportunidade institucional, pricing, proposta, piloto, LGPD como argumento de venda |
 | `/implantacao-b2b` | Engenheiro de Implantação B2B | build variant institucional, licenciamento offline, silent install/GPO, EDR, LTS |
+| `/dev-b2b` | Engenheiro de Desenvolvimento B2B | features enterprise no código: licença offline, feature flags, auditoria, permissões por base |
+| `/produto-b2b` | Product Manager B2B | roadmap da edição institucional, escopo mínimo vendável, priorização por contrato |
 | `/memoria` | Memória Institucional | "isso já foi tentado?", "por que X foi descartado?", "quais invariantes não podem ser violados?" |
 | `/memoria-atualizar` | Atualização da Memória | após cada release ou decisão relevante — propõe adições ao `_historia.md` para aprovação |
 
