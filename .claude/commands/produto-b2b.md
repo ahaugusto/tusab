@@ -9,6 +9,6 @@ Avalie a feature, decisão ou oportunidade descrita pelo usuário com foco em:
 - Quem usa não é quem compra — comprador quer compliance/controle, usuário quer a UX não-técnica do B2C
 - Local-first como resposta ao "por que não NotebookLM Enterprise?"
 - Não canibalizar o B2C: diferenciar por operação (deploy, licença, suporte), não por reter valor individual
-- Fase do plano B2B em que a decisão se encaixa (`Documentação do Produto/Plano B2B — Edição Institucional.md`)
+- Fase do plano B2B em que a decisão se encaixa (`Documentação do Produto/Plano B2B — Tusab Enterprise.md`)
 
 Retorne análise com priorização clara, trade-offs e a premissa não validada mais perigosa da decisão.
