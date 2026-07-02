@@ -7,6 +7,18 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.33] — 2026-07-02
+### Corrigido
+- **[CRÍTICO] Aba Monitor zerada no app instalado** — `psutil` estava no requirements.txt mas nunca entrou no `python_env` empacotado; o `/metrics` devolvia zeros silenciosamente. Instalado no python_env + `/metrics` retorna `available: false` quando psutil ausente + MonitorTab mostra aviso explícito em vez de zeros
+- **Export XLSX quebrado no app instalado** — `openpyxl` ausente do python_env pelo mesmo motivo; instalado
+- **Tags multi-palavra do YouTube eram peso morto no BM25** — "renda fixa" virava token único `renda_fixa` que nunca dava match; agora cada palavra entra individualmente no corpus (peso 3x preservado, stopwords filtradas)
+
+### Alterado
+- Chave de telemetria PostHog atualizada para o projeto novo (dados de v1.0.30–32 permanecem no projeto anterior, inacessível)
+- Texto do aviso de métricas indisponíveis orienta atualizar o app antes de suspeitar de EDR/GPO
+
+---
+
 ## [1.0.32] — 2026-07-02
 ### Adicionado
 - **Funil D1 do Drive (analytics)** — eventos `drive_auth_iniciada`, `drive_auth_concluida`, `drive_desconectado` para medir uso do Drive vs chat antes de decidir o reposicionamento da feature
