@@ -5,6 +5,9 @@
 
 ---
 
+> **⚠️ Atualização (jul/2026) — Tusab Enterprise:** a edição institucional agora tem nome oficial (**Tusab Enterprise**) e plano operacional aprovado: [Plano B2B — Tusab Enterprise.md](Plano B2B — Tusab Enterprise.md). Decisões consolidadas: (1) a stack semântica (CrossEncoder + KeyBERT, ~2,5 GB) é exclusiva do Enterprise — o B2C distribui BM25 + FTS5; (2) os cinco verticais deste documento (School, Concurso, Idiomas, Saúde, Vestibular) são **pacotes de go-to-market do Tusab Enterprise**, compartilhando uma única base de código e um único instalador enterprise — a diferenciação é comercial, nunca fork; (3) o código vive no repositório único `ahaugusto/tusab`; um repo privado apenas de releases (`tusab-enterprise-releases`) será criado no gatilho da Fase 1 (primeiro lead concreto), para canal de update separado do público.
+
+
 ## O momento da monetização
 
 Até junho 2026, o Tusab não monetizava em nenhum cenário. A proposta B2B muda esse quadro pela primeira vez com escalabilidade real: uma venda serve centenas ou milhares de usuários simultâneos, sem custo proporcional de suporte.

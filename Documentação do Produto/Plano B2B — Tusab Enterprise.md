@@ -1,4 +1,4 @@
-# Plano B2B — Tusab Edição Institucional
+# Plano B2B — Tusab Enterprise
 
 **© 2026 CriAugu — CNPJ 65.131.075/0001-57**
 **Criado:** 02/jul/2026 · **Status:** aprovado em conceito, aguardando gatilho de execução
@@ -11,7 +11,7 @@ Em jul/2026 descobrimos que a stack semântica (torch + sentence-transformers + 
 
 **Decisão:** transformar o acidente em segmentação deliberada.
 
-| | Tusab (B2C) | Tusab Institucional (B2B) |
+| | Tusab (B2C) | Tusab Enterprise (B2B) |
 |---|---|---|
 | Pipeline RAG | BM25 + FTS5 | BM25 + FTS5 + CrossEncoder + KeyBERT |
 | Instalador | ~223 MB | ~1,5 GB |
@@ -29,6 +29,18 @@ Em jul/2026 descobrimos que a stack semântica (torch + sentence-transformers + 
 
 ---
 
+## Nomenclatura, código e repositórios (decisão de 02/jul/2026)
+
+**Nome oficial:** **Tusab Enterprise** (aprovado por Augusto). O B2C permanece apenas **Tusab**. Toda documentação, proposta e artefato novo usa esta convenção; `appId com.criaugu.tusab.enterprise`; dependências em `requirements-enterprise.txt`.
+
+**Código — um repositório, sempre:** as duas edições vivem em `ahaugusto/tusab` (privado). Feature enterprise entra atrás de flag/licença; a diferença de edição é configuração de build (`requirements-enterprise.txt` + variant do electron-builder), nunca fork. Fork duplicaria cada fix (preload, psutil) para um time de uma pessoa — vetado.
+
+**Repositórios — novo repo só de releases, só com lead:** o Enterprise exige canal de update separado do público (Fase 1.4). Isso será um repo privado `tusab-enterprise-releases` contendo apenas artefatos e `latest.yml` — zero código. Criá-lo antes do primeiro lead seria repo vazio apodrecendo; o gatilho é o mesmo da Fase 1.
+
+**Verticais como pacotes de GTM:** Tusab School, Concurso, Idiomas, Saúde e Vestibular (propostas em `Documentação do Produto/`) são **empacotamentos comerciais do mesmo Tusab Enterprise** — diferenciam por curadoria de conteúdo, persona e canal de venda; compartilham código, instalador e stack. Um lead de qualquer vertical dispara a mesma Fase 1.
+
+---
+
 ## Fase 0 — Pré-requisitos (antes de qualquer venda)
 
 1. **Validar o valor semântico com corpus real** — benchmark interno A/B: mesmas perguntas contra base institucional (atas, PDFs internos), BM25+FTS5 vs +CrossEncoder. O "+236ms" de dev nunca foi validado com usuário; não vender o que não foi medido.
@@ -37,9 +49,9 @@ Em jul/2026 descobrimos que a stack semântica (torch + sentence-transformers + 
 
 ## Fase 1 — Empacotamento (gatilho: primeiro lead B2B concreto)
 
-1. **`requirements-institucional.txt`** — requirements.txt + torch (CPU), sentence-transformers, scikit-learn, keybert
+1. **`requirements-enterprise.txt`** — ✅ criado (02/jul/2026) na raiz do repo: torch (CPU), sentence-transformers, scikit-learn, keybert
 2. **Script de build do python_env** — parametrizado por edição, roda `pip install -r` no ambiente limpo e valida com diff (invariante 15 automatizada). Nunca mais sync manual.
-3. **Build variant no electron-builder** — `productName: "Tusab Institucional"`, `appId` distinto (`com.criaugu.tusab.institucional`), instalador separado
+3. **Build variant no electron-builder** — `productName: "Tusab Enterprise"`, `appId` distinto (`com.criaugu.tusab.enterprise`), instalador separado
 4. **Canal de update separado** — releases em repo privado com token, ou `latest.yml` em canal próprio; edição institucional NÃO atualiza pelo canal público
 5. **QA específico** — checklist itens 6–8 + verificação de que CrossEncoder carrega e KeyBERT enriquece no app instalado (não confiar na degradação graciosa: ela mascara, como mascarou no B2C)
 6. **Licenciamento** — chave por instituição com validação offline (local-first não pode depender de servidor de licença)

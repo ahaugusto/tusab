@@ -6,6 +6,9 @@
 
 ---
 
+> **⚠️ Atualização (jul/2026) — reposicionamento sob o Tusab Enterprise:** este vertical é um **pacote de go-to-market do Tusab Enterprise**, a edição institucional definida em [Plano B2B — Tusab Enterprise.md](Plano B2B — Tusab Enterprise.md). Todos os verticais compartilham a mesma base de código e o mesmo instalador enterprise (com a stack semântica completa: CrossEncoder + KeyBERT); a diferenciação entre eles é comercial — empacotamento, curadoria de conteúdo e persona — nunca fork técnico. Gatilho de execução: primeiro lead concreto do segmento (Fase 1 do plano).
+
+
 ## Por que concurso público é o segundo segmento B2B
 
 **O mercado:** o Brasil tem ~8 milhões de pessoas prestando concursos por ano. Cursinhos especializados (Gran Cursos, Estratégia, Direção) movimentam bilhões. O aluno de concurso tem perfil distinto: adulto, autodidata, disposto a pagar por material de qualidade, estuda por meses ou anos.

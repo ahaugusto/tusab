@@ -6,6 +6,9 @@
 
 ---
 
+> **⚠️ Atualização (jul/2026) — reposicionamento sob o Tusab Enterprise:** este vertical é um **pacote de go-to-market do Tusab Enterprise**, a edição institucional definida em [Plano B2B — Tusab Enterprise.md](Plano B2B — Tusab Enterprise.md). Todos os verticais compartilham a mesma base de código e o mesmo instalador enterprise (com a stack semântica completa: CrossEncoder + KeyBERT); a diferenciação entre eles é comercial — empacotamento, curadoria de conteúdo e persona — nunca fork técnico. Gatilho de execução: primeiro lead concreto do segmento (Fase 1 do plano).
+
+
 ## Por que pré-vestibular é segmento natural
 
 **Sobreposição com escola:** o pré-vestibular é escola com foco de resultado. A estrutura é a mesma (professor, coordenador, aluno), mas a urgência é maior — o aluno tem data marcada e pressão de performance.
