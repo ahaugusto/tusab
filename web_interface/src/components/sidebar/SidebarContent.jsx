@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Globe, Sun, Moon, Link2, CheckCircle2, XCircle, AlertTriangle, Loader2, Zap,
-  ShieldCheck, ShieldOff, ShieldAlert, ExternalLink, PlayCircle, FileText, Info,
+  ShieldCheck, ShieldOff, ShieldAlert, PlayCircle, FileText, Info,
   FolderPlus, ListOrdered, Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -110,10 +110,9 @@ export function DriveToggle({ driveStatus, driveAuthError, onAuth, onCancel, onD
       )}
 
       {noCredentials && (
-        <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer"
-          className={`text-[10px] flex items-center gap-1 px-1 underline underline-offset-2 ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
-          <ExternalLink size={9} aria-hidden="true" /> {t('drive.how_to')}
-        </a>
+        <p className="text-[10px] text-warning flex items-center gap-1 px-1" role="alert">
+          <AlertTriangle size={10} aria-hidden="true" /> {t('drive.no_credentials_reinstall')}
+        </p>
       )}
 
       {isLoading && (
