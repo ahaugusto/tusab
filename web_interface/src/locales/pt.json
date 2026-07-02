@@ -565,7 +565,7 @@
   "notify.chat_done_body": "O Tusab terminou de responder sua pergunta.",
   "notify.chat_done_body_canal": "Resposta sobre @{{canal}} pronta no Tusab.",
   "monitor.unavailable_title": "Métricas indisponíveis neste ambiente",
-  "monitor.unavailable_desc": "O módulo de monitoramento não conseguiu ler os dados do processo. Isso costuma ocorrer em redes corporativas onde políticas de segurança (EDR, GPO) restringem o acesso a métricas de sistema.",
+  "monitor.unavailable_desc": "O módulo de monitoramento não conseguiu ler os dados do processo. Atualize o Tusab para a versão mais recente; se persistir, políticas de segurança corporativas (EDR, GPO) podem estar restringindo o acesso a métricas de sistema.",
   "monitor.unavailable_cta": "Ver diagnóstico de redes corporativas →",
   "perfil.estudante": "Estudante",
   "perfil.estudante_desc": "Recebo bases prontas de professores e uso o chat para estudar.",
