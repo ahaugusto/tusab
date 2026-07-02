@@ -431,8 +431,14 @@ def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keyword
             freq[p] = freq.get(p, 0) + 1
     top_keywords = sorted(freq, key=lambda k: freq[k], reverse=True)[:n_keywords]
 
-    tags_norm = [re.sub(r'[^a-záéíóúàâêôãõç\w]', '_', t.lower()).strip('_')
-                 for t in tags if t]
+    # Tags multi-palavra ("renda fixa") entram palavra a palavra — token único
+    # com underscore nunca daria match contra a query separada por espaços
+    tags_norm = []
+    for t in tags:
+        if not t:
+            continue
+        palavras_tag = re.findall(r'[a-záéíóúàâêôãõçñüäöï\w]+', t.lower())
+        tags_norm.extend(p for p in palavras_tag if p not in _STOPWORDS)
 
     # Título repetido 5x: garante que queries com palavras do título sempre acertam
     titulo_tokens = titulo.lower().split() if titulo else []
