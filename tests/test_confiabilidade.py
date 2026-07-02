@@ -71,7 +71,9 @@ def test_indice_vazio_gera_erro_claro(client):
         json.dump({"canal_nome": "x", "chunks": []}, f)
 
     try:
-        with pytest.raises(ValueError, match="corrompido ou vazio"):
+        # Índice vazio é tratado como inexistente — mensagem acionável direciona
+        # o usuário ao botão "Indexar base agora" no frontend
+        with pytest.raises(ValueError, match="Índice não encontrado"):
             agent_tusab._recuperar_contexto("pergunta", canal)
     finally:
         os.remove(idx)
