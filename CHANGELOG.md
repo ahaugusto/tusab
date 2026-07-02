@@ -7,6 +7,16 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [Não lançado] — próxima release (v1.0.32)
+### Adicionado
+- **Funil D1 do Drive (analytics)** — eventos `drive_auth_iniciada`, `drive_auth_concluida`, `drive_desconectado` para medir uso do Drive vs chat antes de decidir o reposicionamento da feature
+- **Lista de modelos Ollama ampliada de 8 para 12** — gemma3:1b (ultra leve), mistral-nemo:12b (128k ctx), qwen2.5:14b e phi4:14b; modelos thinking (qwen3, deepseek-r1) ficam de fora até o backend tratar o campo `thinking`
+
+### Corrigido
+- **Drive `sem_credenciais` deixou de ser falha silenciosa** — sidebar mostra "reinstale o Tusab" em vez de link de developer; painel do Repositório não chama mais `/drive-auth` fadado a falhar; backend retorna erro claro e imediato no `POST /drive-auth` sem credencial
+
+---
+
 ## [1.0.31] — 2026-07-01
 ### Corrigido
 - **[CRÍTICO] Preload falha no app empacotado** — `require('path')` lançava `Error: module not found: path` em `preload.js` ao rodar o instalador no Windows. Causa: Electron 20+ ativa sandbox por padrão nos preloads, bloqueando `require()` de Node built-ins. Fix: `sandbox: false` em `webPreferences` das duas janelas (main + help). Com preload falhando, `window.tusab` ficava `undefined`, `API_BASE` caía para `localhost`, e todas as requisições ao backend (`127.0.0.1:8001`) eram bloqueadas por CORS — tornando indexação e chat inoperantes.
