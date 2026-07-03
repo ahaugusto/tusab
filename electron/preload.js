@@ -2,13 +2,14 @@
 const { contextBridge, ipcRenderer } = require('electron')
 const path = require('path')
 
-// Resolve a versão do package.json empacotado — npm_package_version não existe no app instalado
+// Resolve a versão do package.json empacotado — npm_package_version não existe no app instalado.
+// Fallback vazio: melhor não exibir versão do que exibir uma hardcoded errada
 function resolveVersion () {
   try {
     const pkgPath = path.join(__dirname, 'package.json')
     return require(pkgPath).version
   } catch {
-    return process.env.npm_package_version || '1.0.0'
+    return process.env.npm_package_version || ''
   }
 }
 
