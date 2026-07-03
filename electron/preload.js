@@ -41,5 +41,8 @@ contextBridge.exposeInMainWorld('tusab', {
   onUpdateDownloaded:      (cb) => ipcRenderer.on('update-downloaded',      (_e, info) => cb(info)),
   onTriggerInstallUpdate:  (cb) => ipcRenderer.on('trigger-install-update', () => cb()),
   onAppJustUpdated:        (cb) => ipcRenderer.on('app-just-updated',       (_e, info) => cb(info)),
-  installUpdate: (version) => ipcRenderer.invoke('install-update', version),
+  installUpdate:   (version) => ipcRenderer.invoke('install-update', version),
+  // Verificação manual de atualização (botão na aba Admin) — funciona mesmo
+  // com auto-update desativado. Retorna { status, version?, current?, message? }
+  checkForUpdates: ()        => ipcRenderer.invoke('check-for-updates'),
 })
