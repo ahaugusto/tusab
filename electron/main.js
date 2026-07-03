@@ -458,8 +458,88 @@ async function createWindow () {
 }
 
 // ─── Auto-update ──────────────────────────────────────────────────────────
+let _updater = null
+
+// Inicialização lazy e idempotente do electron-updater — usada tanto pelo
+// check de startup quanto pela verificação manual (botão na aba Admin)
+function initUpdater () {
+  if (_updater) return _updater
+  const { autoUpdater } = require('electron-updater')
+  autoUpdater.autoDownload    = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', info => {
+    console.log('[update] nova versão disponível:', info.version)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-available', { version: info.version })
+    }
+  })
+
+  autoUpdater.on('update-downloaded', info => {
+    console.log('[update] download concluído:', info.version)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-downloaded', { version: info.version })
+    }
+    // Notificação nativa com ação de clique para instalar
+    if (Notification.isSupported()) {
+      const notif = new Notification({
+        title: `Tusab ${info.version} pronto para instalar`,
+        body: 'Clique aqui para instalar a atualização e reiniciar o app.',
+        icon: path.join(__dirname, 'logo_loading.png'),
+        silent: false,
+      })
+      notif.on('click', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show()
+          mainWindow.focus()
+          mainWindow.webContents.send('trigger-install-update')
+        }
+      })
+      notif.show()
+    }
+  })
+
+  ipcMain.handle('install-update', (_e, newVersion) => {
+    // Grava flag de "acabou de atualizar" para exibir modal pós-restart
+    try {
+      const store = readKeystore()
+      const v = newVersion || autoUpdater.currentVersion?.version
+      if (v) store['just_updated_version'] = v
+      writeKeystore(store)
+    } catch {}
+    // false = não fechar imediatamente antes de instalar; true = reabrir o app após instalar
+    autoUpdater.quitAndInstall(false, true)
+  })
+
+  autoUpdater.on('error', e => console.error('[update] erro:', e.message))
+  _updater = autoUpdater
+  return autoUpdater
+}
+
 function setupAutoUpdater () {
-  if (!IS_PACKED) return  // só verifica em produção
+  // Verificação manual — registrada SEMPRE (inclusive com auto-update
+  // desativado no keystore): o usuário pode forçar a checagem pela Admin.
+  // Com autoDownload=true, achar update dispara download + eventos que
+  // alimentam o banner existente ("Instalar e reiniciar").
+  ipcMain.handle('check-for-updates', async () => {
+    if (!IS_PACKED) return { status: 'dev' }
+    try {
+      const updater = initUpdater()
+      const result  = await updater.checkForUpdates()
+      const current = updater.currentVersion?.version || ''
+      const remote  = result?.updateInfo?.version || ''
+      const available = typeof result?.isUpdateAvailable === 'boolean'
+        ? result.isUpdateAvailable
+        : (!!remote && remote !== current)
+      return available
+        ? { status: 'update-available', version: remote, current }
+        : { status: 'up-to-date', current }
+    } catch (e) {
+      return { status: 'error', message: e.message }
+    }
+  })
+
+  if (!IS_PACKED) return  // check automático só em produção
   try {
     // Respeita a preferência do usuário salva no keystore
     const store = readKeystore()
@@ -467,56 +547,7 @@ function setupAutoUpdater () {
       console.log('[update] atualização automática desativada pelo usuário')
       return
     }
-
-    const { autoUpdater } = require('electron-updater')
-    autoUpdater.autoDownload    = true
-    autoUpdater.autoInstallOnAppQuit = true
-
-    autoUpdater.on('update-available', info => {
-      console.log('[update] nova versão disponível:', info.version)
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('update-available', { version: info.version })
-      }
-    })
-
-    autoUpdater.on('update-downloaded', info => {
-      console.log('[update] download concluído:', info.version)
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('update-downloaded', { version: info.version })
-      }
-      // Notificação nativa com ação de clique para instalar
-      if (Notification.isSupported()) {
-        const notif = new Notification({
-          title: `Tusab ${info.version} pronto para instalar`,
-          body: 'Clique aqui para instalar a atualização e reiniciar o app.',
-          icon: path.join(__dirname, 'logo_loading.png'),
-          silent: false,
-        })
-        notif.on('click', () => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.show()
-            mainWindow.focus()
-            mainWindow.webContents.send('trigger-install-update')
-          }
-        })
-        notif.show()
-      }
-    })
-
-    ipcMain.handle('install-update', (_e, newVersion) => {
-      // Grava flag de "acabou de atualizar" para exibir modal pós-restart
-      try {
-        const store = readKeystore()
-        const v = newVersion || autoUpdater.currentVersion?.version
-        if (v) store['just_updated_version'] = v
-        writeKeystore(store)
-      } catch {}
-      // false = não fechar imediatamente antes de instalar; true = reabrir o app após instalar
-      autoUpdater.quitAndInstall(false, true)
-    })
-
-    autoUpdater.on('error', e => console.error('[update] erro:', e.message))
-    autoUpdater.checkForUpdatesAndNotify()
+    initUpdater().checkForUpdatesAndNotify()
   } catch (e) {
     console.error('[update] electron-updater não disponível:', e.message)
   }
