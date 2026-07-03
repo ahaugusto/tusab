@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [Não lançado] — próxima release (v1.0.34)
+### Adicionado
+- **Botão "Verificar atualização" na aba Admin** — seção permanente com versão atual e checagem manual forçada; funciona mesmo com auto-update desativado nas preferências. Achar versão nova dispara download automático + banner "Instalar e reiniciar". Handler IPC `check-for-updates` + `window.tusab.checkForUpdates()` + refactor do updater para init lazy/idempotente.
+
+---
+
 ## [1.0.33] — 2026-07-02
 ### Corrigido
 - **[CRÍTICO] Aba Monitor zerada no app instalado** — `psutil` estava no requirements.txt mas nunca entrou no `python_env` empacotado; o `/metrics` devolvia zeros silenciosamente. Instalado no python_env + `/metrics` retorna `available: false` quando psutil ausente + MonitorTab mostra aviso explícito em vez de zeros
