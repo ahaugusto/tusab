@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2 } from 'lucide-react';
+import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PrivacidadeRede from '../agent/PrivacidadeRede';
 import RedesCorporativas from '../agent/RedesCorporativas';
@@ -33,6 +33,36 @@ export default function AdminTab({
     setNotifPerm(result);
   }, []);
 
+  // ── Verificação manual de atualização ──────────────────────────────────
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [checkResult,    setCheckResult]    = useState(null); // { tone: 'ok'|'info'|'warn', text }
+  const appVersion = window.tusab?.version || '';
+
+  const handleCheckUpdate = useCallback(async () => {
+    if (!window.tusab?.checkForUpdates) {
+      setCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
+      return;
+    }
+    setCheckingUpdate(true);
+    setCheckResult(null);
+    try {
+      const res = await window.tusab.checkForUpdates();
+      if (res?.status === 'update-available') {
+        setCheckResult({ tone: 'info', text: `Nova versão ${res.version} encontrada — baixando em segundo plano. O botão "Instalar e reiniciar" aparecerá quando o download terminar.` });
+      } else if (res?.status === 'up-to-date') {
+        setCheckResult({ tone: 'ok', text: `Você está na versão mais recente${res.current ? ` (v${res.current})` : ''}.` });
+      } else if (res?.status === 'dev') {
+        setCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
+      } else {
+        setCheckResult({ tone: 'warn', text: `Não foi possível verificar: ${res?.message || 'erro desconhecido'}.` });
+      }
+    } catch (e) {
+      setCheckResult({ tone: 'warn', text: 'Não foi possível verificar. Confira sua conexão e tente novamente.' });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, []);
+
   return (
     <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
 
@@ -64,6 +94,42 @@ export default function AdminTab({
           </div>
         </section>
       )}
+
+      {/* Atualização do app — verificação manual */}
+      <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+          <RefreshCw size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Atualização do app</h3>
+          {appVersion && (
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+              v{appVersion}
+            </span>
+          )}
+        </div>
+        <div className="p-5 space-y-3">
+          <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+            O Tusab verifica atualizações automaticamente ao abrir. Use o botão para forçar uma verificação agora — se houver versão nova, o download começa em segundo plano.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={handleCheckUpdate}
+              disabled={checkingUpdate}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${BTN_FOCUS}
+                ${darkMode ? 'bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25' : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100'}`}>
+              <RefreshCw size={12} className={checkingUpdate ? 'animate-spin' : ''} />
+              {checkingUpdate ? 'Verificando…' : 'Verificar atualização'}
+            </button>
+            {checkResult && (
+              <p role="status" className={`text-[11px] font-medium
+                ${checkResult.tone === 'ok'   ? 'text-secondary'
+                : checkResult.tone === 'info' ? 'text-primary'
+                : 'text-warning'}`}>
+                {checkResult.text}
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Telemetria */}
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
