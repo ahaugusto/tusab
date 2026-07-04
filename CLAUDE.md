@@ -20,6 +20,7 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/ux` | Designer UX | avaliar fluxo, jornada, fricção, microcopy e interação por perfil |
 | `/ui` | Designer UI | auditar tokens visuais, estados de componentes, hierarquia tipográfica, consistência dark/light |
 | `/product-designer` | Product Designer | síntese UX + UI + Job to be Done + impacto de negócio — proposta integrada |
+| `/design-system` | Especialista em Design System | tokens, tipografia, espaçamentos, componentes canônicos, revisão de consistência, lib Figma |
 | `/produto` | Product Manager | priorizar features, benchmarking competitivo, estratégia |
 | `/inovacao` | Especialista em Inovação | avaliar oportunidades técnicas e tendências |
 | `/metricas` | Especialista em Analytics | telemetria, KPIs, funil de ativação |
