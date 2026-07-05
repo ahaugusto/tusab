@@ -24,6 +24,16 @@ import { FolderOpen } from 'lucide-react';
  * @param {boolean}  props.darkMode         - dark/light theme flag
  * @returns {JSX.Element}
  */
+// Classes estáticas por cor — interpolação `bg-${color}/15` seria purgada pelo
+// Tailwind JIT (a classe não existe em texto no bundle). Novas cores: adicionar aqui.
+const COLOR_CLASSES = {
+  primary:   'bg-primary/15 text-primary',
+  secondary: 'bg-secondary/15 text-secondary',
+  accent:    'bg-accent/15 text-accent',
+  warning:   'bg-warning/15 text-warning',
+  danger:    'bg-danger/15 text-danger',
+};
+
 function StatCard({ icon: Icon, label, value, color, sub, onOpen, darkMode }) {
   const { t } = useTranslation();
 
@@ -33,7 +43,7 @@ function StatCard({ icon: Icon, label, value, color, sub, onOpen, darkMode }) {
       aria-label={`${label}: ${value}`}
       className={`p-4 lg:p-5 rounded-2xl flex items-center gap-4 border transition-all ${darkMode ? 'bg-white/5 border-white/10 hover:border-primary/40' : 'bg-white border-slate-200 shadow-md hover:border-primary/40'}`}
     >
-      <div className={`p-3 rounded-xl shrink-0 bg-${color}/15 text-${color}`} aria-hidden="true">
+      <div className={`p-3 rounded-xl shrink-0 ${COLOR_CLASSES[color] || COLOR_CLASSES.primary}`} aria-hidden="true">
         <Icon size={22} />
       </div>
       <div className="min-w-0 flex-1">
