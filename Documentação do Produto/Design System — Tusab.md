@@ -213,11 +213,16 @@ Variante de alerta (update): `bg-warning/5 border-warning/25` (dark) / `bg-amber
 
 ---
 
-## 11. Roadmap do Design System
+## 11. Inventário completo de moléculas e organismos
 
-| Fase | Entrega | Gatilho |
+O mapa de TODA a interface (shell, 14 modais, chat completo, feedback global, estados, formulários, dados, superfícies especiais) está em **[Design System — Inventário de Componentes.md](Design System — Inventário de Componentes.md)** — incluindo as dívidas de consistência encontradas no levantamento de jul/2026.
+
+## 12. Roadmap do Design System
+
+| Fase | Entrega | Status/Gatilho |
 |------|---------|---------|
-| DS-1 | Extrair componentes recorrentes para `components/shared/` (`Card`, `Button`, `Badge`, `Toggle`, `InlineFeedback`) consumindo os padrões deste doc | Próxima feature de UI que tocar 3+ arquivos |
-| DS-2 | Tokens de superfície dark como CSS vars (hoje `white/N` inline) | Junto com DS-1 |
+| DS-1 | Extrair componentes recorrentes para `components/shared/` (`Card`, `Button`, `Badge`, `Toggle`, `InlineFeedback`) + migrar `ConsentModal` para `ModalWrapper` | Próxima feature de UI que tocar 3+ arquivos |
+| DS-2 | Tokens de superfície dark como CSS vars (hoje `white/N` inline) + escala de z-index tokenizada | Junto com DS-1 |
 | DS-3 | Tema por edição (Tusab Enterprise pode exigir identidade visual própria por contrato) | Fase 1 do plano B2B |
-| DS-4 | Biblioteca Figma sincronizada com os tokens (via MCP Figma) | Quando houver designer externo colaborando |
+| DS-4 | Biblioteca Figma v1 — tokens (Light/Dark), text styles, 5 átomos | ✅ 03/jul/2026 — [arquivo](https://www.figma.com/design/IEXW4hMNlGcNUarBaLy1pb) (pendente migrar p/ conta CriAugu) |
+| DS-5 | Figma v2 — chat kit, modal template, shell, feedback, formulários (ordem no §9 do Inventário) | Quando o time de design for consumir |
