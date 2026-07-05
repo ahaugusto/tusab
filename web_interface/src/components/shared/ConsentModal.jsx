@@ -8,6 +8,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, BarChart2, Globe, HardDrive, ShieldCheck } from 'lucide-react';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
@@ -69,7 +70,10 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
   const muted  = darkMode ? 'text-slate-400'                              : 'text-slate-500';
   const rowBg  = darkMode ? 'bg-white/5'                                  : 'bg-slate-50';
 
-  return (
+  // Portal para document.body: bottom-sheet deliberado (sem backdrop), mas fora
+  // da árvore do #root para nenhum stacking context pai anular o zIndex
+  // (classe de bug da v1.0.13 — landing z-[9999] engolia o fixed z-50 interno)
+  return createPortal(
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -161,7 +165,8 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
         </div>
 
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
 
