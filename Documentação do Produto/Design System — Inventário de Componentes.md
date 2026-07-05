@@ -149,8 +149,8 @@ Textarea auto-expansível com wrapper de foco; toolbar: toggle Busca Ampla, 🔍
 
 | Item | Problema | Ação sugerida |
 |------|----------|---------------|
-| `StatCard` com `bg-${color}/15` interpolado | Classe dinâmica pode ser purgada pelo Tailwind | Mapear para classes estáticas ou safelist |
-| `ConsentModal` fora do ModalWrapper | `fixed z-50` próprio já causou bug (v1.0.13) | Migrar para ModalWrapper (DS-1) |
+| `StatCard` com `bg-${color}/15` interpolado | Classe dinâmica pode ser purgada pelo Tailwind | ✅ Resolvido (jul/2026): mapa estático `COLOR_CLASSES` |
+| `ConsentModal` fora do ModalWrapper | `fixed z-50` próprio já causou bug (v1.0.13) | ✅ Resolvido (jul/2026): `createPortal(document.body)` preservando o design de bottom-sheet — ModalWrapper mudaria a UX (backdrop + centralização) |
 | Snackbar de indexação com `zIndex 99999` inline | Fora da escala de z-index | Tokenizar camadas de z-index no DS |
 | `help.html` com tema duplicado em CSS puro | Drift silencioso ao mudar tokens | Checklist de release: conferir help.html a cada mudança de token |
 | Sombras dark ad-hoc no chat (`boxShadow` inline) | Não tokenizadas | Criar effect styles no Figma v2 + documentar as 2 elevações |
