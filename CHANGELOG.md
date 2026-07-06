@@ -7,9 +7,19 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [Não lançado] — próxima release (v1.0.34)
+## [Não lançado]
+
+---
+
+## [1.0.34] — 2026-07-06
 ### Adicionado
 - **Botão "Verificar atualização" na aba Admin** — seção permanente com versão atual e checagem manual forçada; funciona mesmo com auto-update desativado nas preferências. Achar versão nova dispara download automático + banner "Instalar e reiniciar". Handler IPC `check-for-updates` + `window.tusab.checkForUpdates()` + refactor do updater para init lazy/idempotente.
+- **Design System oficial do Tusab** — `Documentação do Produto/Design System — Tusab.md`: tokens de cor (semânticos + superfícies dark por white/N), escala tipográfica de 6 degraus medida por grep no código real, radius por papel, espaçamentos canônicos, variantes de botão, componentes padrão (Card, ModalWrapper, toggle, badge, feedback), motion e a11y normativa. Inclui inventário completo de moléculas e organismos (`Design System — Inventário de Componentes.md`): shell, sistema de modais, chat completo, feedback global, estados transversais, formulários, dados e superfícies especiais.
+- **Agente `/design-system`** — guardião dos tokens e da biblioteca de componentes; fronteiras claras com `/ui`, `/ux` e `/frontend`; medição real obrigatória antes de token novo.
+
+### Corrigido
+- **Fallback de versão hardcoded `'1.0.0'` no preload** — `resolveVersion()` agora cai para string vazia quando o `package.json` não resolve, em vez de exibir uma versão errada (AdminTab e help.html já ocultam o badge quando vazio).
+- **Dívidas de consistência do Design System** — `StatCard`: classes `bg-${color}/15` interpoladas viravam alvo do purge do Tailwind JIT; substituídas por mapa estático `COLOR_CLASSES` com fallback para primary. `ConsentModal`: passa a usar `createPortal(document.body)` para que nenhum stacking context pai anule seu `zIndex` (mesma classe do bug de v1.0.13), preservando o design deliberado de bottom-sheet sem backdrop.
 
 ---
 
