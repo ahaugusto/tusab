@@ -8,7 +8,9 @@ Atualizado: Junho 2026
 
 ---
 
-## Estado atual — v1.0.11 (junho 2026)
+## Estado atual — v1.0.34 (julho 2026)
+
+> Este documento foi escrito originalmente em junho/2026 (v1.0.11). As seções abaixo mantêm o conteúdo histórico; o que foi entregue depois está consolidado no bloco "Entregue entre v1.0.12 e v1.0.34" logo após "Feito e funcionando", e detalhado versão a versão em [`agents/_historia.md`](../agents/_historia.md).
 
 ### Feito e funcionando
 
@@ -127,6 +129,41 @@ Atualizado: Junho 2026
 - OAuth2 com escopo `drive.file` (mínimo)
 - Upload de transcrições como Google Docs
 - Desconexão via UI (sem revogar OAuth no Google)
+
+---
+
+## Entregue entre v1.0.12 e v1.0.34 (julho 2026)
+
+**Busca e recuperação**
+- SQLite FTS5 como camada de exact-match paralela ao BM25 — recall de termos frequentes/literais (v1.0.26)
+- Classificador de intenção BUSCA/CONTEXTO/CONVERSA — evita nova busca BM25 em follow-ups como "explique melhor" (v1.0.25)
+- Chunking temporal de vídeos sem capítulos (janelas 120s/overlap 15s); enriquecimento silencioso via KeyBERT; sumarização LLM por vídeo ("Aprofundar base") (v1.0.23)
+- Fix de peso morto no BM25: tags multi-palavra do YouTube ("renda fixa") agora entram palavra a palavra no corpus (v1.0.33)
+
+**Chat**
+- Menção `@arquivo` (fixa um arquivo do projeto) e `@@busca` (busca BM25 inline com highlight) — mesma pipeline BM25+CrossEncoder do Repositório, inline no chat (v1.0.27)
+- `@@` injeta o trecho selecionado diretamente no LLM como contexto fixo, sem re-passar pelo BM25 (`trechos_fixados`) (v1.0.30)
+- `+ Arquivo` no Repositório vira chip de contexto fixado no chat, mesmo comportamento do `@` (v1.0.28)
+- Feedback de resposta (👍/👎) — resposta útil salva no corpus BM25 como conhecimento para perguntas futuras similares (RLHF local, não treino de modelo)
+- Markdown rendering nas respostas; fix de fila de chat (identidade por `streamId`, não por posição) (v1.0.26–27)
+
+**Google Drive**
+- OAuth publicado em produção — funciona para qualquer conta, não só as autorizadas no Google Cloud Console (P3 concluído)
+- Funil D1 de analytics (`drive_auth_iniciada`, `drive_auth_concluida`, `drive_desconectado`) para medir uso real antes de decidir reposicionamento (v1.0.32)
+- Fix: estado `sem_credenciais` deixou de ser falha silenciosa (v1.0.32)
+
+**Infraestrutura e estabilidade**
+- Aba Monitor (métricas via `psutil`) — hotfix crítico após ausência do pacote no python_env empacotado (v1.0.33)
+- Export XLSX (`openpyxl`) — mesmo tipo de hotfix (v1.0.33)
+- Hotfix crítico `sandbox: false` no preload Electron — corrige `window.tusab` undefined no app instalado (v1.0.31)
+- Ampliação da lista de modelos Ollama sugeridos de 8 para 12 (v1.0.32)
+- Botão "Verificar atualização" manual na aba Admin, com download automático + banner de instalação (v1.0.34)
+
+**Design System**
+- Documentação oficial de tokens (`Documentação do Produto/Design System — Tusab.md`) — cor, tipografia, espaçamento, componentes, motion e a11y, todos medidos por grep no código real
+- Inventário completo de moléculas e organismos (`Design System — Inventário de Componentes.md`)
+- Agente guardião `/design-system` — impede divergência entre documentação e código, exige medição real antes de token novo
+- 5 dívidas de consistência mapeadas e resolvidas (StatCard, ConsentModal, z-index inline, help.html, sombras ad-hoc)
 
 ---
 
@@ -295,9 +332,9 @@ def sm2(facilidade, intervalo, qualidade):  # qualidade: 0-5
 
 ---
 
-### P3 — Publicar OAuth do Google Drive em produção
+### ~~P3 — Publicar OAuth do Google Drive em produção~~ ✅ IMPLEMENTADO (julho 2026)
 
-**Contexto:** atualmente em modo "Testing" — só funciona para contas autorizadas no Google Cloud Console. Para distribuição pública, precisa passar por revisão do Google (exige URL pública da política de privacidade). A política já existe como `.md` — falta publicar em URL.
+**Contexto:** estava em modo "Testing" — só funcionava para contas autorizadas no Google Cloud Console. Publicado em produção; funciona para qualquer conta Google. Ver funil D1 de analytics (`drive_auth_iniciada`/`drive_auth_concluida`/`drive_desconectado`) adicionado em v1.0.32 para medir uso real.
 
 ---
 
