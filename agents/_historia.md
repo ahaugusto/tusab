@@ -41,6 +41,11 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.26 | jun 2026 | SQLite FTS5 exact-match paralelo ao BM25; 4 fixes de recall BM25 (texto_original, np.max, score>0, deduplicação FTS5); desacoplamento canalChat/canalConfigurado; markdown rendering no chat; modal de base com deselecção total |
 | v1.0.27 | jul 2026 | Menção `@arquivo`/`@@busca` no chat; highlight de termo nos resultados do Repositório; chips de anexo na bolha do usuário; fix fila de chat (streamId); fix saudações PT/EN/ES; fix sem_contexto suprime fontes; fix endpoint /agent/arquivos subpastas |
 | v1.0.28 | jul 2026 | `+ Arquivo` no Repositório vira chip de contexto fixado no chat (mesmo comportamento do `@`), em vez de injetar texto no input |
+| v1.0.30 | jul 2026 | `@@` injeta trecho diretamente no LLM sem re-passar pelo BM25 (`trechos_fixados`); fix banner de atualização (texto contraditório + fallback "Baixar manualmente") |
+| v1.0.31 | jul 2026 | Hotfix crítico: `sandbox: false` no preload — Electron 20+ bloqueava `require()` de Node built-ins, deixando `window.tusab` undefined e o app inoperante no instalado |
+| v1.0.32 | jul 2026 | Funil D1 do Drive (analytics); lista de modelos Ollama ampliada de 8 para 12; fix `sem_credenciais` deixa de ser falha silenciosa |
+| v1.0.33 | jul 2026 | Hotfix crítico: `psutil`/`openpyxl` ausentes do python_env empacotado (Monitor zerado, export XLSX quebrado); fix tags multi-palavra do YouTube no BM25; chave PostHog renovada |
+| v1.0.34 | jul 2026 | Botão "Verificar atualização" manual na aba Admin; Design System oficial (tokens medidos por grep + agente guardião `/design-system` + inventário de moléculas/organismos); fix fallback de versão hardcoded no preload; fix dívidas de consistência (StatCard, ConsentModal) |
 
 ---
 
@@ -155,6 +160,7 @@ Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. C
 | Saudações forçam `CONVERSA` com verificação dupla | v1.0.27 | `_SAUDACOES` expandido para PT-BR/EN/ES. Verificação pós-classificador (`pergunta_lower_strip in _SAUDACOES`) em `chat()` e `chat_stream()` força `CONVERSA` mesmo que o LLM retorne `BUSCA` para inputs curtos. O classificador é conservador por design — a lista hardcoded é a defesa correta para 1–2 palavras. |
 | `@@busca` no chat como atalho de busca BM25 inline | v1.0.27 | `@@termo` (2+ chars) chama `buscarTrechos` na base ativa — mesma pipeline BM25+CrossEncoder do Repositório, mas inline no chat. Resultados no dropdown com highlight do termo em âmbar. Selecionar injeta trecho como contexto fixo com chip ciano na bolha. `@arquivo` lista arquivos do projeto e fixa um arquivo específico para o BM25 filtrar. Cache dos arquivos em `mencaoArquivosRef` (ref, não estado) — invalida ao trocar projeto. |
 | `HighlightTrecho` no Repositório | v1.0.27 | Termo buscado destacado com `<mark>` + fundo âmbar nos trechos de resultado da busca do Repositório. Regex case-insensitive com escape de chars especiais. Mesmo padrão visual usado no dropdown `@@` do chat — consistência deliberada. |
+| Design System com tokens medidos por grep (não estimados) | v1.0.34 | `Documentação do Produto/Design System — Tusab.md` deriva a escala tipográfica e demais tokens contando ocorrências reais no código (ex.: 266× `text-xs`, 252× `text-[10px]`) em vez de prescrever valores teóricos. Agente guardião `/design-system` exige essa mesma medição real antes de aprovar qualquer token novo — evita que a documentação de design divirja do código, o mesmo tipo de apodrecimento que gerou as 5 dívidas de consistência encontradas no inventário (StatCard, ConsentModal, z-index inline, help.html duplicando tema, sombras ad-hoc). |
 
 ---
 
@@ -192,13 +198,13 @@ Auditoria completa de 17 jornadas realizada em jun/2026 identificou os seguintes
 | FAIL-01 | App.jsx:91, usePerfil.js:8 | MÉDIO | `activeTab='extracao'` default incompatível com perfil `estudante` — useEffect corrige em seguida mas há frame de aba inválida | Aberto |
 | FAIL-02 | ExtractionModal.jsx:44, App.jsx:723 | ALTO | Fluxo normal sem canal nunca passa pelo step de URL — `POST /start` com canal vazio possível quando usuário abre modal sem canal configurado | Aberto |
 | FAIL-03 | web_interface/src/services/api.js:203 | CRÍTICO | `limparCanal()` chama `DELETE /neural/limpar` sem parâmetro `canal` — apaga arquivos de **todos** os projetos. Backend aceita `canal` como parâmetro opcional mas frontend não envia | **Corrigido v1.0.20** |
-| WARN-13 | useChatEngine.js:286 | MÉDIO | Fila de chat cheia (6ª msg): mensagem descartada silenciosamente sem feedback ao usuário | Aberto |
-| WARN-15 | ChatDrawer.jsx:293 | MÉDIO | Falha de export (docx/pdf/xlsx): apenas `console.warn`, sem toast ou mensagem de erro na UI | Aberto |
-| WARN-19 | useAgentConfig.js:97 | ALTO | Sync de idioma envia `api_key: ''` ao backend — pode zerar chave externa se backend não tiver proteção para campo vazio | Aberto |
-| WARN-21 | App.jsx:944 | BAIXO | Banner de update invisível na HomeScreen (`!showHome` condition) — usuário na home não vê notificação de atualização | Aberto |
-| WARN-23 | App.jsx:1484 | BAIXO | Fechar painel Drive durante OAuth não cancela o fluxo — OAuth continua em background sem feedback | Aberto |
-| WARN-25 | App.jsx:1356 | BAIXO | Chip de perfil some quando Drive autenticado — usuário não pode trocar perfil sem desconectar Drive (sem explicação visual) | Aberto |
-| WARN-31 | App.jsx:357 | MÉDIO | `Shift+R` com perfil estudante muda `activeTab='extracao'` mas aba não aparece no nav (filtrada por regras.abas) — estado inválido silencioso | Aberto |
+| WARN-13 | useChatEngine.js:286 | MÉDIO | Fila de chat cheia (6ª msg): mensagem descartada silenciosamente sem feedback ao usuário | Corrigido |
+| WARN-15 | ChatDrawer.jsx:293 | MÉDIO | Falha de export (docx/pdf/xlsx): apenas `console.warn`, sem toast ou mensagem de erro na UI | Corrigido |
+| WARN-19 | useAgentConfig.js:97 | ALTO | Sync de idioma envia `api_key: ''` ao backend — pode zerar chave externa se backend não tiver proteção para campo vazio | Corrigido |
+| WARN-21 | App.jsx:1086 | BAIXO | Banner de update invisível na HomeScreen (`!showHome` condition) — usuário na home não via notificação de atualização | **Corrigido jul/2026** — removida a condição `!showHome`; banner é `fixed` e renderiza corretamente sobre qualquer tela |
+| WARN-23 | App.jsx:1628 | BAIXO | Fechar painel Drive durante OAuth não cancelava o fluxo — OAuth continuava em background sem feedback | **Corrigido jul/2026** — toggle switch agora chama `handleDriveCancel()` quando fecha o painel com `driveStatus === 'em_progresso'` |
+| WARN-25 | App.jsx:1501 | BAIXO | Chip de perfil some quando Drive autenticado | Não é bug — comportamento intencional: chip de Drive substitui o chip de perfil no mesmo espaço quando conectado |
+| WARN-31 | App.jsx:446 | MÉDIO | `Shift+R` com perfil estudante mudaria `activeTab='extracao'` mesmo com aba filtrada por `regras.abas` | Já corrigido — handler checa `regras.abas?.includes('extracao')` antes de trocar de aba |
 
 **Bugs já corrigidos nesta sprint (não reabrir):**
 - FAIL-05: `Shift+C` usava `setChatOpen(true)` direto — snack não era removido. Fix: `handleOpenChat()` + `useCallback`
