@@ -36,6 +36,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
+  buscarArxiv, statusArxiv,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -882,6 +883,54 @@ function App() {
       .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
 
+  /** Confirms an arXiv search (perfil Pesquisador) — inspirado no projeto OpenScience */
+  const handleStartConfirmArxiv = (query, maxResultados, projetoNome) => {
+    setShowExtractionModal(false);
+    buscarArxiv(query, maxResultados, projetoNome)
+      .then(r => {
+        if (r.data.error) { showError(r.data.message); return; }
+        setArxivPolling(true);
+        setArxivBackground(true);
+      })
+      .catch(() => showError(t('error.generic')));
+  };
+
+  // Polling do progresso da busca arXiv em andamento — a busca roda em
+  // background no backend (BackgroundTasks); sem isso o usuário não recebe
+  // nenhum feedback de conclusão/erro após fechar o modal de extração.
+  // arxivPolling controla o setInterval; arxivBackground controla o Indicador
+  // de Operação em Background (badge na navbar) — são desacoplados de propósito:
+  // se o polling perde conexão, paramos de chamar a API (evita spam de erro),
+  // mas o badge continua visível porque a busca pode continuar rodando no servidor.
+  const [arxivPolling,    setArxivPolling]    = useState(false);
+  const [arxivBackground, setArxivBackground] = useState(false);
+  useEffect(() => {
+    if (!arxivPolling) return;
+    const interval = setInterval(() => {
+      statusArxiv().then(r => {
+        const { running, status, total, processed } = r.data;
+        if (running) {
+          setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
+        } else {
+          setArxivPolling(false);
+          setArxivBackground(false);
+          const sucesso = status === 'Finalizado ✓';
+          setProgressToast({
+            type: sucesso ? 'success' : 'error',
+            message: sucesso ? t('extraction.arxiv_toast_success', { processed, total }) : t('extraction.arxiv_toast_error'),
+          });
+        }
+      }).catch(() => {
+        // Polling perdeu conexão — a busca pode continuar rodando no backend.
+        // Paramos de chamar a API (setArxivPolling), mas o Indicador de
+        // Operação em Background (arxivBackground) permanece visível.
+        setArxivPolling(false);
+        setProgressToast({ type: 'warning', message: t('extraction.arxiv_toast_polling_lost') });
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [arxivPolling]);
+
   const handlePause = () => {
     pauseExtraction();
   };
@@ -1255,7 +1304,7 @@ function App() {
 
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmArxiv={handleStartConfirmArxiv} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1324,7 +1373,7 @@ function App() {
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
-                  {id === 'extracao' && isRunning && (
+                  {id === 'extracao' && (isRunning || arxivBackground) && (
                     <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
                   )}
                   {id === 'admin' && appUpdateInfo && (
