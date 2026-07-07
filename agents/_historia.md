@@ -234,6 +234,87 @@ Auditoria completa de 17 jornadas realizada em jun/2026 identificou os seguintes
 
 ---
 
+## Benchmark — ferramentas open-source avaliadas (jul/2026)
+
+Avaliação sob demanda (Augusto, 07/jul/2026) de três ferramentas candidatas a integração/inspiração, cruzadas com `/memoria`, `/produto` e `/backend`. Nenhuma foi adotada. Registrado para não reavaliar do zero se a pergunta voltar.
+
+### Hyper-Extract (yifanfeng97) — CLI de extração de conhecimento estruturado
+
+**O que é:** transforma texto não estruturado em 8 estruturas (listas, grafos, hypergraphs, grafos espaço-temporais); 10+ engines (GraphRAG, LightRAG, Hyper-RAG, KG-Gen); 80+ templates YAML por domínio; MCP server (`he-mcp`) nativo; suporte a Claude Opus/Sonnet/Haiku.
+
+| Dimensão | Tusab hoje | Hyper-Extract | Vereditos |
+|---|---|---|---|
+| Estrutura de saída | Chunks BM25 + FTS5 + keywords KeyBERT (texto plano enriquecido) | Grafos/hypergraphs/espaço-temporais via LLM | Tusab não constrói grafo — decisão deliberada, não lacuna |
+| Custo de indexação | BM25 ~1ms, determinístico, CPU puro, sem chamada de rede | 1 chamada de LLM por chunk para extrair entidades/relações | Hyper-Extract multiplicaria custo de indexação por N chamadas de LLM — inviável no fluxo síncrono de indexação do B2C |
+| MCP | `mcp_server.py` já expõe `search_knowledge`/`list_projects` | `he-mcp` expõe grafos extraídos | Sem sobreposição de propósito nem urgência de interoperar agora |
+
+**Veredito:** não adotar no B2C. Reafirma a decisão já registrada de GraphRAG (linha "Experimentos que falharam") — corpus atual (YouTube + PDFs avulsos) tem baixa densidade relacional, e o custo de LLM-por-chunk contradiz BM25 como fundação determinística. Único destino plausível: cofre da stack semântica B2B Enterprise (torch/CrossEncoder/KeyBERT), ao lado do que já está reservado ali — gatilho: primeiro lead concreto + corpus institucional denso o suficiente para grafo valer a pena.
+
+### PageIndex (VectifyAI) — RAG "vectorless" baseado em reasoning
+
+**O que é:** gera árvore hierárquica (tipo sumário) de um documento via LLM, depois o LLM navega essa árvore por tree search para recuperar seções. Sem vector DB, sem chunking. Claim de 98.7% no FinanceBench (documentos financeiros longos).
+
+| Dimensão | Tusab hoje | PageIndex | Veredito |
+|---|---|---|---|
+| Retrieval | BM25 + FTS5, determinístico, sem LLM na busca | LLM navega a árvore a cada busca | Contradiz a decisão permanente "BM25 como fundação" (rápido, determinístico, CPU puro) |
+| Latência por pergunta | ~1ms (Busca Restrita), +236ms (Busca Ampla c/ CrossEncoder) | 1+ chamadas de LLM por busca — segundos, não ms | Reintroduz o mesmo tipo de custo que já reprovou query expansion para Ollama (3s→15s) |
+| Pré-requisito de LLM | BM25 funciona sem nenhum provider configurado | Árvore só existe se um LLM a construiu na indexação | Quebra o caso "Estudante extrai sem Ollama configurado ainda" |
+| Ideia aproveitável | Título pesado 5x no corpus BM25 | Estrutura hierárquica (headings) como sinal | Extrair headings via regex (sem LLM) como metadado de seção é evolução barata compatível com P1 — não a lib inteira |
+
+**Veredito:** não adotar a lib. A única ideia com mérito — usar estrutura do documento como sinal de retrieval — já existe em forma equivalente e mais barata (peso de título no corpus). Nota de roadmap de baixíssima prioridade, não ação imediata.
+
+### OpenScience (synthetic-sciences) — workbench de agente de pesquisa científica
+
+**O que é:** agente autônomo que lê literatura, forma hipótese, escreve/roda código, roda experimentos, escreve resultado. Multi-provider BYOK, 290+ skills, ~30 bancos científicos (arXiv, PubMed, PDB, ChEMBL, OpenAlex, Semantic Scholar).
+
+**Primeira leitura (indexação/componente):** sem superfície de integração — não é lib de RAG, não mapeia para `index.py`/`fts.py`/`chat.py`. Descartado por incompatibilidade de domínio.
+
+**Segunda leitura, pedida por Augusto — feature para o perfil Pesquisador:** aqui a avaliação muda. Separar duas coisas:
+1. **Workbench completo** (rodar código, orquestrar experimentos, formar hipótese) — scope creep genuíno. Nenhum perfil do Tusab tem esse job; contradiz "UX não-técnica" e o Tusab vira outro produto.
+2. **Nova fonte de extração** (buscar literatura em arXiv/PubMed/Semantic Scholar e indexar como qualquer PDF) — coerente. Mesmo padrão de YouTube/PDF/WhatsApp: busca, baixa, indexa localmente, cita fonte exata. Pesquisador já é definido como "RAG sobre PDFs + docs + privacidade absoluta" — buscar o paper certo e trazer para dentro da base é extensão natural do JTBD, não redefinição.
+
+**Veredito:** não adotar o workbench. Cabe como item de roadmap "Fonte: arXiv/PubMed/Semantic Scholar" ao lado das fontes existentes — pequeno, testável em <2 sprints, sem LLM-per-document, sem custo de compute pesado. **Não ataca a janela estratégica de 12–18 meses** (não defende contra NotebookLM/AnythingLLM) — é expansão lateral de valor para o Pesquisador, a ser priorizada conscientemente contra P0-c/P1 que constroem a barreira defensável real.
+
+**Atualização (07/jul/2026) — saiu do papel:** a fatia "busca no arXiv" foi implementada como feature real (não o workbench completo, nem PubMed/Semantic Scholar ainda). Toggle "Canal do YouTube" vs. "Buscar no arXiv" no `ExtractionModal`, visível só para o perfil `pesquisador`. Novo módulo `tusab_engine/motor/arxiv.py` (API pública Atom XML, sem autenticação, `time.sleep(3)` entre requisições) + endpoints `POST /arxiv/search|cancel`, `GET /arxiv/status`. Reaproveita o mesmo contrato de `_manifest.json`/cabeçalho `TITULO/FONTE/DATA` do upload manual (`router_repositorio.py::cerebro_upload()`) — não introduz um pipeline de indexação novo, só uma origem nova de PDF. Estado isolado em `state.py` (`arxiv_running`/`arxiv_stats`) — deliberadamente **não** reaproveita `state.stats`/`run_motor()` do YouTube, que são acoplados a conceitos de vídeo (`videos_processed`, parsing de emoji do `LogRedirector`). ClinicalTrials.gov/ChEMBL/PubChem/PDB/Ensembl permanecem fora de escopo — documentados em `Documentação do Produto/Tusab Saúde — Proposta Estratégica.md` como próximos passos do vertical B2B Enterprise, não do perfil Pesquisador B2C.
+
+### Headroom (headroomlabs-ai) — camada de compressão de contexto para agentes de IA
+
+**O que é:** biblioteca/proxy/MCP server que comprime tool outputs, logs, chunks de RAG, arquivos e histórico de conversa antes de chegar ao LLM (60–95% menos tokens em JSON, 15–20% em código). `ContentRouter` escolhe compressor por tipo: `SmartCrusher` (JSON), `CodeCompressor` (AST), `Kompress-v2-base` (prosa, modelo local HuggingFace). 100% local, sem chamada de rede.
+
+**Veredito: não adotar agora.** Dois motivos:
+1. Parcialmente redundante — o Tusab já reduz volume de prompt por **seleção** (score mínimo adaptativo, CrossEncoder top-12→top-6, `_MAX_HIST_MSGS=12`), não por compressão de texto. Nunca precisou dessa categoria porque BM25 já filtra bem na fonte.
+2. Risco real, não hipotético: o invariante já registrado "`texto_original` para corpus BM25, não campo KeyBERT" (v1.0.26, seção "O que funcionou bem") existe justamente para nunca deixar uma transformação de texto contaminar o que é citado como fonte. Headroom comprimiria esse mesmo `texto_original` antes da citação — e `Kompress-v2-base` é modelo neural, não determinístico como BM25, sem garantia medida de preservar citabilidade exata. Contradiz a promessa de "cita a fonte exata".
+
+**Se algum dia fizer sentido:** só para comprimir histórico de chat (texto já gerado, não fonte citável) em corpus muito grande + Ollama de contexto pequeno — nunca os chunks recuperados. Nota de baixíssima prioridade, mesmo tratamento de PageIndex.
+
+### Pocket TTS (kyutai-labs) — text-to-speech local, CPU-only
+
+**O que é:** modelo TTS 100M parâmetros, roda em CPU (~200ms latência ao primeiro chunk, ~6x tempo real numa CPU de MacBook Air M4, 2 cores), streaming de áudio, voice cloning, multi-idioma incluindo PT. Requer PyTorch 2.5+ (CPU-only).
+
+**Veredito inicial:** promissor — fecha o gap "Audio Overviews" listado como desvantagem vs. NotebookLM (`agents/produto.md`), com vantagem de posicionamento que o concorrente cloud não pode alegar (100% local, sem custo de API). Perfil que mais se beneficia: Estudante (ouvir resumo de vídeo no trajeto).
+
+**Medição real (07/jul/2026):** instalado torch 2.12.1 CPU-only + pocket-tts no `.venv` de dev para medir de verdade, não estimar. Resultado: **torch sozinho ocupa ~530MB em disco** (não os ~200MB estimados a partir do wheel comprimido de 124.9MB — o pacote descompactado/instalado é ~4x maior) — sozinho já maior que a stack CrossEncoder+KeyBERT+scikit-learn inteira (~2,5GB, mas essa soma três libs, não uma). Total torch+pocket-tts+deps: 544MB. Instalador B2C atual: 213,7MB (v1.0.35).
+
+**Decisão final (Augusto, 07/jul/2026):** mesmo padrão já usado para o Modo Estudo (desabilitado desde v1.0.24) e para CrossEncoder/KeyBERT — reservar para uma futura **build Beta/Enterprise**, nunca no instalador B2C padrão. `pocket-tts` adicionado a `requirements-enterprise.txt` (mesmo arquivo que já hospeda `torch` para a stack semântica — sem duplicar decisão).
+
+**Saiu do papel — implementado (07/jul/2026):** novo módulo `tusab_engine/agent/tts.py` (`tts_disponivel()`, `limpar_para_audio()` — remove markdown antes de sintetizar, `sintetizar_audio()` com lazy-load do modelo) + endpoints `POST /agent/tts`, `GET /agent/tts/status` em `router_estudo.py`. Botão "🔊 Ouvir resumo" em `EstudoTab.jsx` — só aparece quando `GET /agent/tts/status` confirma a stack instalada; build B2C nunca mostra o botão. Testado de ponta a ponta em dev (síntese real gerou WAV válido, 245KB para uma frase de teste). Suite de testes (`tests/test_tts.py`) usa mock para não depender de download de pesos em CI. **Decisão relacionada registrada no roadmap (`Documentação do Produto/Roadmap.md`, P0-f):** promover Modo Estudo a aba de primeiro nível exclusiva do perfil Estudante — adiado deliberadamente, não implementado nesta entrega, para não misturar escopo com o TTS.
+
+### TabFM (google-research) — modelo de fundação para dados tabulares
+
+**O que é:** classificação/regressão zero-shot em CSV/planilhas via in-context learning, scikit-learn compatible, requer JAX ou PyTorch.
+
+**Veredito: fora de escopo, sem necessidade de mais análise.** É predição tabular (categoria de BI/data science), não RAG textual. O Tusab já lida com CSV/XLSX só como texto formatado para o corpus BM25 (`router_repositorio.py`), nunca como dado a prever. Nenhum dos 4 perfis tem JTBD de "prever valor numa planilha" — não é um caso de "avaliado e descartado por razão técnica", é domínio de produto diferente.
+
+### Artigos de arquitetura RAG avaliados (jul/2026) — nenhuma técnica nova, validação externa do que já existe
+
+**"Building a RAG pipeline for 10M documents with near-zero hallucination"** — pipeline `retrieve → constrain → verify → abstain`. Mapeamento direto: retrieve = `_recuperar_contexto()` (BM25+FTS5+CrossEncoder); constrain = chunks como única fonte no prompt; verify = `_verificar_alucinacao()` já existe; abstain = `sem_contexto: True` já existe (mas é binário, não abstenção **calibrada por confiança** — essa nuance é a única lacuna real, nota de baixa prioridade). Reciprocal Rank Fusion mencionado no artigo é mais formal que a fusão BM25+FTS5 atual (união com score simbólico 0.1 para FTS5-only, v1.0.26) — vale nota de melhoria incremental, não adoção de arquitetura nova. LanceDB do artigo já está no roadmap (Sprint 5/P5).
+
+**"Vectorless RAG: building retrieval systems without embeddings or vector databases"** — tese "keyword matching > semantic similarity em produção, infraestrutura vetorial cara em escala" **valida, não contradiz**, a decisão já registrada "BM25 como fundação + CrossEncoder como upgrade opcional". Evidência externa a favor de uma escolha já feita por razões próprias (custo, latência, CPU-only).
+
+**Não avaliado (artigo sobre Python 3.15):** conteúdo do artigo estava atrás de paywall — só teaser disponível (lazy imports, rollback do GC incremental do 3.14). Sem profundidade suficiente para avaliar impacto no Tusab (que roda em Python 3.12/3.14 conforme ambiente, ver `requirements.txt`). Não requer ação — Python 3.15 ainda não é dependência do projeto.
+
+---
+
 ## As três camadas de mercado (visão de longo prazo)
 
 **Camada 1 — B2C ("Um RAG pra chamar de meu"):**

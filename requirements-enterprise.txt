@@ -16,3 +16,9 @@ torch                      # CPU-only; base da stack semântica
 sentence-transformers      # CrossEncoder ms-marco-MiniLM-L-6-v2 (Busca Ampla)
 scikit-learn               # dependência do KeyBERT
 keybert                    # enriquecimento do corpus BM25 com keyphrases
+
+# TTS local (jul/2026) — botão "Ouvir resumo" no Modo Estudo.
+# pocket-tts (kyutai-labs, 100M params) já traz torch>=2.5.0 como dependência —
+# medição real: torch sozinho ocupa ~530MB em disco, por isso reservado aqui e
+# não no requirements.txt do B2C. Ver tusab_engine/agent/tts.py.
+pocket-tts

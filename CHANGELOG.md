@@ -8,6 +8,9 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ---
 
 ## [Não lançado]
+### Adicionado
+- **Busca acadêmica no arXiv (perfil Pesquisador)** — no modal de extração, o perfil Pesquisador pode alternar entre "Canal do YouTube" e "Buscar no arXiv": digite um tema ou palavras-chave, escolha quantos artigos baixar (até 50), e o Tusab baixa os PDFs e indexa como qualquer outro documento do Repositório. Feature inspirada no projeto open-source [OpenScience](https://github.com/synthetic-sciences/openscience) (synthetic-sciences) — avaliado em `agents/_historia.md` (seção "Benchmark — ferramentas open-source avaliadas"). Novo módulo `tusab_engine/motor/arxiv.py` + endpoints `POST /arxiv/search`, `POST /arxiv/cancel`, `GET /arxiv/status`.
+- **TTS local no Modo Estudo (build Beta/Enterprise)** — botão "🔊 Ouvir resumo" que sintetiza o resumo estruturado em áudio localmente, sem chamada de rede após o primeiro download dos pesos. Usa [Pocket TTS](https://github.com/kyutai-labs/pocket-tts) (Kyutai Labs) — modelo de 100M parâmetros, CPU-only, streaming, multi-idioma incluindo PT. **Reservado à edição Beta/Enterprise**: `torch`+`pocket-tts` medem ~530MB em disco (maior que a stack CrossEncoder/KeyBERT já vetada do B2C) — nunca entram no instalador padrão, ficam em `requirements-enterprise.txt`. Novo módulo `tusab_engine/agent/tts.py` + endpoints `POST /agent/tts`, `GET /agent/tts/status`. Frontend oculta o botão automaticamente quando a stack não está instalada (build B2C).
 
 ---
 
