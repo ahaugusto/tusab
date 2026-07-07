@@ -15,6 +15,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ### Corrigido
 - **Banner de atualização invisível na HomeScreen (WARN-21)** — o banner `fixed` de nova versão disponível não aparecia enquanto o usuário estava na tela inicial (`!showHome`). Removida a condição; o banner agora aparece em qualquer tela, inclusive a HomeScreen.
 - **Fechar painel do Drive não cancelava OAuth em andamento (WARN-23)** — o toggle switch do Drive permitia fechar o painel expansível durante `driveStatus === 'em_progresso'` sem encerrar o fluxo de autenticação, que continuava rodando em segundo plano sem feedback. Agora fechar o painel nesse estado chama `handleDriveCancel()` automaticamente, igual ao botão explícito "Cancelar autenticação".
+- **[CRÍTICO] Auto-update silenciosamente quebrado desde v1.0.28** — o asset do instalador era publicado manualmente com pontos no nome (`Tusab.Setup.X.exe`), mas o `latest.yml` (e o `electron-updater`) sempre esperam hífens (`Tusab-Setup-X.exe`). A URL que o app tentava baixar automaticamente retornava 404 — só quem baixava manualmente pelo link do README recebia a versão nova. Confirmado por teste direto nas releases v1.0.30, v1.0.33 e v1.0.35. Fix: asset da v1.0.35 reenviado com o nome correto (hífens), mantendo o nome antigo como alias para não quebrar links já compartilhados.
 
 ---
 
