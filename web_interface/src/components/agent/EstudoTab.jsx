@@ -1,7 +1,8 @@
 // Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle } from 'lucide-react';
+import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square } from 'lucide-react';
+import { ttsStatus, ttsSintetizar } from '../../services/api';
 
 /**
  * EstudoTab — componente controlado: todo estado persistente vive no AgentTab pai.
@@ -29,6 +30,43 @@ export default function EstudoTab({
 
   const card = flashcards?.[currentIdx] ?? null;
   const semProjetos = projetosIndexados.length === 0;
+
+  // ── TTS local (Pocket TTS) — só disponível na build Beta/Enterprise ──────────
+  // torch+pocket-tts não fazem parte do instalador B2C (ver tusab_engine/agent/tts.py);
+  // build padrão nunca mostra o botão porque /agent/tts/status retorna disponivel=false.
+  const [ttsDisponivel, setTtsDisponivel] = useState(false);
+  const [ttsCarregando, setTtsCarregando] = useState(false);
+  const [ttsTocando,    setTtsTocando]    = useState(false);
+  const [ttsErro,       setTtsErro]       = useState(null);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    ttsStatus().then(r => setTtsDisponivel(!!r.data?.disponivel)).catch(() => setTtsDisponivel(false));
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
+  const handleOuvirResumo = async () => {
+    if (ttsTocando) {
+      audioRef.current?.pause();
+      setTtsTocando(false);
+      return;
+    }
+    setTtsErro(null);
+    setTtsCarregando(true);
+    try {
+      const resp = await ttsSintetizar(resumo);
+      const url = URL.createObjectURL(resp.data);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => { setTtsTocando(false); URL.revokeObjectURL(url); };
+      await audio.play();
+      setTtsTocando(true);
+    } catch {
+      setTtsErro('Não foi possível gerar o áudio. Tente novamente.');
+    } finally {
+      setTtsCarregando(false);
+    }
+  };
 
   const handleAnterior = () => { setCurrentIdx(i => Math.max(0, i - 1)); setFlipped(false); };
   const handleProximo  = () => { setCurrentIdx(i => Math.min(flashcards.length - 1, i + 1)); setFlipped(false); };
@@ -325,8 +363,35 @@ export default function EstudoTab({
       {/* ── Resumo ───────────────────────────────────────────────────────────── */}
       {resumo && (
         <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '16px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: textSecond, marginBottom: '12px' }}>Resumo Estruturado</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>Resumo Estruturado</p>
+            {ttsDisponivel && (
+              <button
+                onClick={handleOuvirResumo}
+                disabled={ttsCarregando}
+                title="Ouça em voz alta — síntese local via Pocket TTS"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+                  border: `1px solid ${borderColor}`, background: 'transparent',
+                  color: textSecond, cursor: ttsCarregando ? 'default' : 'pointer',
+                  opacity: ttsCarregando ? 0.6 : 1,
+                }}>
+                {ttsCarregando
+                  ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" />
+                  : ttsTocando
+                  ? <Square size={12} aria-hidden="true" />
+                  : <Volume2 size={12} aria-hidden="true" />}
+                {ttsCarregando ? 'Gerando…' : ttsTocando ? 'Parar' : 'Ouvir resumo'}
+              </button>
+            )}
+          </div>
+          {ttsErro && (
+            <p style={{ fontSize: '11px', color: '#ef4444', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <AlertCircle size={11} aria-hidden="true" /> {ttsErro}
+            </p>
+          )}
           <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
             <ReactMarkdown components={{
               h1: ({ children }) => <h1 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px', color: textPrimary }}>{children}</h1>,
