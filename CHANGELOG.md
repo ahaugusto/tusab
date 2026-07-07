@@ -7,7 +7,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [Não lançado]
+## [1.0.36] — 2026-07-07
 ### Alterado
 - **Atualização completa de stacks (backend + frontend), com teste funcional real por grupo** — não apenas `pip install -U` cego: cada grupo foi validado com uma chamada real, não só suite mockada.
   - **Backend Python:** `yt-dlp` 2026.6.9→2026.7.4 (testado com mapeamento real de canal do YouTube), `anthropic` 0.109→0.116, `openai` 2.41→2.44, `google-genai` 2.6→2.10 (SDK Anthropic testado com chamada real de API), `transformers` 5.12→5.13 (CrossEncoder testado com ranking real de relevância), `fastapi`/`uvicorn`/`pydantic`/`pdfplumber`/`pypdfium2` e demais dependências de baixo risco atualizadas. `requirements-lock.txt` regenerado com as versões finais.
