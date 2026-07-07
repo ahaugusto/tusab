@@ -88,6 +88,19 @@ export const queueRemoveItem = (index) => axios.delete(`${API_BASE}/queue/item/$
 /** Moves an item in the queue from one index to another */
 export const queueMoveItem = (from_index, to_index) => axios.post(`${API_BASE}/queue/move`, { from_index, to_index });
 
+// ─── Busca acadêmica no arXiv (perfil Pesquisador) ────────────────────────────
+// Feature inspirada no projeto open-source OpenScience (synthetic-sciences/openscience).
+
+/** Starts an arXiv search + download + save for the given project */
+export const buscarArxiv = (query, max_resultados, projeto_nome) =>
+  axios.post(`${API_BASE}/arxiv/search`, { query, max_resultados, projeto_nome });
+
+/** Cancels an in-progress arXiv search */
+export const cancelarArxiv = () => axios.post(`${API_BASE}/arxiv/cancel`);
+
+/** Polls the status of an in-progress arXiv search */
+export const statusArxiv = () => axios.get(`${API_BASE}/arxiv/status`);
+
 /** Saves auto-update config for a channel */
 export const saveAutoUpdateConfig = (canal_prefixo, enabled, frequencia, fontes, canal_url, projeto_prefixo = '') =>
   axios.post(`${API_BASE}/auto-update/config`, { canal_prefixo, projeto_prefixo, enabled, frequencia, fontes, canal_url });
@@ -280,6 +293,18 @@ export const enviarFeedback = (canal_nome, pergunta, resposta, util) =>
 
 /** Exporta flashcards como CSV compatível com Anki (frente;verso) */
 export const exportFlashcardsAnki = (canal) => fetch(`${API_BASE}/export/flashcards/${encodeURIComponent(canal)}`);
+
+// ─── TTS local (Pocket TTS, build Beta/Enterprise) ────────────────────────────
+// Reservado: torch+pocket-tts não fazem parte do instalador B2C — ver
+// tusab_engine/agent/tts.py. Frontend deve checar ttsStatus() antes de exibir
+// o botão "Ouvir resumo".
+
+/** Verifica se o TTS local está disponível nesta instalação */
+export const ttsStatus = () => axios.get(`${API_BASE}/agent/tts/status`);
+
+/** Sintetiza texto em áudio WAV — retorna Blob para tocar via <audio> */
+export const ttsSintetizar = (texto) =>
+  axios.post(`${API_BASE}/agent/tts`, { texto }, { responseType: 'blob', timeout: 60000 });
 
 /** Downloads canal summary as Word .docx — sends frontend messages to avoid empty server-side history */
 export const exportResumoCanalDocx = (canal_nome, mensagens = []) =>

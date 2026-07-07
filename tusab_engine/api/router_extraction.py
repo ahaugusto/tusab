@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
+from tusab_engine.motor import arxiv as arxiv_motor
 
 router = APIRouter()
 
@@ -316,6 +317,82 @@ def queue_status():
     with state.queue_lock:
         itens = list(state.extraction_queue)
     return {"queue": itens}
+
+
+# ── Busca acadêmica no arXiv (perfil Pesquisador) ──────────────────────────────
+# Feature inspirada no projeto open-source OpenScience (synthetic-sciences/openscience).
+# Ver tusab_engine/motor/arxiv.py para detalhes e atribuição completa.
+
+class ArxivSearchRequest(BaseModel):
+    query:          str = Field(min_length=2, max_length=300)
+    max_resultados: int = Field(default=20, ge=1, le=arxiv_motor.MAX_RESULTADOS_PERMITIDO)
+    projeto_nome:   str = Field(max_length=120)
+
+
+def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str):
+    try:
+        state.arxiv_running = True
+        state.arxiv_stats = {"status": "Buscando no arXiv", "total": 0, "processed": 0}
+        state.arxiv_cancel.clear()
+
+        def _dispatch(event, **kwargs):
+            if event == "arxiv_total":
+                state.arxiv_stats["total"] = kwargs.get("total", 0)
+                state.arxiv_stats["status"] = "Baixando papers"
+            elif event == "arxiv_processed":
+                state.arxiv_stats["processed"] = kwargs.get("processed", 0)
+
+        resultado = arxiv_motor.buscar_arxiv(
+            query=query,
+            max_resultados=max_resultados,
+            projeto_nome=projeto_nome,
+            evento_cancelar=state.arxiv_cancel,
+            dispatch_event=_dispatch,
+        )
+        state.arxiv_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
+    except Exception as e:
+        print(f"❌ ERRO NA BUSCA ARXIV: {e}")
+        state.arxiv_stats["status"] = "Erro"
+    finally:
+        state.arxiv_running = False
+
+
+@router.post("/arxiv/search")
+def arxiv_search(req: ArxivSearchRequest, background_tasks: BackgroundTasks):
+    """Busca papers no arXiv por tema e indexa como documentos do projeto.
+
+    [CONTRATO] Assim como POST /neural/upload, o projeto (projeto_nome) deve já
+    existir — ver POST /neural/projeto. Não reindexa automaticamente; indexação
+    continua sendo POST /agent/index, ação explícita do usuário.
+    """
+    if state.arxiv_running:
+        return {"error": True, "message": "Já há uma busca no arXiv em andamento"}
+
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome.strip()).strip('_')
+    if not projeto_prefixo:
+        return {"error": True, "message": "Selecione um projeto antes de buscar"}
+
+    projeto_dir = os.path.join(motor_tusab.NEURAL_DIR, projeto_prefixo)
+    if not os.path.exists(projeto_dir):
+        return {"error": True, "message": "Projeto não encontrado. Crie o projeto antes de buscar."}
+
+    background_tasks.add_task(_run_arxiv_search, req.query.strip(), req.max_resultados, projeto_prefixo)
+    return {"ok": True, "message": "Busca iniciada"}
+
+
+@router.post("/arxiv/cancel")
+def arxiv_cancel():
+    """Cancela a busca no arXiv em andamento (não desfaz papers já salvos)."""
+    if state.arxiv_running:
+        state.arxiv_cancel.set()
+        return {"message": "Cancelando"}
+    return {"message": "Nenhuma busca em andamento"}
+
+
+@router.get("/arxiv/status")
+def arxiv_status():
+    """Status da busca no arXiv em andamento (polling)."""
+    return {"running": state.arxiv_running, **state.arxiv_stats}
 
 
 class AutoUpdateConfigRequest(BaseModel):
