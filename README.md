@@ -10,7 +10,7 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 
 ## Download
 
-**[⬇ Tusab Setup 1.0.7.exe](https://github.com/ahaugusto/tusab-public/releases/download/v1.0.7/Tusab.Setup.1.0.7.exe)** — Windows 10/11 x64 · ~223 MB · inclui Python e yt-dlp embutidos
+**[⬇ Baixar última versão (v1.0.35)](https://github.com/ahaugusto/tusab-public/releases/latest)** — Windows 10/11 x64 · inclui Python e yt-dlp embutidos
 
 ---
 
