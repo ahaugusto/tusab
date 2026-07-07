@@ -313,6 +313,43 @@ Avaliação sob demanda (Augusto, 07/jul/2026) de três ferramentas candidatas a
 
 **Não avaliado (artigo sobre Python 3.15):** conteúdo do artigo estava atrás de paywall — só teaser disponível (lazy imports, rollback do GC incremental do 3.14). Sem profundidade suficiente para avaliar impacto no Tusab (que roda em Python 3.12/3.14 conforme ambiente, ver `requirements.txt`). Não requer ação — Python 3.15 ainda não é dependência do projeto.
 
+### LanceDB — benchmark real antes de migrar (jul/2026)
+
+**Contexto:** o roadmap (`Documentação do Produto/Roadmap.md`, "Sprint 5 — LanceDB") já tinha um plano técnico detalhado escrito, mas nunca implementado nem validado contra a biblioteca real. Antes de migrar `index.py`/`chat.py`, medido de verdade com `lancedb==0.34.0` (instalado em `.venv` de dev) — a API do plano estava desatualizada: `create_fts_index()` está deprecada, API atual é `tbl.create_index(coluna, config=FTS())`.
+
+**Benchmark real** (corpus sintético, sem depender de dados reais escassos no projeto):
+
+| Cenário | BM25Okapi (atual) | LanceDB FTS nativo |
+|---|---|---|
+| Indexação completa — 2.000 chunks | 40ms | 195ms |
+| Query aquecida — 2.000 chunks | 5,4ms | 5,4ms (empate) |
+| Indexação completa — 10.000 chunks | 238ms | 459ms |
+| Query aquecida — 10.000 chunks | 17ms | 8ms (LanceDB 2x mais rápido) |
+| **Adicionar 10 chunks a corpus de 10k** | **214ms (reindexação total)** | **18ms (append incremental)** |
+
+**Conclusão:** a motivação real do roadmap nunca foi velocidade de query pura — era o custo de reindexar tudo do zero a cada mudança pequena, que cresce proporcionalmente ao tamanho do corpus. O benchmark confirma isso: BM25Okapi ganha em indexação do zero (mais leve), mas perde feio no cenário que mais importa em uso real — adicionar poucos itens a uma base já grande (~12x mais lento que o append do LanceDB, a 10k chunks). Query pura empata em corpus pequeno, LanceDB vence em corpus maior.
+
+**LanceDB não substitui BM25 como algoritmo — tem BM25/FTS nativo embutido.** Não são dois motores de ranking concorrentes; é uma troca de onde os dados vivem (JSON+pickle em memória vs. tabela Arrow em disco com índice FTS nativo). "Ter os dois" só faz sentido como período de transição/A-B test, nunca como arquitetura permanente (duas fontes de verdade para o mesmo corpus é risco de inconsistência sem benefício líquido).
+
+**Status:** plano de roadmap confirmado nos fundamentos pelo benchmark real, mas ainda não implementado em código de produção — API do plano escrito precisa ser atualizada antes da Fase 1 (`create_fts_index` → `create_index(coluna, config=FTS())`).
+
+### Processo de QA — protocolo permanente (jul/2026)
+
+**Decisão de processo (Augusto, 07/jul/2026):** toda vez que um checklist de QA rodar, acionar em paralelo `/backend` e `/frontend`, cobrindo tanto a visão B2C (instalador padrão) quanto B2B/Enterprise (build Beta com stack semântica + TTS) — e aproveitar o mesmo ciclo para checar/atualizar dependências desatualizadas (`pip list --outdated`, `npm outdated`). Registrado como protocolo obrigatório em `agents/qa.md`.
+
+### Primeira execução do protocolo de update de stacks (jul/2026)
+
+Primeira aplicação real do protocolo acima, executada de ponta a ponta em 07/jul/2026 — não só "rodar `pip install -U`", mas testar cada grupo com uma chamada funcional real antes de avançar para o próximo:
+
+- **yt-dlp** 2026.6.9→2026.7.4 — validado com mapeamento real de canal do YouTube (`--flat-playlist`), não só mock.
+- **SDKs de LLM** (`anthropic` 0.109→0.116, `openai` 2.41→2.44, `google-genai` 2.6→2.10) — `anthropic` testado com chamada real de API (erro de autenticação esperado confirma que o transporte/schema do SDK não quebrou, só a chave de teste era inválida).
+- **transformers 5.12→5.13** — CrossEncoder (`ms-marco-MiniLM-L-6-v2`) testado com um par de frases relevante vs. irrelevante; confirmado que o ranking de score continua correto após o update.
+- **Frontend** — 12 pacotes (react, vite, framer-motion, axios, posthog-js, etc.), `npm audit fix` zerou 2 vulnerabilidades transitivas, build de produção validado.
+- **Conflitos descobertos e resolvidos:** update em lote de dependências de baixo risco quebrou 4 travas transitivas — `protobuf` (google-ai-generativelanguage/google-api-core/grpcio-status exigem `<6.0dev`), `typer` (huggingface-hub exige `<0.26.0`), `mpmath` (sympy exige `<1.4`), `setuptools` (torch exige `<82`). Fix: pin explícito de volta às versões compatíveis. **Lição:** update em lote de dependências de baixo risco pode quebrar travas transitivas de pacotes não tocados diretamente — sempre rodar `pip check` depois, nunca assumir que "patch/minor" é seguro só pelo semver do pacote-alvo.
+- **`requirements-lock.txt`** estava defasado desde antes da v1.0.30 (yt-dlp preso em 2026.3.17) — regenerado preservando exatamente o mesmo conjunto de pacotes (nenhuma adição/remoção, só bump de versão), para não misturar a rodada de update com mudança de escopo do lock file.
+- **Tailwind 3→4 identificado mas propositalmente não aplicado** — major bump muda o modelo de config inteiro (JS `tailwind.config.js` → CSS-first `@theme`), alto risco sobre as classes `dark:` usadas extensivamente. Decisão: tratar como projeto isolado futuro (branch dedicada + revisão visual completa), nunca dentro de uma rodada de manutenção de rotina.
+- Suite (`pytest tests/`) verde (46/46) em cada etapa, nunca só no final — permite isolar rapidamente qual update quebrou o quê, se algo quebrasse.
+
 ---
 
 ## As três camadas de mercado (visão de longo prazo)
