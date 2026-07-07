@@ -9,7 +9,7 @@ import json
 import time
 import random
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
 import agent_tusab
@@ -22,6 +22,10 @@ class StudyRequest(BaseModel):
     canal_nome: str = Field(max_length=120)
     tipo:       str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos
     n_cards:    int = Field(default=10, ge=1, le=30)
+
+
+class TTSRequest(BaseModel):
+    texto: str = Field(min_length=1, max_length=10000)
 
 
 def _chamar_llm_estudo(prompt: str) -> str:
@@ -255,3 +259,34 @@ def agent_study_get(canal_nome: str):
             pass
 
     return {"flashcards": flashcards, "resumo": resumo, "total": len(flashcards)}
+
+
+@router.get("/agent/tts/status")
+def agent_tts_status():
+    """Verifica se o TTS local está disponível nesta instalação (build Beta/Enterprise).
+
+    Build B2C padrão não tem torch/pocket-tts — retorna disponivel=False,
+    frontend deve ocultar o botão "Ouvir resumo" nesse caso.
+    """
+    from tusab_engine.agent.tts import tts_disponivel
+    return {"disponivel": tts_disponivel()}
+
+
+@router.post("/agent/tts")
+def agent_tts(req: TTSRequest):
+    """Sintetiza texto em áudio via Pocket TTS (kyutai-labs) — build Beta/Enterprise.
+
+    Reservado: torch+pocket-tts não fazem parte do requirements.txt do B2C
+    (medição real: ~530MB em disco, ver `tusab_engine/agent/tts.py`). Retorna
+    erro claro em vez de 500 quando a stack não está instalada.
+    """
+    from tusab_engine.agent.tts import sintetizar_audio
+
+    try:
+        audio_bytes = sintetizar_audio(req.texto)
+    except RuntimeError as e:
+        return {"error": True, "message": str(e)}
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao gerar áudio: {e}"}
+
+    return Response(content=audio_bytes, media_type="audio/wav")

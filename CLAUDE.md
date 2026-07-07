@@ -279,6 +279,19 @@ web_interface/src/
 
 ---
 
+## Design System
+
+Fonte de verdade: **o código em produção** (`web_interface/src/`), nunca o Figma ou a documentação — divergência entre eles é bug a corrigir, não uma opção de design.
+
+- [`Documentação do Produto/Design System — Tusab.md`](Documentação%20do%20Produto/Design%20System%20—%20Tusab.md) — tokens (cor, tipografia, espaçamento, raio), componentes canônicos (Card, Modal, Toggle, Badge, ProgressToast, Indicador de Operação em Background), motion, acessibilidade, anti-padrões
+- [`Documentação do Produto/Design System — Inventário de Componentes.md`](Documentação%20do%20Produto/Design%20System%20—%20Inventário%20de%20Componentes.md) — mapa completo de moléculas e organismos: shell, 14 modais, chat, feedback global, formulários, dados, superfícies especiais
+- **Biblioteca Figma** (v1 — tokens + 5 átomos + Feedback + Shell/NavItem): https://www.figma.com/design/IEXW4hMNlGcNUarBaLy1pb — espelha o código; v2 (chat kit completo, modal template, formulários) ainda não construída, ver roadmap DS no doc principal
+- Hoje só há **dark mode** mapeado na biblioteca Figma (tokens de cor têm variável Light/Dark, mas os componentes construídos usam só o modo dark) — light mode existe no código (`dark:` classes Tailwind) mas ainda não foi replicado como variante visual no Figma. Decisão registrada: dívida real mas de baixa prioridade, resolvida oportunisticamente por componente tocado — ver processo abaixo.
+- [`Documentação do Produto/DesignOps — Processo de Sincronização Figma-Código.md`](Documentação%20do%20Produto/DesignOps%20—%20Processo%20de%20Sincronização%20Figma-Código.md) — como manter Figma/doc/código sincronizados num projeto solo; gatilho por feature, não calendário; critério de fechamento de ciclo para exploração em ferramentas externas (Claude Design e futuras)
+- Agente guardião: `/design-system` — consultar antes de criar componente/token novo; exige medição real (grep no código) antes de qualquer proposta
+
+---
+
 ## Testes
 
 ```
