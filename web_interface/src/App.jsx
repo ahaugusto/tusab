@@ -1083,7 +1083,7 @@ function App() {
 
       {/* Banner de atualização do app disponível */}
       <AnimatePresence>
-        {showUpdateBanner && appUpdateInfo && !showHome && (
+        {showUpdateBanner && appUpdateInfo && (
           <motion.div
             key="update-banner"
             initial={{ opacity: 0, y: 40 }}
@@ -1631,6 +1631,9 @@ function App() {
                         // sem_credenciais: abre o painel para mostrar a instrução, mas não chama
                         // o backend — a auth falharia com FileNotFoundError críptico
                         if (willOpen && driveStatus !== 'autenticado' && driveStatus !== 'sem_credenciais') handleDriveAuth();
+                        // Fechar o painel durante OAuth em andamento cancela o fluxo — evita
+                        // que a autenticação continue em background sem feedback ao usuário
+                        if (!willOpen && driveStatus === 'em_progresso') handleDriveCancel();
                       }}
                       className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${BTN_FOCUS}
                         ${driveStatus === 'autenticado' ? 'bg-secondary' : driveOpen ? 'bg-primary/60' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
