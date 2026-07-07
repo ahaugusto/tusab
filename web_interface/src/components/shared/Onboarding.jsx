@@ -102,10 +102,17 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
     return t('onboarding.s6_body');
   };
 
+  // Step 3 (fontes de conteúdo): perfil Pesquisador ganha menção à busca arXiv
+  // (feature inspirada no projeto open-source OpenScience).
+  const s3Body = () => {
+    if (perfilSelecionado === 'pesquisador') return t('onboarding.s3_body_pesquisador');
+    return t('onboarding.s3_body');
+  };
+
   const STEPS = [
     { icon: Brain,         title: t('onboarding.s1_title'), body: s1Body() },
     { icon: Play,          title: t('onboarding.s2_title'), body: t('onboarding.s2_body') },
-    { icon: FolderOpen,    title: t('onboarding.s3_title'), body: t('onboarding.s3_body') },
+    { icon: FolderOpen,    title: t('onboarding.s3_title'), body: s3Body() },
     { icon: Cloud,         title: t('onboarding.s4_title'), body: t('onboarding.s4_body') },
     { icon: Cpu,           title: t('onboarding.s5_title'), body: t('onboarding.s5_body') },
     { icon: MessageSquare, title: t('onboarding.s6_title'), body: s6Body() },
