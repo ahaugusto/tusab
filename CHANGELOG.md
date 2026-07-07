@@ -11,6 +11,13 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.35] — 2026-07-06
+### Corrigido
+- **Banner de atualização invisível na HomeScreen (WARN-21)** — o banner `fixed` de nova versão disponível não aparecia enquanto o usuário estava na tela inicial (`!showHome`). Removida a condição; o banner agora aparece em qualquer tela, inclusive a HomeScreen.
+- **Fechar painel do Drive não cancelava OAuth em andamento (WARN-23)** — o toggle switch do Drive permitia fechar o painel expansível durante `driveStatus === 'em_progresso'` sem encerrar o fluxo de autenticação, que continuava rodando em segundo plano sem feedback. Agora fechar o painel nesse estado chama `handleDriveCancel()` automaticamente, igual ao botão explícito "Cancelar autenticação".
+
+---
+
 ## [1.0.34] — 2026-07-06
 ### Adicionado
 - **Botão "Verificar atualização" na aba Admin** — seção permanente com versão atual e checagem manual forçada; funciona mesmo com auto-update desativado nas preferências. Achar versão nova dispara download automático + banner "Instalar e reiniciar". Handler IPC `check-for-updates` + `window.tusab.checkForUpdates()` + refactor do updater para init lazy/idempotente.
