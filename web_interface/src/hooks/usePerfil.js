@@ -54,6 +54,7 @@ export const PERFIS_CONFIG = {
     relatorio: true,
     deletar_arquivos: true,
     limpar_canal: true,
+    arxiv: true,
   },
   profissional: {
     abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'monitor', 'agente', 'admin'],

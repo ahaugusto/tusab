@@ -101,6 +101,13 @@ class AppState:
             # canal_prefixo: {"n": int, "total": int}
         }
 
+        # Busca acadêmica no arXiv (perfil Pesquisador) — estado isolado,
+        # não reaproveita self.stats (contrato acoplado a vídeos do YouTube)
+        # nem o LogRedirector (parsing de emojis específico do motor YouTube).
+        self.arxiv_running        = False
+        self.arxiv_cancel         = threading.Event()
+        self.arxiv_stats: dict    = {"status": "Ocioso", "total": 0, "processed": 0}
+
     # ── API de eventos estruturados ───────────────────────────────────────────
     # Substitui o contrato implícito de emojis/strings do LogRedirector.
     # O motor chama dispatch_event() em vez de depender de padrões de texto.
