@@ -8,7 +8,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { X, Zap, Loader2, Search } from 'lucide-react';
+import { X, Zap, Loader2, Search, Stethoscope } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 import { getCanalInfo } from '../../services/api';
@@ -19,18 +19,25 @@ import { getCanalInfo } from '../../services/api';
  * Step 2: Channel URL (skipped when channel already configured and not modoFila) — ou busca arXiv (perfil Pesquisador)
  * Step 3: Content types + auto-update — ou quantidade de resultados (arXiv)
  */
-function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '' }) {
+function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '' }) {
   const { t } = useTranslation();
 
-  // Toggle de fonte — só visível para o perfil Pesquisador. Feature de busca
-  // acadêmica no arXiv inspirada no projeto open-source OpenScience
-  // (synthetic-sciences/openscience) — ver tusab_engine/motor/arxiv.py.
+  // Toggle de fonte — só visível para o perfil Pesquisador. Busca acadêmica no
+  // arXiv inspirada no projeto open-source OpenScience (synthetic-sciences/openscience)
+  // — ver tusab_engine/motor/arxiv.py. Busca de estudos clínicos via FHIR
+  // (ResearchStudy) — ver tusab_engine/motor/fhir.py.
   const podeUsarArxiv = perfil === 'pesquisador' && !modoFila;
-  const [sourceType, setSourceType] = React.useState('youtube'); // 'youtube' | 'arxiv'
+  const podeUsarFhir  = perfil === 'pesquisador' && !modoFila;
+  const podeEscolherFonte = podeUsarArxiv || podeUsarFhir;
+  const [sourceType, setSourceType] = React.useState('youtube'); // 'youtube' | 'arxiv' | 'fhir'
 
   // Step arXiv: query de busca + quantidade de resultados
   const [arxivQuery,      setArxivQuery]      = React.useState('');
   const [arxivMaxResults, setArxivMaxResults] = React.useState(20);
+
+  // Step FHIR: query de busca (ResearchStudy) + quantidade de resultados
+  const [fhirQuery,      setFhirQuery]      = React.useState('');
+  const [fhirMaxResults, setFhirMaxResults] = React.useState(20);
 
   const ALL_TYPES = [
     { id: 'Videos',    label: t('ops.type_videos'),    icon: '🎬' },
@@ -52,8 +59,8 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
 
   // Step interno: 'url' | 'projeto' | 'fontes'
   // Perfil Pesquisador sempre passa por 'url' primeiro — mesmo com canal já
-  // configurado — para poder ver e escolher o toggle YouTube/arXiv.
-  const stepInicial = modoFila ? 'url' : (canalJaConfigurado && !podeUsarArxiv) ? 'projeto' : 'url';
+  // configurado — para poder ver e escolher o toggle YouTube/arXiv/FHIR.
+  const stepInicial = modoFila ? 'url' : (canalJaConfigurado && !podeEscolherFonte) ? 'projeto' : 'url';
   const [step, setStep] = React.useState(stepInicial);
 
   // modoFila: começa vazio — nome vem do handle da URL inserida
@@ -125,7 +132,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
 
   const avancar = () => {
     if (step === 'url') {
-      if (sourceType === 'arxiv') { setStep('projeto'); return; }
+      if (sourceType === 'arxiv' || sourceType === 'fhir') { setStep('projeto'); return; }
       // Garante que o nome está atualizado com o handle da URL ao avançar
       if (!nomeEditadoManual) {
         const handle = extrairHandle(canalUrl);
@@ -139,7 +146,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
 
   const voltar = () => {
     if (step === 'fontes') setStep('projeto');
-    else if (step === 'projeto') { if (modoFila || !canalJaConfigurado || sourceType === 'arxiv') setStep('url'); }
+    else if (step === 'projeto') { if (modoFila || !canalJaConfigurado || sourceType === 'arxiv' || sourceType === 'fhir') setStep('url'); }
   };
 
   const handleConfirm = () => {
@@ -156,12 +163,18 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
     onConfirmArxiv(arxivQuery.trim(), arxivMaxResults, nome);
   };
 
+  const handleConfirmFhir = () => {
+    const nome = projetoNome.trim();
+    onConfirmFhir(fhirQuery.trim(), fhirMaxResults, nome);
+  };
+
   const podeAvancarArxivQuery = arxivQuery.trim().length >= 2;
+  const podeAvancarFhirQuery  = fhirQuery.trim().length >= 2;
 
   // Step visual para a barra de progresso
   // Com canal já configurado, o step 'url' só é revisitado se o Pesquisador
-  // trocar para a fonte arXiv — nesse caso a sequência volta a ter 3 passos.
-  const pulaStepUrl = canalJaConfigurado && !modoFila && sourceType !== 'arxiv';
+  // trocar para a fonte arXiv/FHIR — nesse caso a sequência volta a ter 3 passos.
+  const pulaStepUrl = canalJaConfigurado && !modoFila && sourceType !== 'arxiv' && sourceType !== 'fhir';
   const stepVisualMap = modoFila
     ? { url: 1, projeto: 2, fontes: 3 }
     : pulaStepUrl
@@ -171,19 +184,19 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
   const totalStepsVisual = pulaStepUrl ? 2 : 3;
 
   const stepLabel = step === 'url'
-    ? (sourceType === 'arxiv' ? t('extraction.arxiv_step_title') : 'Canal do YouTube')
+    ? (sourceType === 'arxiv' ? t('extraction.arxiv_step_title') : sourceType === 'fhir' ? t('extraction.fhir_step_title') : 'Canal do YouTube')
     : step === 'projeto'
     ? 'Nome do projeto'
-    : sourceType === 'arxiv' ? t('extraction.arxiv_results_title') : t('ops.types_modal_title');
+    : sourceType === 'arxiv' ? t('extraction.arxiv_results_title') : sourceType === 'fhir' ? t('extraction.fhir_results_title') : t('ops.types_modal_title');
 
   const stepSub = step === 'url'
-    ? (sourceType === 'arxiv' ? t('extraction.arxiv_step_sub') : 'Informe a URL do canal que deseja adicionar à fila.')
+    ? (sourceType === 'arxiv' ? t('extraction.arxiv_step_sub') : sourceType === 'fhir' ? t('extraction.fhir_step_sub') : 'Informe a URL do canal que deseja adicionar à fila.')
     : step === 'projeto'
     ? 'Dê um nome ao projeto. Pode ser o canal ou algo mais amplo.'
-    : sourceType === 'arxiv' ? t('extraction.arxiv_results_sub') : t('ops.types_modal_subtitle');
+    : sourceType === 'arxiv' ? t('extraction.arxiv_results_sub') : sourceType === 'fhir' ? t('extraction.fhir_results_sub') : t('ops.types_modal_subtitle');
 
-  const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado || sourceType === 'arxiv') : step === 'fontes';
-  const podeAvancarUrl = sourceType === 'arxiv' ? podeAvancarArxivQuery : canalUrl.trim().length > 0;
+  const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado || sourceType === 'arxiv' || sourceType === 'fhir') : step === 'fontes';
+  const podeAvancarUrl = sourceType === 'arxiv' ? podeAvancarArxivQuery : sourceType === 'fhir' ? podeAvancarFhirQuery : canalUrl.trim().length > 0;
   const podeAvancarProjeto = projetoNome.trim().length > 0;
 
   // Detecta se o canal já existe em algum projeto (para exibir alerta)
@@ -232,7 +245,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
           </div>
 
           {/* ── Toggle de fonte — apenas perfil Pesquisador ── */}
-          {podeUsarArxiv && step === 'url' && (
+          {podeEscolherFonte && step === 'url' && (
             <div className={`flex items-center gap-1 mb-4 p-1 rounded-xl border ${darkMode ? 'bg-white/3 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <button
                 onClick={() => setSourceType('youtube')}
@@ -240,12 +253,22 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
                   ${sourceType === 'youtube' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
                 🎬 {t('extraction.source_youtube')}
               </button>
-              <button
-                onClick={() => setSourceType('arxiv')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                  ${sourceType === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
-              </button>
+              {podeUsarArxiv && (
+                <button
+                  onClick={() => setSourceType('arxiv')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
+                    ${sourceType === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
+                </button>
+              )}
+              {podeUsarFhir && (
+                <button
+                  onClick={() => setSourceType('fhir')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
+                    ${sourceType === 'fhir' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <Stethoscope size={12} aria-hidden="true" /> {t('extraction.source_fhir')}
+                </button>
+              )}
             </div>
           )}
 
@@ -273,6 +296,37 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
               <button
                 onClick={avancar}
                 disabled={!podeAvancarArxivQuery}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                Próximo
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </>
+          )}
+
+          {/* ── Step busca FHIR (ResearchStudy) ── */}
+          {step === 'url' && sourceType === 'fhir' && (
+            <>
+              <div className="mb-5">
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {t('extraction.fhir_query_label')}
+                </label>
+                <input
+                  type="text"
+                  value={fhirQuery}
+                  onChange={e => setFhirQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && podeAvancarFhirQuery) avancar(); }}
+                  placeholder={t('extraction.fhir_query_placeholder')}
+                  autoFocus
+                  maxLength={300}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
+                />
+                <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {t('extraction.fhir_query_hint')}
+                </p>
+              </div>
+              <button
+                onClick={avancar}
+                disabled={!podeAvancarFhirQuery}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                 Próximo
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -398,7 +452,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
                 {/* Hint sobre estrutura de pastas — oculto quando projeto existente selecionado */}
                 {!projetoExistenteSelecionado && <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                   <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Estrutura de pastas</p>
-                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || 'Projeto'}</span> → {sourceType === 'arxiv' ? 'documents → arXiv' : 'youtube → Canal'}</p>
+                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || 'Projeto'}</span> → {sourceType === 'arxiv' ? 'documents → arXiv' : sourceType === 'fhir' ? 'documents → FHIR' : 'youtube → Canal'}</p>
                   <p className="opacity-70">O projeto agrupa canais e documentos. Um projeto pode conter vários canais.</p>
                 </div>}
 
@@ -494,6 +548,42 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
                   className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                   <Search size={15} aria-hidden="true" />
                   {t('extraction.arxiv_start_confirm')}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step Fontes (FHIR) — quantidade de resultados ── */}
+          {step === 'fontes' && sourceType === 'fhir' && (
+            <>
+              <div className="mb-5">
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {t('extraction.fhir_max_results_label')}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={fhirMaxResults}
+                  onChange={e => setFhirMaxResults(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                />
+                <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {t('extraction.fhir_max_results_hint')}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={voltar}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                    ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  Voltar
+                </button>
+                <button
+                  onClick={handleConfirmFhir}
+                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  <Stethoscope size={15} aria-hidden="true" />
+                  {t('extraction.fhir_start_confirm')}
                 </button>
               </div>
             </>

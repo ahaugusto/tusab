@@ -300,6 +300,20 @@ Avaliação sob demanda (Augusto, 07/jul/2026) de três ferramentas candidatas a
 
 **Saiu do papel — implementado (07/jul/2026):** novo módulo `tusab_engine/agent/tts.py` (`tts_disponivel()`, `limpar_para_audio()` — remove markdown antes de sintetizar, `sintetizar_audio()` com lazy-load do modelo) + endpoints `POST /agent/tts`, `GET /agent/tts/status` em `router_estudo.py`. Botão "🔊 Ouvir resumo" em `EstudoTab.jsx` — só aparece quando `GET /agent/tts/status` confirma a stack instalada; build B2C nunca mostra o botão. Testado de ponta a ponta em dev (síntese real gerou WAV válido, 245KB para uma frase de teste). Suite de testes (`tests/test_tts.py`) usa mock para não depender de download de pesos em CI. **Decisão relacionada registrada no roadmap (`Documentação do Produto/Roadmap.md`, P0-f):** promover Modo Estudo a aba de primeiro nível exclusiva do perfil Estudante — adiado deliberadamente, não implementado nesta entrega, para não misturar escopo com o TTS.
 
+### Meetily (Zackriya-Solutions) — captura + transcrição local de reuniões
+
+**O que é:** app desktop (Tauri, Rust+TypeScript) que grava áudio de reunião (microfone + áudio do sistema simultaneamente), transcreve 100% local via Whisper ou Parakeet (NVIDIA), resume via LLM (Ollama local ou APIs externas). MIT, open-source, 22,6k stars. Foco declarado: setores regulamentados (legal, saúde, defesa) que não podem mandar reunião sensível para SaaS (Otter.ai, Fireflies).
+
+**Avaliado (Augusto, 10/jul/2026):** território genuinamente novo — nunca avaliado antes, sem decisão prévia sobre captura de áudio.
+
+**Onde bate com o Tusab:** o parser `_detectar_formato_especial()` (`router_repositorio.py`) já estrutura transcrições de Zoom/Otter/Teams **já prontas** — mas o Tusab nunca captura áudio, é sempre pós-fato (usuário exporta de algum SaaS e faz upload). Meetily preenche exatamente essa lacuna anterior no funil, com a mesma tese de local-first já usada para YouTube.
+
+**Onde não bate — stack, não conceito:** Meetily é Rust+Tauri; Tusab é Electron+Python/FastAPI. Não é "importar código" — seria reescrever do zero ou rodar como segundo processo/segunda stack de build, contrariando a arquitetura de "um instalador, uma stack". Captura de áudio de sistema (loopback WASAPI no Windows) é funcionalidade **inteiramente nova** para o Tusab — mais parecido com construir um subproduto do que adicionar uma fonte (diferente de arXiv, que reaproveitou 100% do pipeline de upload/manifest já existente).
+
+**Relação com o roadmap já registrado:** `agents/produto.md` já cita "Modelos multimodais locais (Whisper, LLaVA)" como movimento de mercado a antecipar em 12–24 meses — mas como transcrição de áudio **já existente** (vídeo sem legenda), não captura ao vivo de reunião. São coisas diferentes.
+
+**Veredito:** não adotar/integrar Meetily. A ideia de "Tusab grava sua própria reunião" é coerente com o produto e útil (perfil Especialista com reuniões de cliente sensíveis; vertical B2B Enterprise — hospitais/conselhos, mesma tese do documento Tusab Saúde), mas é projeto de esforço muito maior que qualquer feature recente: nova stack de captura de áudio por plataforma, nova UI (start/stop, indicador ao vivo), superfície de teste inteiramente nova. Não é candidato de "próxima feature" — é candidato de sprint dedicado, registrado aqui para não reavaliar do zero se a pergunta voltar, sem entrar no roadmap ativo por ora.
+
 ### TabFM (google-research) — modelo de fundação para dados tabulares
 
 **O que é:** classificação/regressão zero-shot em CSV/planilhas via in-context learning, scikit-learn compatible, requer JAX ou PyTorch.
@@ -333,6 +347,42 @@ Avaliação sob demanda (Augusto, 07/jul/2026) de três ferramentas candidatas a
 **LanceDB não substitui BM25 como algoritmo — tem BM25/FTS nativo embutido.** Não são dois motores de ranking concorrentes; é uma troca de onde os dados vivem (JSON+pickle em memória vs. tabela Arrow em disco com índice FTS nativo). "Ter os dois" só faz sentido como período de transição/A-B test, nunca como arquitetura permanente (duas fontes de verdade para o mesmo corpus é risco de inconsistência sem benefício líquido).
 
 **Status:** plano de roadmap confirmado nos fundamentos pelo benchmark real, mas ainda não implementado em código de produção — API do plano escrito precisa ser atualizada antes da Fase 1 (`create_fts_index` → `create_index(coluna, config=FTS())`).
+
+### Lematização em português — benchmark real, não adotada (jul/2026)
+
+**Proposta avaliada (Augusto, 10/jul/2026):** usar lematização (spaCy `pt_core_news_sm`) no pipeline BM25 para resolver variação morfológica ("investindo"/"investiu"/"investimento" → mesmo lema) — classe de problema diferente da query expansion (que resolve sinônimos, não morfologia). Nunca avaliada antes.
+
+**Medição real** (não estimada — mesma disciplina do benchmark LanceDB): modelo baixado via HuggingFace (`raw.githubusercontent.com` bloqueado no sandbox de rede, HF funcionou) — **12,4MB comprimido, 16MB descompactado**, mesma ordem de grandeza do CrossEncoder (~80MB) já em produção B2C. Testado num venv isolado e depois no `.venv` de dev, removido ao final (zero resíduo).
+
+**Benchmark de recall** — corpus real (26 transcrições do canal FGV), 12 perguntas (6 pares, mesma raiz morfológica cada):
+
+| Métrica | BM25 puro (RAW) | BM25 + lematização |
+|---|---|---|
+| Tempo de indexação (26 docs) | 96,6ms | 62.961,9ms |
+| Overhead | — | **651x mais lento** |
+| Concordância de top-1 com RAW | — | 4/12 (33%) |
+
+**Dois problemas reais, não hipotéticos:**
+1. **Custo:** 651x de overhead de indexação é proibitivo — mesmo em corpus pequeno (26 docs), passou de <100ms para quase 1 minuto. Corpus real de usuário (centenas de vídeos) tornaria a indexação impraticável no fluxo síncrono atual.
+2. **Qualidade não previsível:** teste manual de lematização (`nlp("Estou investindo... Já investi... pretendo investir...")`) mostrou o lematizador errando em vocabulário comum — `"pretendo"` → `"preter"` (deveria ser `"pretender"`), e `"investi"` não lematizado para `"investir"`. Isso não é caso de borda de jargão técnico — é erro em português cotidiano, do modelo estatístico geral (treinado em notícias). Resultado prático: top-1 mudou em 67% das perguntas testadas, sem padrão claro de melhora.
+
+**Veredito:** não adotar. O overhead por si só já reprova a proposta (contradiz o mesmo motivo que descartou BM25S e reprovou query expansion para Ollama — latência inaceitável), e o ganho de qualidade nem se comprova no teste real. KeyBERT (já em produção) e query expansion (já em produção para providers cloud) continuam sendo os mecanismos corretos para esse tipo de gap — lematização seria redundante em resultado e cara em custo.
+
+### FHIR — formato viável para fonte de dados clínicos, ainda não priorizado (jul/2026)
+
+**Contexto:** avaliado junto com lematização (Augusto, 10/jul/2026), no âmbito do vertical `Tusab Saúde — Proposta Estratégica.md`, que já mapeia ClinicalTrials.gov/ChEMBL/PubChem/PDB/Ensembl como fontes candidatas de v2/v3 (nenhuma implementada).
+
+**Achado técnico:** todo recurso FHIR (`Patient`, `Observation`, `ResearchStudy` etc.) tem um campo padronizado `text.div` (Narrative) — resumo em HTML feito para leitura humana, obrigatório por spec. Isso muda a viabilidade técnica frente às outras fontes já mapeadas: não seria preciso parsear o schema JSON/XML tipado inteiro (referências cruzadas, campos estruturados) — bastaria extrair `text.div`, limpar o HTML (mesmo padrão de `_detectar_formato_especial()` usado para WhatsApp/Zoom em `router_repositorio.py`), e indexar como texto corrido. Mais barato tecnicamente que ClinicalTrials.gov, que exigiria schema de indexação próprio.
+
+**`ResearchStudy`** é o recurso FHIR específico para ensaios clínicos — descreve propósito, patrocinador, condição estudada; equivalente estruturado ao que ClinicalTrials.gov já expõe via API.
+
+**Status:** não implementado, não priorizado, para o vertical Tusab Saúde (B2B) — mesma regra de entrada de sempre (2+ segmentos educacionais em produção + lead concreto). Registrado como nota técnica na tabela de fontes candidatas do documento de Saúde, ao lado de ClinicalTrials.gov/ChEMBL/PDB/Ensembl.
+
+**Atualização (10/jul/2026) — saiu do papel, mas no perfil Pesquisador B2C, não no vertical Saúde:** Augusto decidiu implementar a busca FHIR como fonte do perfil Pesquisador (mesmo padrão do arXiv), não como parte do futuro Tusab Saúde/B2B. Escopo restrito deliberadamente a `ResearchStudy` — descartado `Patient` e qualquer outro resource type que modele indivíduo, mesmo sintético/teste, para não contradizer "privacidade absoluta" do perfil Pesquisador B2C (confirmado com o usuário antes de implementar). Novo módulo `tusab_engine/motor/fhir.py`, endpoints `POST /fhir/search|cancel`, `GET /fhir/status`, toggle de 3 fontes no `ExtractionModal` (YouTube/arXiv/FHIR), estado isolado `fhir_running`/`fhir_cancel`/`fhir_stats` em `state.py` (mesmo padrão do arXiv, mesmo motivo de não reaproveitar `state.stats`).
+
+**Achado prático do teste real (não hipotético) contra `hapi.fhir.org/baseR4`:** o servidor público de sandbox tem poucos `ResearchStudy` com `text.div` preenchido de verdade — a maioria só tem `title`+`status`; até o único registro "com narrative" encontrado tinha um placeholder vazio (`"[Put rendering here]"`), tratado explicitamente pelo parser (`_parsear_resource()` ignora esse texto). `Patient`, por outro lado, tem narrative rico no mesmo servidor — reforça a decisão de escopo (mais fácil de indexar, mas errado por natureza de dado). Resultado prático: o `.txt` gerado hoje contra o sandbox público é magro (título + status, às vezes description/condition) — funcional e correto, mas de baixo valor de busca até que um servidor institucional mais rico (ex: futuro Tusab Saúde) entre em cena. Parser já preparado para isso (extrai todo campo disponível, sem exigir narrative).
+
+12 testes novos (`tests/test_fhir.py`) cobrindo parser de Narrative HTML, `CodeableConcept` (FHIR usa tanto string simples quanto `{text, coding:[...]}`), placeholder de narrative vazio, fallback para campos estruturados, resource type inesperado no bundle (defesa em profundidade), e erro parcial não derruba o lote. Suite completa: 58/58 verde. Testado também contra o servidor real (sem mock) antes do commit — 1 estudo salvo de verdade a partir de `hapi.fhir.org`.
 
 ### Processo de QA — protocolo permanente (jul/2026)
 

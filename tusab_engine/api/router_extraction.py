@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 import motor_tusab
 from tusab_engine.state import state
 from tusab_engine.motor import arxiv as arxiv_motor
+from tusab_engine.motor import fhir as fhir_motor
 
 router = APIRouter()
 
@@ -393,6 +394,82 @@ def arxiv_cancel():
 def arxiv_status():
     """Status da busca no arXiv em andamento (polling)."""
     return {"running": state.arxiv_running, **state.arxiv_stats}
+
+
+# ── Busca de estudos clínicos via FHIR (perfil Pesquisador) ────────────────────
+# Escopo restrito a ResearchStudy — nunca Patient ou outro recurso de indivíduo.
+# Ver tusab_engine/motor/fhir.py para detalhes e justificativa de escopo.
+
+class FhirSearchRequest(BaseModel):
+    query:          str = Field(min_length=2, max_length=300)
+    max_resultados: int = Field(default=20, ge=1, le=fhir_motor.MAX_RESULTADOS_PERMITIDO)
+    projeto_nome:   str = Field(max_length=120)
+
+
+def _run_fhir_search(query: str, max_resultados: int, projeto_nome: str):
+    try:
+        state.fhir_running = True
+        state.fhir_stats = {"status": "Buscando estudos (FHIR)", "total": 0, "processed": 0}
+        state.fhir_cancel.clear()
+
+        def _dispatch(event, **kwargs):
+            if event == "fhir_total":
+                state.fhir_stats["total"] = kwargs.get("total", 0)
+                state.fhir_stats["status"] = "Salvando estudos"
+            elif event == "fhir_processed":
+                state.fhir_stats["processed"] = kwargs.get("processed", 0)
+
+        resultado = fhir_motor.buscar_fhir(
+            query=query,
+            max_resultados=max_resultados,
+            projeto_nome=projeto_nome,
+            evento_cancelar=state.fhir_cancel,
+            dispatch_event=_dispatch,
+        )
+        state.fhir_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
+    except Exception as e:
+        print(f"❌ ERRO NA BUSCA FHIR: {e}")
+        state.fhir_stats["status"] = "Erro"
+    finally:
+        state.fhir_running = False
+
+
+@router.post("/fhir/search")
+def fhir_search(req: FhirSearchRequest, background_tasks: BackgroundTasks):
+    """Busca estudos clínicos (ResearchStudy) via FHIR por tema e indexa como documentos do projeto.
+
+    [CONTRATO] Assim como POST /arxiv/search, o projeto (projeto_nome) deve já
+    existir. Não reindexa automaticamente; indexação continua sendo POST /agent/index,
+    ação explícita do usuário.
+    """
+    if state.fhir_running:
+        return {"error": True, "message": "Já há uma busca FHIR em andamento"}
+
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome.strip()).strip('_')
+    if not projeto_prefixo:
+        return {"error": True, "message": "Selecione um projeto antes de buscar"}
+
+    projeto_dir = os.path.join(motor_tusab.NEURAL_DIR, projeto_prefixo)
+    if not os.path.exists(projeto_dir):
+        return {"error": True, "message": "Projeto não encontrado. Crie o projeto antes de buscar."}
+
+    background_tasks.add_task(_run_fhir_search, req.query.strip(), req.max_resultados, projeto_prefixo)
+    return {"ok": True, "message": "Busca iniciada"}
+
+
+@router.post("/fhir/cancel")
+def fhir_cancel():
+    """Cancela a busca FHIR em andamento (não desfaz estudos já salvos)."""
+    if state.fhir_running:
+        state.fhir_cancel.set()
+        return {"message": "Cancelando"}
+    return {"message": "Nenhuma busca em andamento"}
+
+
+@router.get("/fhir/status")
+def fhir_status():
+    """Status da busca FHIR em andamento (polling)."""
+    return {"running": state.fhir_running, **state.fhir_stats}
 
 
 class AutoUpdateConfigRequest(BaseModel):
