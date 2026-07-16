@@ -108,6 +108,13 @@ class AppState:
         self.arxiv_cancel         = threading.Event()
         self.arxiv_stats: dict    = {"status": "Ocioso", "total": 0, "processed": 0}
 
+        # Busca de estudos clínicos via FHIR (perfil Pesquisador) — mesmo padrão
+        # isolado do arXiv acima, pelo mesmo motivo (contrato de stats/YouTube
+        # não se aplica a uma fonte de busca por tema).
+        self.fhir_running          = False
+        self.fhir_cancel           = threading.Event()
+        self.fhir_stats: dict      = {"status": "Ocioso", "total": 0, "processed": 0}
+
     # ── API de eventos estruturados ───────────────────────────────────────────
     # Substitui o contrato implícito de emojis/strings do LogRedirector.
     # O motor chama dispatch_event() em vez de depender de padrões de texto.

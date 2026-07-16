@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [Não lançado]
+### Adicionado
+- **Busca de estudos clínicos via FHIR (perfil Pesquisador)** — no modal de extração, o perfil Pesquisador ganha uma terceira fonte além de YouTube/arXiv: "FHIR", buscando estudos de pesquisa (`ResearchStudy`) no servidor público de referência HAPI FHIR (`hapi.fhir.org`, padrão HL7, sem autenticação). Escopo deliberadamente restrito a `ResearchStudy` — nunca `Patient` ou qualquer outro recurso que modele dados de indivíduo, mesmo sintético/teste, para preservar "privacidade absoluta" do perfil Pesquisador B2C (dados de saúde individual via FHIR ficam reservados ao futuro vertical Tusab Saúde/B2B Enterprise). O parser extrai o campo padronizado `text.div` (Narrative, HTML legível por humanos) quando presente, com fallback gracioso para campos estruturados (`status`, `description`, `condition`) quando o narrative está ausente ou é um placeholder vazio — situação comum em servidores de sandbox público. Novo módulo `tusab_engine/motor/fhir.py` + endpoints `POST /fhir/search`, `POST /fhir/cancel`, `GET /fhir/status`, seguindo exatamente o mesmo contrato de `_manifest.json`/cabeçalho `TITULO/FONTE/DATA` da busca arXiv.
+
+---
+
 ## [1.0.36] — 2026-07-07
 ### Alterado
 - **Atualização completa de stacks (backend + frontend), com teste funcional real por grupo** — não apenas `pip install -U` cego: cada grupo foi validado com uma chamada real, não só suite mockada.
