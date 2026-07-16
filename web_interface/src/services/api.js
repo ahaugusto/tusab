@@ -101,6 +101,19 @@ export const cancelarArxiv = () => axios.post(`${API_BASE}/arxiv/cancel`);
 /** Polls the status of an in-progress arXiv search */
 export const statusArxiv = () => axios.get(`${API_BASE}/arxiv/status`);
 
+// ─── Busca de estudos clínicos via FHIR (perfil Pesquisador) ──────────────────
+// Escopo restrito a ResearchStudy — nunca Patient ou outro recurso de indivíduo.
+
+/** Starts a FHIR ResearchStudy search + save for the given project */
+export const buscarFhir = (query, max_resultados, projeto_nome) =>
+  axios.post(`${API_BASE}/fhir/search`, { query, max_resultados, projeto_nome });
+
+/** Cancels an in-progress FHIR search */
+export const cancelarFhir = () => axios.post(`${API_BASE}/fhir/cancel`);
+
+/** Polls the status of an in-progress FHIR search */
+export const statusFhir = () => axios.get(`${API_BASE}/fhir/status`);
+
 /** Saves auto-update config for a channel */
 export const saveAutoUpdateConfig = (canal_prefixo, enabled, frequencia, fontes, canal_url, projeto_prefixo = '') =>
   axios.post(`${API_BASE}/auto-update/config`, { canal_prefixo, projeto_prefixo, enabled, frequencia, fontes, canal_url });
