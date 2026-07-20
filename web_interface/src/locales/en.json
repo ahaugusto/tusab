@@ -160,7 +160,7 @@
   "onboarding.s1_body_professor": "Create knowledge bases from YouTube channels and your own materials. Then export and share them with your students in one click.",
   "onboarding.s6_body_estudante": "Import the .tusab file received from your teacher. Tusab loads the base ready to go — you can start asking questions without any setup.",
   "onboarding.s6_body_professor": "After extracting and indexing, export the base as .tusab and send it to your students. They open the file and can already chat with the content.",
-  "onboarding.s3_body_pesquisador": "Besides YouTube and manual upload, you can search academic papers directly on arXiv by topic — Tusab downloads the PDFs and indexes them automatically. Enable this option in the extraction modal.",
+  "onboarding.s3_body_pesquisador": "Besides YouTube and manual upload, you can search academic papers on arXiv and clinical studies on FHIR databases, by topic — Tusab downloads and indexes them automatically. Enable these options in the extraction modal.",
   "onboarding.s_notif_title": "Stay updated in real time",
   "onboarding.s_notif_body": "Tusab can notify you when an extraction finishes or when the chat replies while you're in another tab. Enable notifications so you never miss a result.",
   "onboarding.notif_cta": "Enable system notifications",
@@ -674,6 +674,7 @@
   "update_success.version": "Installed version",
   "update_success.changelog": "See what's new",
   "update_success.confirm": "Continue",
+  "update_success.highlight_1_0_37": "The Researcher profile can now search clinical studies straight from a healthcare data standard (FHIR), alongside arXiv — always processed locally, nothing leaves your machine.",
 
   "aprofundar.title": "Deepen base",
   "aprofundar.subtitle": "Enable richer, more complete answers",
