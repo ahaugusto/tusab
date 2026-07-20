@@ -10,7 +10,7 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 
 ## Download
 
-**[⬇ Baixar última versão (v1.0.36)](https://github.com/ahaugusto/tusab-public/releases/latest)** — Windows 10/11 x64 · inclui Python e yt-dlp embutidos
+**[⬇ Baixar última versão (v1.0.37)](https://github.com/ahaugusto/tusab-public/releases/latest)** — Windows 10/11 x64 · inclui Python e yt-dlp embutidos
 
 ---
 
@@ -29,6 +29,8 @@ Tusab é um sistema de gestão de conhecimento pessoal (PKM) com IA local. Você
 ## Funcionalidades
 
 - Extração automática de canais inteiros do YouTube (legendas + metadados)
+- Busca acadêmica no arXiv por tema (perfil Pesquisador) — baixa e indexa os PDFs automaticamente
+- Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — servidor público, sem autenticação, escopo restrito a estudos de pesquisa
 - Upload de PDFs, DOCX, Markdown, CSV e TXT
 - Upload de imagens (PNG, JPG, WEBP etc.) — descrição via Ollama multimodal ou OCR Tesseract
 - Upload de áudio (MP3, WAV, M4A etc.) — transcrição via faster-whisper local
