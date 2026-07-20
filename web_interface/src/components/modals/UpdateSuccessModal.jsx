@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BTN_FOCUS } from '../../constants';
+import { RELEASE_HIGHLIGHTS } from '../../constants/releaseHighlights';
 import ModalWrapper from '../shared/ModalWrapper';
 
 export default function UpdateSuccessModal({ version, darkMode, onClose }) {
@@ -12,6 +13,11 @@ export default function UpdateSuccessModal({ version, darkMode, onClose }) {
   const releaseUrl = version
     ? `https://github.com/ahaugusto/tusab-public/releases/tag/v${version}`
     : 'https://github.com/ahaugusto/tusab-public/releases';
+
+  // Resumo real da novidade — só existe quando a versão está em
+  // RELEASE_HIGHLIGHTS (ver comentário no arquivo). Sem entrada, o modal
+  // mostra apenas o texto genérico de sempre.
+  const highlightKey = RELEASE_HIGHLIGHTS[version];
 
   return (
     <ModalWrapper
@@ -46,6 +52,13 @@ export default function UpdateSuccessModal({ version, darkMode, onClose }) {
           </span>
           <span className="text-sm font-bold text-primary">v{version}</span>
         </div>
+
+        {/* Resumo da novidade — só quando a versão tem destaque cadastrado */}
+        {highlightKey && (
+          <p className={`text-sm leading-relaxed ${darkMode ? 'text-text-secondary' : 'text-gray-600'}`}>
+            {t(highlightKey)}
+          </p>
+        )}
 
         {/* Ações */}
         <div className="flex gap-3">

@@ -160,7 +160,7 @@
   "onboarding.s1_body_professor": "Crea bases de conocimiento a partir de canales de YouTube y tus materiales. Luego expórtalas y compártelas con tus alumnos en un clic.",
   "onboarding.s6_body_estudante": "Importa el archivo .tusab recibido de tu profesor. Tusab carga la base lista — ya puedes hacer preguntas sin configurar nada.",
   "onboarding.s6_body_professor": "Después de extraer e indexar, exporta la base como .tusab y envíala a tus alumnos. Ellos abren el archivo y ya pueden conversar con el contenido.",
-  "onboarding.s3_body_pesquisador": "Además de YouTube y la carga manual, puedes buscar artículos científicos directamente en arXiv por tema — Tusab descarga los PDFs y los indexa automáticamente. Activa esta opción en el modal de extracción.",
+  "onboarding.s3_body_pesquisador": "Además de YouTube y la carga manual, puedes buscar artículos científicos en arXiv y estudios clínicos en bases FHIR, por tema — Tusab los descarga e indexa automáticamente. Activa estas opciones en el modal de extracción.",
   "onboarding.s_notif_title": "Mantente al día en tiempo real",
   "onboarding.s_notif_body": "Tusab puede avisarte cuando una extracción termine o cuando el chat responda mientras estás en otra pestaña. Activa las notificaciones para no perder ningún resultado.",
   "onboarding.notif_cta": "Activar notificaciones del sistema",
@@ -674,6 +674,7 @@
   "update_success.version": "Versión instalada",
   "update_success.changelog": "Ver novedades",
   "update_success.confirm": "Continuar",
+  "update_success.highlight_1_0_37": "El perfil Investigador ahora busca estudios científicos directamente en bases de datos clínicos (estándar FHIR), además de arXiv — siempre procesado localmente, sin que nada salga de tu máquina.",
 
   "aprofundar.title": "Profundizar base",
   "aprofundar.subtitle": "Activa respuestas más completas y precisas",

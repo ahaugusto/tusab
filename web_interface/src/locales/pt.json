@@ -160,7 +160,7 @@
   "onboarding.s1_body_professor": "Crie bases de conhecimento a partir de canais do YouTube e seus materiais. Depois exporte e compartilhe com seus alunos em um clique.",
   "onboarding.s6_body_estudante": "Importe o arquivo .tusab recebido do seu professor. O Tusab carrega a base pronta — você já pode fazer perguntas sem precisar configurar nada.",
   "onboarding.s6_body_professor": "Após extrair e indexar, exporte a base como .tusab e envie para seus alunos. Eles abrem o arquivo e já podem conversar com o conteúdo.",
-  "onboarding.s3_body_pesquisador": "Além do YouTube e upload manual, você pode buscar artigos científicos direto no arXiv por tema — o Tusab baixa os PDFs e indexa automaticamente. Ative essa opção no modal de extração.",
+  "onboarding.s3_body_pesquisador": "Além do YouTube e upload manual, você pode buscar artigos científicos no arXiv e estudos clínicos em bases FHIR, por tema — o Tusab baixa e indexa automaticamente. Ative essas opções no modal de extração.",
   "onboarding.s_notif_title": "Fique por dentro em tempo real",
   "onboarding.s_notif_body": "O Tusab pode te avisar quando uma extração terminar ou quando o chat responder enquanto você está em outra aba. Ative as notificações para não perder nenhum resultado.",
   "onboarding.notif_cta": "Ativar notificações do sistema",
@@ -673,6 +673,7 @@
   "update_success.version": "Versão instalada",
   "update_success.changelog": "Ver novidades",
   "update_success.confirm": "Continuar",
+  "update_success.highlight_1_0_37": "O perfil Pesquisador agora busca estudos científicos direto de bases de dados clínicos (padrão FHIR), além do arXiv — sempre processado localmente, sem sair da sua máquina.",
 
   "aprofundar.title": "Aprofundar base",
   "aprofundar.subtitle": "Ative respostas mais completas e precisas",
