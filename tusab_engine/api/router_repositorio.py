@@ -185,8 +185,10 @@ _MAX_DOC     = 50 * 1024 * 1024   # 50 MB
 # ── Parsers de formatos especiais ─────────────────────────────────────────────
 
 def _detectar_formato_especial(texto: str, filename: str) -> str | None:
-    """Detecta se o texto é um export de WhatsApp ou transcrição de reunião.
-    Retorna: 'whatsapp_android' | 'whatsapp_ios' | 'otter' | 'zoom' | 'teams' | None
+    """Detecta se o texto é um export de WhatsApp, transcrição de reunião ou
+    documento jurídico estruturado.
+    Retorna: 'whatsapp_android' | 'whatsapp_ios' | 'otter' | 'zoom' | 'teams' |
+             'peticao' | 'contrato' | 'parecer' | None
     """
     linhas = texto.strip().splitlines()
     if not linhas:
@@ -194,6 +196,21 @@ def _detectar_formato_especial(texto: str, filename: str) -> str | None:
 
     cabecalho = '\n'.join(linhas[:5]).lower()
     nome_lower = filename.lower()
+
+    # Petição — vocativo ao juízo, tradicional ou pós-reforma do CPC
+    if re.search(r'excelent[íi]ssimo\s+senhor\s+doutor\s+juiz', texto, re.IGNORECASE) or \
+       re.search(r'^\s*ao\s+ju[íi]zo\s+da', texto, re.IGNORECASE | re.MULTILINE):
+        return 'peticao'
+
+    # Contrato — cláusulas numeradas + qualificação de partes é o padrão mais
+    # confiável (mais específico que só "contrato" no nome do arquivo)
+    if re.search(r'cl[áa]usula\s+(primeira|1ª|1a|1º|1o|i)\b', texto, re.IGNORECASE):
+        return 'contrato'
+
+    # Parecer jurídico — cabeçalho característico de ementa/consulta
+    if re.search(r'^\s*parecer\s+jur[íi]dico\b', texto, re.IGNORECASE | re.MULTILINE) or \
+       re.search(r'^\s*ementa\s*:', texto, re.IGNORECASE | re.MULTILINE):
+        return 'parecer'
 
     # Zoom — primeira linha típica "Meeting ID:" ou header CSV com colunas Zoom
     if 'meeting id:' in cabecalho or 'zoom meeting' in cabecalho:
@@ -357,6 +374,48 @@ def _parsear_reuniao(texto: str, formato: str) -> str:
     return texto
 
 
+# Regex de extração de campos de qualificação de partes — mesmo padrão em
+# petição/contrato/parecer: "NOME, nacionalidade, CPF/CNPJ nº X, residente em Y"
+_CPF_RE = re.compile(r'CPF\s*(?:n[ºo°]?\.?)?\s*[:\s]*([\d.\-/]{11,18})', re.IGNORECASE)
+_CNPJ_RE = re.compile(r'CNPJ\s*(?:n[ºo°]?\.?)?\s*[:\s]*([\d.\-/]{14,20})', re.IGNORECASE)
+_CLAUSULA_RE = re.compile(r'^\s*CL[ÁA]USULA\s+([\wº°ªA-ZÀ-Ú]+)\s*[-–—:]?\s*(.*)$', re.IGNORECASE | re.MULTILINE)
+
+
+def _parsear_documento_juridico(texto: str, formato: str) -> str:
+    """Estrutura documento jurídico extraindo campos-chave e mantendo o texto
+    integral abaixo — mesmo espírito de _parsear_whatsapp/_parsear_reuniao:
+    reformata para melhorar chunking/indexação, sem perder conteúdo original.
+    """
+    partes_cpf = _CPF_RE.findall(texto)
+    partes_cnpj = _CNPJ_RE.findall(texto)
+
+    cabecalho = []
+    if formato == 'peticao':
+        cabecalho.append("Tipo de documento: Petição")
+    elif formato == 'contrato':
+        cabecalho.append("Tipo de documento: Contrato")
+        clausulas = _CLAUSULA_RE.findall(texto)
+        if clausulas:
+            titulos = [f"Cláusula {num.strip()}" + (f" — {desc.strip()[:60]}" if desc.strip() else "")
+                       for num, desc in clausulas[:20]]
+            cabecalho.append(f"Cláusulas identificadas ({len(clausulas)}): " + " | ".join(titulos))
+    elif formato == 'parecer':
+        cabecalho.append("Tipo de documento: Parecer jurídico")
+        ementa_match = re.search(r'^\s*ementa\s*:\s*(.+?)(?:\n\n|\Z)', texto, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+        if ementa_match:
+            cabecalho.append(f"Ementa: {ementa_match.group(1).strip()[:300]}")
+
+    if partes_cpf:
+        cabecalho.append(f"CPF(s) identificado(s): {', '.join(partes_cpf[:10])}")
+    if partes_cnpj:
+        cabecalho.append(f"CNPJ(s) identificado(s): {', '.join(partes_cnpj[:10])}")
+
+    if not cabecalho:
+        return texto
+
+    return '\n'.join(cabecalho) + '\n' + '-' * 60 + '\n\n' + texto
+
+
 def _processar_formato_especial(texto: str, filename: str) -> tuple[str, str | None]:
     """Detecta e processa formato especial. Retorna (texto_processado, tipo_detectado)."""
     fmt = _detectar_formato_especial(texto, filename)
@@ -364,6 +423,8 @@ def _processar_formato_especial(texto: str, filename: str) -> tuple[str, str | N
         return _parsear_whatsapp(texto, fmt), fmt
     elif fmt in ('zoom', 'otter', 'teams'):
         return _parsear_reuniao(texto, fmt), fmt
+    elif fmt in ('peticao', 'contrato', 'parecer'):
+        return _parsear_documento_juridico(texto, fmt), fmt
     return texto, None
 
 
@@ -517,10 +578,23 @@ async def cerebro_upload(
                     f"Para extrair o conteúdo, instale Ollama com modelo multimodal (llava ou gemma3) "
                     f"e reindexe a base após a instalação."
                 )
+            else:
+                # Documento jurídico estruturado (petição/contrato/parecer) — mesmo
+                # detector usado para .txt/.md, aplicado ao texto já extraído do PDF.
+                texto, fmt_juridico = _processar_formato_especial(texto, arquivo.filename)
+                if fmt_juridico:
+                    _LABEL_JUR = {'peticao': 'Petição jurídica', 'contrato': 'Contrato', 'parecer': 'Parecer jurídico'}
+                    if fmt_juridico in _LABEL_JUR:
+                        aviso_extracao = f"✅ Formato detectado: {_LABEL_JUR[fmt_juridico]} — estrutura aplicada automaticamente."
         elif ext in (".docx",):
             import docx, io
             doc = docx.Document(io.BytesIO(conteudo_bytes))
             texto = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+            texto, fmt_juridico = _processar_formato_especial(texto, arquivo.filename)
+            if fmt_juridico:
+                _LABEL_JUR = {'peticao': 'Petição jurídica', 'contrato': 'Contrato', 'parecer': 'Parecer jurídico'}
+                if fmt_juridico in _LABEL_JUR:
+                    aviso_extracao = f"✅ Formato detectado: {_LABEL_JUR[fmt_juridico]} — estrutura aplicada automaticamente."
         elif ext == ".xlsx":
             import openpyxl, io
             wb = openpyxl.load_workbook(io.BytesIO(conteudo_bytes), data_only=True)
@@ -565,6 +639,9 @@ async def cerebro_upload(
                     'zoom':             'Zoom',
                     'otter':            'Otter.ai',
                     'teams':            'Microsoft Teams',
+                    'peticao':          'Petição jurídica',
+                    'contrato':         'Contrato',
+                    'parecer':          'Parecer jurídico',
                 }
                 aviso_extracao = f"✅ Formato detectado: {_LABEL.get(fmt_especial, fmt_especial)} — estrutura aplicada automaticamente."
         elif eh_imagem:
