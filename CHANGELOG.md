@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [Não lançado]
+### Adicionado
+- **Reconhecimento de documentos jurídicos (perfil Especialista)** — upload de petição, contrato ou parecer (`.txt`, `.md`, `.pdf`, `.docx`) agora é detectado automaticamente por estrutura textual (vocativo ao juízo, cláusulas numeradas, cabeçalho de ementa), mesmo padrão já usado para WhatsApp/Zoom/Teams/Otter. O texto é reformatado com um cabeçalho de campos extraídos (tipo de documento, cláusulas identificadas, CPF/CNPJ das partes, ementa) antes do conteúdo integral — melhora chunking e indexação sem depender de nenhuma API externa ou biblioteca jurídica. Avaliado em `agents/_historia.md` — testadas e descartadas fontes externas (Datajud/CNJ, LexML) por bloqueio de acesso automatizado e ausência de texto integral; a solução final opera só sobre documentos que o usuário já possui.
+
+---
+
 ## [1.0.37] — 2026-07-17
 ### Adicionado
 - **Busca de estudos clínicos via FHIR (perfil Pesquisador)** — no modal de extração, o perfil Pesquisador ganha uma terceira fonte além de YouTube/arXiv: "FHIR", buscando estudos de pesquisa (`ResearchStudy`) no servidor público de referência HAPI FHIR (`hapi.fhir.org`, padrão HL7, sem autenticação). Escopo deliberadamente restrito a `ResearchStudy` — nunca `Patient` ou qualquer outro recurso que modele dados de indivíduo, mesmo sintético/teste, para preservar "privacidade absoluta" do perfil Pesquisador B2C (dados de saúde individual via FHIR ficam reservados ao futuro vertical Tusab Saúde/B2B Enterprise). O parser extrai o campo padronizado `text.div` (Narrative, HTML legível por humanos) quando presente, com fallback gracioso para campos estruturados (`status`, `description`, `condition`) quando o narrative está ausente ou é um placeholder vazio — situação comum em servidores de sandbox público. Novo módulo `tusab_engine/motor/fhir.py` + endpoints `POST /fhir/search`, `POST /fhir/cancel`, `GET /fhir/status`, seguindo exatamente o mesmo contrato de `_manifest.json`/cabeçalho `TITULO/FONTE/DATA` da busca arXiv.
