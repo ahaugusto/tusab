@@ -291,6 +291,7 @@
   "repo.drop_here": "Suelta aquí",
   "repo.add_more_files": "+ Agregar más archivos",
   "repo.drag_or_click": "Arrastra y suelta o haz clic para seleccionar",
+  "repo.legal_recognition_hint": "Demandas, contratos y dictámenes jurídicos se reconocen automáticamente y tienen campos clave extraídos al indexar.",
   "repo.reindexing": "Reindexando base de conocimiento…",
   "repo.processing_files": "Procesando {{count}} archivo(s)…",
   "repo.confirm_upload": "Confirmar subida",
