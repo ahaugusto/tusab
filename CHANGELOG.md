@@ -7,17 +7,18 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [Não lançado]
+## [1.0.38] — 2026-07-24
 ### Adicionado
 - **Reconhecimento de documentos jurídicos (perfil Especialista)** — upload de petição, contrato ou parecer (`.txt`, `.md`, `.pdf`, `.docx`) agora é detectado automaticamente por estrutura textual (vocativo ao juízo, cláusulas numeradas, cabeçalho de ementa), mesmo padrão já usado para WhatsApp/Zoom/Teams/Otter. O texto é reformatado com um cabeçalho de campos extraídos (tipo de documento, cláusulas identificadas, CPF/CNPJ das partes, ementa) antes do conteúdo integral — melhora chunking e indexação sem depender de nenhuma API externa ou biblioteca jurídica. Avaliado em `agents/_historia.md` — testadas e descartadas fontes externas (Datajud/CNJ, LexML) por bloqueio de acesso automatizado e ausência de texto integral; a solução final opera só sobre documentos que o usuário já possui.
-
----
-
-## [Não lançado]
-### Adicionado
 - **Confiança graduada por sentença no chat (P1-e)** — complementa a checagem de alucinação binária existente com um sinal visual discreto: quando parte de uma resposta tem baixo apoio direto nas fontes recuperadas, um indicador âmbar aparece sob a mensagem ("Parte desta resposta tem pouco apoio direto nas fontes — vale conferir"). Não substitui `_verificar_alucinacao()` (que continua podendo trocar a resposta inteira por "não encontrei") — adiciona granularidade por sentença sem suprimir nada. Funciona no chat streaming e não-streaming. Indicador agregado, não highlight por trecho dentro do markdown renderizado — mapear offsets de caractere para a árvore do ReactMarkdown seria frágil.
 - **Calibragem dinâmica de RAG por corpus (P0-c, perfil Especialista)** — ao final de toda indexação, o backend calcula um `corpus_profile.json` com estatísticas reais (tamanho, tipo dominante, densidade) e ajusta `n_candidatos_bm25` — quantos candidatos o CrossEncoder recebe na Busca Ampla — ao tamanho real da base. Corpus grande (IDF menor por termo) recebe mais candidatos automaticamente, sem configuração manual. Exibido como badge "Perfil do corpus" no painel de bases. **Nunca inclui `score_minimo`** — invariante já removido em v1.0.26 (threshold arbitrário cortava resultados válidos em corpus grande); a rede de segurança continua sendo `score > 0 + FTS5`.
 - **Progresso granular na indexação** — a barra de progresso do chat, antes indeterminada, agora mostra "X de Y fontes processadas" durante a indexação, reaproveitando a infraestrutura de `GET /agent/status` já existente. Granularidade por pasta de canal do YouTube e arquivo de documento/texto — sem alterar o parsing interno de vídeos (risco de schema já documentado). Degradação graciosa: sem o campo `index_progress`, volta ao comportamento indeterminado anterior.
+
+### Corrigido
+- **[CRÍTICO] Pipeline de release automático quebrado desde a v1.0.22** — descoberto que `release.yml` falhava silenciosamente há 15 versões (erro de permissão ao publicar em repositório diferente de onde o CI roda). Corrigido com Personal Access Token dedicado; releases automáticas via tag voltam a funcionar.
+
+### Alterado
+- **Dependabot configurado** — atualização automática de dependências (backend, frontend, Electron, GitHub Actions), um PR por dependência, testado isoladamente pelo CI antes de qualquer merge.
 
 ---
 
