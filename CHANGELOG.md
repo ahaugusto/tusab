@@ -15,6 +15,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [Não lançado]
 ### Adicionado
+- **Calibragem dinâmica de RAG por corpus (P0-c, perfil Especialista)** — ao final de toda indexação, o backend calcula um `corpus_profile.json` com estatísticas reais (tamanho, tipo dominante, densidade) e ajusta `n_candidatos_bm25` — quantos candidatos o CrossEncoder recebe na Busca Ampla — ao tamanho real da base. Corpus grande (IDF menor por termo) recebe mais candidatos automaticamente, sem configuração manual. Exibido como badge "Perfil do corpus" no painel de bases. **Nunca inclui `score_minimo`** — invariante já removido em v1.0.26 (threshold arbitrário cortava resultados válidos em corpus grande); a rede de segurança continua sendo `score > 0 + FTS5`.
 - **Progresso granular na indexação** — a barra de progresso do chat, antes indeterminada, agora mostra "X de Y fontes processadas" durante a indexação, reaproveitando a infraestrutura de `GET /agent/status` já existente. Granularidade por pasta de canal do YouTube e arquivo de documento/texto — sem alterar o parsing interno de vídeos (risco de schema já documentado). Degradação graciosa: sem o campo `index_progress`, volta ao comportamento indeterminado anterior.
 
 ---
