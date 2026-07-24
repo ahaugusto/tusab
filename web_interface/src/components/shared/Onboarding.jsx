@@ -99,6 +99,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
   const s6Body = () => {
     if (perfilSelecionado === 'estudante') return t('onboarding.s6_body_estudante');
     if (perfilSelecionado === 'professor') return t('onboarding.s6_body_professor');
+    if (perfilSelecionado === 'profissional') return t('onboarding.s6_body_profissional');
     return t('onboarding.s6_body');
   };
 
