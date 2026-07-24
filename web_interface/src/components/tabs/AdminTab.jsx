@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2, RefreshCw, Plug, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PrivacidadeRede from '../agent/PrivacidadeRede';
 import RedesCorporativas from '../agent/RedesCorporativas';
 import { BTN_FOCUS } from '../../constants';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
+import { fetchMcpConfig } from '../../services/api';
 
 export default function AdminTab({
   darkMode,
@@ -37,6 +38,20 @@ export default function AdminTab({
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [checkResult,    setCheckResult]    = useState(null); // { tone: 'ok'|'info'|'warn', text }
   const appVersion = window.tusab?.version || '';
+
+  // ── MCP Server: copiar config para Claude Code / Cursor / qualquer cliente MCP ──
+  const [mcpCopied, setMcpCopied] = useState(false);
+
+  const handleCopyMcpConfig = useCallback(async () => {
+    try {
+      const res = await fetchMcpConfig();
+      await navigator.clipboard.writeText(JSON.stringify(res.data, null, 2));
+      setMcpCopied(true);
+      setTimeout(() => setMcpCopied(false), 2500);
+    } catch (e) {
+      // Falha silenciosa é aceitável aqui — usuário só tenta de novo; sem estado de erro dedicado.
+    }
+  }, []);
 
   const handleCheckUpdate = useCallback(async () => {
     if (!window.tusab?.checkForUpdates) {
@@ -249,6 +264,31 @@ export default function AdminTab({
               {t('admin.notif_unavailable', 'Notificações não disponíveis neste ambiente.')}
             </p>
           )}
+        </div>
+      </section>
+
+      {/* MCP Server */}
+      <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+          <Plug size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>MCP Server</h3>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            O Tusab expõe sua base de conhecimento como um servidor MCP (Model Context Protocol) local — qualquer agente de IA compatível (Claude Code, Cursor, e outros) pode consultar suas fontes indexadas diretamente, sem sair da ferramenta que você já usa.
+          </p>
+          <button
+            onClick={handleCopyMcpConfig}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+              ${mcpCopied
+                ? darkMode ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                : darkMode ? 'border-primary/30 text-primary hover:bg-primary/10' : 'border-violet-200 text-violet-700 hover:bg-violet-50'}`}>
+            {mcpCopied ? <Check size={13} /> : <Copy size={13} />}
+            {mcpCopied ? 'Config copiada!' : 'Copiar configuração MCP'}
+          </button>
+          <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+            Cole o conteúdo copiado no arquivo de configuração MCP do seu editor (ex: <code className={darkMode ? 'text-slate-500' : 'text-slate-500'}>.cursor/mcp.json</code>). Veja o passo a passo completo no Help.
+          </p>
         </div>
       </section>
 

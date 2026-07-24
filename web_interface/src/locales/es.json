@@ -160,6 +160,7 @@
   "onboarding.s1_body_professor": "Crea bases de conocimiento a partir de canales de YouTube y tus materiales. Luego expórtalas y compártelas con tus alumnos en un clic.",
   "onboarding.s6_body_estudante": "Importa el archivo .tusab recibido de tu profesor. Tusab carga la base lista — ya puedes hacer preguntas sin configurar nada.",
   "onboarding.s6_body_professor": "Después de extraer e indexar, exporta la base como .tusab y envíala a tus alumnos. Ellos abren el archivo y ya pueden conversar con el contenido.",
+  "onboarding.s6_body_profissional": "Con contenido en el Repositorio, ve a la pestaña Agente y haz clic en Indexar Ahora. Luego abre el chat, selecciona una base y empieza a preguntar — cada respuesta viene con la cita exacta de la fuente. Bono: en Admin → MCP Server, puedes conectar tu base directamente a Claude Code, Cursor o cualquier editor compatible con MCP.",
   "onboarding.s3_body_pesquisador": "Además de YouTube y la carga manual, puedes buscar artículos científicos en arXiv y estudios clínicos en bases FHIR, por tema — Tusab los descarga e indexa automáticamente. Activa estas opciones en el modal de extracción.",
   "onboarding.s_notif_title": "Mantente al día en tiempo real",
   "onboarding.s_notif_body": "Tusab puede avisarte cuando una extracción termine o cuando el chat responda mientras estás en otra pestaña. Activa las notificaciones para no perder ningún resultado.",
