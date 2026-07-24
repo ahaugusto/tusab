@@ -1010,6 +1010,12 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 )}
               </div>
 
+              {files.length === 0 && (
+                <p className={`text-[10px] leading-relaxed px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  ⚖️ {t('repo.legal_recognition_hint')}
+                </p>
+              )}
+
               <input ref={fileRef} type="file" multiple
                 accept={ACCEPT_TYPES}
                 className="hidden"

@@ -291,6 +291,7 @@
   "repo.drop_here": "Drop here",
   "repo.add_more_files": "+ Add more files",
   "repo.drag_or_click": "Drag and drop or click to select",
+  "repo.legal_recognition_hint": "Legal filings, contracts, and legal opinions are automatically recognized and have key fields extracted when indexed.",
   "repo.reindexing": "Reindexing knowledge base…",
   "repo.processing_files": "Processing {{count}} file(s)…",
   "repo.confirm_upload": "Confirm upload",
