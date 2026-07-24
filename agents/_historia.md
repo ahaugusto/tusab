@@ -49,6 +49,7 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.35 | jul 2026 | Fix WARN-21: banner de atualização passa a aparecer também na HomeScreen; fix WARN-23: fechar o painel do Drive durante OAuth em andamento cancela o fluxo automaticamente |
 | v1.0.36 | jul 2026 | Busca acadêmica no arXiv (perfil Pesquisador); TTS local no Modo Estudo (Pocket TTS, build Beta/Enterprise); atualização completa de stacks backend+frontend com validação funcional real |
 | v1.0.37 | jul 2026 | Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — terceira fonte além de YouTube/arXiv |
+| v1.0.38 | jul 2026 | Reconhecimento de documentos jurídicos (perfil Especialista); confiança graduada por sentença no chat (P1-e); calibragem dinâmica de RAG por corpus (P0-c); progresso granular na indexação; pipeline de release automático corrigido (quebrado desde v1.0.22) + Dependabot |
 
 ---
 
