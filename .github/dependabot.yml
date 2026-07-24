@@ -1,0 +1,65 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Atualização automática de dependências, um PR por atualização — nunca em
+# lote. Lição da rodada manual de update de stacks (jul/2026, ver
+# agents/_historia.md): atualizar várias dependências de uma vez pode
+# quebrar travas transitivas não óbvias (ex: protobuf/typer/mpmath/setuptools
+# quebraram juntos ao atualizar um grupo "de baixo risco"). PRs individuais,
+# cada um testado isoladamente pelo ci.yml existente, evitam esse tipo de
+# quebra em cascata e tornam o "culpado" óbvio quando algo falha.
+
+version: 2
+updates:
+  # Backend Python (requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "backend"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Frontend React/Vite
+  - package-ecosystem: "npm"
+    directory: "/web_interface"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "frontend"]
+    commit-message:
+      prefix: "chore(deps)"
+    # Tailwind 3→4 é migração planejada e deliberada (ver Roadmap.md, P0-h)
+    # — nunca via PR automático de patch/minor de rotina.
+    ignore:
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+
+  # Electron (empacotamento do instalador)
+  - package-ecosystem: "npm"
+    directory: "/electron"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "electron"]
+    commit-message:
+      prefix: "chore(deps)"
+    # Major bump do Electron exige testar o app empacotado inteiro
+    # (ver invariante 13/14 em agents/_historia.md — bugs de sandbox só
+    # aparecem no .exe instalado, nunca em dev) — nunca automático.
+    ignore:
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions em si (actions/checkout, actions/setup-python, etc.)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
