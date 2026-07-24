@@ -994,6 +994,18 @@ function ChatDrawer({
                             />
                             {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
                           </div>
+                          {/* Confiança graduada (P1-e) — sinal discreto quando parte da
+                              resposta tem baixo apoio nas fontes recuperadas. Indicador
+                              agregado, não highlight por trecho — ReactMarkdown renderiza
+                              uma árvore de elementos, não string bruta; mapear offsets de
+                              caractere pra posição renderizada é frágil e foi evitado. */}
+                          {!msg.streaming && msg.role === 'assistant' &&
+                            msg.confiancaSentencas?.some(s => s.confianca < 0.3) && (
+                            <div className={`mt-1.5 flex items-center gap-1.5 text-[10px] ${darkMode ? 'text-amber-400/80' : 'text-amber-600'}`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" aria-hidden="true" />
+                              <span>{t('chat.low_confidence_hint')}</span>
+                            </div>
+                          )}
                           {/* Feedback de resposta — só aparece após streaming concluído */}
                           {!msg.streaming && msg.role === 'assistant' && (
                             <div className="mt-2 flex items-center gap-1">

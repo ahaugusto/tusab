@@ -1261,6 +1261,17 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                     if chunk.strip():
                         resposta_acumulada.append(chunk)
                 yield chunk + '\n'
+
+            # Confiança graduada por sentença (P1-e) — só no caminho de sucesso,
+            # sinal visual opcional pro frontend. Nunca pode quebrar o stream.
+            if resposta_acumulada:
+                try:
+                    resposta_completa_conf = "".join(resposta_acumulada)
+                    confianca = agent_tusab._calcular_confianca_por_sentenca(resposta_completa_conf, refs_acumuladas)
+                    if confianca:
+                        yield json.dumps({'confianca_sentencas': confianca}) + '\n'
+                except Exception:
+                    pass
         except Exception as e:
             yield json.dumps({'error': str(e)}) + '\n'
         finally:

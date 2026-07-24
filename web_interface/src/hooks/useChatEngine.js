@@ -223,6 +223,13 @@ export function useChatEngine({
                 fonteSnackbarMostrado.current = true;
                 onPrimeiraFonte();
               }
+            } else if (parsed.confianca_sentencas !== undefined) {
+              // P1-e — sinal visual opcional de confiança por sentença; se ausente
+              // (backend antigo ou trecho injetado), a mensagem simplesmente não
+              // recebe highlight, sem quebrar nada (degradação graciosa).
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, confiancaSentencas: parsed.confianca_sentencas } : m
+              ));
             } else if (parsed.done) {
               setChatMessages(prev => prev.map(m =>
                 m._streamId === streamId ? { ...m, streaming: false } : m

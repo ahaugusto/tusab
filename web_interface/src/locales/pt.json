@@ -401,6 +401,7 @@
   "chat.searching_bases": "Buscando em {{count}} bases simultaneamente",
   "chat.indexing_base_label": "Indexando base…",
   "chat.indexing_progress_count": "{{processed}} de {{total}} fontes processadas",
+  "chat.low_confidence_hint": "Parte desta resposta tem pouco apoio direto nas fontes — vale conferir",
   "chat.back_to_list": "Voltar à lista",
   "chat.no_history": "Nenhuma conversa salva ainda.",
   "chat.no_history_hint": "Clique em \"Nova conversa\" para salvar a atual.",
