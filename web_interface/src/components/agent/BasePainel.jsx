@@ -168,6 +168,18 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
               )}
             </div>
 
+            {/* Perfil do corpus — calibragem automática (P0-c) */}
+            {p.corpus_profile && (
+              <div className={`flex items-center gap-1.5 flex-wrap text-[9px] px-2 py-1 rounded-lg
+                ${darkMode ? 'bg-primary/8 text-slate-400' : 'bg-violet-50 text-slate-500'}`}>
+                <Zap size={9} className={darkMode ? 'text-primary' : 'text-violet-500'} />
+                <span className="font-semibold">Perfil do corpus:</span>
+                <span>{p.corpus_profile.tipo_dominante}</span>
+                <span className="opacity-50">·</span>
+                <span>{p.corpus_profile.n_candidatos_bm25} candidatos na Busca Ampla</span>
+              </div>
+            )}
+
             {/* Botão indexar quando desatualizado ou não indexado */}
             {(desatualizado || !p.indexado) && onIndexar && (
               <button

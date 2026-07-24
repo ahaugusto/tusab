@@ -555,6 +555,13 @@ def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None,
     config['canal_indexado'] = canal_nome
     salvar_config(config)
 
+    try:
+        from tusab_engine.agent.calibration import _salvar_profile
+        _salvar_profile(canal_prefixo, chunks)
+    except Exception as e:
+        # Calibragem é otimização, nunca pode quebrar a indexação em si.
+        if callback: callback(f"⚠️ Calibragem de corpus não disponível (degradação graciosa): {e}")
+
     if callback: callback(f"✅ Indexação concluída! {len(chunks)} chunks prontos para consulta.")
     _invalidar_cache(canal_prefixo)
     return len(chunks)
