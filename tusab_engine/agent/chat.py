@@ -817,6 +817,56 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho
     return resposta
 
 
+def _calcular_confianca_por_sentenca(resposta: str, contexto: list) -> list:
+    """Mede a confiança de cada sentença da resposta contra o corpus recuperado.
+
+    Complementa _verificar_alucinacao() (que é binária: passa inteira ou é
+    trocada por "não encontrei") com um sinal graduado por trecho — permite
+    ao frontend destacar visualmente afirmações com baixo apoio no corpus,
+    sem suprimir a resposta inteira. Mesma técnica de cobertura de vocabulário
+    de _verificar_alucinacao(), aplicada por sentença em vez de na resposta toda.
+
+    Aceita tanto chunks de retrieval (campo 'texto'/'texto_original') quanto
+    fontes já formatadas para o frontend (campo 'trecho', truncado a 600
+    chars) — usado tanto pelo chat() quanto pelo endpoint de streaming.
+
+    Retorna [{"texto", "confianca", "inicio", "fim"}, ...] — offsets de
+    caractere na resposta original, para o frontend fazer highlight sem
+    reprocessar a string. Lista vazia se não houver contexto ou resposta.
+    """
+    if not resposta or not contexto:
+        return []
+
+    sentencas = re.split(r'(?<=[.!?])\s+', resposta)
+    corpus_texto = ' '.join(
+        (c.get('texto') or c.get('texto_original') or c.get('trecho') or '').lower()
+        for c in contexto
+    )
+
+    resultado = []
+    cursor = 0
+    for sent in sentencas:
+        if not sent.strip():
+            continue
+        try:
+            inicio = resposta.index(sent, cursor)
+        except ValueError:
+            continue  # sentença não encontrada no texto original — pula (não deveria ocorrer)
+        fim = inicio + len(sent)
+        cursor = fim
+
+        palavras = set(re.findall(r'\b[a-záéíóúàâêôãõç]{5,}\b', sent.lower())) - _STOPWORDS
+        if not palavras:
+            confianca = 1.0  # sentença sem conteúdo verificável (conectivo, transição)
+        else:
+            encontradas = sum(1 for p in palavras if p in corpus_texto)
+            confianca = round(encontradas / len(palavras), 3)
+
+        resultado.append({"texto": sent, "confianca": confianca, "inicio": inicio, "fim": fim})
+
+    return resultado
+
+
 # Normalização de markdown gerado por LLMs — corrige padrões comuns de saída malformada
 _RE_PONTUACAO_DUPLICADA = re.compile(r'([.!?]){2,}')
 _RE_DOISPONTOS_PONTO    = re.compile(r':\s*\.')
@@ -1306,6 +1356,12 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
     resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
     resposta = _normalizar_markdown(resposta)
 
+    # Confiança graduada por sentença (P1-e) — sinal visual opcional para o
+    # frontend, não bloqueia nada. Mesma exceção do trecho injetado usada em
+    # _verificar_alucinacao(): vocabulário do usuário não bate com o corpus
+    # por natureza, não é indício de alucinação.
+    confianca_sentencas = [] if trecho_mode else _calcular_confianca_por_sentenca(resposta, contexto)
+
     if not trecho_mode and intencao == 'CONTEXTO' and ultima:
         fontes = ultima.get('fontes', [])
     else:
@@ -1337,9 +1393,10 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
         pass
 
     return {
-        'resposta':   resposta,
-        'meta_canal': meta_canal,
-        'fontes':     fontes,
+        'resposta':             resposta,
+        'meta_canal':           meta_canal,
+        'fontes':               fontes,
+        'confianca_sentencas':  confianca_sentencas,
     }
 
 
