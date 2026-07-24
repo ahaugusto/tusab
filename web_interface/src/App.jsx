@@ -761,7 +761,7 @@ function App() {
   /** Starts the knowledge base indexing for the configured canal */
   const handleAgentIndex = async (canalOverride) => {
     setAgentIndexError('');
-    setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
+    setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [], index_progress: { processed: 0, total: 0 } }));
     const canal = canalOverride || agentStatus.canal_indexado || canalConfigurado;
     try {
       const res = await startIndexing(canal || '');
@@ -800,7 +800,7 @@ function App() {
     if (isLote) indexacaoLoteRef.current = { total: lista.length, done: 0 };
     // Mark all items as waiting before starting
     lista.forEach(nome => onStatusChange?.(nome, 'aguardando'));
-    setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [] }));
+    setAgentStatus(prev => ({ ...prev, indexing: true, index_logs: [], index_progress: { processed: 0, total: 0 } }));
     let indexadas = 0;
     let comErro = 0;
     try {
@@ -1327,7 +1327,7 @@ function App() {
           setAgentStatus(a => ({
             ...a,
             canal_indexado: '', canais_indexados: [], indexed: false,
-            index_logs: [], perguntas_sugeridas: [],
+            index_logs: [], index_progress: { processed: 0, total: 0 }, perguntas_sugeridas: [],
           }));
           setActiveTab(regras.abas?.[0] ?? 'extracao');
           setShowHome(true);
