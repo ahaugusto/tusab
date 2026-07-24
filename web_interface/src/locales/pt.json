@@ -288,6 +288,7 @@
   "repo.drop_here": "Solte aqui",
   "repo.add_more_files": "+ Adicionar mais arquivos",
   "repo.drag_or_click": "Arraste e solte ou clique para selecionar",
+  "repo.legal_recognition_hint": "Petições, contratos e pareceres jurídicos são reconhecidos automaticamente e têm campos-chave extraídos ao indexar.",
   "repo.reindexing": "Reindexando base de conhecimento…",
   "repo.processing_files": "Processando {{count}} arquivo(s)…",
   "repo.confirm_upload": "Confirmar upload",

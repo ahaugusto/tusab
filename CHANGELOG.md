@@ -10,6 +10,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ## [Não lançado]
 ### Adicionado
 - **Orientação sobre o MCP Server no produto** — feature já existente (endpoint `GET /agent/mcp/config`) ganhou exposição de verdade: botão "Copiar configuração MCP" na aba Admin, entrada de FAQ trilíngue (PT/EN/ES) explicando o que é e como conectar a Claude Code/Cursor/qualquer cliente MCP, e menção no onboarding do perfil Especialista. Antes, essa capacidade só era descoberta por quem lesse o código-fonte.
+- **Descoberta das buscas FHIR/arXiv e do reconhecimento jurídico** — as três features já implementadas (v1.0.37/v1.0.38) não tinham nenhuma superfície de descoberta no produto além do próprio fluxo de uso. Adicionado: duas novas entradas de FAQ trilíngue (PT/EN/ES) em `help.html` — "Como busco estudos clínicos via FHIR?" e "O Tusab reconhece petições, contratos e pareceres?" — e um aviso permanente ("⚖️ Petições, contratos e pareceres jurídicos são reconhecidos automaticamente...") na zona de upload do Repositório, visível para qualquer perfil já que o parser jurídico não é restrito ao perfil Especialista.
 
 ---
 
