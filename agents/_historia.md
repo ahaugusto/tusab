@@ -356,6 +356,14 @@ Avaliação sob demanda (Augusto, 07/jul/2026) de três ferramentas candidatas a
 
 **Se algum dia fizer sentido:** só como opção adicional na futura stack Beta/Enterprise (que já assume GPU/hardware corporativo em alguns cenários), nunca como substituição do caminho B2C. Nota de baixíssima prioridade, mesmo tratamento dado a PageIndex/Headroom.
 
+### OpenWorker (andrewyng/openworker) — não adotado, mas achado real sobre o MCP Server do Tusab (jul/2026)
+
+**O que é:** assistente de IA desktop de Andrew Ng — "entrega trabalho finalizado, não só chat". Orquestra 25+ conectores (Slack, GitHub, Jira, Notion, Gmail, calendário) para produzir deliverables (documentos, planilhas, respostas), com gates de aprovação antes de ações consequentes, suporte a MCP, multi-provider LLM (incluindo Ollama local). Stack: Python + React/Vite + **Tauri (Rust)**, MIT, roda em CPU.
+
+**Veredito: não adotar.** Categoria de produto diferente — "agentic worker" (orquestração de ferramentas externas pra produzir entregáveis) vs. PKM/RAG focado do Tusab (indexar fontes, conversar com citação exata). Não é ameaça competitiva (não disputa o mesmo usuário/JTBD que NotebookLM/AnythingLLM) nem inspiração direta de feature — adotar o escopo do OpenWorker seria construir outro produto. Stack incompatível (Tauri/Rust, não Electron) — mesmo obstáculo já registrado para o Meetily.
+
+**Achado real, já corrigido:** o MCP Server do Tusab (`tusab_engine/mcp_server.py`, stdio JSON-RPC 2.0 padrão, tools `search_knowledge`/`list_projects`) já é consumível por qualquer cliente MCP — incluindo, presumivelmente, o OpenWorker, que declara suporte a MCP. Não é "trazer o OpenWorker pro Tusab", é o inverso: o Tusab já pode ser uma ferramenta que agentes de orquestração chamam, sem nenhuma mudança de código. **Mas essa capacidade estava invisível no produto** — o endpoint `GET /agent/mcp/config` (gera o JSON pronto pra colar em `.cursor/mcp.json`) existia desde antes, mas não tinha nenhuma exposição: zero UI, zero FAQ, zero menção em onboarding. Corrigido na mesma sessão: botão "Copiar configuração MCP" na aba Admin, FAQ trilíngue (PT/EN/ES) em `help.html`, menção no onboarding do perfil Especialista (`onboarding.s6_body_profissional`).
+
 ### TabFM (google-research) — modelo de fundação para dados tabulares
 
 **O que é:** classificação/regressão zero-shot em CSV/planilhas via in-context learning, scikit-learn compatible, requer JAX ou PyTorch.
