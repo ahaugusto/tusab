@@ -50,6 +50,7 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.36 | jul 2026 | Busca acadêmica no arXiv (perfil Pesquisador); TTS local no Modo Estudo (Pocket TTS, build Beta/Enterprise); atualização completa de stacks backend+frontend com validação funcional real |
 | v1.0.37 | jul 2026 | Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — terceira fonte além de YouTube/arXiv |
 | v1.0.38 | jul 2026 | Reconhecimento de documentos jurídicos (perfil Especialista); confiança graduada por sentença no chat (P1-e); calibragem dinâmica de RAG por corpus (P0-c); progresso granular na indexação; pipeline de release automático corrigido (quebrado desde v1.0.22) + Dependabot |
+| v1.0.39 | jul 2026 | Discoverability: orientação sobre o MCP Server no produto (botão Admin + FAQ + onboarding); FAQ trilíngue de FHIR e reconhecimento jurídico; aviso permanente sobre reconhecimento jurídico no Repositório — features já implementadas em versões anteriores ganham exposição real ao usuário |
 
 ---
 
