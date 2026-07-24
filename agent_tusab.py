@@ -14,7 +14,7 @@ from tusab_engine.agent.index import (                                          
     _bm25_cache, _bm25_lock,
 )
 from tusab_engine.agent.chat import (                                           # noqa: F401
-    chat, chat_stream, _recuperar_contexto,
+    chat, chat_stream, _recuperar_contexto, _calcular_confianca_por_sentenca,
 )
 from tusab_engine.storage import (                                              # noqa: F401
     DADOS_DIR, DATA_DIR, CONFIG_PATH, INDEX_DIR,
