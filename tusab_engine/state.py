@@ -70,6 +70,7 @@ class AppState:
         # Agente RAG
         self.agent_indexing       = False
         self.agent_index_logs     = []
+        self.agent_index_progress: dict = {"processed": 0, "total": 0}
         self.agent_index_stop     = threading.Event()
         self.agent_chat_lock      = threading.Lock()
         self.perguntas_sugeridas: dict = {}  # canal_prefixo -> list[str]

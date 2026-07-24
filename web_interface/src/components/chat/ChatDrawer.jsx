@@ -2026,12 +2026,28 @@ function ChatDrawer({
                     <Loader2 size={14} className="text-accent animate-spin shrink-0" />
                   </div>
                   <div className={`h-1 rounded-full overflow-hidden shrink-0 ${darkMode ? 'bg-white/10' : 'bg-slate-100'}`}>
-                    <motion.div
-                      className="h-full w-1/3 rounded-full bg-accent"
-                      animate={{ x: ['-100%', '300%'] }}
-                      transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
-                    />
+                    {agentStatus.index_progress?.total > 0 ? (
+                      <motion.div
+                        className="h-full rounded-full bg-accent"
+                        animate={{ width: `${Math.min(100, (agentStatus.index_progress.processed / agentStatus.index_progress.total) * 100)}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    ) : (
+                      <motion.div
+                        className="h-full w-1/3 rounded-full bg-accent"
+                        animate={{ x: ['-100%', '300%'] }}
+                        transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                      />
+                    )}
                   </div>
+                  {agentStatus.index_progress?.total > 0 && (
+                    <p className={`text-[10px] text-center -mt-1.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {t('chat.indexing_progress_count', {
+                        processed: agentStatus.index_progress.processed,
+                        total: agentStatus.index_progress.total,
+                      })}
+                    </p>
+                  )}
                   {(agentStatus.index_logs || []).length > 0 && (
                     <div className={`flex-1 overflow-y-auto rounded-xl p-3 space-y-1 min-h-0
                       ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-100'}`}>
