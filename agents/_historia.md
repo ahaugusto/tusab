@@ -344,6 +344,16 @@ Avaliação sob demanda (Augusto, 07/jul/2026) de três ferramentas candidatas a
 
 **Bug pré-existente descoberto durante os testes (não corrigido, fora de escopo desta feature):** o regex de detecção de WhatsApp Android (`wapp_android` em `_detectar_formato_especial()`) exige hífen (`[-–]`) mesmo no formato com colchetes (`[DD/MM/AAAA, HH:MM:SS] Nome:`), mas o próprio comentário do código mostra esse formato sem hífen. Um export real de WhatsApp nesse formato específico não seria detectado. Registrado aqui para correção futura — não mexido nesta rodada para não misturar escopo com a feature de documentos jurídicos.
 
+### Unlimited-OCR (baidu/Unlimited-OCR, HuggingFace) — não adotado (jul/2026)
+
+**O que é:** modelo de OCR/parsing de documentos da Baidu, 3B parâmetros, safetensors BF16, "parsing de longo horizonte em um único disparo" (imagens, múltiplas páginas, PDFs completos). Licença MIT. Uso via `transformers`, vLLM ou SGLang. Benchmark ParseBench citado: 86,81% de conteúdo textual, 46,17% de desempenho médio geral.
+
+**Veredito: não adotar — desqualificado por requisito de hardware.** Documentação confirma teste com "CUDA12.9" e não menciona suporte nativo a CPU — **requer GPU NVIDIA**. Isso contradiz diretamente o princípio CPU-only já estabelecido no projeto, o mesmo motivo que vetou CrossEncoder/KeyBERT do instalador B2C (reservados à stack semântica Beta/Enterprise) e reservou torch/Pocket TTS à mesma edição. Um modelo de 3B parâmetros com GPU obrigatória está ainda mais distante do B2C do que essas duas exclusões já registradas.
+
+**Também seria substituição, não adição, sem ganho claro:** o Tusab já tem OCR funcional e leve — Tesseract (CPU puro) com fallback/preferência por Ollama multimodal (llava/gemma3, também CPU-only via Ollama), ver `router_repositorio.py::_extrair_imagem()`. Trocar um pipeline CPU-only e já funcional por um modelo GPU-obrigatório de 86,8% de acurácia (não excepcional) não compensa o custo de infraestrutura.
+
+**Se algum dia fizer sentido:** só como opção adicional na futura stack Beta/Enterprise (que já assume GPU/hardware corporativo em alguns cenários), nunca como substituição do caminho B2C. Nota de baixíssima prioridade, mesmo tratamento dado a PageIndex/Headroom.
+
 ### TabFM (google-research) — modelo de fundação para dados tabulares
 
 **O que é:** classificação/regressão zero-shot em CSV/planilhas via in-context learning, scikit-learn compatible, requer JAX ou PyTorch.
