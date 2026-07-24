@@ -291,8 +291,57 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
     return chunks
 
 
-def _parsear_todos_chunks(canal_prefixo: str) -> list:
-    """Lê chunks de todas as fontes: todos os canais do projeto + docs + avulso + legado."""
+def _contar_unidades_fonte(canal_prefixo: str) -> int:
+    """Conta unidades de fonte (pastas de canal YouTube + arquivos de doc/texto)
+    sem ler conteúdo — usado só como denominador aproximado do progresso
+    granular de indexação. Não precisa espelhar 100% a lógica de
+    _parsear_todos_chunks (inclusive uma ambiguidade pré-existente com
+    arquivos legados flat), só dar estimativa razoável para a barra de progresso.
+    """
+    total = 0
+    youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+    if os.path.isdir(youtube_base):
+        for canal_entry in os.scandir(youtube_base):
+            if canal_entry.is_dir():
+                total += 1
+            elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
+                total += 1
+    if os.path.exists(TXT_DIR):
+        total += 1
+
+    seen_files = set()
+    for source_dir in _get_canal_doc_dirs(canal_prefixo):
+        if not os.path.exists(source_dir):
+            continue
+        for fname in os.listdir(source_dir):
+            if not fname.endswith('.txt') or fname.startswith('_'):
+                continue
+            caminho = os.path.realpath(os.path.join(source_dir, fname))
+            if caminho in seen_files:
+                continue
+            seen_files.add(caminho)
+            total += 1
+    return total
+
+
+def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
+    """Lê chunks de todas as fontes: todos os canais do projeto + docs + avulso + legado.
+
+    progress_callback(processed, total), se fornecido, é chamado após cada
+    unidade de fonte processada (uma pasta de canal do YouTube ou um arquivo
+    de documento/texto). Granularidade escolhida para não alterar o parsing
+    interno de _parsear_chunks (ver aviso [IMPACTO] em indexar() sobre schema
+    de chunks) — só envolve as chamadas já existentes com contagem de progresso.
+    """
+    total = _contar_unidades_fonte(canal_prefixo) if progress_callback else 0
+    processed = 0
+
+    def _tick():
+        nonlocal processed
+        processed += 1
+        if progress_callback:
+            progress_callback(min(processed, total) if total else processed, total)
+
     chunks = []
     # Nova estrutura: data/neural/{projeto}/youtube/{canal}/*.txt
     # Varre TODOS os subdiretórios de canal dentro do projeto.
@@ -302,12 +351,15 @@ def _parsear_todos_chunks(canal_prefixo: str) -> list:
             if canal_entry.is_dir():
                 # Nova estrutura: youtube/{canal}/*.txt
                 chunks += _parsear_chunks(canal_entry.path, canal_entry.name)
+                _tick()
             elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
                 # Legado flat: youtube/*.txt (arquivos anteriores à migração de estrutura)
                 chunks += _parsear_chunks(youtube_base, canal_prefixo)
+                _tick()
     # Legado: data/neural/youtube/ plano (arquivos nomeados {canal_prefixo}_*.txt)
     if os.path.exists(TXT_DIR):
         chunks += _parsear_chunks(TXT_DIR, canal_prefixo)
+        _tick()
 
     seen_files = set()
     for source_dir in _get_canal_doc_dirs(canal_prefixo):
@@ -354,6 +406,8 @@ def _parsear_todos_chunks(canal_prefixo: str) -> list:
                     })
             except Exception:
                 pass
+            finally:
+                _tick()
     return chunks
 
 
@@ -469,14 +523,14 @@ def _contar_canais_indexados() -> list:
     return canais
 
 
-def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None) -> int:
+def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None, progress_callback=None) -> int:
     # [IMPACTO] Mudança na estrutura dos chunks gerados aqui quebra chat.py:_recuperar_contexto().
     # Schema esperado por chat.py: {texto, titulo, aba, data, link, tags, arquivo, canal, descricao}.
     # Após mudança de schema, todos os índices existentes precisam ser re-gerados.
     # Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.2
     if callback: callback("🔍 Lendo arquivos do corpus...")
 
-    chunks = _parsear_todos_chunks(canal_prefixo)
+    chunks = _parsear_todos_chunks(canal_prefixo, progress_callback=progress_callback)
     if not chunks:
         raise ValueError(f"Nenhum conteúdo encontrado para '{canal_prefixo}'. Faça a extração ou adicione documentos.")
 

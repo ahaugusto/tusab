@@ -46,6 +46,7 @@ export function useAgentConfig({ activeTab, showError }) {
     indexed: false,
     indexing: false,
     index_logs: [],
+    index_progress: { processed: 0, total: 0 },
     canais_indexados: [],
     summarizing: false,
     summarize_progress: 0,

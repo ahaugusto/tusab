@@ -74,17 +74,21 @@ def _gerar_perguntas_sugeridas(canal_prefixo: str, n: int = 3) -> list:
 
 def _run_indexacao(canal_nome: str, canal_prefixo: str):
     try:
-        state.agent_indexing   = True
-        state.agent_index_logs = []
+        state.agent_indexing       = True
+        state.agent_index_logs     = []
+        state.agent_index_progress = {"processed": 0, "total": 0}
         state.agent_index_stop.clear()
         def cb(msg):
             state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": msg})
+        def progress_cb(processed, total):
+            state.agent_index_progress = {"processed": processed, "total": total}
 
         agent_tusab.indexar(
             canal_nome=canal_nome,
             canal_prefixo=canal_prefixo,
             callback=cb,
             stop_event=state.agent_index_stop,
+            progress_callback=progress_cb,
         )
         state.perguntas_sugeridas[canal_prefixo] = _gerar_perguntas_sugeridas(canal_prefixo)
     except Exception as e:
@@ -234,8 +238,9 @@ def agent_status(canal: str = ""):
     from tusab_engine.agent.config import registrar_primeiro_uso
     import re as _re
     status = agent_tusab.get_agent_status()
-    status["indexing"]   = state.agent_indexing
-    status["index_logs"] = state.agent_index_logs[-30:]
+    status["indexing"]       = state.agent_indexing
+    status["index_logs"]     = state.agent_index_logs[-30:]
+    status["index_progress"] = state.agent_index_progress
     try:
         from tusab_engine.agent.chat import cross_encoder_loading
         status["cross_encoder_loading"] = cross_encoder_loading
