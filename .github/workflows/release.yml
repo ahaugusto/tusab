@@ -49,7 +49,7 @@ jobs:
     runs-on: windows-latest
     needs: tests
     permissions:
-      contents: write   # necessário para publicar a release
+      contents: write   # necessário para publicar a release em ahaugusto/tusab
 
     steps:
       - uses: actions/checkout@v4
@@ -84,9 +84,18 @@ jobs:
         working-directory: electron
         run: npm ci
 
-      # electron-builder lê GH_TOKEN para publicar na release
+      # electron-builder lê GH_TOKEN para publicar na release.
+      # [CONTRATO] publish.owner/repo em electron/package.json aponta para
+      # ahaugusto/tusab-public — repositório DIFERENTE de onde este workflow
+      # roda (ahaugusto/tusab). O GITHUB_TOKEN automático do Actions só tem
+      # permissão no repo local (ahaugusto/tusab); publicar em outro repo
+      # exige um Personal Access Token com escopo `repo`, salvo como o
+      # secret RELEASE_PAT (Settings → Secrets and variables → Actions).
+      # Causa raiz de todas as releases v1.0.23–v1.0.37 terem sido feitas
+      # manualmente: 403 "Resource not accessible by integration" com
+      # GITHUB_TOKEN — ver run 28401557076 (v1.0.22, 29/jun/2026).
       - name: Build e publicar instalador
         working-directory: electron
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: npm run build -- --publish always
