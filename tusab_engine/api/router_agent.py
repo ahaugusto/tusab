@@ -320,17 +320,21 @@ def agent_base_summary():
             )
             info = canais_indexados.get(nome_canal, {})
 
+            from tusab_engine.agent.calibration import _carregar_profile
+            corpus_profile = _carregar_profile(prefixo) or None
+
             projetos.append({
-                "prefixo":       prefixo,
-                "nome":          nome_canal,
-                "n_youtube":     contagens.get('youtube', 0),
-                "n_documents":   contagens.get('documents', 0),
-                "n_texts":       contagens.get('texts', 0),
-                "total":         total,
-                "indexado":      idx_mtime is not None,
-                "indexed_at":    idx_mtime,
-                "ultima_adicao": int(ultima_adicao) if ultima_adicao else None,
-                "n_chunks":      info.get("n_chunks", 0),
+                "prefixo":        prefixo,
+                "nome":           nome_canal,
+                "n_youtube":      contagens.get('youtube', 0),
+                "n_documents":    contagens.get('documents', 0),
+                "n_texts":        contagens.get('texts', 0),
+                "total":          total,
+                "indexado":       idx_mtime is not None,
+                "indexed_at":     idx_mtime,
+                "ultima_adicao":  int(ultima_adicao) if ultima_adicao else None,
+                "n_chunks":       info.get("n_chunks", 0),
+                "corpus_profile": corpus_profile,
             })
 
     return {"projetos": projetos}

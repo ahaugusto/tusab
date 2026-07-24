@@ -621,9 +621,17 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     # Re-rankeamento semântico com CrossEncoder — ativado quando busca_ampla=True.
     # O toggle de Busca Ampla é a decisão consciente do usuário de querer mais profundidade:
-    # BM25 recupera top-2n candidatos, CrossEncoder reordena por relevância semântica real.
+    # BM25 recupera top-N candidatos, CrossEncoder reordena por relevância semântica real.
     # BM25 puro quando busca_ampla=False — mais rápido, suficiente para busca restrita.
-    candidatos = _rerankar(pergunta, resultados[:n * 2]) if busca_ampla else resultados
+    # N é calibrado por corpus_profile.json (P0-c) quando disponível — corpus maior
+    # tem IDF menor por termo, mais candidatos dão ao CrossEncoder mais chance de
+    # achar o chunk certo. Fallback para n*2 (comportamento original) sem perfil.
+    if busca_ampla:
+        from tusab_engine.agent.calibration import _carregar_profile
+        n_candidatos = _carregar_profile(canal_prefixo).get('n_candidatos_bm25', n * 2)
+        candidatos = _rerankar(pergunta, resultados[:n_candidatos])
+    else:
+        candidatos = resultados
 
     # Deduplicação semântica: remove chunks com sobreposição de tokens > threshold.
     # Jaccard sobre tokens BM25 (sem stopwords) — rápido, sem modelo extra.
