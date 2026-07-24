@@ -203,3 +203,16 @@ def test_canal_info_rejeita_path_traversal(client):
     r = client.get("/canal-info", params={"url": "https://www.youtube.com/@canal/../../../etc/passwd"})
     assert r.status_code == 200
     assert r.json().get("error") is True
+
+
+# ── GET /agent/mcp/config ───────────────────────────────────────────────────────
+
+def test_agent_mcp_config_retorna_estrutura_esperada(client):
+    r = client.get("/agent/mcp/config")
+    assert r.status_code == 200
+    body = r.json()
+    assert "mcpServers" in body
+    assert "tusab" in body["mcpServers"]
+    assert "command" in body["mcpServers"]["tusab"]
+    assert "args" in body["mcpServers"]["tusab"]
+    assert body["mcpServers"]["tusab"]["args"][0].endswith("mcp_server.py")

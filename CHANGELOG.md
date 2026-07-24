@@ -7,6 +7,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [Não lançado]
+### Adicionado
+- **Orientação sobre o MCP Server no produto** — feature já existente (endpoint `GET /agent/mcp/config`) ganhou exposição de verdade: botão "Copiar configuração MCP" na aba Admin, entrada de FAQ trilíngue (PT/EN/ES) explicando o que é e como conectar a Claude Code/Cursor/qualquer cliente MCP, e menção no onboarding do perfil Especialista. Antes, essa capacidade só era descoberta por quem lesse o código-fonte.
+
+---
+
 ## [1.0.38] — 2026-07-24
 ### Adicionado
 - **Reconhecimento de documentos jurídicos (perfil Especialista)** — upload de petição, contrato ou parecer (`.txt`, `.md`, `.pdf`, `.docx`) agora é detectado automaticamente por estrutura textual (vocativo ao juízo, cláusulas numeradas, cabeçalho de ementa), mesmo padrão já usado para WhatsApp/Zoom/Teams/Otter. O texto é reformatado com um cabeçalho de campos extraídos (tipo de documento, cláusulas identificadas, CPF/CNPJ das partes, ementa) antes do conteúdo integral — melhora chunking e indexação sem depender de nenhuma API externa ou biblioteca jurídica. Avaliado em `agents/_historia.md` — testadas e descartadas fontes externas (Datajud/CNJ, LexML) por bloqueio de acesso automatizado e ausência de texto integral; a solução final opera só sobre documentos que o usuário já possui.

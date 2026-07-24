@@ -342,3 +342,6 @@ export const exportRelatorioPdf = (canal_nome, mensagens = []) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ canal_nome, mensagens }),
   });
+
+/** Fetches the MCP server config JSON — paste into Claude Code / Cursor / any MCP client */
+export const fetchMcpConfig = () => axios.get(`${API_BASE}/agent/mcp/config`);
