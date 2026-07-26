@@ -25,6 +25,31 @@ function _emojiTipo(item) {
   return '📄';
 }
 
+// Formatos especiais reconhecidos automaticamente no upload (_detectar_formato_especial
+// no backend) — badge persistido a partir de `formato_detectado` no manifest, não só
+// o aviso transiente da hora do upload.
+const _FORMATO_ESPECIAL_META = {
+  peticao:           { emoji: '⚖️', i18n: 'repo.formato_peticao' },
+  contrato:          { emoji: '⚖️', i18n: 'repo.formato_contrato' },
+  parecer:           { emoji: '⚖️', i18n: 'repo.formato_parecer' },
+  whatsapp_android:  { emoji: '💬', i18n: 'repo.formato_whatsapp' },
+  whatsapp_ios:      { emoji: '💬', i18n: 'repo.formato_whatsapp' },
+  zoom:              { emoji: '🎥', i18n: 'repo.formato_reuniao' },
+  otter:             { emoji: '🎥', i18n: 'repo.formato_reuniao' },
+  teams:             { emoji: '🎥', i18n: 'repo.formato_reuniao' },
+};
+
+function FormatoBadge({ formato, darkMode, t }) {
+  const meta = _FORMATO_ESPECIAL_META[formato];
+  if (!meta) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0
+      ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-100 text-violet-700'}`}>
+      {meta.emoji} {t(meta.i18n)}
+    </span>
+  );
+}
+
 // Destaca ocorrências do termo no trecho de busca
 function HighlightTrecho({ texto, query, darkMode }) {
   if (!query || !texto) return <>{texto}</>;
@@ -1271,7 +1296,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                       <div key={`doc-${i}`} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
                         <span className="text-sm shrink-0">{_emojiTipo(item)}</span>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
+                          <p className={`text-xs font-medium truncate flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                            {item.titulo || item.nome_original}
+                            <FormatoBadge formato={item.formato_detectado} darkMode={darkMode} t={t} />
+                          </p>
                           <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
                         </div>
                         <button onClick={() => handleDelete(item._tipo, item.id)}
@@ -1321,7 +1349,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${darkMode ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
                       <span className="text-sm shrink-0">{_emojiTipo({...item, _tipo: group.tipo})}</span>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.titulo || item.nome_original}</p>
+                        <p className={`text-xs font-medium truncate flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                          {item.titulo || item.nome_original}
+                          <FormatoBadge formato={item.formato_detectado} darkMode={darkMode} t={t} />
+                        </p>
                         <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
                       </div>
                       <button onClick={() => handleDelete(group.tipo, item.id)}

@@ -121,3 +121,44 @@ def test_processar_formato_especial_texto_generico_retorna_none():
     resultado, fmt = _processar_formato_especial(texto, "notas.txt")
     assert fmt is None
     assert resultado == texto
+
+
+# ─── Persistência no manifest (badge no Repositório) ───────────────────────────
+
+def test_upload_peticao_persiste_formato_detectado_no_manifest(client):
+    nome_projeto = "projeto_juridico_pytest"
+    client.post("/neural/projeto", json={"nome": nome_projeto})
+
+    texto = "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 1ª VARA CÍVEL\n\nFulano de Tal vem requerer..."
+    r = client.post(
+        "/neural/upload",
+        data={"canal": nome_projeto},
+        files={"arquivo": ("peticao.txt", texto.encode("utf-8"), "text/plain")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("ok") is True
+    assert "Petição" in body.get("aviso", "")
+
+    repo = client.get("/repositorio").json()
+    canal = next(c for c in repo["canais"] if c["nome"] == nome_projeto)
+    doc = next(d for d in canal["documentos"] if d["nome_original"] == "peticao.txt")
+    assert doc["formato_detectado"] == "peticao"
+
+
+def test_upload_texto_generico_nao_grava_formato_detectado(client):
+    nome_projeto = "projeto_generico_pytest"
+    client.post("/neural/projeto", json={"nome": nome_projeto})
+
+    texto = "Anotações soltas sobre o projeto, sem estrutura jurídica reconhecível."
+    r = client.post(
+        "/neural/upload",
+        data={"canal": nome_projeto},
+        files={"arquivo": ("notas.txt", texto.encode("utf-8"), "text/plain")},
+    )
+    assert r.status_code == 200
+
+    repo = client.get("/repositorio").json()
+    canal = next(c for c in repo["canais"] if c["nome"] == nome_projeto)
+    doc = next(d for d in canal["documentos"] if d["nome_original"] == "notas.txt")
+    assert "formato_detectado" not in doc

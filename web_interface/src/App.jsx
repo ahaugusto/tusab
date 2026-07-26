@@ -844,9 +844,12 @@ function App() {
     setProjetosExtras(prev => prev.filter(c => c !== nome));
   };
 
-  /** Opens the extraction-type modal, or shows canal error if none configured */
+  /** Opens the extraction-type modal, or shows canal error if none configured.
+   *  Perfis com arXiv/FHIR (Pesquisador) não precisam de canal do YouTube —
+   *  essas fontes são escolhidas dentro do próprio modal. */
+  const exigeCanalPrevio = !regras.arxiv && !regras.fhir;
   const handleStart = () => {
-    if (!canalConfigurado && !isRunning) { setCanalError(t('channel.error_required')); return; }
+    if (!canalConfigurado && !isRunning && exigeCanalPrevio) { setCanalError(t('channel.error_required')); return; }
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
     setShowExtractionModal(true);
   };
@@ -1587,22 +1590,20 @@ function App() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {/* Chip de perfil — sempre visível quando Drive não autenticado */}
-                {driveStatus !== 'autenticado' && (
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] hidden sm:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('header.perfil_acessado')}</span>
-                    <button
-                      onClick={() => setShowAlterarPerfil(true)}
-                      title="Alterar perfil"
-                      aria-label="Perfil ativo — clique para alterar"
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
-                        ${darkMode ? 'border-white/15 text-slate-300 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100'}`}>
-                      <span>{PERFIS_META[perfil]?.icon ?? '🧑‍💻'}</span>
-                      <span className="hidden sm:inline">{t(PERFIS_META[perfil]?.label ?? 'perfil.especialista')}</span>
-                    </button>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {/* Chip de perfil — sempre visível, independente do estado do Drive */}
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] hidden sm:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('header.perfil_acessado')}</span>
+                  <button
+                    onClick={() => setShowAlterarPerfil(true)}
+                    title="Alterar perfil"
+                    aria-label="Perfil ativo — clique para alterar"
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                      ${darkMode ? 'border-white/15 text-slate-300 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100'}`}>
+                    <span>{PERFIS_META[perfil]?.icon ?? '🧑‍💻'}</span>
+                    <span className="hidden sm:inline">{t(PERFIS_META[perfil]?.label ?? 'perfil.especialista')}</span>
+                  </button>
+                </div>
                 {/* Drive chip — só aparece quando autenticado */}
                 {regras.drive && driveStatus === 'autenticado' && (
                   <button
@@ -1904,6 +1905,7 @@ function App() {
                 onResetClick={() => setShowResetModal(true)}
                 appUpdateInfo={appUpdateInfo}
                 onInstallUpdate={() => window.tusab?.installUpdate?.(appUpdateInfo?.version)}
+                onShowToast={setProgressToast}
               />
             )}
 

@@ -232,6 +232,15 @@ export default function ExtractionTab({
               </div>
             )}
           </div>
+          {(regras.arxiv || regras.fhir) && !canalConfigurado && !isRunning && (
+            <div className={`mx-4 mb-3 px-3 py-2.5 rounded-xl text-[11px] leading-relaxed flex items-start gap-2
+              ${darkMode ? 'bg-primary/8 border border-primary/20 text-slate-300' : 'bg-violet-50 border border-violet-200 text-slate-600'}`}>
+              <span className="shrink-0">🔬</span>
+              <span>
+                {t('extraction.pesquisador_arxiv_fhir_hint')}
+              </span>
+            </div>
+          )}
           <div className={`px-4 pb-4 pt-3 border-t flex items-center gap-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
             {regras.fila && extractionQueue.length > 0 && (
               <button onClick={onOpenQueueModal}
@@ -240,7 +249,7 @@ export default function ExtractionTab({
                 Fila ({extractionQueue.length})
               </button>
             )}
-            <button onClick={handleStart} disabled={!canalConfigurado && !isRunning}
+            <button onClick={handleStart} disabled={!canalConfigurado && !isRunning && !regras.arxiv && !regras.fhir}
               className={`ml-auto flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                 disabled:opacity-40 disabled:cursor-not-allowed
                 ${isRunning

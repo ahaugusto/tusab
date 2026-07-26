@@ -51,6 +51,7 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.37 | jul 2026 | Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — terceira fonte além de YouTube/arXiv |
 | v1.0.38 | jul 2026 | Reconhecimento de documentos jurídicos (perfil Especialista); confiança graduada por sentença no chat (P1-e); calibragem dinâmica de RAG por corpus (P0-c); progresso granular na indexação; pipeline de release automático corrigido (quebrado desde v1.0.22) + Dependabot |
 | v1.0.39 | jul 2026 | Discoverability: orientação sobre o MCP Server no produto (botão Admin + FAQ + onboarding); FAQ trilíngue de FHIR e reconhecimento jurídico; aviso permanente sobre reconhecimento jurídico no Repositório — features já implementadas em versões anteriores ganham exposição real ao usuário |
+| v1.0.40 | jul 2026 | Aba Admin liberada pro perfil Pesquisador (WARN de acesso, sem razão de segurança); arXiv/FHIR acessíveis sem canal do YouTube configurado; chip de perfil e chip do Drive coexistindo no header (fix WARN-25); feedback de update mais visível (ProgressToast); badge persistente de formato detectado (jurídico/WhatsApp/reunião) na listagem do Repositório |
 
 ---
 
@@ -211,7 +212,7 @@ Auditoria completa de 17 jornadas realizada em jun/2026 identificou os seguintes
 | WARN-19 | useAgentConfig.js:97 | ALTO | Sync de idioma envia `api_key: ''` ao backend — pode zerar chave externa se backend não tiver proteção para campo vazio | Corrigido |
 | WARN-21 | App.jsx:1086 | BAIXO | Banner de update invisível na HomeScreen (`!showHome` condition) — usuário na home não via notificação de atualização | **Corrigido v1.0.35** — removida a condição `!showHome`; banner é `fixed` e renderiza corretamente sobre qualquer tela |
 | WARN-23 | App.jsx:1628 | BAIXO | Fechar painel Drive durante OAuth não cancelava o fluxo — OAuth continuava em background sem feedback | **Corrigido v1.0.35** — toggle switch agora chama `handleDriveCancel()` quando fecha o painel com `driveStatus === 'em_progresso'` |
-| WARN-25 | App.jsx:1501 | BAIXO | Chip de perfil some quando Drive autenticado | Não é bug — comportamento intencional: chip de Drive substitui o chip de perfil no mesmo espaço quando conectado |
+| WARN-25 | App.jsx:1592 | **Corrigido (24/jul/2026)** | Chip de perfil some quando Drive autenticado | Era decisão deliberada de espaço no header, mas impedia trocar de perfil sem antes desconectar o Drive — sem alternativa na UI. Reclassificado de "intencional" para bug real após relato de usuário. Fix: os dois chips (perfil + Drive) agora coexistem lado a lado (`flex-wrap`), sem exclusividade mútua |
 | WARN-31 | App.jsx:446 | MÉDIO | `Shift+R` com perfil estudante mudaria `activeTab='extracao'` mesmo com aba filtrada por `regras.abas` | Já corrigido — handler checa `regras.abas?.includes('extracao')` antes de trocar de aba |
 
 **Bugs já corrigidos nesta sprint (não reabrir):**

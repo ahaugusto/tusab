@@ -11,6 +11,18 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.40] — 2026-07-24
+### Adicionado
+- **Feedback de atualização mais visível** — verificação manual de update (Admin) agora dispara também um `ProgressToast` (canto inferior), além do texto pequeno ao lado do botão. "Você está na versão mais recente" passava despercebido.
+- **Badge persistente de formato detectado no Repositório** — WhatsApp, reuniões (Zoom/Teams/Otter) e documentos jurídicos (petição/contrato/parecer) agora ficam marcados com um badge (⚖️/💬/🎥) na listagem de arquivos, sempre visível — antes só aparecia como aviso transiente no momento do upload. Persistido em `formato_detectado` no `_manifest.json`.
+
+### Corrigido
+- **Aba Admin liberada para o perfil Pesquisador** — era o único perfil sem acesso (MCP Server, notificações, verificação de atualização, privacidade/analytics, suporte). Não havia razão de segurança para a restrição — operações destrutivas (`reset_total`) continuam gated à parte, independente da aba estar visível. Avaliado com o agente `/produto` antes da correção.
+- **arXiv/FHIR inacessíveis sem canal do YouTube configurado (perfil Pesquisador)** — o botão "Iniciar" na aba Extração ficava desabilitado até haver um canal configurado, mesmo para buscas que não dependem de canal nenhum. Corrigido; aviso contextual (🔬) explica a opção quando não há canal configurado.
+- **Chip de perfil inacessível com Google Drive autenticado (WARN-25)** — chip de perfil e chip do Drive se excluíam mutuamente no header; impedia trocar de perfil sem antes desconectar o Drive. Agora coexistem lado a lado.
+
+---
+
 ## [1.0.39] — 2026-07-24
 ### Adicionado
 - **Orientação sobre o MCP Server no produto** — feature já existente (endpoint `GET /agent/mcp/config`) ganhou exposição de verdade: botão "Copiar configuração MCP" na aba Admin, entrada de FAQ trilíngue (PT/EN/ES) explicando o que é e como conectar a Claude Code/Cursor/qualquer cliente MCP, e menção no onboarding do perfil Especialista. Antes, essa capacidade só era descoberta por quem lesse o código-fonte.
