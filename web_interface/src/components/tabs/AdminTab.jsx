@@ -16,6 +16,7 @@ export default function AdminTab({
   onResetClick,
   appUpdateInfo,
   onInstallUpdate,
+  onShowToast,
 }) {
   const { t } = useTranslation();
 
@@ -53,9 +54,19 @@ export default function AdminTab({
     }
   }, []);
 
+  const TONE_TO_TOAST_TYPE = { ok: 'success', info: 'info', warn: 'warning' };
+
+  const emitCheckResult = useCallback((result) => {
+    setCheckResult(result);
+    // Feedback inline (role="status", ao lado do botão) some fácil de perder —
+    // duplica como ProgressToast (canto inferior, com ícone) pra garantir que
+    // o usuário perceba o resultado mesmo sem reparar no texto pequeno.
+    onShowToast?.({ type: TONE_TO_TOAST_TYPE[result.tone] || 'info', message: result.text });
+  }, [onShowToast]);
+
   const handleCheckUpdate = useCallback(async () => {
     if (!window.tusab?.checkForUpdates) {
-      setCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
+      emitCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
       return;
     }
     setCheckingUpdate(true);
@@ -63,20 +74,20 @@ export default function AdminTab({
     try {
       const res = await window.tusab.checkForUpdates();
       if (res?.status === 'update-available') {
-        setCheckResult({ tone: 'info', text: `Nova versão ${res.version} encontrada — baixando em segundo plano. O botão "Instalar e reiniciar" aparecerá quando o download terminar.` });
+        emitCheckResult({ tone: 'info', text: `Nova versão ${res.version} encontrada — baixando em segundo plano. O botão "Instalar e reiniciar" aparecerá quando o download terminar.` });
       } else if (res?.status === 'up-to-date') {
-        setCheckResult({ tone: 'ok', text: `Você está na versão mais recente${res.current ? ` (v${res.current})` : ''}.` });
+        emitCheckResult({ tone: 'ok', text: `Você está na versão mais recente${res.current ? ` (v${res.current})` : ''}.` });
       } else if (res?.status === 'dev') {
-        setCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
+        emitCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
       } else {
-        setCheckResult({ tone: 'warn', text: `Não foi possível verificar: ${res?.message || 'erro desconhecido'}.` });
+        emitCheckResult({ tone: 'warn', text: `Não foi possível verificar: ${res?.message || 'erro desconhecido'}.` });
       }
     } catch (e) {
-      setCheckResult({ tone: 'warn', text: 'Não foi possível verificar. Confira sua conexão e tente novamente.' });
+      emitCheckResult({ tone: 'warn', text: 'Não foi possível verificar. Confira sua conexão e tente novamente.' });
     } finally {
       setCheckingUpdate(false);
     }
-  }, []);
+  }, [emitCheckResult]);
 
   return (
     <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
