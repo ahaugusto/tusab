@@ -547,6 +547,7 @@ async def cerebro_upload(
 
     texto = ""
     aviso_extracao = None  # mensagem opcional quando extração parcial/indisponível
+    formato_detectado = None  # slug persistido no manifest — ex: 'peticao', 'whatsapp_android'
     try:
         if ext == ".pdf":
             import pdfplumber, io as _io
@@ -586,6 +587,7 @@ async def cerebro_upload(
                     _LABEL_JUR = {'peticao': 'Petição jurídica', 'contrato': 'Contrato', 'parecer': 'Parecer jurídico'}
                     if fmt_juridico in _LABEL_JUR:
                         aviso_extracao = f"✅ Formato detectado: {_LABEL_JUR[fmt_juridico]} — estrutura aplicada automaticamente."
+                        formato_detectado = fmt_juridico
         elif ext in (".docx",):
             import docx, io
             doc = docx.Document(io.BytesIO(conteudo_bytes))
@@ -595,6 +597,7 @@ async def cerebro_upload(
                 _LABEL_JUR = {'peticao': 'Petição jurídica', 'contrato': 'Contrato', 'parecer': 'Parecer jurídico'}
                 if fmt_juridico in _LABEL_JUR:
                     aviso_extracao = f"✅ Formato detectado: {_LABEL_JUR[fmt_juridico]} — estrutura aplicada automaticamente."
+                    formato_detectado = fmt_juridico
         elif ext == ".xlsx":
             import openpyxl, io
             wb = openpyxl.load_workbook(io.BytesIO(conteudo_bytes), data_only=True)
@@ -644,6 +647,7 @@ async def cerebro_upload(
                     'parecer':          'Parecer jurídico',
                 }
                 aviso_extracao = f"✅ Formato detectado: {_LABEL.get(fmt_especial, fmt_especial)} — estrutura aplicada automaticamente."
+                formato_detectado = fmt_especial
         elif eh_imagem:
             try:
                 texto = _extrair_imagem(conteudo_bytes, arquivo.filename)
@@ -694,6 +698,8 @@ async def cerebro_upload(
         "data": datetime.now().strftime("%d/%m/%Y"),
         "chars": len(texto),
     }
+    if formato_detectado:
+        entry["formato_detectado"] = formato_detectado
     manifest.append(entry)
     motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 

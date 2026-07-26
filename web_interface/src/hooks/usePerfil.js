@@ -39,7 +39,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: true,
   },
   pesquisador: {
-    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'agente'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'agente', 'admin'],
     persona_padrao: 'tecnico',
     busca_ampla: true,
     config_api: true,
@@ -50,7 +50,7 @@ export const PERFIS_CONFIG = {
     import_tusab: true,
     visao_geral: true,
     monitor: false,
-    admin: false,
+    admin: true,
     relatorio: true,
     deletar_arquivos: true,
     limpar_canal: true,
