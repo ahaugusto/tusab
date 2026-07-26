@@ -10,7 +10,7 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 
 ## Download
 
-**[⬇ Baixar última versão (v1.0.39)](https://github.com/ahaugusto/tusab-public/releases/latest)** — Windows 10/11 x64 · inclui Python e yt-dlp embutidos
+**[⬇ Baixar última versão (v1.0.40)](https://github.com/ahaugusto/tusab-public/releases/latest)** — Windows 10/11 x64 · inclui Python e yt-dlp embutidos
 
 ---
 
@@ -216,14 +216,14 @@ Saída: `dist_electron/Tusab Setup 1.0.1.exe`
 ## Testes
 
 ```powershell
-# Suite de integração (95 testes)
+# Suite de integração (97 testes)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
 # Smoke tests contra backend real (16 checks)
 .venv\Scripts\python.exe smoke_test.py
 ```
 
-**95/95 verde.** A suite inclui testes de integração (TestClient FastAPI) e testes de confiabilidade (escrita atômica, concorrência, índice corrompido/vazio).
+**97/97 verde.** A suite inclui testes de integração (TestClient FastAPI) e testes de confiabilidade (escrita atômica, concorrência, índice corrompido/vazio).
 
 ---
 
