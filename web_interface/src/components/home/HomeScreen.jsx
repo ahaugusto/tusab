@@ -112,7 +112,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         id:     'pesquisa-academica',
         icon:   '🔬',
         title:  t('home.source_pesquisa_title', 'Pesquisa acadêmica'),
-        sub:    t('home.source_pesquisa_sub', 'arXiv+FHIR'),
+        sub:    ['arXiv', 'FHIR'],
         desc:   totalPesquisaAcademica > 0
           ? t('home.card_repo_done', { count: totalPesquisaAcademica })
           : t('home.source_pesquisa_desc', 'Busque artigos científicos ou estudos clínicos sem precisar de canal do YouTube.'),
@@ -258,13 +258,17 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                       {card.badge}
                     </span>
                   )}
-                  <span className="text-2xl block mb-2">{card.icon}</span>
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <p className={`text-xs font-bold leading-tight ${card.highlight ? darkMode ? 'text-primary' : 'text-violet-700' : darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
-                    {card.sub && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${badgeClass('primary')}`}>{card.sub}</span>
-                    )}
+                  <div className="w-8 h-8 flex items-center justify-center mb-2">
+                    <span className="text-2xl leading-none">{card.icon}</span>
                   </div>
+                  <p className={`text-xs font-bold leading-tight ${card.highlight ? darkMode ? 'text-primary' : 'text-violet-700' : darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
+                  {card.sub && (
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      {(Array.isArray(card.sub) ? card.sub : [card.sub]).map(s => (
+                        <span key={s} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${badgeClass('primary')}`}>{s}</span>
+                      ))}
+                    </div>
+                  )}
                   <p className={`text-[10px] mt-1 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
                 </button>
               ))}
