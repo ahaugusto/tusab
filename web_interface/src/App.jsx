@@ -224,6 +224,10 @@ function App() {
 
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  // 'canal_youtube' | 'canal_documents' — qual subpasta abrir, definido por
+  // quem chama onOpenFolderPicker (ex: fonte arXiv/FHIR selecionada na Extração
+  // deve abrir documents/, não youtube/, que nem existe nesses projetos).
+  const [folderPickerTipo, setFolderPickerTipo] = useState('canal_youtube');
   const [folderPickerNovoProjeto, setFolderPickerNovoProjeto] = useState('');
   const [folderPickerCriando, setFolderPickerCriando] = useState(false);
   const [repoProjetoInicial,  setRepoProjetoInicial]  = useState('');
@@ -722,7 +726,7 @@ function App() {
       if (res.data?.ok) {
         const nomeCriado = res.data.nome || folderPickerNovoProjeto.trim();
         fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
-        openFolder('canal_youtube', nomeCriado);
+        openFolder(folderPickerTipo, nomeCriado);
         setFolderPickerOpen(false);
         setFolderPickerNovoProjeto('');
         // Abre o modal de upload com o projeto recém-criado pré-selecionado
@@ -1149,7 +1153,7 @@ function App() {
                       {canais.map((nome, i) => (
                         <button key={i}
                           className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'hover:bg-white/10 text-slate-200' : 'hover:bg-slate-100 text-slate-700'}`}
-                          onClick={() => { openFolder('canal_youtube', nome); setFolderPickerOpen(false); }}
+                          onClick={() => { openFolder(folderPickerTipo, nome); setFolderPickerOpen(false); }}
                         >
                           @{nome}
                         </button>
@@ -1679,7 +1683,7 @@ function App() {
                 handlePause={handlePause}
                 handleCancel={handleCancel}
                 repositorio={repositorio}
-                onOpenFolderPicker={() => setFolderPickerOpen(true)}
+                onOpenFolderPicker={() => { setFolderPickerTipo(fontePreSelecionada === 'youtube' ? 'canal_youtube' : 'canal_documents'); setFolderPickerOpen(true); }}
                 onOpenQueueModal={() => setShowQueueModal(true)}
                 onNavigateMonitor={() => { setActiveTab('monitor'); setShowHome(false); }}
                 onRemoveCanal={() => {
