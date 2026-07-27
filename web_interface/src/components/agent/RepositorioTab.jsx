@@ -932,6 +932,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                         <select
                           value=""
                           onChange={e => { if (e.target.value) { setProjetoSel(e.target.value); setForceSelecionarProjeto(false); } }}
+                          style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                           className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary cursor-pointer
                             ${darkMode ? 'bg-[#0C1122] border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
                         >

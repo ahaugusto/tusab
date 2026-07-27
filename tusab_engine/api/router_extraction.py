@@ -8,6 +8,7 @@ import re
 import time
 import threading
 
+import requests
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
 
@@ -15,6 +16,17 @@ import motor_tusab
 from tusab_engine.state import state
 from tusab_engine.motor import arxiv as arxiv_motor
 from tusab_engine.motor import fhir as fhir_motor
+
+
+def _mensagem_erro_busca_externa(e: Exception, fonte: str) -> str:
+    """Traduz erros comuns de API externa (arXiv/FHIR) em mensagem acionável —
+    o texto cru de HTTPError (URL completa + status) não ajuda o usuário a
+    saber se deve só tentar de novo ou se é um problema real."""
+    if isinstance(e, requests.exceptions.HTTPError) and e.response is not None and e.response.status_code == 429:
+        return f"{fonte} está limitando o número de buscas no momento — aguarde alguns segundos e tente novamente."
+    if isinstance(e, requests.exceptions.Timeout):
+        return f"{fonte} demorou demais para responder — tente novamente."
+    return f"Erro ao buscar em {fonte}: {e}"
 
 router = APIRouter()
 
@@ -352,8 +364,10 @@ def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str):
         )
         state.arxiv_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
     except Exception as e:
-        print(f"❌ ERRO NA BUSCA ARXIV: {e}")
+        mensagem = _mensagem_erro_busca_externa(e, "arXiv")
+        print(f"❌ ERRO NA BUSCA ARXIV: {mensagem}")
         state.arxiv_stats["status"] = "Erro"
+        state.arxiv_stats["message"] = mensagem
     finally:
         state.arxiv_running = False
 
@@ -428,8 +442,10 @@ def _run_fhir_search(query: str, max_resultados: int, projeto_nome: str):
         )
         state.fhir_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
     except Exception as e:
-        print(f"❌ ERRO NA BUSCA FHIR: {e}")
+        mensagem = _mensagem_erro_busca_externa(e, "FHIR")
+        print(f"❌ ERRO NA BUSCA FHIR: {mensagem}")
         state.fhir_stats["status"] = "Erro"
+        state.fhir_stats["message"] = mensagem
     finally:
         state.fhir_running = False
 

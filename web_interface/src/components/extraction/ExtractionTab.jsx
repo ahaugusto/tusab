@@ -545,6 +545,7 @@ export default function ExtractionTab({
               <select
                 value={logFiltroCanal}
                 onChange={e => setLogFiltroCanal(e.target.value)}
+                style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                 className={`text-[10px] font-medium rounded-lg px-2 py-1 border outline-none cursor-pointer shrink-0 max-w-[140px] truncate
                   ${darkMode
                     ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
