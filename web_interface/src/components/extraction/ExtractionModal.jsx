@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import { X, Zap, Loader2, Search, Stethoscope } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
-import { getCanalInfo } from '../../services/api';
+import { getCanalInfo, criarProjeto } from '../../services/api';
 
 /**
  * ExtractionModal — always starts with project name.
@@ -158,14 +158,42 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
     onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig);
   };
 
-  const handleConfirmArxiv = () => {
+  // /arxiv/search e /fhir/search exigem que o projeto já exista em disco
+  // (mesmo contrato de /neural/upload) e recusam criar sozinhos — diferente
+  // do fluxo YouTube, onde o motor cria a pasta como efeito colateral da
+  // extração. Sem chamar /neural/projeto antes, a busca falhava com
+  // "Projeto não encontrado" e o usuário ficava travado sem next-step.
+  const [criandoProjetoBusca, setCriandoProjetoBusca] = React.useState(false);
+  const [erroProjetoBusca,    setErroProjetoBusca]    = React.useState('');
+
+  const handleConfirmArxiv = async () => {
     const nome = projetoNome.trim();
-    onConfirmArxiv(arxivQuery.trim(), arxivMaxResults, nome);
+    setErroProjetoBusca('');
+    setCriandoProjetoBusca(true);
+    try {
+      const res = await criarProjeto(nome);
+      if (res.data?.error) { setErroProjetoBusca(res.data.message || 'Erro ao criar projeto'); return; }
+      onConfirmArxiv(arxivQuery.trim(), arxivMaxResults, nome);
+    } catch {
+      setErroProjetoBusca('Não foi possível criar o projeto. Tente novamente.');
+    } finally {
+      setCriandoProjetoBusca(false);
+    }
   };
 
-  const handleConfirmFhir = () => {
+  const handleConfirmFhir = async () => {
     const nome = projetoNome.trim();
-    onConfirmFhir(fhirQuery.trim(), fhirMaxResults, nome);
+    setErroProjetoBusca('');
+    setCriandoProjetoBusca(true);
+    try {
+      const res = await criarProjeto(nome);
+      if (res.data?.error) { setErroProjetoBusca(res.data.message || 'Erro ao criar projeto'); return; }
+      onConfirmFhir(fhirQuery.trim(), fhirMaxResults, nome);
+    } catch {
+      setErroProjetoBusca('Não foi possível criar o projeto. Tente novamente.');
+    } finally {
+      setCriandoProjetoBusca(false);
+    }
   };
 
   const podeAvancarArxivQuery = arxivQuery.trim().length >= 2;
@@ -537,16 +565,19 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
                 </p>
               </div>
 
+              {erroProjetoBusca && (
+                <p role="alert" className="text-[11px] text-danger mb-3">{erroProjetoBusca}</p>
+              )}
               <div className="flex gap-2">
-                <button onClick={voltar}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                <button onClick={voltar} disabled={criandoProjetoBusca}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${BTN_FOCUS}
                     ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                   Voltar
                 </button>
                 <button
-                  onClick={handleConfirmArxiv}
-                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
-                  <Search size={15} aria-hidden="true" />
+                  onClick={handleConfirmArxiv} disabled={criandoProjetoBusca}
+                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  {criandoProjetoBusca ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Search size={15} aria-hidden="true" />}
                   {t('extraction.arxiv_start_confirm')}
                 </button>
               </div>
@@ -573,16 +604,19 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
                 </p>
               </div>
 
+              {erroProjetoBusca && (
+                <p role="alert" className="text-[11px] text-danger mb-3">{erroProjetoBusca}</p>
+              )}
               <div className="flex gap-2">
-                <button onClick={voltar}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
+                <button onClick={voltar} disabled={criandoProjetoBusca}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${BTN_FOCUS}
                     ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                   Voltar
                 </button>
                 <button
-                  onClick={handleConfirmFhir}
-                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
-                  <Stethoscope size={15} aria-hidden="true" />
+                  onClick={handleConfirmFhir} disabled={criandoProjetoBusca}
+                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  {criandoProjetoBusca ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Stethoscope size={15} aria-hidden="true" />}
                   {t('extraction.fhir_start_confirm')}
                 </button>
               </div>
