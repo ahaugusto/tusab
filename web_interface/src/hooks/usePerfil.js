@@ -54,7 +54,11 @@ export const PERFIS_CONFIG = {
     relatorio: true,
     deletar_arquivos: true,
     limpar_canal: true,
-    arxiv: true,
+    // Oculto por enquanto: a busca arXiv/leitura FHIR do Pesquisador vira a base
+    // técnica do futuro vertical de perfil único Tusab Saúde — flip pra true
+    // reativa tudo sem mudança de código (ExtractionModal/Tab, Home, VisaoGeral
+    // já ficam condicionados nesta flag). Ver agents/_historia.md.
+    arxiv: false,
   },
   profissional: {
     abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'monitor', 'agente', 'admin'],
