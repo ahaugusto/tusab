@@ -20,6 +20,10 @@ export default function AdminTab({
 }) {
   const { t } = useTranslation();
 
+  // No app empacotado (Electron) não existe barra de endereço/cadeado — a
+  // permissão de notificação é controlada pelo Windows, não pelo navegador.
+  const IS_ELECTRON = !!window.tusab?.checkForUpdates;
+
   const [notifPerm, setNotifPerm] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unavailable'
   );
@@ -259,14 +263,18 @@ export default function AdminTab({
           {notifPerm === 'granted' && (
             <div className={`flex items-start gap-2 text-[11px] px-3 py-2.5 rounded-xl ${darkMode ? 'bg-emerald-500/8 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}>
               <CheckCircle2 size={13} className="mt-0.5 shrink-0" />
-              <span>{t('admin.notif_granted_info', 'Notificações ativas. Para desativar, clique no ícone de cadeado na barra de endereço do navegador e altere a permissão de notificações.')}</span>
+              <span>{IS_ELECTRON
+                ? t('admin.notif_granted_info_electron', 'Notificações ativas. Para desativar, vá em Configurações do Windows → Sistema → Notificações, localize o Tusab e desative.')
+                : t('admin.notif_granted_info', 'Notificações ativas. Para desativar, clique no ícone de cadeado na barra de endereço do navegador e altere a permissão de notificações.')}</span>
             </div>
           )}
 
           {notifPerm === 'denied' && (
             <div className={`flex items-start gap-2 text-[11px] px-3 py-2.5 rounded-xl ${darkMode ? 'bg-red-500/8 text-slate-400' : 'bg-red-50 text-slate-600'}`}>
               <BellOff size={13} className="mt-0.5 shrink-0" />
-              <span>{t('admin.notif_denied_info', 'Notificações bloqueadas pelo navegador. Para habilitar, clique no ícone de cadeado na barra de endereço e permita notificações para este app.')}</span>
+              <span>{IS_ELECTRON
+                ? t('admin.notif_denied_info_electron', 'Notificações bloqueadas pelo Windows para o Tusab. Para habilitar, vá em Configurações do Windows → Sistema → Notificações, localize o Tusab e ative.')
+                : t('admin.notif_denied_info', 'Notificações bloqueadas pelo navegador. Para habilitar, clique no ícone de cadeado na barra de endereço e permita notificações para este app.')}</span>
             </div>
           )}
 
