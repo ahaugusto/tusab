@@ -5,7 +5,7 @@ import {
   Zap, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2,
   Link2, XCircle, Pause, Square, Terminal, Activity, Globe,
   FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight, Trash2,
-  Search, Stethoscope,
+  Search,
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
@@ -58,11 +58,10 @@ export default function ExtractionTab({
   regras,
   // abre modal de gerência de fila
   onOpenQueueModal,
-  // resultado persistente da última busca arXiv/FHIR (perfil Pesquisador) —
-  // essas buscas não passam por status.stats, então sem isso não sobra
+  // resultado persistente da última busca arXiv (perfil Pesquisador) —
+  // essa busca não passa por status.stats, então sem isso não sobra
   // nenhum registro na tela depois que o ProgressToast some sozinho
   lastArxivResult,
-  lastFhirResult,
   // fonte escolhida no seletor desta tela (perfil Pesquisador) — repassada
   // ao modal via App.jsx pra abrir direto na busca certa
   fontePreSelecionada,
@@ -124,7 +123,7 @@ export default function ExtractionTab({
             <Zap size={14} className="text-primary" aria-hidden="true" />
             <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
           </div>
-          {(regras.arxiv || regras.fhir) && (
+          {regras.arxiv && (
             <div className={`mx-4 mt-3 flex items-center gap-1 p-1 rounded-xl border ${darkMode ? 'bg-white/3 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <button
                 onClick={() => setFontePreSelecionada('youtube')}
@@ -132,36 +131,24 @@ export default function ExtractionTab({
                   ${fontePreSelecionada === 'youtube' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
                 🎬 {t('extraction.source_youtube')}
               </button>
-              {regras.arxiv && (
-                <button
-                  onClick={() => setFontePreSelecionada('arxiv')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                    ${fontePreSelecionada === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
-                </button>
-              )}
-              {regras.fhir && (
-                <button
-                  onClick={() => setFontePreSelecionada('fhir')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                    ${fontePreSelecionada === 'fhir' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <Stethoscope size={12} aria-hidden="true" /> {t('extraction.source_fhir')}
-                </button>
-              )}
+              <button
+                onClick={() => setFontePreSelecionada('arxiv')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
+                  ${fontePreSelecionada === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
+              </button>
             </div>
           )}
           <div className="p-4">
             {fontePreSelecionada !== 'youtube' ? (
-              /* ── Fonte arXiv/FHIR escolhida — resumo simplificado, sem input de URL ── */
+              /* ── Fonte arXiv escolhida — resumo simplificado, sem input de URL ── */
               <div className={`p-4 rounded-xl border text-center ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
-                {fontePreSelecionada === 'arxiv'
-                  ? <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
-                  : <Stethoscope size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />}
+                <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
                 <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  {fontePreSelecionada === 'arxiv' ? t('extraction.arxiv_step_title') : t('extraction.fhir_step_title')}
+                  {t('extraction.arxiv_step_title')}
                 </p>
                 <p className={`text-[11px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {fontePreSelecionada === 'arxiv' ? t('extraction.arxiv_step_sub') : t('extraction.fhir_step_sub')}
+                  {t('extraction.arxiv_step_sub')}
                 </p>
               </div>
             ) : canalConfigurado ? (
@@ -289,7 +276,7 @@ export default function ExtractionTab({
                 Fila ({extractionQueue.length})
               </button>
             )}
-            <button onClick={handleStart} disabled={!canalConfigurado && !isRunning && !regras.arxiv && !regras.fhir}
+            <button onClick={handleStart} disabled={!canalConfigurado && !isRunning && !regras.arxiv}
               className={`ml-auto flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                 disabled:opacity-40 disabled:cursor-not-allowed
                 ${isRunning
@@ -452,14 +439,14 @@ export default function ExtractionTab({
           )}
         </AnimatePresence>
 
-        {/* Resumo de busca arXiv/FHIR (perfil Pesquisador) — mesmo padrão visual
+        {/* Resumo de busca arXiv (perfil Pesquisador) — mesmo padrão visual
             do resumo pós-extração do YouTube acima, mas sem conceitos de vídeo/
-            legenda que não existem nessas fontes. */}
+            legenda que não existem nessa fonte. */}
         <AnimatePresence>
-          {(lastArxivResult || lastFhirResult) && (() => {
-            const r = lastArxivResult || lastFhirResult;
-            const fonte = lastArxivResult ? 'arXiv' : 'FHIR';
-            const Icon = lastArxivResult ? Search : Stethoscope;
+          {lastArxivResult && (() => {
+            const r = lastArxivResult;
+            const fonte = 'arXiv';
+            const Icon = Search;
             return (
               <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                 aria-labelledby="summary-busca-heading"
@@ -508,10 +495,6 @@ export default function ExtractionTab({
             <StatCard icon={Search} label="Papers processados" value={lastArxivResult?.processed ?? 0}
               color="primary" sub={lastArxivResult ? `${lastArxivResult.total} encontrados` : 'aguardando busca'}
               darkMode={darkMode} />
-          ) : fontePreSelecionada === 'fhir' ? (
-            <StatCard icon={Stethoscope} label="Estudos processados" value={lastFhirResult?.processed ?? 0}
-              color="primary" sub={lastFhirResult ? `${lastFhirResult.total} encontrados` : 'aguardando busca'}
-              darkMode={darkMode} />
           ) : (
             <StatCard icon={Video}    label={t('stats.processed')} value={processedVideos}
               color="primary"   sub={totalVideos > 0 ? t('stats.mapped', { total: totalVideos }) : t('stats.waiting')}
@@ -520,7 +503,7 @@ export default function ExtractionTab({
           <StatCard icon={FileText} label={t('stats.files')}     value={status.stats.files_generated}
             color="accent"    sub={t('stats.parts')}
             onOpen={() => {
-              // arXiv/FHIR não geram pasta youtube/ — abrir documents/ nesse caso.
+              // arXiv não gera pasta youtube/ — abrir documents/ nesse caso.
               const tipoPasta = fontePreSelecionada === 'youtube' ? 'canal_youtube' : 'canal_documents';
               const nomesRepo  = (repositorio?.canais || []).map(c => c.nome);
               const nomesHist  = history.filter(h => h.canal_nome).map(h => h.canal_nome);

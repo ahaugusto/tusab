@@ -37,7 +37,6 @@ import {
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
   buscarArxiv, statusArxiv,
-  buscarFhir, statusFhir,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -225,7 +224,7 @@ function App() {
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   // 'canal_youtube' | 'canal_documents' — qual subpasta abrir, definido por
-  // quem chama onOpenFolderPicker (ex: fonte arXiv/FHIR selecionada na Extração
+  // quem chama onOpenFolderPicker (ex: fonte arXiv selecionada na Extração
   // deve abrir documents/, não youtube/, que nem existe nesses projetos).
   const [folderPickerTipo, setFolderPickerTipo] = useState('canal_youtube');
   const [folderPickerNovoProjeto, setFolderPickerNovoProjeto] = useState('');
@@ -852,9 +851,9 @@ function App() {
   };
 
   /** Opens the extraction-type modal, or shows canal error if none configured.
-   *  Perfis com arXiv/FHIR (Pesquisador) não precisam de canal do YouTube —
-   *  essas fontes são escolhidas dentro do próprio modal. */
-  const exigeCanalPrevio = !regras.arxiv && !regras.fhir;
+   *  Perfis com arXiv (Pesquisador) não precisam de canal do YouTube —
+   *  essa fonte é escolhida dentro do próprio modal. */
+  const exigeCanalPrevio = !regras.arxiv;
   const handleStart = () => {
     if (!canalConfigurado && !isRunning && exigeCanalPrevio) { setCanalError(t('channel.error_required')); return; }
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
@@ -952,52 +951,6 @@ function App() {
     }, 2000);
     return () => clearInterval(interval);
   }, [arxivPolling]);
-
-  /** Confirms a FHIR ResearchStudy search (perfil Pesquisador) — mesmo padrão do arXiv */
-  const handleStartConfirmFhir = (query, maxResultados, projetoNome) => {
-    setShowExtractionModal(false);
-    setLastFhirResult(null);
-    buscarFhir(query, maxResultados, projetoNome)
-      .then(r => {
-        if (r.data.error) { showError(r.data.message); return; }
-        setFhirPolling(true);
-        setFhirBackground(true);
-      })
-      .catch(() => showError(t('error.generic')));
-  };
-
-  // Polling do progresso da busca FHIR em andamento — mesmo padrão do arXiv
-  // (ver comentário acima): fhirPolling controla o setInterval, fhirBackground
-  // controla o Indicador de Operação em Background — desacoplados de propósito.
-  const [fhirPolling,    setFhirPolling]    = useState(false);
-  const [fhirBackground, setFhirBackground] = useState(false);
-  // Mesmo padrão do lastArxivResult — ver comentário acima.
-  const [lastFhirResult, setLastFhirResult] = useState(null); // { sucesso, processed, total }
-  useEffect(() => {
-    if (!fhirPolling) return;
-    const interval = setInterval(() => {
-      statusFhir().then(r => {
-        const { running, status, total, processed, message } = r.data;
-        if (running) {
-          setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
-        } else {
-          setFhirPolling(false);
-          setFhirBackground(false);
-          const sucesso = status === 'Finalizado ✓';
-          setLastFhirResult({ sucesso, processed, total });
-          setProgressToast({
-            type: sucesso ? 'success' : 'error',
-            message: sucesso ? t('extraction.fhir_toast_success', { processed, total }) : (message || t('extraction.fhir_toast_error')),
-          });
-          if (processed > 0) fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
-        }
-      }).catch(() => {
-        setFhirPolling(false);
-        setProgressToast({ type: 'warning', message: t('extraction.fhir_toast_polling_lost') });
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [fhirPolling]);
 
   const handlePause = () => {
     pauseExtraction();
@@ -1372,7 +1325,7 @@ function App() {
 
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmArxiv={handleStartConfirmArxiv} onConfirmFhir={handleStartConfirmFhir} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmArxiv={handleStartConfirmArxiv} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1441,7 +1394,7 @@ function App() {
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
-                  {id === 'extracao' && (isRunning || arxivBackground || fhirBackground) && (
+                  {id === 'extracao' && (isRunning || arxivBackground) && (
                     <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
                   )}
                   {id === 'admin' && appUpdateInfo && (
@@ -1694,7 +1647,6 @@ function App() {
                 }}
                 regras={regras}
                 lastArxivResult={lastArxivResult}
-                lastFhirResult={lastFhirResult}
                 fontePreSelecionada={fontePreSelecionada}
                 setFontePreSelecionada={setFontePreSelecionada}
               />

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
+from tusab_engine.motor import fhir as fhir_motor
 
 router = APIRouter()
 
@@ -632,6 +633,16 @@ async def cerebro_upload(
                 texto = "\n".join(blocos)
             else:
                 texto = texto_raw
+        elif ext == ".json":
+            try:
+                texto, total_estudos = fhir_motor.processar_bundle_fhir(conteudo_bytes)
+            except ValueError as e:
+                return {"error": True, "message": str(e)}
+            aviso_extracao = (
+                f"✅ Formato detectado: Bundle FHIR ({total_estudos} estudo(s) — "
+                f"ResearchStudy) — estrutura aplicada automaticamente."
+            )
+            formato_detectado = "fhir_bundle"
         elif ext in (".txt", ".md"):
             texto_raw = conteudo_bytes.decode("utf-8", errors="replace")
             texto, fmt_especial = _processar_formato_especial(texto_raw, arquivo.filename)
