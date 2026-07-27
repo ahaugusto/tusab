@@ -115,7 +115,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         sub:    ['arXiv', 'FHIR'],
         desc:   totalPesquisaAcademica > 0
           ? t('home.card_repo_done', { count: totalPesquisaAcademica })
-          : t('home.source_pesquisa_desc', 'Busque artigos científicos ou estudos clínicos sem precisar de canal do YouTube.'),
+          : t('home.source_pesquisa_desc', 'Busque artigos científicos ou estudos clínicos'),
         badge:  totalPesquisaAcademica > 0 ? String(totalPesquisaAcademica) : null,
         action: onNavigatePesquisaAcademica,
         highlight: false,
@@ -179,7 +179,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       icon:   '🗺️',
       title:  t('tabs.overview'),
       desc:   totalArquivos > 0
-        ? t('home.card_overview_done', { files: totalArquivos, projects: totalCanais })
+        ? `${t('home.card_overview_files', { count: totalArquivos })} · ${t('home.card_overview_projects', { count: totalCanais })}`
         : t('overview.subtitle'),
       badge:  null,
       color:  'secondary',
