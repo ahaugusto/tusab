@@ -32,7 +32,9 @@ let openCount = 0;
  * @param {Function} props.onClose          - called on Escape or backdrop click
  * @param {React.ReactNode} props.children  - modal card content
  * @param {boolean}  [props.disableEscape]  - prevent Escape from closing
- * @param {boolean}  [props.disableBackdrop]- prevent backdrop click from closing
+ * @param {boolean}  [props.disableBackdrop=true] - clique fora fecha o modal quando
+ *   explicitamente setado como false. Default true: cliques acidentais fora do modal
+ *   não devem descartar o que o usuário já preencheu — só X ou Escape fecham.
  * @param {string}   [props.zIndex='z-40']  - Tailwind z-index class
  * @param {string}   [props.backdrop='bg-black/75'] - Tailwind backdrop colour class
  * @param {string}   [props.label]          - aria-label for the dialog region
@@ -41,7 +43,7 @@ function ModalWrapper({
   onClose,
   children,
   disableEscape   = false,
-  disableBackdrop = false,
+  disableBackdrop = true,
   zIndex          = 'z-40',
   backdrop        = 'bg-black/75',
   label,
