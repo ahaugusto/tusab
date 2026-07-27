@@ -933,6 +933,10 @@ function App() {
             type: sucesso ? 'success' : 'error',
             message: sucesso ? t('extraction.arxiv_toast_success', { processed, total }) : (message || t('extraction.arxiv_toast_error')),
           });
+          // Sem isso, o projeto novo (ou os papers novos num projeto existente)
+          // não aparecem no seletor "Abrir pasta do projeto" nem em outros
+          // lugares que leem `repositorio` até o usuário trocar de aba.
+          if (processed > 0) fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
         }
       }).catch(() => {
         // Polling perdeu conexão — a busca pode continuar rodando no backend.
@@ -981,6 +985,7 @@ function App() {
             type: sucesso ? 'success' : 'error',
             message: sucesso ? t('extraction.fhir_toast_success', { processed, total }) : (message || t('extraction.fhir_toast_error')),
           });
+          if (processed > 0) fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
         }
       }).catch(() => {
         setFhirPolling(false);
