@@ -380,14 +380,15 @@ export default function VisaoGeralTab({ darkMode, btnFocus }) {
                           </tr>
                         ))}
                         {canal.docs.map((f, i) => {
-                          // fonte_externa é gravado pelo backend só em documentos
-                          // baixados via /arxiv/search (motor/arxiv.py). Bundles FHIR
-                          // lidos via upload (motor/fhir.py) usam formato_detectado,
-                          // mesmo padrão dos documentos jurídicos/WhatsApp.
+                          // fonte_externa é gravado pelo backend em qualquer documento
+                          // baixado via /fontes/{id}/search (registro genérico em
+                          // tusab_engine/motor/fontes/ — arXiv, OpenAlex, Europe PMC, ...).
+                          // Bundles FHIR lidos via upload (motor/fhir.py) usam
+                          // formato_detectado, mesmo padrão dos documentos jurídicos/WhatsApp.
                           const ehFhir = f.formato_detectado === 'fhir_bundle';
-                          const destaque = f.fonte_externa === 'arxiv' || ehFhir;
-                          const DocIcon = f.fonte_externa === 'arxiv' ? Search : ehFhir ? Stethoscope : BookOpen;
-                          const docBadgeLabel = f.fonte_externa === 'arxiv' ? 'ARXIV' : ehFhir ? 'FHIR' : (f.tipo || 'doc').toUpperCase();
+                          const destaque = !!f.fonte_externa || ehFhir;
+                          const DocIcon = f.fonte_externa ? Search : ehFhir ? Stethoscope : BookOpen;
+                          const docBadgeLabel = f.fonte_externa ? f.fonte_externa.toUpperCase() : ehFhir ? 'FHIR' : (f.tipo || 'doc').toUpperCase();
                           return (
                           <tr key={`doc-${i}`} className={trSub}>
                             <td className={`${td} pl-10`} colSpan={2}>

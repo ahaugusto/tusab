@@ -36,7 +36,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarArxiv, statusArxiv,
+  buscarFonte, statusFonte,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -224,7 +224,7 @@ function App() {
   // ─── Open-folder picker ────────────────────────────────────────────────────
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   // 'canal_youtube' | 'canal_documents' — qual subpasta abrir, definido por
-  // quem chama onOpenFolderPicker (ex: fonte arXiv selecionada na Extração
+  // quem chama onOpenFolderPicker (ex: fonte pública selecionada na Extração
   // deve abrir documents/, não youtube/, que nem existe nesses projetos).
   const [folderPickerTipo, setFolderPickerTipo] = useState('canal_youtube');
   const [folderPickerNovoProjeto, setFolderPickerNovoProjeto] = useState('');
@@ -851,9 +851,9 @@ function App() {
   };
 
   /** Opens the extraction-type modal, or shows canal error if none configured.
-   *  Perfis com arXiv (Pesquisador) não precisam de canal do YouTube —
-   *  essa fonte é escolhida dentro do próprio modal. */
-  const exigeCanalPrevio = !regras.arxiv;
+   *  Perfis com fontes públicas (Pesquisador) não precisam de canal do YouTube —
+   *  a fonte é escolhida dentro do próprio modal. */
+  const exigeCanalPrevio = !regras.fontes_publicas;
   const handleStart = () => {
     if (!canalConfigurado && !isRunning && exigeCanalPrevio) { setCanalError(t('channel.error_required')); return; }
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
@@ -893,64 +893,66 @@ function App() {
       .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
 
-  /** Confirms an arXiv search (perfil Pesquisador) — inspirado no projeto OpenScience */
-  const handleStartConfirmArxiv = (query, maxResultados, projetoNome, dataInicio = '', dataFim = '', autor = '') => {
+  /** Confirms a search on a public source (perfil Pesquisador) — registro
+   *  genérico em tusab_engine/motor/fontes/, qualquer fonte usa o mesmo fluxo. */
+  const handleStartConfirmFonte = (fonteId, query, maxResultados, projetoNome, dataInicio = '', dataFim = '', autor = '') => {
     setShowExtractionModal(false);
-    setLastArxivResult(null);
-    buscarArxiv(query, maxResultados, projetoNome, dataInicio, dataFim, autor)
+    setLastFonteResult(null);
+    buscarFonte(fonteId, query, maxResultados, projetoNome, dataInicio, dataFim, autor)
       .then(r => {
         if (r.data.error) { showError(r.data.message); return; }
-        setArxivPolling(true);
-        setArxivBackground(true);
+        setFontePollingId(fonteId);
+        setFonteBackground(true);
       })
       .catch(() => showError(t('error.generic')));
   };
 
-  // Polling do progresso da busca arXiv em andamento — a busca roda em
-  // background no backend (BackgroundTasks); sem isso o usuário não recebe
-  // nenhum feedback de conclusão/erro após fechar o modal de extração.
-  // arxivPolling controla o setInterval; arxivBackground controla o Indicador
-  // de Operação em Background (badge na navbar) — são desacoplados de propósito:
-  // se o polling perde conexão, paramos de chamar a API (evita spam de erro),
-  // mas o badge continua visível porque a busca pode continuar rodando no servidor.
-  const [arxivPolling,    setArxivPolling]    = useState(false);
-  const [arxivBackground, setArxivBackground] = useState(false);
+  // Polling do progresso da busca em andamento numa fonte pública — a busca
+  // roda em background no backend (BackgroundTasks); sem isso o usuário não
+  // recebe nenhum feedback de conclusão/erro após fechar o modal de extração.
+  // fontePollingId (id da fonte em busca, ou null) controla o setInterval;
+  // fonteBackground controla o Indicador de Operação em Background (badge na
+  // navbar) — desacoplados de propósito: se o polling perde conexão, paramos
+  // de chamar a API (evita spam de erro), mas o badge continua visível
+  // porque a busca pode continuar rodando no servidor.
+  const [fontePollingId,  setFontePollingId]  = useState(null);
+  const [fonteBackground, setFonteBackground] = useState(false);
   // Resumo persistente da última busca — status.stats (usado pelo card de
-  // resumo pós-extração do YouTube) nunca é tocado pela busca arXiv, que
-  // roda num state.arxiv_stats separado no backend. Sem isso, a única
+  // resumo pós-extração do YouTube) nunca é tocado pela busca em fonte
+  // pública, que roda num state isolado no backend. Sem isso, a única
   // confirmação era o ProgressToast, que some sozinho em alguns segundos.
-  const [lastArxivResult, setLastArxivResult] = useState(null); // { sucesso, processed, total }
+  const [lastFonteResult, setLastFonteResult] = useState(null); // { sucesso, processed, total }
   useEffect(() => {
-    if (!arxivPolling) return;
+    if (!fontePollingId) return;
     const interval = setInterval(() => {
-      statusArxiv().then(r => {
+      statusFonte(fontePollingId).then(r => {
         const { running, status, total, processed, message } = r.data;
         if (running) {
           setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
         } else {
-          setArxivPolling(false);
-          setArxivBackground(false);
+          setFontePollingId(null);
+          setFonteBackground(false);
           const sucesso = status === 'Finalizado ✓';
-          setLastArxivResult({ sucesso, processed, total });
+          setLastFonteResult({ sucesso, processed, total });
           setProgressToast({
             type: sucesso ? 'success' : 'error',
-            message: sucesso ? t('extraction.arxiv_toast_success', { processed, total }) : (message || t('extraction.arxiv_toast_error')),
+            message: sucesso ? `Busca concluída (${processed}/${total} indexados)` : (message || 'Busca encerrada com erro'),
           });
-          // Sem isso, o projeto novo (ou os papers novos num projeto existente)
-          // não aparecem no seletor "Abrir pasta do projeto" nem em outros
-          // lugares que leem `repositorio` até o usuário trocar de aba.
+          // Sem isso, o projeto novo (ou os resultados novos num projeto
+          // existente) não aparecem no seletor "Abrir pasta do projeto" nem
+          // em outros lugares que leem `repositorio` até trocar de aba.
           if (processed > 0) fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
         }
       }).catch(() => {
         // Polling perdeu conexão — a busca pode continuar rodando no backend.
-        // Paramos de chamar a API (setArxivPolling), mas o Indicador de
-        // Operação em Background (arxivBackground) permanece visível.
-        setArxivPolling(false);
-        setProgressToast({ type: 'warning', message: t('extraction.arxiv_toast_polling_lost') });
+        // Paramos de chamar a API (fontePollingId=null), mas o Indicador de
+        // Operação em Background (fonteBackground) permanece visível.
+        setFontePollingId(null);
+        setProgressToast({ type: 'warning', message: 'Perdemos a conexão com o progresso da busca — ela pode continuar rodando. Verifique o Repositório em alguns instantes.' });
       });
     }, 2000);
     return () => clearInterval(interval);
-  }, [arxivPolling]);
+  }, [fontePollingId]);
 
   const handlePause = () => {
     pauseExtraction();
@@ -1325,7 +1327,7 @@ function App() {
 
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmArxiv={handleStartConfirmArxiv} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} regras={regras} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmFonte={handleStartConfirmFonte} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} regras={regras} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1394,7 +1396,7 @@ function App() {
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
-                  {id === 'extracao' && (isRunning || arxivBackground) && (
+                  {id === 'extracao' && (isRunning || fonteBackground) && (
                     <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
                   )}
                   {id === 'admin' && appUpdateInfo && (
@@ -1510,7 +1512,7 @@ function App() {
               agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               regras={regras}
               onNavigate={(id) => { if (id === 'agente') setAgentInitialSubTab('configuracoes'); setActiveTab(id); setShowHome(false); }}
-              onNavigatePesquisaAcademica={() => { setFontePreSelecionada('arxiv'); setActiveTab('extracao'); setShowHome(false); }}
+              onNavigatePesquisaAcademica={() => { setFontePreSelecionada('fonte-publica'); setActiveTab('extracao'); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onImportBase={() => { setActiveTab('repositorio'); setShowHome(false); setRepoImportOpen(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
@@ -1646,7 +1648,7 @@ function App() {
                   canalConfiguradoNaSessaoRef.current = false;
                 }}
                 regras={regras}
-                lastArxivResult={lastArxivResult}
+                lastFonteResult={lastFonteResult}
                 fontePreSelecionada={fontePreSelecionada}
                 setFontePreSelecionada={setFontePreSelecionada}
               />
