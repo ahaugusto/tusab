@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tv, Microscope, FolderOpen } from 'lucide-react';
 import CircuitBackground from './CircuitBackground';
 
 function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onNavigatePesquisaAcademica, onAddFiles, onToggleTheme, onChangeLang, onImportBase, regras }) {
@@ -98,7 +99,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     sourceCards = [
       {
         id:     'youtube',
-        icon:   '📺',
+        icon:   Tv,
         title:  t('home.source_youtube_title'),
         sub:    'YouTube',
         desc:   totalCanais > 0
@@ -110,7 +111,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       },
       {
         id:     'pesquisa-academica',
-        icon:   '🔬',
+        icon:   Microscope,
         title:  t('home.source_pesquisa_title', 'Pesquisa acadêmica'),
         sub:    ['arXiv', 'FHIR'],
         desc:   totalPesquisaAcademica > 0
@@ -122,7 +123,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       },
       {
         id:     'arquivos',
-        icon:   '📁',
+        icon:   FolderOpen,
         title:  t('home.source_files_title'),
         sub:    t('home.source_files_sub'),
         desc:   totalDocs > 0
@@ -259,7 +260,9 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                     </span>
                   )}
                   <div className="w-8 h-8 flex items-center justify-center mb-2">
-                    <span className="text-2xl leading-none">{card.icon}</span>
+                    {typeof card.icon === 'string'
+                      ? <span className="text-2xl leading-none">{card.icon}</span>
+                      : <card.icon size={24} className={darkMode ? 'text-slate-300' : 'text-slate-600'} aria-hidden="true" />}
                   </div>
                   <p className={`text-xs font-bold leading-tight ${card.highlight ? darkMode ? 'text-primary' : 'text-violet-700' : darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
                   {card.sub && (
