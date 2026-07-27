@@ -343,17 +343,27 @@ class ArxivSearchRequest(BaseModel):
 
 
 def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str):
+    # Tag temporária pra os prints abaixo aparecerem sob o projeto certo no
+    # filtro do log (LogRedirector lê state.stats["canal_nome"]) — restaurado
+    # no finally pra não vazar num canal do YouTube que esteja rodando junto.
+    canal_nome_anterior = state.stats.get("canal_nome", "")
     try:
         state.arxiv_running = True
         state.arxiv_stats = {"status": "Buscando no arXiv", "total": 0, "processed": 0}
         state.arxiv_cancel.clear()
+        state.stats["canal_nome"] = projeto_nome
+        print(f"🔎 Buscando \"{query}\" no arXiv (até {max_resultados} resultados)...")
 
         def _dispatch(event, **kwargs):
             if event == "arxiv_total":
-                state.arxiv_stats["total"] = kwargs.get("total", 0)
+                total = kwargs.get("total", 0)
+                state.arxiv_stats["total"] = total
                 state.arxiv_stats["status"] = "Baixando papers"
+                print(f"📄 {total} paper(s) encontrado(s) — baixando...")
             elif event == "arxiv_processed":
-                state.arxiv_stats["processed"] = kwargs.get("processed", 0)
+                processed = kwargs.get("processed", 0)
+                state.arxiv_stats["processed"] = processed
+                print(f"💾 Paper {processed}/{state.arxiv_stats['total']} salvo no projeto")
 
         resultado = arxiv_motor.buscar_arxiv(
             query=query,
@@ -363,6 +373,8 @@ def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str):
             dispatch_event=_dispatch,
         )
         state.arxiv_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
+        if resultado.get("ok"):
+            print(f"🏁 Busca no arXiv concluída — {resultado.get('total_salvos', 0)} paper(s) salvos.")
     except Exception as e:
         mensagem = _mensagem_erro_busca_externa(e, "arXiv")
         print(f"❌ ERRO NA BUSCA ARXIV: {mensagem}")
@@ -370,6 +382,7 @@ def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str):
         state.arxiv_stats["message"] = mensagem
     finally:
         state.arxiv_running = False
+        state.stats["canal_nome"] = canal_nome_anterior
 
 
 @router.post("/arxiv/search")
@@ -421,17 +434,25 @@ class FhirSearchRequest(BaseModel):
 
 
 def _run_fhir_search(query: str, max_resultados: int, projeto_nome: str):
+    # Ver comentário equivalente em _run_arxiv_search.
+    canal_nome_anterior = state.stats.get("canal_nome", "")
     try:
         state.fhir_running = True
         state.fhir_stats = {"status": "Buscando estudos (FHIR)", "total": 0, "processed": 0}
         state.fhir_cancel.clear()
+        state.stats["canal_nome"] = projeto_nome
+        print(f"🔎 Buscando \"{query}\" no FHIR (até {max_resultados} estudos)...")
 
         def _dispatch(event, **kwargs):
             if event == "fhir_total":
-                state.fhir_stats["total"] = kwargs.get("total", 0)
+                total = kwargs.get("total", 0)
+                state.fhir_stats["total"] = total
                 state.fhir_stats["status"] = "Salvando estudos"
+                print(f"📄 {total} estudo(s) encontrado(s) — salvando...")
             elif event == "fhir_processed":
-                state.fhir_stats["processed"] = kwargs.get("processed", 0)
+                processed = kwargs.get("processed", 0)
+                state.fhir_stats["processed"] = processed
+                print(f"💾 Estudo {processed}/{state.fhir_stats['total']} salvo no projeto")
 
         resultado = fhir_motor.buscar_fhir(
             query=query,
@@ -441,6 +462,8 @@ def _run_fhir_search(query: str, max_resultados: int, projeto_nome: str):
             dispatch_event=_dispatch,
         )
         state.fhir_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
+        if resultado.get("ok"):
+            print(f"🏁 Busca no FHIR concluída — {resultado.get('total_salvos', 0)} estudo(s) salvos.")
     except Exception as e:
         mensagem = _mensagem_erro_busca_externa(e, "FHIR")
         print(f"❌ ERRO NA BUSCA FHIR: {mensagem}")
@@ -448,6 +471,7 @@ def _run_fhir_search(query: str, max_resultados: int, projeto_nome: str):
         state.fhir_stats["message"] = mensagem
     finally:
         state.fhir_running = False
+        state.stats["canal_nome"] = canal_nome_anterior
 
 
 @router.post("/fhir/search")
