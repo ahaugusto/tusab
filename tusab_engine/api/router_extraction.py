@@ -8,24 +8,11 @@ import re
 import time
 import threading
 
-import requests
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
-from tusab_engine.motor import arxiv as arxiv_motor
-
-
-def _mensagem_erro_busca_externa(e: Exception, fonte: str) -> str:
-    """Traduz erros comuns de API externa (arXiv) em mensagem acionável —
-    o texto cru de HTTPError (URL completa + status) não ajuda o usuário a
-    saber se deve só tentar de novo ou se é um problema real."""
-    if isinstance(e, requests.exceptions.HTTPError) and e.response is not None and e.response.status_code == 429:
-        return f"{fonte} está limitando o número de buscas no momento — aguarde alguns segundos e tente novamente."
-    if isinstance(e, requests.exceptions.Timeout):
-        return f"{fonte} demorou demais para responder — tente novamente."
-    return f"Erro ao buscar em {fonte}: {e}"
 
 router = APIRouter()
 
@@ -329,107 +316,6 @@ def queue_status():
     with state.queue_lock:
         itens = list(state.extraction_queue)
     return {"queue": itens}
-
-
-# ── Busca acadêmica no arXiv (perfil Pesquisador) ──────────────────────────────
-# Feature inspirada no projeto open-source OpenScience (synthetic-sciences/openscience).
-# Ver tusab_engine/motor/arxiv.py para detalhes e atribuição completa.
-
-class ArxivSearchRequest(BaseModel):
-    query:          str = Field(min_length=2, max_length=300)
-    max_resultados: int = Field(default=20, ge=1, le=arxiv_motor.MAX_RESULTADOS_PERMITIDO)
-    projeto_nome:   str = Field(max_length=120)
-    # Filtro por data de submissão (YYYY-MM-DD, de <input type="date">); vazio = sem limite.
-    data_inicio:    str = Field(default="", pattern=r'^\d{4}-\d{2}-\d{2}$|^$')
-    data_fim:       str = Field(default="", pattern=r'^\d{4}-\d{2}-\d{2}$|^$')
-    # Filtro por autor (au:); vazio = sem filtro. Instituição não existe como campo no arXiv.
-    autor:          str = Field(default="", max_length=120)
-
-
-def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str, data_inicio: str = "", data_fim: str = "", autor: str = ""):
-    # Tag temporária pra os prints abaixo aparecerem sob o projeto certo no
-    # filtro do log (LogRedirector lê state.stats["canal_nome"]) — restaurado
-    # no finally pra não vazar num canal do YouTube que esteja rodando junto.
-    canal_nome_anterior = state.stats.get("canal_nome", "")
-    try:
-        state.arxiv_running = True
-        state.arxiv_stats = {"status": "Buscando no arXiv", "total": 0, "processed": 0}
-        state.arxiv_cancel.clear()
-        state.stats["canal_nome"] = projeto_nome
-        periodo = f" entre {data_inicio or '...'} e {data_fim or 'hoje'}" if (data_inicio or data_fim) else ""
-        filtro_autor = f" do(a) autor(a) {autor}" if autor.strip() else ""
-        print(f"🔎 Buscando \"{query}\"{filtro_autor} no arXiv{periodo} (até {max_resultados} resultados)...")
-
-        def _dispatch(event, **kwargs):
-            if event == "arxiv_total":
-                total = kwargs.get("total", 0)
-                state.arxiv_stats["total"] = total
-                state.arxiv_stats["status"] = "Baixando papers"
-                print(f"📄 {total} paper(s) encontrado(s) — baixando...")
-            elif event == "arxiv_processed":
-                processed = kwargs.get("processed", 0)
-                state.arxiv_stats["processed"] = processed
-                print(f"💾 Paper {processed}/{state.arxiv_stats['total']} salvo no projeto")
-
-        resultado = arxiv_motor.buscar_arxiv(
-            query=query,
-            max_resultados=max_resultados,
-            projeto_nome=projeto_nome,
-            data_inicio=data_inicio,
-            data_fim=data_fim,
-            autor=autor,
-            evento_cancelar=state.arxiv_cancel,
-            dispatch_event=_dispatch,
-        )
-        state.arxiv_stats["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
-        if resultado.get("ok"):
-            print(f"🏁 Busca no arXiv concluída — {resultado.get('total_salvos', 0)} paper(s) salvos.")
-    except Exception as e:
-        mensagem = _mensagem_erro_busca_externa(e, "arXiv")
-        print(f"❌ ERRO NA BUSCA ARXIV: {mensagem}")
-        state.arxiv_stats["status"] = "Erro"
-        state.arxiv_stats["message"] = mensagem
-    finally:
-        state.arxiv_running = False
-        state.stats["canal_nome"] = canal_nome_anterior
-
-
-@router.post("/arxiv/search")
-def arxiv_search(req: ArxivSearchRequest, background_tasks: BackgroundTasks):
-    """Busca papers no arXiv por tema e indexa como documentos do projeto.
-
-    [CONTRATO] Assim como POST /neural/upload, o projeto (projeto_nome) deve já
-    existir — ver POST /neural/projeto. Não reindexa automaticamente; indexação
-    continua sendo POST /agent/index, ação explícita do usuário.
-    """
-    if state.arxiv_running:
-        return {"error": True, "message": "Já há uma busca no arXiv em andamento"}
-
-    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome.strip()).strip('_')
-    if not projeto_prefixo:
-        return {"error": True, "message": "Selecione um projeto antes de buscar"}
-
-    projeto_dir = os.path.join(motor_tusab.NEURAL_DIR, projeto_prefixo)
-    if not os.path.exists(projeto_dir):
-        return {"error": True, "message": "Projeto não encontrado. Crie o projeto antes de buscar."}
-
-    background_tasks.add_task(_run_arxiv_search, req.query.strip(), req.max_resultados, projeto_prefixo, req.data_inicio, req.data_fim, req.autor.strip())
-    return {"ok": True, "message": "Busca iniciada"}
-
-
-@router.post("/arxiv/cancel")
-def arxiv_cancel():
-    """Cancela a busca no arXiv em andamento (não desfaz papers já salvos)."""
-    if state.arxiv_running:
-        state.arxiv_cancel.set()
-        return {"message": "Cancelando"}
-    return {"message": "Nenhuma busca em andamento"}
-
-
-@router.get("/arxiv/status")
-def arxiv_status():
-    """Status da busca no arXiv em andamento (polling)."""
-    return {"running": state.arxiv_running, **state.arxiv_stats}
 
 
 class AutoUpdateConfigRequest(BaseModel):

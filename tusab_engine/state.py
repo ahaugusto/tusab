@@ -102,12 +102,12 @@ class AppState:
             # canal_prefixo: {"n": int, "total": int}
         }
 
-        # Busca acadêmica no arXiv (perfil Pesquisador) — estado isolado,
-        # não reaproveita self.stats (contrato acoplado a vídeos do YouTube)
-        # nem o LogRedirector (parsing de emojis específico do motor YouTube).
-        self.arxiv_running        = False
-        self.arxiv_cancel         = threading.Event()
-        self.arxiv_stats: dict    = {"status": "Ocioso", "total": 0, "processed": 0}
+        # Busca em fontes públicas por área de conhecimento (perfil Pesquisador)
+        # — estado isolado por fonte, não reaproveita self.stats (contrato
+        # acoplado a vídeos do YouTube) nem o LogRedirector. Populado sob
+        # demanda em router_fontes.py — não precisa listar cada fonte aqui
+        # (arxiv, openalex, europepmc, ...), só o dict vazio.
+        self.fontes_publicas_state: dict = {}
 
     # ── API de eventos estruturados ───────────────────────────────────────────
     # Substitui o contrato implícito de emojis/strings do LogRedirector.

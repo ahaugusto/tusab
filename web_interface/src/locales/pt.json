@@ -161,7 +161,7 @@
   "onboarding.s6_body_estudante": "Importe o arquivo .tusab recebido do seu professor. O Tusab carrega a base pronta — você já pode fazer perguntas sem precisar configurar nada.",
   "onboarding.s6_body_professor": "Após extrair e indexar, exporte a base como .tusab e envie para seus alunos. Eles abrem o arquivo e já podem conversar com o conteúdo.",
   "onboarding.s6_body_profissional": "Com conteúdo no repositório, acesse a aba Agente e clique em Indexar Agora. Depois, abra o chat, selecione a base e comece a perguntar — cada resposta vem com a citação exata da fonte. Bônus: em Admin → MCP Server, você pode conectar sua base diretamente ao Claude Code, Cursor ou qualquer editor com suporte a MCP.",
-  "onboarding.s3_body_pesquisador": "Além do YouTube e upload manual, você pode buscar artigos científicos no arXiv por tema — o Tusab baixa e indexa automaticamente. Ative essa opção no modal de extração.",
+  "onboarding.s3_body_pesquisador": "Além do YouTube e upload manual, você pode buscar em bases públicas por área de conhecimento (arXiv, OpenAlex, Europe PMC e mais) — o Tusab baixa e indexa automaticamente. Ative essa opção no modal de extração.",
   "onboarding.s_notif_title": "Fique por dentro em tempo real",
   "onboarding.s_notif_body": "O Tusab pode te avisar quando uma extração terminar ou quando o chat responder enquanto você está em outra aba. Ative as notificações para não perder nenhum resultado.",
   "onboarding.notif_cta": "Ativar notificações do sistema",
