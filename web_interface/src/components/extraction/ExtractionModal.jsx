@@ -497,6 +497,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
                       <select
                         value={projetos.some(p => p.nome === projetoNome) ? projetoNome : ''}
                         onChange={e => { if (e.target.value) { setProjetoNome(e.target.value); setNomeEditadoManual(true); setProjetoExistenteSelecionado(true); } }}
+                        style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                         className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
                           ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
                         <option value="">— selecione um projeto —</option>

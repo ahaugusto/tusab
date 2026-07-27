@@ -27,7 +27,7 @@ import requests
 
 from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
-ARXIV_API_URL = "http://export.arxiv.org/api/query"
+ARXIV_API_URL = "https://export.arxiv.org/api/query"
 _ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 
 # arXiv pede um intervalo mínimo de 3s entre requisições — mesmo padrão de
@@ -113,7 +113,11 @@ def buscar_arxiv(
             "start": 0,
             "max_results": max_resultados,
         },
-        timeout=30,
+        # (connect, read) — a busca do arXiv pode legitimamente demorar mais que
+        # 30s pra devolver o Atom XML dependendo da amplitude da query; 30s puro
+        # já causou "Read timed out" numa busca real (não era travamento de rede,
+        # era o servidor do arXiv processando).
+        timeout=(10, 45),
     )
     resp.raise_for_status()
     entradas = _parsear_entradas(resp.content)

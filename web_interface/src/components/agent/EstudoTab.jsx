@@ -145,6 +145,7 @@ export default function EstudoTab({
                 border: `1px solid ${projeto ? 'rgba(139,92,246,0.40)' : borderColor}`,
                 color: projeto ? (darkMode ? '#a78bfa' : '#7c3aed') : textSecond,
                 cursor: 'pointer', outline: 'none',
+                colorScheme: darkMode ? 'dark' : 'light',
               }}>
               <option value="">— selecione um projeto —</option>
               {projetosIndexados.map(p => (
