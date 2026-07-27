@@ -24,7 +24,7 @@ function fmtData(s) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtivo, isRunning }) {
+function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtivo, isRunning, projetoSoTemDocumentos }) {
   const { t } = useTranslation();
   const [canal,             setCanal]             = React.useState('');
   const [data,              setData]              = React.useState(null);
@@ -428,9 +428,17 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
       {/* Relatório não encontrado e extração parada */}
       {!loading && relatorioNaoGerado && !isRunning && (
         <div className={`rounded-2xl border p-6 text-center ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>
-          <p className="text-2xl mb-3">📊</p>
-          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('relatorio.nao_encontrado', 'Relatório não encontrado')}</p>
-          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('relatorio.nao_encontrado_desc', 'Inicie uma extração para gerar o relatório deste canal.')}</p>
+          <p className="text-2xl mb-3">{projetoSoTemDocumentos ? '📄' : '📊'}</p>
+          <p className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            {projetoSoTemDocumentos
+              ? t('relatorio.sem_video', 'Este projeto não tem vídeos do YouTube')
+              : t('relatorio.nao_encontrado', 'Relatório não encontrado')}
+          </p>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            {projetoSoTemDocumentos
+              ? t('relatorio.sem_video_desc', 'O relatório de cobertura de legendas só se aplica a vídeos extraídos do YouTube. Veja os documentos deste projeto na aba Repositório.')
+              : t('relatorio.nao_encontrado_desc', 'Inicie uma extração para gerar o relatório deste canal.')}
+          </p>
         </div>
       )}
 
