@@ -890,6 +890,7 @@ function App() {
   /** Confirms an arXiv search (perfil Pesquisador) — inspirado no projeto OpenScience */
   const handleStartConfirmArxiv = (query, maxResultados, projetoNome) => {
     setShowExtractionModal(false);
+    setLastArxivResult(null);
     buscarArxiv(query, maxResultados, projetoNome)
       .then(r => {
         if (r.data.error) { showError(r.data.message); return; }
@@ -908,6 +909,11 @@ function App() {
   // mas o badge continua visível porque a busca pode continuar rodando no servidor.
   const [arxivPolling,    setArxivPolling]    = useState(false);
   const [arxivBackground, setArxivBackground] = useState(false);
+  // Resumo persistente da última busca — status.stats (usado pelo card de
+  // resumo pós-extração do YouTube) nunca é tocado pela busca arXiv, que
+  // roda num state.arxiv_stats separado no backend. Sem isso, a única
+  // confirmação era o ProgressToast, que some sozinho em alguns segundos.
+  const [lastArxivResult, setLastArxivResult] = useState(null); // { sucesso, processed, total }
   useEffect(() => {
     if (!arxivPolling) return;
     const interval = setInterval(() => {
@@ -919,6 +925,7 @@ function App() {
           setArxivPolling(false);
           setArxivBackground(false);
           const sucesso = status === 'Finalizado ✓';
+          setLastArxivResult({ sucesso, processed, total });
           setProgressToast({
             type: sucesso ? 'success' : 'error',
             message: sucesso ? t('extraction.arxiv_toast_success', { processed, total }) : t('extraction.arxiv_toast_error'),
@@ -938,6 +945,7 @@ function App() {
   /** Confirms a FHIR ResearchStudy search (perfil Pesquisador) — mesmo padrão do arXiv */
   const handleStartConfirmFhir = (query, maxResultados, projetoNome) => {
     setShowExtractionModal(false);
+    setLastFhirResult(null);
     buscarFhir(query, maxResultados, projetoNome)
       .then(r => {
         if (r.data.error) { showError(r.data.message); return; }
@@ -952,6 +960,8 @@ function App() {
   // controla o Indicador de Operação em Background — desacoplados de propósito.
   const [fhirPolling,    setFhirPolling]    = useState(false);
   const [fhirBackground, setFhirBackground] = useState(false);
+  // Mesmo padrão do lastArxivResult — ver comentário acima.
+  const [lastFhirResult, setLastFhirResult] = useState(null); // { sucesso, processed, total }
   useEffect(() => {
     if (!fhirPolling) return;
     const interval = setInterval(() => {
@@ -963,6 +973,7 @@ function App() {
           setFhirPolling(false);
           setFhirBackground(false);
           const sucesso = status === 'Finalizado ✓';
+          setLastFhirResult({ sucesso, processed, total });
           setProgressToast({
             type: sucesso ? 'success' : 'error',
             message: sucesso ? t('extraction.fhir_toast_success', { processed, total }) : t('extraction.fhir_toast_error'),
@@ -1669,6 +1680,8 @@ function App() {
                   canalConfiguradoNaSessaoRef.current = false;
                 }}
                 regras={regras}
+                lastArxivResult={lastArxivResult}
+                lastFhirResult={lastFhirResult}
               />
             )}
 {/* ── TAB: HISTÓRICO ── */}

@@ -212,7 +212,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
               onChange={e => setFiltroCanal(e.target.value)}
               className={`flex-1 text-[11px] rounded-xl border px-2 py-1.5 outline-none ${BTN_FOCUS}
                 ${darkMode ? 'bg-white/5 border-white/15 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
-              <option value="">Todos os canais</option>
+              <option value="">Todos os projetos</option>
               {canais.map(c => <option key={c} value={c}>@{c}</option>)}
             </select>
           )}
