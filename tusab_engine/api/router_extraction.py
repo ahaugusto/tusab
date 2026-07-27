@@ -343,9 +343,11 @@ class ArxivSearchRequest(BaseModel):
     # Filtro por data de submissão (YYYY-MM-DD, de <input type="date">); vazio = sem limite.
     data_inicio:    str = Field(default="", pattern=r'^\d{4}-\d{2}-\d{2}$|^$')
     data_fim:       str = Field(default="", pattern=r'^\d{4}-\d{2}-\d{2}$|^$')
+    # Filtro por autor (au:); vazio = sem filtro. Instituição não existe como campo no arXiv.
+    autor:          str = Field(default="", max_length=120)
 
 
-def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str, data_inicio: str = "", data_fim: str = ""):
+def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str, data_inicio: str = "", data_fim: str = "", autor: str = ""):
     # Tag temporária pra os prints abaixo aparecerem sob o projeto certo no
     # filtro do log (LogRedirector lê state.stats["canal_nome"]) — restaurado
     # no finally pra não vazar num canal do YouTube que esteja rodando junto.
@@ -356,7 +358,8 @@ def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str, data_i
         state.arxiv_cancel.clear()
         state.stats["canal_nome"] = projeto_nome
         periodo = f" entre {data_inicio or '...'} e {data_fim or 'hoje'}" if (data_inicio or data_fim) else ""
-        print(f"🔎 Buscando \"{query}\" no arXiv{periodo} (até {max_resultados} resultados)...")
+        filtro_autor = f" do(a) autor(a) {autor}" if autor.strip() else ""
+        print(f"🔎 Buscando \"{query}\"{filtro_autor} no arXiv{periodo} (até {max_resultados} resultados)...")
 
         def _dispatch(event, **kwargs):
             if event == "arxiv_total":
@@ -375,6 +378,7 @@ def _run_arxiv_search(query: str, max_resultados: int, projeto_nome: str, data_i
             projeto_nome=projeto_nome,
             data_inicio=data_inicio,
             data_fim=data_fim,
+            autor=autor,
             evento_cancelar=state.arxiv_cancel,
             dispatch_event=_dispatch,
         )
@@ -410,7 +414,7 @@ def arxiv_search(req: ArxivSearchRequest, background_tasks: BackgroundTasks):
     if not os.path.exists(projeto_dir):
         return {"error": True, "message": "Projeto não encontrado. Crie o projeto antes de buscar."}
 
-    background_tasks.add_task(_run_arxiv_search, req.query.strip(), req.max_resultados, projeto_prefixo, req.data_inicio, req.data_fim)
+    background_tasks.add_task(_run_arxiv_search, req.query.strip(), req.max_resultados, projeto_prefixo, req.data_inicio, req.data_fim, req.autor.strip())
     return {"ok": True, "message": "Busca iniciada"}
 
 

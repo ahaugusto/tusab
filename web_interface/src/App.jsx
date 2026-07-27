@@ -895,10 +895,10 @@ function App() {
   };
 
   /** Confirms an arXiv search (perfil Pesquisador) — inspirado no projeto OpenScience */
-  const handleStartConfirmArxiv = (query, maxResultados, projetoNome, dataInicio = '', dataFim = '') => {
+  const handleStartConfirmArxiv = (query, maxResultados, projetoNome, dataInicio = '', dataFim = '', autor = '') => {
     setShowExtractionModal(false);
     setLastArxivResult(null);
-    buscarArxiv(query, maxResultados, projetoNome, dataInicio, dataFim)
+    buscarArxiv(query, maxResultados, projetoNome, dataInicio, dataFim, autor)
       .then(r => {
         if (r.data.error) { showError(r.data.message); return; }
         setArxivPolling(true);
