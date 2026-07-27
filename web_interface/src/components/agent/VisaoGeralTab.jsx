@@ -381,19 +381,22 @@ export default function VisaoGeralTab({ darkMode, btnFocus }) {
                         ))}
                         {canal.docs.map((f, i) => {
                           // fonte_externa é gravado pelo backend só em documentos
-                          // baixados via /arxiv/search ou /fhir/search (motor/arxiv.py,
-                          // motor/fhir.py) — ausente em upload manual comum.
-                          const DocIcon = f.fonte_externa === 'arxiv' ? Search : f.fonte_externa === 'fhir' ? Stethoscope : BookOpen;
-                          const docBadgeLabel = f.fonte_externa === 'arxiv' ? 'ARXIV' : f.fonte_externa === 'fhir' ? 'FHIR' : (f.tipo || 'doc').toUpperCase();
+                          // baixados via /arxiv/search (motor/arxiv.py). Bundles FHIR
+                          // lidos via upload (motor/fhir.py) usam formato_detectado,
+                          // mesmo padrão dos documentos jurídicos/WhatsApp.
+                          const ehFhir = f.formato_detectado === 'fhir_bundle';
+                          const destaque = f.fonte_externa === 'arxiv' || ehFhir;
+                          const DocIcon = f.fonte_externa === 'arxiv' ? Search : ehFhir ? Stethoscope : BookOpen;
+                          const docBadgeLabel = f.fonte_externa === 'arxiv' ? 'ARXIV' : ehFhir ? 'FHIR' : (f.tipo || 'doc').toUpperCase();
                           return (
                           <tr key={`doc-${i}`} className={trSub}>
                             <td className={`${td} pl-10`} colSpan={2}>
                               <div className="flex items-center gap-1.5">
-                                <DocIcon size={10} className={f.fonte_externa ? 'text-violet-400 shrink-0' : 'text-sky-400 shrink-0'} />
+                                <DocIcon size={10} className={destaque ? 'text-violet-400 shrink-0' : 'text-sky-400 shrink-0'} />
                                 <span className={`truncate max-w-[200px] text-[11px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{f.nome_original || f.titulo || f.id}</span>
                               </div>
                             </td>
-                            <td className={`${td} text-right`}><Badge color={f.fonte_externa ? 'violet' : 'sky'}>{docBadgeLabel}</Badge></td>
+                            <td className={`${td} text-right`}><Badge color={destaque ? 'violet' : 'sky'}>{docBadgeLabel}</Badge></td>
                             <td colSpan={3} />
                             <td className={`${td} text-right font-mono text-[10px]`}>{fmtBytes(f.tamanho)}</td>
                             <td /><td />
