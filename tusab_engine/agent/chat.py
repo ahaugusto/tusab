@@ -104,6 +104,22 @@ PERSONAS = {
     'socratico':     'Ao final de cada resposta, inclua uma pergunta que aprofunde o raciocínio do usuário sobre o tema.',
 }
 
+# Instrução de formato compartilhada por todos os prompt builders (_montar_prompt,
+# _montar_prompt_contexto, _montar_prompt_trecho) — o ChatDrawer já renderiza
+# ReactMarkdown com remark-gfm (tabelas, negrito, listas) e components estilizados
+# para cada elemento; sem esta instrução o LLM tende a devolver texto corrido sem
+# nenhuma estrutura, mesmo com o pipeline de renderização pronto para recebê-la.
+_FMT_INSTR = (
+    "FORMATO: escreva em Markdown limpo, pensado para leitura confortável no chat.\n"
+    "- Parágrafos separados por linha em branco — nunca um bloco único de texto corrido.\n"
+    "- Para listar tópicos, use UMA linha por item começando com \"- \" (lista Markdown) — nunca junte vários tópicos na mesma linha.\n"
+    "- Use **negrito** para destacar termos-chave, nomes e dados importantes — não frases inteiras.\n"
+    "- Quando a resposta comparar itens ou apresentar dados estruturados (preços, datas, categorias, prós/contras), use uma tabela Markdown (cabeçalho + linhas com \"|\").\n"
+    "- Emojis com moderação: só quando reforçam a organização visual (ex.: ✅ ❌ 📌 ⚠️) ou o tema pede — nunca um emoji decorativo por frase.\n"
+    "- Não repita pontuação (nunca escreva \"..\" ou \":.\" — use apenas \".\" ou \":\").\n"
+    "- Não coloque \":\" logo após um termo em **negrito** seguido de texto na mesma linha de outros tópicos; cada tópico em negrito deve abrir sua própria linha de lista.\n\n"
+)
+
 
 def _api_key_valida(config: dict) -> bool:
     """Retorna True se há chave de API real configurada (não sentinel, não vazia)."""
@@ -354,6 +370,7 @@ def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dic
         f'O usuário fez uma instrução sobre a resposta anterior da conversa.\n'
         f'NÃO busque novos documentos — opere sobre o conteúdo já apresentado.\n\n'
         f'IDIOMA: responda SEMPRE em {lang_label}.\n\n'
+        + _FMT_INSTR
         + instrucao_tom
         + hist_str
         + f'<previous_question>{pergunta_anterior}</previous_question>\n\n'
@@ -935,6 +952,7 @@ def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, hi
         f"4. Convide o usuário a continuar a conversa com uma pergunta específica sobre o tema.\n\n"
         f"NÃO diga que não encontrou informações — o trecho É a fonte.\n\n"
         + lang_instr
+        + _FMT_INSTR
         + instrucao_tom
         + hist_str
         + f"<trecho arquivo=\"{arquivo}\">\n{trecho[:3000]}\n</trecho>\n\nRESPOSTA:"
@@ -1000,13 +1018,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}, independentemente do idioma das fontes.\n\n"
 
-    fmt_instr = (
-        "FORMATO: escreva em Markdown limpo.\n"
-        "- Parágrafos separados por linha em branco.\n"
-        "- Para listar tópicos, use UMA linha por item começando com \"- \" (lista Markdown) — nunca junte vários tópicos na mesma linha.\n"
-        "- Não repita pontuação (nunca escreva \"..\" ou \":.\" — use apenas \".\" ou \":\").\n"
-        "- Não coloque \":\" logo após um termo em **negrito** seguido de texto na mesma linha de outros tópicos; cada tópico em negrito deve abrir sua própria linha de lista.\n\n"
-    )
+    fmt_instr = _FMT_INSTR
 
     if busca_ampla:
         instrucoes = (

@@ -51,7 +51,7 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 | v1.0.37 | jul 2026 | Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — terceira fonte além de YouTube/arXiv |
 | v1.0.38 | jul 2026 | Reconhecimento de documentos jurídicos (perfil Especialista); confiança graduada por sentença no chat (P1-e); calibragem dinâmica de RAG por corpus (P0-c); progresso granular na indexação; pipeline de release automático corrigido (quebrado desde v1.0.22) + Dependabot |
 | v1.0.39 | jul 2026 | Discoverability: orientação sobre o MCP Server no produto (botão Admin + FAQ + onboarding); FAQ trilíngue de FHIR e reconhecimento jurídico; aviso permanente sobre reconhecimento jurídico no Repositório — features já implementadas em versões anteriores ganham exposição real ao usuário |
-| v1.0.40 | jul 2026 | Aba Admin liberada pro perfil Pesquisador (WARN de acesso, sem razão de segurança); arXiv/FHIR acessíveis sem canal do YouTube configurado; chip de perfil e chip do Drive coexistindo no header (fix WARN-25); feedback de update mais visível (ProgressToast); badge persistente de formato detectado (jurídico/WhatsApp/reunião) na listagem do Repositório |
+| v1.0.40 | jul 2026 | Aba Admin liberada pro perfil Pesquisador (WARN de acesso, sem razão de segurança); arXiv/FHIR acessíveis sem canal do YouTube configurado; chip de perfil e chip do Drive coexistindo no header (fix WARN-25); feedback de update mais visível (ProgressToast); badge persistente de formato detectado (jurídico/WhatsApp/reunião) na listagem do Repositório; instrução de formato do chat (negrito/tabela/emoji) unificada em `_FMT_INSTR` e aplicada aos 3 prompt builders; copy de notificações adaptada pra Electron (sem "barra de endereço") |
 
 ---
 
