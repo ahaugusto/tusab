@@ -8,27 +8,9 @@ from unittest.mock import patch, MagicMock
 from tusab_engine.motor import arxiv as arxiv_motor
 
 
-# ─── Endpoint ──────────────────────────────────────────────────────────────────
-
-def test_arxiv_search_rejeita_sem_projeto(client):
-    r = client.post("/arxiv/search", json={"query": "transformers", "projeto_nome": "projeto_inexistente_xyz"})
-    assert r.status_code == 200
-    body = r.json()
-    assert body.get("error") is True
-
-
-def test_arxiv_search_rejeita_query_curta(client):
-    r = client.post("/arxiv/search", json={"query": "a", "projeto_nome": "qualquer"})
-    assert r.status_code == 422  # Pydantic Field(min_length=2)
-
-
-def test_arxiv_status_retorna_estrutura(client):
-    r = client.get("/arxiv/status")
-    assert r.status_code == 200
-    body = r.json()
-    assert "running" in body
-    assert "status" in body
-
+# Endpoints (/arxiv/search|cancel|status) migraram pro registro genérico de
+# fontes públicas — ver tests/test_fontes.py, que cobre /fontes/{id}/search
+# genericamente em vez de duplicar teste de endpoint por fonte.
 
 # ─── Módulo (mockado, sem rede) ────────────────────────────────────────────────
 
@@ -183,13 +165,6 @@ def test_buscar_arxiv_com_autor_e_data_combina_ambos_os_filtros(tmp_path, monkey
 
     search_query = mock_get.call_args_list[0].kwargs["params"]["search_query"]
     assert search_query == "((all:transformers) AND au:Vaswani) AND submittedDate:[20240101 TO 20240630]"
-
-
-def test_arxiv_search_rejeita_data_com_formato_invalido(client):
-    r = client.post("/arxiv/search", json={
-        "query": "transformers", "projeto_nome": "qualquer", "data_inicio": "01/01/2024",
-    })
-    assert r.status_code == 422
 
 
 def test_buscar_arxiv_continua_apos_erro_em_um_paper(tmp_path, monkeypatch):

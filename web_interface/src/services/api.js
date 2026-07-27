@@ -88,18 +88,22 @@ export const queueRemoveItem = (index) => axios.delete(`${API_BASE}/queue/item/$
 /** Moves an item in the queue from one index to another */
 export const queueMoveItem = (from_index, to_index) => axios.post(`${API_BASE}/queue/move`, { from_index, to_index });
 
-// ─── Busca acadêmica no arXiv (perfil Pesquisador) ────────────────────────────
-// Feature inspirada no projeto open-source OpenScience (synthetic-sciences/openscience).
+// ─── Busca em fontes públicas por área de conhecimento (perfil Pesquisador) ───
+// Registro genérico — ver tusab_engine/motor/fontes/. Um único conjunto de
+// funções atende qualquer fonte registrada (arXiv, OpenAlex, Europe PMC, ...).
 
-/** Starts an arXiv search + download + save for the given project */
-export const buscarArxiv = (query, max_resultados, projeto_nome, data_inicio = '', data_fim = '', autor = '') =>
-  axios.post(`${API_BASE}/arxiv/search`, { query, max_resultados, projeto_nome, data_inicio, data_fim, autor });
+/** Lists all registered public sources, grouped by knowledge area */
+export const listarFontes = () => axios.get(`${API_BASE}/fontes`);
 
-/** Cancels an in-progress arXiv search */
-export const cancelarArxiv = () => axios.post(`${API_BASE}/arxiv/cancel`);
+/** Starts a search + download + save on the given source for the given project */
+export const buscarFonte = (fonteId, query, max_resultados, projeto_nome, data_inicio = '', data_fim = '', autor = '') =>
+  axios.post(`${API_BASE}/fontes/${fonteId}/search`, { query, max_resultados, projeto_nome, data_inicio, data_fim, autor });
 
-/** Polls the status of an in-progress arXiv search */
-export const statusArxiv = () => axios.get(`${API_BASE}/arxiv/status`);
+/** Cancels an in-progress search on the given source */
+export const cancelarFonte = (fonteId) => axios.post(`${API_BASE}/fontes/${fonteId}/cancel`);
+
+/** Polls the status of an in-progress search on the given source */
+export const statusFonte = (fonteId) => axios.get(`${API_BASE}/fontes/${fonteId}/status`);
 
 /** Saves auto-update config for a channel */
 export const saveAutoUpdateConfig = (canal_prefixo, enabled, frequencia, fontes, canal_url, projeto_prefixo = '') =>

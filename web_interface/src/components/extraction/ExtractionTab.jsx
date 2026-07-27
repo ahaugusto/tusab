@@ -58,10 +58,10 @@ export default function ExtractionTab({
   regras,
   // abre modal de gerência de fila
   onOpenQueueModal,
-  // resultado persistente da última busca arXiv (perfil Pesquisador) —
-  // essa busca não passa por status.stats, então sem isso não sobra
-  // nenhum registro na tela depois que o ProgressToast some sozinho
-  lastArxivResult,
+  // resultado persistente da última busca em fonte pública (perfil
+  // Pesquisador) — essa busca não passa por status.stats, então sem isso
+  // não sobra nenhum registro na tela depois que o ProgressToast some sozinho
+  lastFonteResult,
   // fonte escolhida no seletor desta tela (perfil Pesquisador) — repassada
   // ao modal via App.jsx pra abrir direto na busca certa
   fontePreSelecionada,
@@ -123,7 +123,7 @@ export default function ExtractionTab({
             <Zap size={14} className="text-primary" aria-hidden="true" />
             <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
           </div>
-          {regras.arxiv && (
+          {regras.fontes_publicas && (
             <div className={`mx-4 mt-3 flex items-center gap-1 p-1 rounded-xl border ${darkMode ? 'bg-white/3 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <button
                 onClick={() => setFontePreSelecionada('youtube')}
@@ -132,23 +132,23 @@ export default function ExtractionTab({
                 🎬 {t('extraction.source_youtube')}
               </button>
               <button
-                onClick={() => setFontePreSelecionada('arxiv')}
+                onClick={() => setFontePreSelecionada('fonte-publica')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                  ${fontePreSelecionada === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
+                  ${fontePreSelecionada === 'fonte-publica' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                <Search size={12} aria-hidden="true" /> Base pública
               </button>
             </div>
           )}
           <div className="p-4">
             {fontePreSelecionada !== 'youtube' ? (
-              /* ── Fonte arXiv escolhida — resumo simplificado, sem input de URL ── */
+              /* ── Fonte pública escolhida — resumo simplificado, sem input de URL ── */
               <div className={`p-4 rounded-xl border text-center ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
                 <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
                 <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  {t('extraction.arxiv_step_title')}
+                  Buscar em base pública
                 </p>
                 <p className={`text-[11px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.arxiv_step_sub')}
+                  Escolha a área de conhecimento e a fonte no modal de busca.
                 </p>
               </div>
             ) : canalConfigurado ? (
@@ -276,7 +276,7 @@ export default function ExtractionTab({
                 Fila ({extractionQueue.length})
               </button>
             )}
-            <button onClick={handleStart} disabled={!canalConfigurado && !isRunning && !regras.arxiv}
+            <button onClick={handleStart} disabled={!canalConfigurado && !isRunning && !regras.fontes_publicas}
               className={`ml-auto flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]
                 disabled:opacity-40 disabled:cursor-not-allowed
                 ${isRunning
@@ -439,13 +439,12 @@ export default function ExtractionTab({
           )}
         </AnimatePresence>
 
-        {/* Resumo de busca arXiv (perfil Pesquisador) — mesmo padrão visual
-            do resumo pós-extração do YouTube acima, mas sem conceitos de vídeo/
-            legenda que não existem nessa fonte. */}
+        {/* Resumo de busca em fonte pública (perfil Pesquisador) — mesmo
+            padrão visual do resumo pós-extração do YouTube acima, mas sem
+            conceitos de vídeo/legenda que não existem nessas fontes. */}
         <AnimatePresence>
-          {lastArxivResult && (() => {
-            const r = lastArxivResult;
-            const fonte = 'arXiv';
+          {lastFonteResult && (() => {
+            const r = lastFonteResult;
             const Icon = Search;
             return (
               <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
@@ -462,7 +461,7 @@ export default function ExtractionTab({
                   <h3 id="summary-busca-heading" className={`text-xs font-bold uppercase tracking-wider ${r.sucesso
                     ? darkMode ? 'text-secondary' : 'text-emerald-700'
                     : darkMode ? 'text-warning' : 'text-amber-700'}`}>
-                    {r.sucesso ? `Busca no ${fonte} concluída` : `Busca no ${fonte} interrompida`}
+                    {r.sucesso ? 'Busca em base pública concluída' : 'Busca em base pública interrompida'}
                   </h3>
                 </div>
                 <div className="px-5 py-4 flex items-center gap-3">
@@ -491,9 +490,9 @@ export default function ExtractionTab({
 
         {/* Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-          {fontePreSelecionada === 'arxiv' ? (
-            <StatCard icon={Search} label="Papers processados" value={lastArxivResult?.processed ?? 0}
-              color="primary" sub={lastArxivResult ? `${lastArxivResult.total} encontrados` : 'aguardando busca'}
+          {fontePreSelecionada === 'fonte-publica' ? (
+            <StatCard icon={Search} label="Resultados processados" value={lastFonteResult?.processed ?? 0}
+              color="primary" sub={lastFonteResult ? `${lastFonteResult.total} encontrados` : 'aguardando busca'}
               darkMode={darkMode} />
           ) : (
             <StatCard icon={Video}    label={t('stats.processed')} value={processedVideos}

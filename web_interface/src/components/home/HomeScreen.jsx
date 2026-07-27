@@ -91,11 +91,13 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       },
     ];
   } else if (isPesquisador) {
-    // Pesquisador: YouTube + Arquivos (+ Pesquisa acadêmica/arXiv quando regras.arxiv
-    // estiver ligado — hoje oculto: reservado como base técnica do futuro vertical
-    // Tusab Saúde, ver agents/_historia.md "FHIR — busca ao vivo removida...").
+    // Pesquisador: YouTube + Arquivos (+ Pesquisa acadêmica quando
+    // regras.fontes_publicas estiver ligado). fonte_externa só é gravado pelo
+    // backend em documentos baixados via /fontes/{id}/search — nunca em
+    // upload manual — então contar por "tem fonte_externa" cobre qualquer
+    // fonte registrada (arXiv, OpenAlex, ...) sem precisar listar cada uma.
     const totalPesquisaAcademica = (repositorio.documentos || [])
-      .filter(d => d.fonte_externa === 'arxiv').length;
+      .filter(d => !!d.fonte_externa).length;
     sourceCards = [
       {
         id:     'youtube',
@@ -110,11 +112,11 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         action: () => onNavigate('extracao'),
         highlight: false,
       },
-      ...(regras?.arxiv ? [{
+      ...(regras?.fontes_publicas ? [{
         id:     'pesquisa-academica',
         icon:   '🔬',
         title:  t('home.source_pesquisa_title', 'Pesquisa acadêmica'),
-        sub:    'arXiv',
+        sub:    'arXiv, OpenAlex e mais',
         desc:   totalPesquisaAcademica > 0
           ? t('home.card_repo_done', { count: totalPesquisaAcademica })
           : t('home.source_pesquisa_desc', 'Busque artigos científicos'),

@@ -11,37 +11,60 @@ import { motion } from 'framer-motion';
 import { X, Zap, Loader2, Search } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
-import { getCanalInfo, criarProjeto } from '../../services/api';
+import { getCanalInfo, criarProjeto, listarFontes } from '../../services/api';
 
 /**
  * ExtractionModal — always starts with project name.
  * Step 1: Project name (pre-filled from channel handle, editable)
- * Step 2: Channel URL (skipped when channel already configured and not modoFila) — ou busca arXiv (perfil Pesquisador)
- * Step 3: Content types + auto-update — ou quantidade de resultados (arXiv)
+ * Step 2: Channel URL (skipped when channel already configured and not modoFila) — ou busca em fonte pública (perfil Pesquisador)
+ * Step 3: Content types + auto-update — ou quantidade de resultados (fonte pública)
  */
-function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', regras = {}, sourceTypeInicial = '' }) {
+function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', regras = {}, sourceTypeInicial = '' }) {
   const { t } = useTranslation();
 
-  // Toggle de fonte — gated em regras.arxiv (não em perfil diretamente), pra
-  // uma única flag em usePerfil.js controlar a visibilidade em todo o app —
-  // hoje oculto: reservado como base técnica do futuro vertical Tusab Saúde
-  // (ver agents/_historia.md). Busca acadêmica no arXiv inspirada no projeto
-  // open-source OpenScience (synthetic-sciences/openscience) — ver
-  // tusab_engine/motor/arxiv.py.
-  const podeUsarArxiv = !!regras.arxiv && !modoFila;
-  const podeEscolherFonte = podeUsarArxiv;
+  // Toggle de fonte — gated em regras.fontes_publicas (não em perfil
+  // diretamente), pra uma única flag em usePerfil.js controlar a visibilidade
+  // em todo o app. Busca em fontes públicas por área de conhecimento —
+  // registro genérico em tusab_engine/motor/fontes/, começando pela área
+  // "Produção científica e literatura" (arXiv, OpenAlex, Europe PMC, DataCite,
+  // DOAJ, Zenodo — arXiv originalmente inspirado no projeto open-source
+  // OpenScience/synthetic-sciences; hoje compartilhado com o futuro vertical
+  // Tusab Saúde, não exclusivo dele — ver agents/_historia.md).
+  const podeUsarFontesPublicas = !!regras.fontes_publicas && !modoFila;
+  const podeEscolherFonte = podeUsarFontesPublicas;
   // sourceTypeInicial: quando o usuário já escolheu a fonte na tela principal
   // da aba Extração (seletor visível pro perfil Pesquisador), o modal abre já
   // na fonte certa em vez de forçar escolher de novo aqui dentro.
-  const [sourceType, setSourceType] = React.useState(sourceTypeInicial || 'youtube'); // 'youtube' | 'arxiv'
+  const [sourceType, setSourceType] = React.useState(sourceTypeInicial || 'youtube'); // 'youtube' | 'fonte-publica'
 
-  // Step arXiv: query de busca + quantidade de resultados + intervalo de datas opcional
-  // (único filtro validado como funcional contra a API real — au:/cat: ficaram de fora)
-  const [arxivQuery,      setArxivQuery]      = React.useState('');
-  const [arxivMaxResults, setArxivMaxResults] = React.useState(20);
-  const [arxivDataInicio, setArxivDataInicio] = React.useState('');
-  const [arxivDataFim,    setArxivDataFim]    = React.useState('');
-  const [arxivAutor,      setArxivAutor]      = React.useState('');
+  // Fontes públicas disponíveis, agrupadas por área — carregado uma vez do
+  // registro genérico do backend (GET /fontes). Área/fonte só é escolhida de
+  // fato dentro do step 'url'; aqui só guardamos o catálogo + seleção atual.
+  const [areasFontes,      setAreasFontes]      = React.useState({}); // { area_id: {nome, fontes:[FONTE_META,...]} }
+  const [areaSelecionada,  setAreaSelecionada]  = React.useState('');
+  const [fonteSelecionada, setFonteSelecionada] = React.useState('');
+  React.useEffect(() => {
+    if (!podeUsarFontesPublicas) return;
+    listarFontes().then(r => {
+      const areas = r.data?.areas || {};
+      setAreasFontes(areas);
+      const primeiraArea = Object.keys(areas)[0];
+      if (primeiraArea) {
+        setAreaSelecionada(primeiraArea);
+        setFonteSelecionada(areas[primeiraArea].fontes[0]?.id || '');
+      }
+    }).catch(() => {});
+  }, [podeUsarFontesPublicas]);
+  const fonteAtual = areasFontes[areaSelecionada]?.fontes.find(f => f.id === fonteSelecionada) || null;
+
+  // Step fonte pública: query de busca + quantidade de resultados + filtros
+  // opcionais (autor/data) — só exibidos se a fonte escolhida os suportar
+  // (FONTE_META.suporta_autor/suporta_data).
+  const [fonteQuery,      setFonteQuery]      = React.useState('');
+  const [fonteMaxResults, setFonteMaxResults] = React.useState(20);
+  const [fonteDataInicio, setFonteDataInicio] = React.useState('');
+  const [fonteDataFim,    setFonteDataFim]    = React.useState('');
+  const [fonteAutor,      setFonteAutor]      = React.useState('');
 
   const ALL_TYPES = [
     { id: 'Videos',    label: t('ops.type_videos'),    icon: '🎬' },
@@ -136,7 +159,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
 
   const avancar = () => {
     if (step === 'url') {
-      if (sourceType === 'arxiv') { setStep('projeto'); return; }
+      if (sourceType === 'fonte-publica') { setStep('projeto'); return; }
       // Garante que o nome está atualizado com o handle da URL ao avançar
       if (!nomeEditadoManual) {
         const handle = extrairHandle(canalUrl);
@@ -150,7 +173,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
 
   const voltar = () => {
     if (step === 'fontes') setStep('projeto');
-    else if (step === 'projeto') { if (modoFila || !canalJaConfigurado || sourceType === 'arxiv') setStep('url'); }
+    else if (step === 'projeto') { if (modoFila || !canalJaConfigurado || sourceType === 'fonte-publica') setStep('url'); }
   };
 
   const handleConfirm = () => {
@@ -162,22 +185,22 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
     onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig);
   };
 
-  // /arxiv/search exige que o projeto já exista em disco
-  // (mesmo contrato de /neural/upload) e recusam criar sozinhos — diferente
-  // do fluxo YouTube, onde o motor cria a pasta como efeito colateral da
-  // extração. Sem chamar /neural/projeto antes, a busca falhava com
-  // "Projeto não encontrado" e o usuário ficava travado sem next-step.
+  // /fontes/{id}/search exige que o projeto já exista em disco (mesmo
+  // contrato de /neural/upload) e recusa criar sozinho — diferente do fluxo
+  // YouTube, onde o motor cria a pasta como efeito colateral da extração.
+  // Sem chamar /neural/projeto antes, a busca falhava com "Projeto não
+  // encontrado" e o usuário ficava travado sem next-step.
   const [criandoProjetoBusca, setCriandoProjetoBusca] = React.useState(false);
   const [erroProjetoBusca,    setErroProjetoBusca]    = React.useState('');
 
-  const handleConfirmArxiv = async () => {
+  const handleConfirmFontePublica = async () => {
     const nome = projetoNome.trim();
     setErroProjetoBusca('');
     setCriandoProjetoBusca(true);
     try {
       const res = await criarProjeto(nome);
       if (res.data?.error) { setErroProjetoBusca(res.data.message || 'Erro ao criar projeto'); return; }
-      onConfirmArxiv(arxivQuery.trim(), arxivMaxResults, nome, arxivDataInicio, arxivDataFim, arxivAutor.trim());
+      onConfirmFonte(fonteSelecionada, fonteQuery.trim(), fonteMaxResults, nome, fonteDataInicio, fonteDataFim, fonteAutor.trim());
     } catch {
       setErroProjetoBusca('Não foi possível criar o projeto. Tente novamente.');
     } finally {
@@ -185,12 +208,12 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
     }
   };
 
-  const podeAvancarArxivQuery = arxivQuery.trim().length >= 2;
+  const podeAvancarFonteQuery = fonteQuery.trim().length >= 2 && !!fonteSelecionada;
 
   // Step visual para a barra de progresso
   // Com canal já configurado, o step 'url' só é revisitado se o Pesquisador
-  // trocar para a fonte arXiv — nesse caso a sequência volta a ter 3 passos.
-  const pulaStepUrl = canalJaConfigurado && !modoFila && sourceType !== 'arxiv';
+  // trocar pra uma fonte pública — nesse caso a sequência volta a ter 3 passos.
+  const pulaStepUrl = canalJaConfigurado && !modoFila && sourceType !== 'fonte-publica';
   const stepVisualMap = modoFila
     ? { url: 1, projeto: 2, fontes: 3 }
     : pulaStepUrl
@@ -200,19 +223,19 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
   const totalStepsVisual = pulaStepUrl ? 2 : 3;
 
   const stepLabel = step === 'url'
-    ? (sourceType === 'arxiv' ? t('extraction.arxiv_step_title') : 'Canal do YouTube')
+    ? (sourceType === 'fonte-publica' ? (fonteAtual ? `Buscar em ${fonteAtual.nome}` : 'Buscar em base pública') : 'Canal do YouTube')
     : step === 'projeto'
     ? 'Nome do projeto'
-    : sourceType === 'arxiv' ? t('extraction.arxiv_results_title') : t('ops.types_modal_title');
+    : sourceType === 'fonte-publica' ? 'Quantidade de resultados' : t('ops.types_modal_title');
 
   const stepSub = step === 'url'
-    ? (sourceType === 'arxiv' ? t('extraction.arxiv_step_sub') : 'Informe a URL do canal que deseja adicionar à fila.')
+    ? (sourceType === 'fonte-publica' ? (areasFontes[areaSelecionada]?.nome || '') : 'Informe a URL do canal que deseja adicionar à fila.')
     : step === 'projeto'
     ? 'Dê um nome ao projeto. Pode ser o canal ou algo mais amplo.'
-    : sourceType === 'arxiv' ? t('extraction.arxiv_results_sub') : t('ops.types_modal_subtitle');
+    : sourceType === 'fonte-publica' ? `Quantos resultados baixar e indexar de ${fonteAtual?.nome || 'fonte'}?` : t('ops.types_modal_subtitle');
 
-  const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado || sourceType === 'arxiv') : step === 'fontes';
-  const podeAvancarUrl = sourceType === 'arxiv' ? podeAvancarArxivQuery : canalUrl.trim().length > 0;
+  const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado || sourceType === 'fonte-publica') : step === 'fontes';
+  const podeAvancarUrl = sourceType === 'fonte-publica' ? podeAvancarFonteQuery : canalUrl.trim().length > 0;
   const podeAvancarProjeto = projetoNome.trim().length > 0;
 
   // Detecta se o canal já existe em algum projeto (para exibir alerta)
@@ -269,41 +292,123 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
                   ${sourceType === 'youtube' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
                 🎬 {t('extraction.source_youtube')}
               </button>
-              {podeUsarArxiv && (
+              {podeUsarFontesPublicas && (
                 <button
-                  onClick={() => setSourceType('arxiv')}
+                  onClick={() => setSourceType('fonte-publica')}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                    ${sourceType === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
+                    ${sourceType === 'fonte-publica' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <Search size={12} aria-hidden="true" /> Base pública
                 </button>
               )}
             </div>
           )}
 
-          {/* ── Step busca arXiv ── */}
-          {step === 'url' && sourceType === 'arxiv' && (
+          {/* ── Step busca em fonte pública (área → fonte → tema + filtros) ── */}
+          {step === 'url' && sourceType === 'fonte-publica' && (
             <>
-              <div className="mb-5">
+              {Object.keys(areasFontes).length > 1 && (
+                <div className="mb-4">
+                  <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Área de conhecimento
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(areasFontes).map(([areaId, area]) => {
+                      const ativo = areaId === areaSelecionada;
+                      return (
+                        <button key={areaId}
+                          onClick={() => { setAreaSelecionada(areaId); setFonteSelecionada(area.fontes[0]?.id || ''); }}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
+                            ${ativo ? 'bg-primary border-primary text-white' : darkMode ? 'bg-white/5 border-white/15 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                          {area.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-4">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.arxiv_query_label')}
+                  Fonte
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(areasFontes[areaSelecionada]?.fontes || []).map(f => {
+                    const ativo = f.id === fonteSelecionada;
+                    return (
+                      <button key={f.id} onClick={() => setFonteSelecionada(f.id)}
+                        className={`text-left px-2.5 py-2 rounded-lg border transition-colors ${BTN_FOCUS}
+                          ${ativo
+                            ? darkMode ? 'bg-primary/15 border-primary text-white' : 'bg-primary/5 border-primary text-slate-800'
+                            : darkMode ? 'bg-white/3 border-white/10 text-slate-300 hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        <span className={`text-[11px] font-bold block ${ativo ? 'text-primary' : ''}`}>{f.nome}</span>
+                        <span className="text-[10px] leading-snug block mt-0.5 opacity-70">{f.descricao}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Tema ou palavras-chave
                 </label>
                 <input
                   type="text"
-                  value={arxivQuery}
-                  onChange={e => setArxivQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && podeAvancarArxivQuery) avancar(); }}
-                  placeholder={t('extraction.arxiv_query_placeholder')}
+                  value={fonteQuery}
+                  onChange={e => setFonteQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && podeAvancarFonteQuery) avancar(); }}
+                  placeholder="Ex: transformer attention mechanism"
                   autoFocus
                   maxLength={300}
                   className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                 />
-                <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {t('extraction.arxiv_query_hint')}
-                </p>
               </div>
+
+              {fonteAtual?.suporta_autor && (
+                <div className="mb-4">
+                  <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Filtrar por autor (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={fonteAutor}
+                    onChange={e => setFonteAutor(e.target.value)}
+                    placeholder="Ex: Ashish Vaswani"
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
+                  />
+                </div>
+              )}
+
+              {fonteAtual?.suporta_data && (
+                <div className="mb-4">
+                  <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Filtrar por data (opcional)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={fonteDataInicio}
+                      onChange={e => setFonteDataInicio(e.target.value)}
+                      max={fonteDataFim || undefined}
+                      style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                      className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                    />
+                    <span className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>até</span>
+                    <input
+                      type="date"
+                      value={fonteDataFim}
+                      onChange={e => setFonteDataFim(e.target.value)}
+                      min={fonteDataInicio || undefined}
+                      style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                      className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={avancar}
-                disabled={!podeAvancarArxivQuery}
+                disabled={!podeAvancarFonteQuery}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                 Próximo
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -429,7 +534,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
                 {/* Hint sobre estrutura de pastas — oculto quando projeto existente selecionado */}
                 {!projetoExistenteSelecionado && <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                   <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Estrutura de pastas</p>
-                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || 'Projeto'}</span> → {sourceType === 'arxiv' ? 'documents → arXiv' : 'youtube → Canal'}</p>
+                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || 'Projeto'}</span> → {sourceType === 'fonte-publica' ? `documents → ${fonteAtual?.nome || 'Fonte'}` : 'youtube → Canal'}</p>
                   <p className="opacity-70">O projeto agrupa canais e documentos. Um projeto pode conter vários canais.</p>
                 </div>}
 
@@ -494,67 +599,23 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
             </>
           )}
 
-          {/* ── Step Fontes (arXiv) — quantidade de resultados ── */}
-          {step === 'fontes' && sourceType === 'arxiv' && (
+          {/* ── Step Fontes (fonte pública) — quantidade de resultados ── */}
+          {step === 'fontes' && sourceType === 'fonte-publica' && (
             <>
               <div className="mb-5">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.arxiv_max_results_label')}
+                  Número de resultados (máx. 50)
                 </label>
                 <input
                   type="number"
                   min={1}
                   max={50}
-                  value={arxivMaxResults}
-                  onChange={e => setArxivMaxResults(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                  value={fonteMaxResults}
+                  onChange={e => setFonteMaxResults(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
                   className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
                 />
                 <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {t('extraction.arxiv_max_results_hint')}
-                </p>
-              </div>
-
-              <div className="mb-5">
-                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.arxiv_autor_label')}
-                </label>
-                <input
-                  type="text"
-                  value={arxivAutor}
-                  onChange={e => setArxivAutor(e.target.value)}
-                  placeholder={t('extraction.arxiv_autor_placeholder')}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
-                />
-                <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {t('extraction.arxiv_autor_hint')}
-                </p>
-              </div>
-
-              <div className="mb-5">
-                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.arxiv_date_label')}
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={arxivDataInicio}
-                    onChange={e => setArxivDataInicio(e.target.value)}
-                    max={arxivDataFim || undefined}
-                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
-                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
-                  />
-                  <span className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.arxiv_date_to')}</span>
-                  <input
-                    type="date"
-                    value={arxivDataFim}
-                    onChange={e => setArxivDataFim(e.target.value)}
-                    min={arxivDataInicio || undefined}
-                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
-                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
-                  />
-                </div>
-                <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {t('extraction.arxiv_date_hint')}
+                  Cada resultado é baixado e convertido em texto pesquisável. Buscas maiores levam mais tempo.
                 </p>
               </div>
 
@@ -568,10 +629,10 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNo
                   Voltar
                 </button>
                 <button
-                  onClick={handleConfirmArxiv} disabled={criandoProjetoBusca}
+                  onClick={handleConfirmFontePublica} disabled={criandoProjetoBusca}
                   className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                   {criandoProjetoBusca ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Search size={15} aria-hidden="true" />}
-                  {t('extraction.arxiv_start_confirm')}
+                  Buscar e indexar
                 </button>
               </div>
             </>

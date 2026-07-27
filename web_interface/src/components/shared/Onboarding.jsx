@@ -103,11 +103,11 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
     return t('onboarding.s6_body');
   };
 
-  // Step 3 (fontes de conteúdo): perfil Pesquisador ganha menção à busca arXiv
-  // (feature inspirada no projeto open-source OpenScience) — só enquanto
-  // regras.arxiv estiver ligado; hoje oculto (ver usePerfil.js).
+  // Step 3 (fontes de conteúdo): perfil Pesquisador ganha menção à busca em
+  // fontes públicas por área de conhecimento — só enquanto
+  // regras.fontes_publicas estiver ligado (ver usePerfil.js).
   const s3Body = () => {
-    if (perfilSelecionado === 'pesquisador' && PERFIS_CONFIG.pesquisador?.arxiv) return t('onboarding.s3_body_pesquisador');
+    if (perfilSelecionado === 'pesquisador' && PERFIS_CONFIG.pesquisador?.fontes_publicas) return t('onboarding.s3_body_pesquisador');
     return t('onboarding.s3_body');
   };
 
