@@ -145,11 +145,10 @@ export default function EstudoTab({
                 border: `1px solid ${projeto ? 'rgba(139,92,246,0.40)' : borderColor}`,
                 color: projeto ? (darkMode ? '#a78bfa' : '#7c3aed') : textSecond,
                 cursor: 'pointer', outline: 'none',
-                colorScheme: darkMode ? 'dark' : 'light',
               }}>
-              <option value="">— selecione um projeto —</option>
+              <option value="" style={{ background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#fff' : '#1e293b' }}>— selecione um projeto —</option>
               {projetosIndexados.map(p => (
-                <option key={p.nome} value={p.nome}>
+                <option key={p.nome} value={p.nome} style={{ background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#fff' : '#1e293b' }}>
                   {p.nome} ({p.chunks} chunks)
                 </option>
               ))}
