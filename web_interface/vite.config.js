@@ -28,6 +28,12 @@ export default defineConfig({
       '/export': 'http://127.0.0.1:8001',
       '/agent': 'http://127.0.0.1:8001',
       '/log': 'http://127.0.0.1:8001',
+      '/arxiv': 'http://127.0.0.1:8001',
+      '/fhir': 'http://127.0.0.1:8001',
+      '/auto-update': 'http://127.0.0.1:8001',
+      '/drive-disconnect': 'http://127.0.0.1:8001',
+      '/import': 'http://127.0.0.1:8001',
+      '/metrics': 'http://127.0.0.1:8001',
     },
   },
   define: {
