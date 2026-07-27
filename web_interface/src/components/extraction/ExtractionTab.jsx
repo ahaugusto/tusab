@@ -63,6 +63,10 @@ export default function ExtractionTab({
   // nenhum registro na tela depois que o ProgressToast some sozinho
   lastArxivResult,
   lastFhirResult,
+  // fonte escolhida no seletor desta tela (perfil Pesquisador) — repassada
+  // ao modal via App.jsx pra abrir direto na busca certa
+  fontePreSelecionada,
+  setFontePreSelecionada,
 }) {
   const { t } = useTranslation();
   const [logFiltroCanal, setLogFiltroCanal] = React.useState('');
@@ -120,8 +124,47 @@ export default function ExtractionTab({
             <Zap size={14} className="text-primary" aria-hidden="true" />
             <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
           </div>
+          {(regras.arxiv || regras.fhir) && (
+            <div className={`mx-4 mt-3 flex items-center gap-1 p-1 rounded-xl border ${darkMode ? 'bg-white/3 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <button
+                onClick={() => setFontePreSelecionada('youtube')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
+                  ${fontePreSelecionada === 'youtube' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                🎬 {t('extraction.source_youtube')}
+              </button>
+              {regras.arxiv && (
+                <button
+                  onClick={() => setFontePreSelecionada('arxiv')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
+                    ${fontePreSelecionada === 'arxiv' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <Search size={12} aria-hidden="true" /> {t('extraction.source_arxiv')}
+                </button>
+              )}
+              {regras.fhir && (
+                <button
+                  onClick={() => setFontePreSelecionada('fhir')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
+                    ${fontePreSelecionada === 'fhir' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <Stethoscope size={12} aria-hidden="true" /> {t('extraction.source_fhir')}
+                </button>
+              )}
+            </div>
+          )}
           <div className="p-4">
-            {canalConfigurado ? (
+            {fontePreSelecionada !== 'youtube' ? (
+              /* ── Fonte arXiv/FHIR escolhida — resumo simplificado, sem input de URL ── */
+              <div className={`p-4 rounded-xl border text-center ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
+                {fontePreSelecionada === 'arxiv'
+                  ? <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
+                  : <Stethoscope size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />}
+                <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  {fontePreSelecionada === 'arxiv' ? t('extraction.arxiv_step_title') : t('extraction.fhir_step_title')}
+                </p>
+                <p className={`text-[11px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {fontePreSelecionada === 'arxiv' ? t('extraction.arxiv_step_sub') : t('extraction.fhir_step_sub')}
+                </p>
+              </div>
+            ) : canalConfigurado ? (
               /* ── Canal já configurado ── */
               <div role="status" aria-label={`Canal: @${canalConfigurado}`}
                 className={`p-3 rounded-xl flex items-center gap-2 border ${darkMode ? 'bg-primary/10 border-primary/25' : 'bg-primary/5 border-primary/25'}`}>
@@ -238,15 +281,6 @@ export default function ExtractionTab({
               </div>
             )}
           </div>
-          {(regras.arxiv || regras.fhir) && !canalConfigurado && !isRunning && (
-            <div className={`mx-4 mb-3 px-3 py-2.5 rounded-xl text-[11px] leading-relaxed flex items-start gap-2
-              ${darkMode ? 'bg-primary/8 border border-primary/20 text-slate-300' : 'bg-violet-50 border border-violet-200 text-slate-600'}`}>
-              <span className="shrink-0">🔬</span>
-              <span>
-                {t('extraction.pesquisador_arxiv_fhir_hint')}
-              </span>
-            </div>
-          )}
           <div className={`px-4 pb-4 pt-3 border-t flex items-center gap-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
             {regras.fila && extractionQueue.length > 0 && (
               <button onClick={onOpenQueueModal}

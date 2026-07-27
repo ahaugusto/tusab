@@ -170,6 +170,9 @@ function App() {
   const [repoImportOpen,   setRepoImportOpen]   = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
+  // Fonte escolhida no seletor da tela principal da Extração (perfil Pesquisador)
+  // — repassada ao modal pra abrir direto na busca certa, sem escolher de novo.
+  const [fontePreSelecionada, setFontePreSelecionada] = useState('youtube');
   const [projetos,             setProjetos]             = useState([]);
   const [extractionQueue,      setExtractionQueue]      = useState([]);
   const [showQueueModal,       setShowQueueModal]       = useState(false);
@@ -1360,7 +1363,7 @@ function App() {
 
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmArxiv={handleStartConfirmArxiv} onConfirmFhir={handleStartConfirmFhir} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmArxiv={handleStartConfirmArxiv} onConfirmFhir={handleStartConfirmFhir} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1545,6 +1548,7 @@ function App() {
               agentStatus={agentStatus} ollamaStatus={ollamaStatus} btnFocus={BTN_FOCUS}
               regras={regras}
               onNavigate={(id) => { if (id === 'agente') setAgentInitialSubTab('configuracoes'); setActiveTab(id); setShowHome(false); }}
+              onNavigatePesquisaAcademica={() => { setFontePreSelecionada('arxiv'); setActiveTab('extracao'); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onImportBase={() => { setActiveTab('repositorio'); setShowHome(false); setRepoImportOpen(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
@@ -1682,6 +1686,8 @@ function App() {
                 regras={regras}
                 lastArxivResult={lastArxivResult}
                 lastFhirResult={lastFhirResult}
+                fontePreSelecionada={fontePreSelecionada}
+                setFontePreSelecionada={setFontePreSelecionada}
               />
             )}
 {/* ── TAB: HISTÓRICO ── */}
