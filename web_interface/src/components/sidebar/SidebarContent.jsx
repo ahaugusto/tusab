@@ -232,10 +232,10 @@ function SidebarContent({
             aria-label="Selecionar idioma"
             className={`text-[11px] font-bold bg-transparent border-none outline-none cursor-pointer pr-1 ${btnFocus}
               ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}
-            style={{ appearance: 'none', WebkitAppearance: 'none', ...(darkMode ? { colorScheme: 'dark' } : {}) }}>
-            <option value="pt">Português</option>
-            <option value="en">English</option>
-            <option value="es">Español</option>
+            style={{ appearance: 'none', WebkitAppearance: 'none' }}>
+            <option value="pt" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Português</option>
+            <option value="en" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>English</option>
+            <option value="es" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Español</option>
           </select>
         </div>
         <button
