@@ -54,11 +54,12 @@ export const PERFIS_CONFIG = {
     relatorio: true,
     deletar_arquivos: true,
     limpar_canal: true,
-    // Oculto por enquanto: a busca arXiv/leitura FHIR do Pesquisador vira a base
-    // técnica do futuro vertical de perfil único Tusab Saúde — flip pra true
-    // reativa tudo sem mudança de código (ExtractionModal/Tab, Home, VisaoGeral
-    // já ficam condicionados nesta flag). Ver agents/_historia.md.
-    arxiv: false,
+    // Busca em fontes públicas por área de conhecimento — registro genérico
+    // em tusab_engine/motor/fontes/ (arXiv, OpenAlex, Europe PMC, DataCite,
+    // DOAJ, Zenodo na área "Produção científica"; mais áreas entram
+    // incrementalmente). Compartilhado com o futuro vertical Tusab Saúde,
+    // não exclusivo dele. Ver agents/_historia.md.
+    fontes_publicas: true,
   },
   profissional: {
     abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'monitor', 'agente', 'admin'],
