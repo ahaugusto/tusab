@@ -92,6 +92,59 @@ def test_buscar_arxiv_salva_documento_e_manifest(tmp_path, monkeypatch):
     assert "Texto extraído do paper de teste." in conteudo
 
 
+def test_buscar_arxiv_com_intervalo_de_datas_monta_search_query_correta(tmp_path, monkeypatch):
+    """data_inicio/data_fim viram submittedDate:[YYYYMMDD TO YYYYMMDD] ANDado à query original."""
+    monkeypatch.setattr(arxiv_motor, "NEURAL_DIR", str(tmp_path))
+    monkeypatch.setattr(arxiv_motor, "_INTERVALO_ENTRE_REQUISICOES", 0)
+
+    mock_search_resp = MagicMock(content=_ATOM_FEED_MOCK)
+    mock_search_resp.raise_for_status = MagicMock()
+    mock_pdf_resp = MagicMock(content=b"%PDF-fake-content")
+    mock_pdf_resp.raise_for_status = MagicMock()
+
+    with patch.object(arxiv_motor.requests, "get", side_effect=[mock_search_resp, mock_pdf_resp]) as mock_get, \
+         patch.object(arxiv_motor, "_extrair_texto_pdf", return_value="Texto extraído."):
+        arxiv_motor.buscar_arxiv(
+            query="transformers",
+            max_resultados=5,
+            projeto_nome="projeto_teste_arxiv_data",
+            data_inicio="2024-01-01",
+            data_fim="2024-06-30",
+        )
+
+    search_query = mock_get.call_args_list[0].kwargs["params"]["search_query"]
+    assert search_query == "(all:transformers) AND submittedDate:[20240101 TO 20240630]"
+
+
+def test_buscar_arxiv_com_apenas_data_inicio_abre_intervalo_ate_hoje(tmp_path, monkeypatch):
+    monkeypatch.setattr(arxiv_motor, "NEURAL_DIR", str(tmp_path))
+    monkeypatch.setattr(arxiv_motor, "_INTERVALO_ENTRE_REQUISICOES", 0)
+
+    mock_search_resp = MagicMock(content=_ATOM_FEED_MOCK)
+    mock_search_resp.raise_for_status = MagicMock()
+    mock_pdf_resp = MagicMock(content=b"%PDF-fake-content")
+    mock_pdf_resp.raise_for_status = MagicMock()
+
+    with patch.object(arxiv_motor.requests, "get", side_effect=[mock_search_resp, mock_pdf_resp]) as mock_get, \
+         patch.object(arxiv_motor, "_extrair_texto_pdf", return_value="Texto extraído."):
+        arxiv_motor.buscar_arxiv(
+            query="transformers",
+            max_resultados=5,
+            projeto_nome="projeto_teste_arxiv_data2",
+            data_inicio="2024-01-01",
+        )
+
+    search_query = mock_get.call_args_list[0].kwargs["params"]["search_query"]
+    assert search_query.startswith("(all:transformers) AND submittedDate:[20240101 TO ")
+
+
+def test_arxiv_search_rejeita_data_com_formato_invalido(client):
+    r = client.post("/arxiv/search", json={
+        "query": "transformers", "projeto_nome": "qualquer", "data_inicio": "01/01/2024",
+    })
+    assert r.status_code == 422
+
+
 def test_buscar_arxiv_continua_apos_erro_em_um_paper(tmp_path, monkeypatch):
     """Um paper que falha no download não derruba o lote inteiro."""
     monkeypatch.setattr(arxiv_motor, "NEURAL_DIR", str(tmp_path))
