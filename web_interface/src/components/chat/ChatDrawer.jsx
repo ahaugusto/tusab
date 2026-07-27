@@ -143,6 +143,28 @@ function useLoadingPhrase(active) {
   return LOADING_PHRASES[idx];
 }
 
+// Modelos locais pequenos (ex: llama3.2:1b via Ollama) às vezes ignoram a
+// instrução de formato do prompt (_FMT_INSTR em agent/chat.py) e colam bullets
+// direto na frase anterior, sem nenhuma quebra de linha — ex: "benéfica.* Em um
+// modelo matemático" em vez de "benéfica.\n\n- Em um modelo matemático". Sem
+// isso o ReactMarkdown recebe tudo como um único parágrafo corrido, já que list
+// items markdown exigem estar em linha própria. Normalização puramente visual:
+// não altera o texto persistido no histórico, só o que é passado ao renderer.
+function normalizarRespostaIA(texto) {
+  if (!texto) return texto;
+  return texto
+    // ".* Texto" / ":* Texto" grudado na sentença anterior → bullet em linha própria
+    .replace(/([.:!?;])\s*\*\s+(?=\S)/g, '$1\n\n- ')
+    // "* Texto" logo no início da resposta, sem pontuação antes
+    .replace(/^\*\s+(?=\S)/, '- ')
+    // Sentença colada na próxima sem nenhum espaço (ex: "social.Em resumo",
+    // "interessante!A resposta") → parágrafo novo. Não dispara em "3.5"/"Dr. Smith"
+    // porque exige ausência total de espaço entre a pontuação e a maiúscula seguinte.
+    .replace(/([a-zà-ú0-9])([.!?])(?=[A-ZÀ-Ú])/g, '$1$2\n\n')
+    // Colapsa excesso de linhas em branco geradas pelas substituições acima
+    .replace(/\n{3,}/g, '\n\n');
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -966,10 +988,7 @@ function ChatDrawer({
                           <div className="markdown-body">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
-                              children={(() => {
-                                // Remove excesso de linhas em branco (3+ → 2)
-                                return msg.content.replace(/\n{3,}/g, '\n\n');
-                              })()}
+                              children={normalizarRespostaIA(msg.content)}
                               components={{
                                 p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                                 strong: ({children}) => <strong className="font-semibold">{children}</strong>,
