@@ -456,6 +456,28 @@ Primeira aplicação real do protocolo acima, executada de ponta a ponta em 07/j
 - **Tailwind 3→4 identificado mas propositalmente não aplicado** — major bump muda o modelo de config inteiro (JS `tailwind.config.js` → CSS-first `@theme`), alto risco sobre as classes `dark:` usadas extensivamente. Decisão: tratar como projeto isolado futuro (branch dedicada + revisão visual completa), nunca dentro de uma rodada de manutenção de rotina.
 - Suite (`pytest tests/`) verde (46/46) em cada etapa, nunca só no final — permite isolar rapidamente qual update quebrou o quê, se algo quebrasse.
 
+### Anakin (Anakin-Inc/anakin) — não adotado (jul/2026)
+
+**O que é:** API de web scraping open-source em Go — "anti-detect browser" + rotação de proxy + self-hosted, transforma qualquer site em markdown/JSON limpo mesmo com proteção anti-bot. Licença AGPL-3.0, 801 stars.
+
+**Veredito: não adotar.** Dois motivos independentes:
+1. **Contradiz postura já testada com Datajud/LexML.** Quando essas fontes jurídicas bloquearam acesso automatizado (timeout/WAF), a decisão do projeto foi desistir da fonte, não contornar o bloqueio — ver seção "Geração de documento estruturado...". O Anakin existe especificamente para contornar esse tipo de proteção; adotá-lo inverteria um princípio já estabelecido, não estenderia um padrão.
+2. **Licença AGPL-3.0 incompatível com a edição Enterprise paga já no roadmap** (`Plano B2B — Tusab Enterprise.md`) — cláusula de uso em rede da AGPL pode obrigar a abrir código de qualquer serviço que a utilize. Achado novo, sem precedente de rejeição por licença antes deste caso — mas paralelo direto ao RAGFlow (Apache 2.0, rejeitado por arquitetura pesada: Docker Compose + Elasticsearch/MySQL/MinIO/Redis, ≥16GB RAM, "contradiz 1 clique, offline, CPU-only").
+
+**Se a necessidade real for "extrair conteúdo de páginas web soltas pra base de conhecimento":** parcialmente resolvido hoje via "colar texto" manual. Uma extensão legítima seria um scraper leve que respeita `robots.txt` e não tenta burlar proteção nenhuma — não o Anakin.
+
+### Proposta de "APIs Jurídicas no Ecossistema Tusab" v2 (Datajud/Escavador/Jusbrasil/STF-STJ) — avaliada, não implementada (jul/2026)
+
+**Contexto:** proposta formal recebida de terceiro, sugerindo extração de andamentos processuais/jurisprudência via APIs jurídicas pro RAG local, com motores novos em `tusab_engine/motor/` (`datajud.py`, `escavador.py`), roteamento de IA forçado pra Ollama em conteúdo sensível.
+
+**Avaliação:**
+- **Datajud/CNJ e (implicitamente) STF/STJ via portais públicos:** já testados de verdade e descartados na avaliação anterior (iteração 1, seção "Geração de documento estruturado...") — timeout/IP-fencing e ausência de texto integral. Não retestar sem evidência de mudança do lado do provedor.
+- **Escavador e Jusbrasil:** território novo — são APIs **comerciais pagas** de terceiros (diferente de Datajud/LexML, que são públicas e gratuitas). Nunca avaliadas antes. Risco de ToS (permissão de redistribuir/reprocessar conteúdo dentro de produto de terceiros), não risco técnico — precisa checagem jurídica antes de qualquer código.
+- **Proposta citava `dados/cerebro/` como estrutura atual** — desatualizado; `CEREBRO_DIR` é alias legado de `NEURAL_DIR` (`data/neural/{projeto}/`) desde a renomeação de nomenclatura em jul/2026. Sinal de que a proposta foi escrita sem consultar o estado real do repositório — mesma lição já registrada no Roadmap.md sobre verificar o repo antes de afirmar o que existe ou não.
+- **Segurança:** `safeStorage` do Electron (já usado hoje para chaves de API de LLM, `electron/main.js`) protege a credencial em disco, não o conteúdo jurídico extraído — que ficaria em texto plano em `data/neural/`, igual a qualquer outro documento hoje (consistente com o modelo de ameaça aceito do Tusab, não é vulnerabilidade nova). "Roteamento forçado pra Ollama por sensibilidade" é ideia genuinamente nova (nada parecido existe hoje em `agent/config.py`/`chat.py`) — tecnicamente viável, mas incompleta se só cobrir conteúdo vindo da API jurídica: um upload manual de documento sigiloso (já suportado hoje via reconhecimento automático de petição/contrato/parecer) ficaria sem a mesma proteção, criando falsa sensação de segurança.
+
+**Veredito:** não avançar como está. Fonte pública repete terreno já testado e rejeitado; a parte genuinamente nova (Escavador/Jusbrasil, roteamento por sensibilidade) precisa de validação de ToS e desenho mais consistente (flag de sensibilidade por projeto/documento, não por fonte de origem) antes de virar código.
+
 ---
 
 ## As três camadas de mercado (visão de longo prazo)
