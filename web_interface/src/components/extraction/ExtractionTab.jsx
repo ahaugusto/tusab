@@ -504,9 +504,19 @@ export default function ExtractionTab({
 
         {/* Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-          <StatCard icon={Video}    label={t('stats.processed')} value={processedVideos}
-            color="primary"   sub={totalVideos > 0 ? t('stats.mapped', { total: totalVideos }) : t('stats.waiting')}
-            darkMode={darkMode} />
+          {fontePreSelecionada === 'arxiv' ? (
+            <StatCard icon={Search} label="Papers processados" value={lastArxivResult?.processed ?? 0}
+              color="primary" sub={lastArxivResult ? `${lastArxivResult.total} encontrados` : 'aguardando busca'}
+              darkMode={darkMode} />
+          ) : fontePreSelecionada === 'fhir' ? (
+            <StatCard icon={Stethoscope} label="Estudos processados" value={lastFhirResult?.processed ?? 0}
+              color="primary" sub={lastFhirResult ? `${lastFhirResult.total} encontrados` : 'aguardando busca'}
+              darkMode={darkMode} />
+          ) : (
+            <StatCard icon={Video}    label={t('stats.processed')} value={processedVideos}
+              color="primary"   sub={totalVideos > 0 ? t('stats.mapped', { total: totalVideos }) : t('stats.waiting')}
+              darkMode={darkMode} />
+          )}
           <StatCard icon={FileText} label={t('stats.files')}     value={status.stats.files_generated}
             color="accent"    sub={t('stats.parts')}
             onOpen={() => {
