@@ -19,13 +19,16 @@ import { getCanalInfo, criarProjeto } from '../../services/api';
  * Step 2: Channel URL (skipped when channel already configured and not modoFila) — ou busca arXiv (perfil Pesquisador)
  * Step 3: Content types + auto-update — ou quantidade de resultados (arXiv)
  */
-function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', sourceTypeInicial = '' }) {
+function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', regras = {}, sourceTypeInicial = '' }) {
   const { t } = useTranslation();
 
-  // Toggle de fonte — só visível para o perfil Pesquisador. Busca acadêmica no
-  // arXiv inspirada no projeto open-source OpenScience (synthetic-sciences/openscience)
-  // — ver tusab_engine/motor/arxiv.py.
-  const podeUsarArxiv = perfil === 'pesquisador' && !modoFila;
+  // Toggle de fonte — gated em regras.arxiv (não em perfil diretamente), pra
+  // uma única flag em usePerfil.js controlar a visibilidade em todo o app —
+  // hoje oculto: reservado como base técnica do futuro vertical Tusab Saúde
+  // (ver agents/_historia.md). Busca acadêmica no arXiv inspirada no projeto
+  // open-source OpenScience (synthetic-sciences/openscience) — ver
+  // tusab_engine/motor/arxiv.py.
+  const podeUsarArxiv = !!regras.arxiv && !modoFila;
   const podeEscolherFonte = podeUsarArxiv;
   // sourceTypeInicial: quando o usuário já escolheu a fonte na tela principal
   // da aba Extração (seletor visível pro perfil Pesquisador), o modal abre já

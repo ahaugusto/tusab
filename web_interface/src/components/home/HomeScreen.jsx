@@ -91,7 +91,9 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       },
     ];
   } else if (isPesquisador) {
-    // Pesquisador: YouTube + Pesquisa acadêmica (arXiv) + Arquivos
+    // Pesquisador: YouTube + Arquivos (+ Pesquisa acadêmica/arXiv quando regras.arxiv
+    // estiver ligado — hoje oculto: reservado como base técnica do futuro vertical
+    // Tusab Saúde, ver agents/_historia.md "FHIR — busca ao vivo removida...").
     const totalPesquisaAcademica = (repositorio.documentos || [])
       .filter(d => d.fonte_externa === 'arxiv').length;
     sourceCards = [
@@ -108,7 +110,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         action: () => onNavigate('extracao'),
         highlight: false,
       },
-      {
+      ...(regras?.arxiv ? [{
         id:     'pesquisa-academica',
         icon:   '🔬',
         title:  t('home.source_pesquisa_title', 'Pesquisa acadêmica'),
@@ -119,7 +121,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         badge:  totalPesquisaAcademica > 0 ? String(totalPesquisaAcademica) : null,
         action: onNavigatePesquisaAcademica,
         highlight: false,
-      },
+      }] : []),
       {
         id:     'arquivos',
         icon:   '📁',
