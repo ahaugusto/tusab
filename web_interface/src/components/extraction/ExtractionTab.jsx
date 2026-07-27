@@ -545,14 +545,13 @@ export default function ExtractionTab({
               <select
                 value={logFiltroCanal}
                 onChange={e => setLogFiltroCanal(e.target.value)}
-                style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                 className={`text-[10px] font-medium rounded-lg px-2 py-1 border outline-none cursor-pointer shrink-0 max-w-[140px] truncate
                   ${darkMode
                     ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                <option value="">Todos os canais</option>
+                <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Todos os canais</option>
                 {canaisNoLog.map(c => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{c}</option>
                 ))}
               </select>
             )}
