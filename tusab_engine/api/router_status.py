@@ -204,10 +204,11 @@ def open_folder(name: str, prefixo: str = ""):
     import subprocess
     from tusab_engine.storage import NEURAL_DIR
     folders = {
-        "data":          motor_tusab.DATA_DIR,
-        "gestao":        motor_tusab.gestao_canal_dir(prefixo) if prefixo else motor_tusab.GESTAO_DIR,
-        "agent_index":   agent_tusab.INDEX_DIR,
-        "canal_youtube": os.path.join(NEURAL_DIR, prefixo, "youtube") if prefixo else motor_tusab.NEURAL_DIR,
+        "data":            motor_tusab.DATA_DIR,
+        "gestao":          motor_tusab.gestao_canal_dir(prefixo) if prefixo else motor_tusab.GESTAO_DIR,
+        "agent_index":     agent_tusab.INDEX_DIR,
+        "canal_youtube":   os.path.join(NEURAL_DIR, prefixo, "youtube") if prefixo else motor_tusab.NEURAL_DIR,
+        "canal_documents": os.path.join(NEURAL_DIR, prefixo, "documents") if prefixo else motor_tusab.NEURAL_DIR,
     }
     target = folders.get(name)
     if not target:
