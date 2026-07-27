@@ -92,8 +92,8 @@ export const queueMoveItem = (from_index, to_index) => axios.post(`${API_BASE}/q
 // Feature inspirada no projeto open-source OpenScience (synthetic-sciences/openscience).
 
 /** Starts an arXiv search + download + save for the given project */
-export const buscarArxiv = (query, max_resultados, projeto_nome, data_inicio = '', data_fim = '') =>
-  axios.post(`${API_BASE}/arxiv/search`, { query, max_resultados, projeto_nome, data_inicio, data_fim });
+export const buscarArxiv = (query, max_resultados, projeto_nome, data_inicio = '', data_fim = '', autor = '') =>
+  axios.post(`${API_BASE}/arxiv/search`, { query, max_resultados, projeto_nome, data_inicio, data_fim, autor });
 
 /** Cancels an in-progress arXiv search */
 export const cancelarArxiv = () => axios.post(`${API_BASE}/arxiv/cancel`);
