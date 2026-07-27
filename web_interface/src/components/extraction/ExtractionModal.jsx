@@ -34,9 +34,12 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
   // na fonte certa em vez de forçar escolher de novo aqui dentro.
   const [sourceType, setSourceType] = React.useState(sourceTypeInicial || 'youtube'); // 'youtube' | 'arxiv' | 'fhir'
 
-  // Step arXiv: query de busca + quantidade de resultados
+  // Step arXiv: query de busca + quantidade de resultados + intervalo de datas opcional
+  // (único filtro validado como funcional contra a API real — au:/cat: ficaram de fora)
   const [arxivQuery,      setArxivQuery]      = React.useState('');
   const [arxivMaxResults, setArxivMaxResults] = React.useState(20);
+  const [arxivDataInicio, setArxivDataInicio] = React.useState('');
+  const [arxivDataFim,    setArxivDataFim]    = React.useState('');
 
   // Step FHIR: query de busca (ResearchStudy) + quantidade de resultados
   const [fhirQuery,      setFhirQuery]      = React.useState('');
@@ -176,7 +179,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
     try {
       const res = await criarProjeto(nome);
       if (res.data?.error) { setErroProjetoBusca(res.data.message || 'Erro ao criar projeto'); return; }
-      onConfirmArxiv(arxivQuery.trim(), arxivMaxResults, nome);
+      onConfirmArxiv(arxivQuery.trim(), arxivMaxResults, nome, arxivDataInicio, arxivDataFim);
     } catch {
       setErroProjetoBusca('Não foi possível criar o projeto. Tente novamente.');
     } finally {
@@ -565,6 +568,34 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
                 />
                 <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   {t('extraction.arxiv_max_results_hint')}
+                </p>
+              </div>
+
+              <div className="mb-5">
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {t('extraction.arxiv_date_label')}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={arxivDataInicio}
+                    onChange={e => setArxivDataInicio(e.target.value)}
+                    max={arxivDataFim || undefined}
+                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                  />
+                  <span className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.arxiv_date_to')}</span>
+                  <input
+                    type="date"
+                    value={arxivDataFim}
+                    onChange={e => setArxivDataFim(e.target.value)}
+                    min={arxivDataInicio || undefined}
+                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                  />
+                </div>
+                <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {t('extraction.arxiv_date_hint')}
                 </p>
               </div>
 
