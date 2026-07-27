@@ -11,7 +11,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [1.0.40] — 2026-07-24
+## [1.0.40] — 2026-07-27
 ### Adicionado
 - **Feedback de atualização mais visível** — verificação manual de update (Admin) agora dispara também um `ProgressToast` (canto inferior), além do texto pequeno ao lado do botão. "Você está na versão mais recente" passava despercebido.
 - **Badge persistente de formato detectado no Repositório** — WhatsApp, reuniões (Zoom/Teams/Otter) e documentos jurídicos (petição/contrato/parecer) agora ficam marcados com um badge (⚖️/💬/🎥) na listagem de arquivos, sempre visível — antes só aparecia como aviso transiente no momento do upload. Persistido em `formato_detectado` no `_manifest.json`.
