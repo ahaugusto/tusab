@@ -19,7 +19,7 @@ import { getCanalInfo, criarProjeto } from '../../services/api';
  * Step 2: Channel URL (skipped when channel already configured and not modoFila) — ou busca arXiv (perfil Pesquisador)
  * Step 3: Content types + auto-update — ou quantidade de resultados (arXiv)
  */
-function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '' }) {
+function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', sourceTypeInicial = '' }) {
   const { t } = useTranslation();
 
   // Toggle de fonte — só visível para o perfil Pesquisador. Busca acadêmica no
@@ -29,7 +29,10 @@ function ExtractionModal({ onClose, onConfirm, onConfirmArxiv, onConfirmFhir, da
   const podeUsarArxiv = perfil === 'pesquisador' && !modoFila;
   const podeUsarFhir  = perfil === 'pesquisador' && !modoFila;
   const podeEscolherFonte = podeUsarArxiv || podeUsarFhir;
-  const [sourceType, setSourceType] = React.useState('youtube'); // 'youtube' | 'arxiv' | 'fhir'
+  // sourceTypeInicial: quando o usuário já escolheu a fonte na tela principal
+  // da aba Extração (seletor visível pro perfil Pesquisador), o modal abre já
+  // na fonte certa em vez de forçar escolher de novo aqui dentro.
+  const [sourceType, setSourceType] = React.useState(sourceTypeInicial || 'youtube'); // 'youtube' | 'arxiv' | 'fhir'
 
   // Step arXiv: query de busca + quantidade de resultados
   const [arxivQuery,      setArxivQuery]      = React.useState('');

@@ -9,7 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import CircuitBackground from './CircuitBackground';
 
-function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onAddFiles, onToggleTheme, onChangeLang, onImportBase, regras }) {
+function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onNavigatePesquisaAcademica, onAddFiles, onToggleTheme, onChangeLang, onImportBase, regras }) {
   const { t, i18n: homeI18n } = useTranslation();
   const currentLang = homeI18n.language.startsWith('pt') ? 'pt' : homeI18n.language.startsWith('en') ? 'en' : 'es';
 
@@ -90,8 +90,51 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         highlight: totalCanais > 0,
       },
     ];
+  } else if (isPesquisador) {
+    // Pesquisador: YouTube + Pesquisa acadêmica (arXiv/FHIR combinados, um só
+    // card pra não lotar a home) + Arquivos
+    const totalPesquisaAcademica = (repositorio.documentos || [])
+      .filter(d => d.fonte_externa === 'arxiv' || d.fonte_externa === 'fhir').length;
+    sourceCards = [
+      {
+        id:     'youtube',
+        icon:   '📺',
+        title:  t('home.source_youtube_title'),
+        sub:    'YouTube',
+        desc:   totalCanais > 0
+          ? t('home.card_extract_done', { count: totalCanais })
+          : t('home.source_youtube_desc'),
+        badge:  totalCanais > 0 ? String(totalCanais) : null,
+        action: () => onNavigate('extracao'),
+        highlight: false,
+      },
+      {
+        id:     'pesquisa-academica',
+        icon:   '🔬',
+        title:  t('home.source_pesquisa_title', 'Pesquisa acadêmica'),
+        sub:    t('home.source_pesquisa_sub', 'arXiv · FHIR'),
+        desc:   totalPesquisaAcademica > 0
+          ? t('home.card_repo_done', { count: totalPesquisaAcademica })
+          : t('home.source_pesquisa_desc', 'Busque artigos científicos ou estudos clínicos sem precisar de canal do YouTube.'),
+        badge:  totalPesquisaAcademica > 0 ? String(totalPesquisaAcademica) : null,
+        action: onNavigatePesquisaAcademica,
+        highlight: false,
+      },
+      {
+        id:     'arquivos',
+        icon:   '📁',
+        title:  t('home.source_files_title'),
+        sub:    t('home.source_files_sub'),
+        desc:   totalDocs > 0
+          ? t('home.card_repo_done', { count: totalDocs })
+          : t('home.source_files_desc'),
+        badge:  totalDocs > 0 ? String(totalDocs) : null,
+        action: onAddFiles,
+        highlight: false,
+      },
+    ];
   } else {
-    // Pesquisador + Profissional: padrão original
+    // Especialista: padrão original
     sourceCards = [
       {
         id:     'youtube',
@@ -204,7 +247,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
               {isEstudante ? t('home.section_source_estudante') : t('home.section_source')}
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${sourceCards.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
               {sourceCards.map(card => (
                 <button
                   key={card.id}
