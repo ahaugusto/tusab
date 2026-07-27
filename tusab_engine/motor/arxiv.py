@@ -89,6 +89,8 @@ def buscar_arxiv(
     query: str,
     max_resultados: int,
     projeto_nome: str,
+    data_inicio: str = "",
+    data_fim: str = "",
     evento_cancelar=None,
     dispatch_event=None,
 ) -> dict:
@@ -99,6 +101,11 @@ def buscar_arxiv(
     Não reindexa automaticamente — indexação continua sendo ação explícita do usuário
     via POST /agent/index, igual a qualquer outro documento.
 
+    data_inicio/data_fim: filtro opcional por data de submissão (formato YYYY-MM-DD,
+    vindo de <input type="date">). Único filtro validado como funcional em teste real
+    contra a API — au:/cat: também existem mas não entraram neste escopo. Um lado
+    vazio abre o intervalo (sem início / até hoje).
+
     Retorna {ok, total_encontrados, total_salvos, erros: [...]}.
     """
     max_resultados = max(1, min(int(max_resultados), MAX_RESULTADOS_PERMITIDO))
@@ -106,10 +113,16 @@ def buscar_arxiv(
     doc_dir = os.path.join(NEURAL_DIR, projeto_nome, "documents")
     os.makedirs(doc_dir, exist_ok=True)
 
+    search_query = f"all:{query}"
+    if data_inicio or data_fim:
+        ini = data_inicio.replace("-", "") if data_inicio else "19910101"
+        fim = data_fim.replace("-", "") if data_fim else datetime.now().strftime("%Y%m%d")
+        search_query = f"({search_query}) AND submittedDate:[{ini} TO {fim}]"
+
     resp = requests.get(
         ARXIV_API_URL,
         params={
-            "search_query": f"all:{query}",
+            "search_query": search_query,
             "start": 0,
             "max_results": max_resultados,
         },
