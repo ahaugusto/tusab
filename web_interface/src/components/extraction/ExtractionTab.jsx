@@ -5,6 +5,7 @@ import {
   Zap, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2,
   Link2, XCircle, Pause, Square, Terminal, Activity, Globe,
   FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight, Trash2,
+  Search, Stethoscope,
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
@@ -57,6 +58,11 @@ export default function ExtractionTab({
   regras,
   // abre modal de gerência de fila
   onOpenQueueModal,
+  // resultado persistente da última busca arXiv/FHIR (perfil Pesquisador) —
+  // essas buscas não passam por status.stats, então sem isso não sobra
+  // nenhum registro na tela depois que o ProgressToast some sozinho
+  lastArxivResult,
+  lastFhirResult,
 }) {
   const { t } = useTranslation();
   const [logFiltroCanal, setLogFiltroCanal] = React.useState('');
@@ -412,6 +418,46 @@ export default function ExtractionTab({
           )}
         </AnimatePresence>
 
+        {/* Resumo de busca arXiv/FHIR (perfil Pesquisador) — mesmo padrão visual
+            do resumo pós-extração do YouTube acima, mas sem conceitos de vídeo/
+            legenda que não existem nessas fontes. */}
+        <AnimatePresence>
+          {(lastArxivResult || lastFhirResult) && (() => {
+            const r = lastArxivResult || lastFhirResult;
+            const fonte = lastArxivResult ? 'arXiv' : 'FHIR';
+            const Icon = lastArxivResult ? Search : Stethoscope;
+            return (
+              <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                aria-labelledby="summary-busca-heading"
+                className={`rounded-2xl border overflow-hidden ${r.sucesso
+                  ? darkMode ? 'bg-secondary/8 border-secondary/25' : 'bg-emerald-50 border-emerald-200'
+                  : darkMode ? 'bg-warning/8 border-warning/25' : 'bg-amber-50 border-amber-200'}`}>
+                <div className={`px-5 py-3.5 border-b flex items-center gap-2 ${r.sucesso
+                  ? darkMode ? 'border-secondary/20' : 'border-emerald-200'
+                  : darkMode ? 'border-warning/20' : 'border-amber-200'}`}>
+                  {r.sucesso
+                    ? <Trophy size={15} className="text-secondary" aria-hidden="true" />
+                    : <AlertTriangle size={15} className="text-warning" aria-hidden="true" />}
+                  <h3 id="summary-busca-heading" className={`text-xs font-bold uppercase tracking-wider ${r.sucesso
+                    ? darkMode ? 'text-secondary' : 'text-emerald-700'
+                    : darkMode ? 'text-warning' : 'text-amber-700'}`}>
+                    {r.sucesso ? `Busca no ${fonte} concluída` : `Busca no ${fonte} interrompida`}
+                  </h3>
+                </div>
+                <div className="px-5 py-4 flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-white/8' : 'bg-white border border-slate-200'}`}>
+                    <Icon size={16} className={darkMode ? 'text-slate-300' : 'text-slate-600'} aria-hidden="true" />
+                  </div>
+                  <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    <span className={`text-lg font-bold mr-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{r.processed}</span>
+                    de {r.total} resultado{r.total === 1 ? '' : 's'} salvos no projeto — confira na aba Repositório.
+                  </p>
+                </div>
+              </motion.section>
+            );
+          })()}
+        </AnimatePresence>
+
         {/* Monitor shortcut */}
         {isRunning && regras.monitor && (
           <button onClick={onNavigateMonitor}
@@ -532,6 +578,15 @@ export default function ExtractionTab({
           <RelatorioTab darkMode={darkMode} history={history} btnFocus={BTN_FOCUS}
             canalAtivo={canalConfigurado}
             isRunning={isRunning}
+            // Relatório de legendas/cobertura só faz sentido pra vídeo do YouTube —
+            // um projeto 100% arXiv/FHIR/documentos nunca gera o CSV de gestão que
+            // essa aba lê, então o estado vazio precisa dizer isso em vez de mandar
+            // "iniciar uma extração" pra quem já tem conteúdo indexável.
+            projetoSoTemDocumentos={(() => {
+              const c = (repositorio?.canais || []).find(c => c.nome === canalConfigurado);
+              if (!c) return false;
+              return (c.videos_mapeados || 0) === 0 && ((c.documentos?.length || 0) + (c.textos?.length || 0)) > 0;
+            })()}
             onRefreshHistory={() => fetchHistory().then(r => setHistory(r.data)).catch(() => {})} />
         </div>
       )}
