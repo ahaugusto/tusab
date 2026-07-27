@@ -921,7 +921,7 @@ function App() {
     if (!arxivPolling) return;
     const interval = setInterval(() => {
       statusArxiv().then(r => {
-        const { running, status, total, processed } = r.data;
+        const { running, status, total, processed, message } = r.data;
         if (running) {
           setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
         } else {
@@ -931,7 +931,7 @@ function App() {
           setLastArxivResult({ sucesso, processed, total });
           setProgressToast({
             type: sucesso ? 'success' : 'error',
-            message: sucesso ? t('extraction.arxiv_toast_success', { processed, total }) : t('extraction.arxiv_toast_error'),
+            message: sucesso ? t('extraction.arxiv_toast_success', { processed, total }) : (message || t('extraction.arxiv_toast_error')),
           });
         }
       }).catch(() => {
@@ -969,7 +969,7 @@ function App() {
     if (!fhirPolling) return;
     const interval = setInterval(() => {
       statusFhir().then(r => {
-        const { running, status, total, processed } = r.data;
+        const { running, status, total, processed, message } = r.data;
         if (running) {
           setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
         } else {
@@ -979,7 +979,7 @@ function App() {
           setLastFhirResult({ sucesso, processed, total });
           setProgressToast({
             type: sucesso ? 'success' : 'error',
-            message: sucesso ? t('extraction.fhir_toast_success', { processed, total }) : t('extraction.fhir_toast_error'),
+            message: sucesso ? t('extraction.fhir_toast_success', { processed, total }) : (message || t('extraction.fhir_toast_error')),
           });
         }
       }).catch(() => {

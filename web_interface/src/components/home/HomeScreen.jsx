@@ -322,6 +322,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                 <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
               </svg>
               <select value={currentLang} onChange={e => onChangeLang(e.target.value)}
+                style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                 className={`text-[11px] font-bold bg-transparent border-none outline-none cursor-pointer pr-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                 <option value="pt">PT</option>
                 <option value="en">EN</option>
