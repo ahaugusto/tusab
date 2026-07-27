@@ -1,35 +1,16 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
-Testes da busca de estudos clínicos via FHIR (perfil Pesquisador).
-Sem chamada de rede real — requests é mockado.
+Testes do leitor de arquivos FHIR (ResearchStudy), para o perfil Pesquisador.
 Escopo restrito a ResearchStudy — nunca Patient ou outro recurso de indivíduo.
+
+A busca ao vivo (POST /fhir/search) foi removida em 27/jul/2026 — nenhum
+servidor FHIR público serve como registro central pesquisável de estudos
+clínicos (ver agents/_historia.md). O que sobrou é a leitura de um Bundle
+que o usuário já tem em mãos, via upload no Repositório.
 """
 import json
-from unittest.mock import patch, MagicMock
 
 from tusab_engine.motor import fhir as fhir_motor
-
-
-# ─── Endpoint ──────────────────────────────────────────────────────────────────
-
-def test_fhir_search_rejeita_sem_projeto(client):
-    r = client.post("/fhir/search", json={"query": "diabetes", "projeto_nome": "projeto_inexistente_xyz"})
-    assert r.status_code == 200
-    body = r.json()
-    assert body.get("error") is True
-
-
-def test_fhir_search_rejeita_query_curta(client):
-    r = client.post("/fhir/search", json={"query": "a", "projeto_nome": "qualquer"})
-    assert r.status_code == 422  # Pydantic Field(min_length=2)
-
-
-def test_fhir_status_retorna_estrutura(client):
-    r = client.get("/fhir/status")
-    assert r.status_code == 200
-    body = r.json()
-    assert "running" in body
-    assert "status" in body
 
 
 # ─── Módulo — parser de Narrative (text.div) ───────────────────────────────────
@@ -66,8 +47,8 @@ def test_parsear_resource_prioriza_narrative_quando_presente():
 
 
 def test_parsear_resource_ignora_narrative_placeholder():
-    """Servidores de sandbox público frequentemente têm um placeholder vazio
-    em vez de narrative real — não deve ser indexado como conteúdo."""
+    """Exports com Narrative ausente frequentemente têm um placeholder vazio
+    em vez de resumo real — não deve ser indexado como conteúdo."""
     resource = {
         "id": "137048861",
         "status": "completed",
@@ -98,15 +79,13 @@ def test_parsear_resource_sem_titulo_usa_fallback_com_id():
     assert "999" in item["titulo"]
 
 
-# ─── Módulo — buscar_fhir (mockado, sem rede) ──────────────────────────────────
+# ─── Módulo — processar_bundle_fhir (leitura de arquivo, sem rede) ─────────────
 
 _BUNDLE_MOCK = {
     "resourceType": "Bundle",
-    "type": "searchset",
-    "total": 1,
+    "type": "collection",
     "entry": [
         {
-            "fullUrl": "https://hapi.fhir.org/baseR4/ResearchStudy/131284841",
             "resource": {
                 "resourceType": "ResearchStudy",
                 "id": "131284841",
@@ -119,47 +98,23 @@ _BUNDLE_MOCK = {
 }
 
 
-def test_buscar_fhir_salva_documento_e_manifest(tmp_path, monkeypatch):
-    monkeypatch.setattr(fhir_motor, "NEURAL_DIR", str(tmp_path))
-    monkeypatch.setattr(fhir_motor, "_INTERVALO_ENTRE_REQUISICOES", 0)
-
-    mock_resp = MagicMock()
-    mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = _BUNDLE_MOCK
-
-    with patch.object(fhir_motor.requests, "get", return_value=mock_resp):
-        resultado = fhir_motor.buscar_fhir(
-            query="teste",
-            max_resultados=5,
-            projeto_nome="projeto_teste_fhir",
-        )
-
-    assert resultado["ok"] is True
-    assert resultado["total_encontrados"] == 1
-    assert resultado["total_salvos"] == 1
-    assert resultado["erros"] == []
-
-    doc_dir = tmp_path / "projeto_teste_fhir" / "documents"
-    manifest_path = doc_dir / "_manifest.json"
-    assert manifest_path.exists()
-
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert len(manifest) == 1
-    assert manifest[0]["fonte_externa"] == "fhir"
-
-    txt_files = list(doc_dir.glob("*.txt"))
-    assert len(txt_files) == 1
-    conteudo = txt_files[0].read_text(encoding="utf-8")
-    assert "FONTE: fhir" in conteudo
-    assert "Resumo do estudo de teste." in conteudo
+def test_processar_bundle_fhir_extrai_texto_e_total():
+    texto, total = fhir_motor.processar_bundle_fhir(json.dumps(_BUNDLE_MOCK).encode("utf-8"))
+    assert total == 1
+    assert "Estudo de Teste" in texto
+    assert "Resumo do estudo de teste." in texto
 
 
-def test_buscar_fhir_ignora_resource_de_outro_tipo(tmp_path, monkeypatch):
-    """Defesa em profundidade: mesmo que o servidor retorne um resource fora do
-    resourceType esperado (ex: OperationOutcome de erro), o motor não indexa."""
-    monkeypatch.setattr(fhir_motor, "NEURAL_DIR", str(tmp_path))
-    monkeypatch.setattr(fhir_motor, "_INTERVALO_ENTRE_REQUISICOES", 0)
+def test_processar_bundle_fhir_aceita_resource_isolado_sem_bundle():
+    resource_isolado = _BUNDLE_MOCK["entry"][0]["resource"]
+    texto, total = fhir_motor.processar_bundle_fhir(json.dumps(resource_isolado).encode("utf-8"))
+    assert total == 1
+    assert "Estudo de Teste" in texto
 
+
+def test_processar_bundle_fhir_ignora_resource_de_outro_tipo():
+    """Defesa em profundidade: um resource fora do resourceType esperado
+    (ex: OperationOutcome) dentro do Bundle não é indexado."""
     bundle_com_ruido = {
         "resourceType": "Bundle",
         "entry": [
@@ -167,39 +122,69 @@ def test_buscar_fhir_ignora_resource_de_outro_tipo(tmp_path, monkeypatch):
             _BUNDLE_MOCK["entry"][0],
         ],
     }
-    mock_resp = MagicMock()
-    mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = bundle_com_ruido
-
-    with patch.object(fhir_motor.requests, "get", return_value=mock_resp):
-        resultado = fhir_motor.buscar_fhir(
-            query="teste",
-            max_resultados=5,
-            projeto_nome="projeto_teste_fhir_ruido",
-        )
-
-    assert resultado["total_encontrados"] == 1
-    assert resultado["total_salvos"] == 1
+    texto, total = fhir_motor.processar_bundle_fhir(json.dumps(bundle_com_ruido).encode("utf-8"))
+    assert total == 1
+    assert "Estudo de Teste" in texto
 
 
-def test_buscar_fhir_continua_apos_erro_em_um_item(tmp_path, monkeypatch):
-    """Um estudo que falha ao salvar não derruba o lote inteiro."""
-    monkeypatch.setattr(fhir_motor, "NEURAL_DIR", str(tmp_path))
-    monkeypatch.setattr(fhir_motor, "_INTERVALO_ENTRE_REQUISICOES", 0)
+def test_processar_bundle_fhir_multiplos_estudos_concatena_com_separador():
+    bundle_multiplo = {
+        "resourceType": "Bundle",
+        "entry": [
+            _BUNDLE_MOCK["entry"][0],
+            {"resource": {"resourceType": "ResearchStudy", "id": "999", "title": "Segundo Estudo", "status": "completed"}},
+        ],
+    }
+    texto, total = fhir_motor.processar_bundle_fhir(json.dumps(bundle_multiplo).encode("utf-8"))
+    assert total == 2
+    assert "Estudo de Teste" in texto
+    assert "Segundo Estudo" in texto
 
-    mock_resp = MagicMock()
-    mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = _BUNDLE_MOCK
 
-    with patch.object(fhir_motor.requests, "get", return_value=mock_resp), \
-         patch.object(fhir_motor, "_sanitizar_nome_arquivo", side_effect=Exception("boom")):
-        resultado = fhir_motor.buscar_fhir(
-            query="teste",
-            max_resultados=5,
-            projeto_nome="projeto_teste_fhir_erro",
-        )
+def test_processar_bundle_fhir_rejeita_json_nao_fhir():
+    import pytest
+    with pytest.raises(ValueError):
+        fhir_motor.processar_bundle_fhir(json.dumps({"foo": "bar"}).encode("utf-8"))
 
-    assert resultado["ok"] is True
-    assert resultado["total_encontrados"] == 1
-    assert resultado["total_salvos"] == 0
-    assert len(resultado["erros"]) == 1
+
+def test_processar_bundle_fhir_rejeita_bundle_sem_researchstudy():
+    import pytest
+    bundle_vazio = {"resourceType": "Bundle", "entry": [{"resource": {"resourceType": "Patient", "id": "1"}}]}
+    with pytest.raises(ValueError):
+        fhir_motor.processar_bundle_fhir(json.dumps(bundle_vazio).encode("utf-8"))
+
+
+# ─── Integração — upload de .json no Repositório ───────────────────────────────
+
+def test_upload_json_fhir_bundle_persiste_formato_detectado_no_manifest(client):
+    nome_projeto = "projeto_fhir_pytest"
+    client.post("/neural/projeto", json={"nome": nome_projeto})
+
+    r = client.post(
+        "/neural/upload",
+        data={"canal": nome_projeto},
+        files={"arquivo": ("estudo.json", json.dumps(_BUNDLE_MOCK).encode("utf-8"), "application/json")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("ok") is True
+    assert "Bundle FHIR" in body.get("aviso", "")
+
+    repo = client.get("/repositorio").json()
+    canal = next(c for c in repo["canais"] if c["nome"] == nome_projeto)
+    doc = next(d for d in canal["documentos"] if d["nome_original"] == "estudo.json")
+    assert doc["formato_detectado"] == "fhir_bundle"
+
+
+def test_upload_json_nao_fhir_retorna_erro(client):
+    nome_projeto = "projeto_json_generico_pytest"
+    client.post("/neural/projeto", json={"nome": nome_projeto})
+
+    r = client.post(
+        "/neural/upload",
+        data={"canal": nome_projeto},
+        files={"arquivo": ("config.json", json.dumps({"foo": "bar"}).encode("utf-8"), "application/json")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("error") is True

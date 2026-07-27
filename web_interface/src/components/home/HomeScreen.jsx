@@ -91,10 +91,9 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       },
     ];
   } else if (isPesquisador) {
-    // Pesquisador: YouTube + Pesquisa acadêmica (arXiv/FHIR combinados, um só
-    // card pra não lotar a home) + Arquivos
+    // Pesquisador: YouTube + Pesquisa acadêmica (arXiv) + Arquivos
     const totalPesquisaAcademica = (repositorio.documentos || [])
-      .filter(d => d.fonte_externa === 'arxiv' || d.fonte_externa === 'fhir').length;
+      .filter(d => d.fonte_externa === 'arxiv').length;
     sourceCards = [
       {
         id:     'youtube',
@@ -113,10 +112,10 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         id:     'pesquisa-academica',
         icon:   '🔬',
         title:  t('home.source_pesquisa_title', 'Pesquisa acadêmica'),
-        sub:    ['arXiv', 'FHIR'],
+        sub:    'arXiv',
         desc:   totalPesquisaAcademica > 0
           ? t('home.card_repo_done', { count: totalPesquisaAcademica })
-          : t('home.source_pesquisa_desc', 'Busque artigos científicos ou estudos clínicos'),
+          : t('home.source_pesquisa_desc', 'Busque artigos científicos'),
         badge:  totalPesquisaAcademica > 0 ? String(totalPesquisaAcademica) : null,
         action: onNavigatePesquisaAcademica,
         highlight: false,

@@ -37,6 +37,7 @@ const _FORMATO_ESPECIAL_META = {
   zoom:              { emoji: '🎥', i18n: 'repo.formato_reuniao' },
   otter:             { emoji: '🎥', i18n: 'repo.formato_reuniao' },
   teams:             { emoji: '🎥', i18n: 'repo.formato_reuniao' },
+  fhir_bundle:       { emoji: '🧬', i18n: 'repo.formato_fhir_bundle' },
 };
 
 function FormatoBadge({ formato, darkMode, t }) {
@@ -67,7 +68,7 @@ function HighlightTrecho({ texto, query, darkMode }) {
 }
 
 // Tipos aceitos para input e drag-drop
-const ACCEPT_TYPES = '.pdf,.docx,.xlsx,.csv,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac';
+const ACCEPT_TYPES = '.pdf,.docx,.xlsx,.csv,.txt,.md,.json,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.ogg,.flac,.opus,.aac';
 
 function _fileIsAccepted(file) {
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
