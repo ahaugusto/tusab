@@ -246,8 +246,11 @@ Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 | 6 | `window.tusab` definido | DevTools (F12) → Console → `window.tusab` | Falha de preload (sandbox, asar, module not found) |
 | 7 | Indexação funciona | Abrir aba Repositório → Indexar base → modal aparece e indexa | CORS bloqueando backend, preload undefined |
 | 8 | Chat responde | Enviar mensagem no chat → resposta chega | CORS, API_BASE errado |
+| 9 | `latest.yml` está entre os assets da release | `gh release view vX.Y.Z --repo ahaugusto/tusab-public --json assets -q '.assets[].name'` deve listar `latest.yml` junto com `.exe`/`.blockmap` | `electron-updater` retorna 404 ao checar atualização — "Cannot find latest.yml in the latest release artifacts" |
 
 **Regra:** se `window.tusab` for `undefined` no instalador → não publicar. Verificar `webPreferences.sandbox` e `require()` em `preload.js`.
+
+**Regra (v1.0.40, 27/jul/2026):** publicar `.exe`/`.blockmap` sem o `latest.yml` deixa a release "funcional para download manual" mas **quebra o auto-update silenciosamente** — só aparece quando um usuário numa versão anterior clica em "Verificar atualização" e recebe HTTP 404. `gh release create` com múltiplos arquivos não inclui `latest.yml` automaticamente se ele não for explicitamente passado na lista de assets — sempre conferir os 3 arquivos (`.exe`, `.exe.blockmap`, `latest.yml`) antes de considerar a release publicada.
 
 ---
 
