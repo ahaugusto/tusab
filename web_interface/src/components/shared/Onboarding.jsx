@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2, Bell } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from './ModalWrapper';
-import { usePerfil, PERFIS_META } from '../../hooks/usePerfil';
+import { usePerfil, PERFIS_META, PERFIS_CONFIG } from '../../hooks/usePerfil';
 import OllamaSetup from '../agent/OllamaSetup';
 import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress, saveAgentConfig } from '../../services/api';
 
@@ -104,9 +104,10 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
   };
 
   // Step 3 (fontes de conteúdo): perfil Pesquisador ganha menção à busca arXiv
-  // (feature inspirada no projeto open-source OpenScience).
+  // (feature inspirada no projeto open-source OpenScience) — só enquanto
+  // regras.arxiv estiver ligado; hoje oculto (ver usePerfil.js).
   const s3Body = () => {
-    if (perfilSelecionado === 'pesquisador') return t('onboarding.s3_body_pesquisador');
+    if (perfilSelecionado === 'pesquisador' && PERFIS_CONFIG.pesquisador?.arxiv) return t('onboarding.s3_body_pesquisador');
     return t('onboarding.s3_body');
   };
 
