@@ -19,15 +19,19 @@ futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de
 27/jul/2026, ver _historia.md).
 """
 
-from . import arxiv_adapter, datacite, doaj, europepmc, openalex, zenodo
+from . import arxiv_adapter, datacite, doaj, europepmc, github, openalex, stackexchange, zenodo
 
-_MODULOS = [arxiv_adapter, openalex, europepmc, datacite, doaj, zenodo]
+_MODULOS = [
+    arxiv_adapter, openalex, europepmc, datacite, doaj, zenodo,
+    github, stackexchange,
+]
 
 FONTES = {m.FONTE_META["id"]: m for m in _MODULOS}
 
 # Nome de exibição de cada área — chave bate com FONTE_META["area"] de cada módulo.
 AREAS_META = {
     "cientifica": "Produção científica e literatura",
+    "tecnologia": "Tecnologia, IA e ciência de dados",
 }
 
 
