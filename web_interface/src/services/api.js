@@ -220,6 +220,9 @@ export const uploadDocument = (formData) => axios.post(`${API_BASE}/neural/uploa
 /** Saves pasted text to neural/textos/ */
 export const saveText = (titulo, conteudo, canal = '') => axios.post(`${API_BASE}/neural/texto`, { titulo, conteudo, canal });
 
+/** Fetches a URL, extracts main content (trafilatura) and saves to neural/documents/ */
+export const salvarUrl = (url, canal = '') => axios.post(`${API_BASE}/neural/url`, { url, canal });
+
 /** Deletes a document or text from the neural */
 export const deleteRepositorioItem = (tipo, id) => axios.delete(`${API_BASE}/neural/arquivo/${tipo}/${id}`);
 

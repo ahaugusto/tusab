@@ -33,6 +33,7 @@ python-docx>=1.2.0
 openpyxl>=3.1.5                  # leitura de XLSX no upload + export de tabela
 pandas>=3.0.3
 reportlab>=5.0.0                 # geração de PDF no /export/relatorio-pdf
+trafilatura>=2.1.0                # extração de conteúdo principal de página web (leitor de URL avulsa)
 
 # ── Sistema / utilitários ───────────────────────────────────────────────────
 psutil>=7.2.2                    # métricas de CPU/memória no router_metrics
