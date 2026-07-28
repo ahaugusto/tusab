@@ -9,7 +9,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel, fetchReadonlyStatus, openFolder } from '../../services/api';
+import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, salvarUrl, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel, fetchReadonlyStatus, openFolder } from '../../services/api';
 import { Analytics } from '../../services/analytics';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -285,6 +285,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [mode, setMode]       = React.useState('arquivo');
   const [title, setTitle]     = React.useState('');
   const [text, setText]       = React.useState('');
+  const [pageUrl, setPageUrl] = React.useState('');
   const [saving, setSaving]       = React.useState(false);
   const [files, setFiles]         = React.useState([]);          // multiple files queue
   const [uploadProgress, setUploadProgress] = React.useState({}); // { fileName: 'ok'|'error'|'loading' }
@@ -448,6 +449,28 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       setTitle('');
       setText('');
       _triggerReindex(canal);
+    }
+    setSaving(false);
+  };
+
+  const handleSaveUrl = async () => {
+    if (!pageUrl.trim()) return;
+    setSaving(true);
+    setUploadAviso('');
+    const canal = _canalEfetivo();
+    try {
+      const res = await salvarUrl(pageUrl.trim(), canal);
+      if (res.data?.error) {
+        setUploadAviso(res.data.message || 'Não foi possível trazer o conteúdo desta página.');
+      } else {
+        Analytics.documentoAdicionado('web');
+        reload();
+        closeAddModal();
+        setPageUrl('');
+        _triggerReindex(canal);
+      }
+    } catch {
+      setUploadAviso('Não foi possível trazer o conteúdo desta página.');
     }
     setSaving(false);
   };
@@ -898,7 +921,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={!_canalEfetivo() ? 'Selecionar projeto' : mode === 'texto' ? 'Colar texto' : 'Enviar arquivo'}
+            aria-label={!_canalEfetivo() ? 'Selecionar projeto' : mode === 'texto' ? 'Colar texto' : mode === 'url' ? 'Colar URL' : 'Enviar arquivo'}
             className={`w-full max-w-lg rounded-2xl border shadow-2xl p-4 space-y-3 overflow-y-auto
               ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}
               ${dragging ? darkMode ? 'border-primary' : 'border-violet-400' : ''}`}
@@ -907,7 +930,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           {/* Modal header */}
           <div className="flex items-center justify-between pb-2 border-b border-white/8">
             <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-              {!_canalEfetivo() ? t('repo.select_project', 'Selecionar projeto') : mode === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
+              {!_canalEfetivo() ? t('repo.select_project', 'Selecionar projeto') : mode === 'texto' ? t('repo.paste_text') : mode === 'url' ? 'Colar URL' : t('repo.upload_file')}
             </h3>
             <button onClick={() => closeAddModal()}
               className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
@@ -989,10 +1012,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               </div>
 
               <div className="flex gap-2">
-                {['arquivo', 'texto'].map(m => (
+                {['arquivo', 'texto', 'url'].map(m => (
                   <button key={m} onClick={() => setMode(m)}
                     className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${mode === m ? 'bg-primary/20 text-primary' : darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'} ${btnFocus}`}>
-                    {m === 'texto' ? t('repo.paste_text') : t('repo.upload_file')}
+                    {m === 'texto' ? t('repo.paste_text') : m === 'url' ? 'Colar URL' : t('repo.upload_file')}
                   </button>
                 ))}
               </div>
@@ -1008,6 +1031,25 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <button onClick={handleSaveText} disabled={saving || !title.trim() || !text.trim()}
                 className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
                 {saving ? t('repo.saving') : t('repo.save_text')}
+              </button>
+            </>
+          ) : _canalEfetivo() && mode === 'url' ? (
+            <>
+              <input placeholder="https://exemplo.com/artigo" value={pageUrl} onChange={e => setPageUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && pageUrl.trim() && !saving) handleSaveUrl(); }}
+                className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-primary ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`} />
+              <p className={`text-[10px] leading-relaxed px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                Extrai o conteúdo principal da página automaticamente. Só páginas públicas e estáticas — não funciona em sites que exigem login ou JavaScript pra mostrar o conteúdo.
+              </p>
+              {uploadAviso && (
+                <p className={`text-[11px] rounded-xl px-3 py-2 leading-relaxed whitespace-pre-line
+                  ${darkMode ? 'bg-danger/10 text-danger' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                  {uploadAviso}
+                </p>
+              )}
+              <button onClick={handleSaveUrl} disabled={saving || !pageUrl.trim()}
+                className={`w-full py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 bg-primary/20 text-primary hover:bg-primary/30 ${btnFocus}`}>
+                {saving ? t('repo.saving') : 'Trazer conteúdo'}
               </button>
             </>
           ) : (

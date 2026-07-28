@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 import motor_tusab
 from tusab_engine.state import state
 from tusab_engine.motor import fhir as fhir_motor
+from tusab_engine.motor import web_scraper
 
 router = APIRouter()
 
@@ -35,6 +36,10 @@ class TextoRequest(BaseModel):
     titulo:   str = Field(max_length=200)
     conteudo: str = Field(max_length=500_000)
     canal:    str = Field(default="", max_length=120)
+
+class UrlRequest(BaseModel):
+    url:   str = Field(max_length=2000)
+    canal: str = Field(default="", max_length=120)
 
 class LimparRequest(BaseModel):
     youtube:    bool = False
@@ -766,6 +771,71 @@ def cerebro_texto(req: TextoRequest):
     motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 
     return {"ok": True, "id": fid, "titulo": req.titulo}
+
+
+@router.post("/neural/url")
+def cerebro_url(req: UrlRequest):
+    """Busca uma URL avulsa, extrai o conteúdo principal (trafilatura) e salva
+    no neural/{canal}/documents/ — mesma ideia de /neural/texto, mas o texto
+    vem de uma página em vez de ser colado manualmente.
+
+    [CONTRATO CRÍTICO] Mesma restrição de /neural/upload — projeto deve existir previamente.
+    Respeita robots.txt antes de buscar; nunca tenta contornar bloqueio.
+    """
+    import uuid as _uuid
+    from urllib.parse import urlparse as _urlparse
+    from tusab_engine.motor.fontes._base import mensagem_erro_busca_externa
+
+    neural_dir = motor_tusab.NEURAL_DIR
+    canal_prefixo = _get_canal_prefixo_ativo(req.canal)
+    if not canal_prefixo:
+        return {"error": True, "message": "Selecione um projeto antes de trazer uma página."}
+
+    url = req.url.strip()
+    if not re.match(r'^https?://', url):
+        return {"error": True, "message": "Informe uma URL válida (começando com http:// ou https://)."}
+
+    try:
+        pagina = web_scraper.extrair_pagina(url)
+    except (web_scraper.RobotsBloqueadoError, web_scraper.ExtracaoVaziaError) as e:
+        return {"error": True, "message": str(e)}
+    except Exception as e:
+        hostname = _urlparse(url).netloc or "a página"
+        return {"error": True, "message": mensagem_erro_busca_externa(e, hostname)}
+
+    doc_dir = os.path.join(neural_dir, canal_prefixo, "documents")
+    os.makedirs(doc_dir, exist_ok=True)
+
+    fid = str(_uuid.uuid4())[:8]
+    nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', pagina["titulo"])[:40]
+    txt_path = os.path.join(doc_dir, f"{fid}_{nome_limpo}.txt")
+
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write(f"TITULO: {pagina['titulo']}\nFONTE: web\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
+        f.write(f"URL_ORIGEM: {pagina['url']}\n")
+        f.write("-" * 70 + "\n")
+        f.write(pagina["texto"])
+
+    manifest_path = os.path.join(doc_dir, "_manifest.json")
+    manifest = []
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+
+    entry = {
+        "id": fid,
+        "nome_original": pagina["titulo"],
+        "nome_txt": os.path.basename(txt_path),
+        "tipo": "web",
+        "tamanho": len(pagina["texto"].encode("utf-8")),
+        "data": datetime.now().strftime("%d/%m/%Y"),
+        "chars": len(pagina["texto"]),
+        "fonte_externa": "web",
+    }
+    manifest.append(entry)
+    motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
+
+    return {"ok": True, "id": fid, "titulo": pagina["titulo"], "chars": len(pagina["texto"])}
 
 
 @router.delete("/neural/arquivo/{tipo}/{fid}")
