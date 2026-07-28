@@ -8,6 +8,9 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ---
 
 ## [Não lançado]
+### Adicionado
+- **Busca em fontes públicas por área de conhecimento (perfil Pesquisador)** — registro genérico de fontes (arXiv, OpenAlex, Europe PMC, DataCite, DOAJ, Zenodo na área de Produção científica; GitHub e Stack Overflow na área de Tecnologia), com filtros de autor/data quando a fonte suportar. Mais áreas entram incrementalmente.
+- **Leitor de página web avulsa no Repositório** — cole uma URL e o Tusab extrai o conteúdo principal e indexa, ao lado de "colar texto". Usa a biblioteca open-source [trafilatura](https://github.com/adbar/trafilatura) (Apache-2.0) para extração de conteúdo; respeita `robots.txt` antes de buscar, sem tentar contornar bloqueio de nenhum site. Limitado a páginas estáticas (sem renderização de JavaScript).
 
 ---
 
