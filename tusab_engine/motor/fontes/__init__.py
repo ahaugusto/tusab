@@ -19,12 +19,13 @@ futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de
 27/jul/2026, ver _historia.md).
 """
 
-from . import arxiv_adapter, bcb, datacite, doaj, europepmc, github, openalex, stackexchange, zenodo
+from . import arxiv_adapter, bcb, camara, datacite, doaj, europepmc, github, openalex, stackexchange, zenodo
 
 _MODULOS = [
     arxiv_adapter, openalex, europepmc, datacite, doaj, zenodo,
     github, stackexchange,
     bcb,
+    camara,
 ]
 
 FONTES = {m.FONTE_META["id"]: m for m in _MODULOS}
@@ -34,6 +35,7 @@ AREAS_META = {
     "cientifica": "Produção científica e literatura",
     "tecnologia": "Tecnologia, IA e ciência de dados",
     "economia":   "Economia, finanças e ciências sociais",
+    "direito":    "Direito, normas, legislação e governo",
 }
 
 
