@@ -48,6 +48,48 @@ def test_github_extrai_descricao_topicos_e_linguagem(tmp_path, monkeypatch):
     assert "FONTE: github" in conteudo
 
 
+def test_github_inclui_readme_quando_disponivel(tmp_path, monkeypatch):
+    import base64
+    monkeypatch.setattr(github, "NEURAL_DIR", str(tmp_path))
+    mock_search = MagicMock()
+    mock_search.raise_for_status = MagicMock()
+    mock_search.json.return_value = {
+        "items": [{"full_name": "org/repo-rag", "description": "Framework de RAG.", "html_url": "https://github.com/org/repo-rag"}]
+    }
+    readme_b64 = base64.b64encode("# RAG-Anything\n\nExplicação detalhada do projeto aqui.".encode("utf-8")).decode("ascii")
+    mock_readme = MagicMock(ok=True)
+    mock_readme.json.return_value = {"encoding": "base64", "content": readme_b64}
+
+    with patch.object(github.requests, "get", side_effect=[mock_search, mock_readme]):
+        resultado = github.buscar(query="rag", max_resultados=5, projeto_nome="projeto_github_readme")
+
+    assert resultado["total_salvos"] == 1
+    txt_files = list((tmp_path / "projeto_github_readme" / "documents").glob("*.txt"))
+    conteudo = txt_files[0].read_text(encoding="utf-8")
+    assert "Explicação detalhada do projeto aqui." in conteudo
+    assert "--- README ---" in conteudo
+
+
+def test_github_sem_readme_usa_so_descricao_sem_quebrar(tmp_path, monkeypatch):
+    """README indisponível (404/rate limit) não derruba o item — cai pra descrição."""
+    monkeypatch.setattr(github, "NEURAL_DIR", str(tmp_path))
+    mock_search = MagicMock()
+    mock_search.raise_for_status = MagicMock()
+    mock_search.json.return_value = {
+        "items": [{"full_name": "org/sem-readme", "description": "Só tem descrição mesmo.", "html_url": "https://github.com/org/sem-readme"}]
+    }
+    mock_readme_falho = MagicMock(ok=False)
+
+    with patch.object(github.requests, "get", side_effect=[mock_search, mock_readme_falho]):
+        resultado = github.buscar(query="rag", max_resultados=5, projeto_nome="projeto_github_sem_readme")
+
+    assert resultado["total_salvos"] == 1
+    txt_files = list((tmp_path / "projeto_github_sem_readme" / "documents").glob("*.txt"))
+    conteudo = txt_files[0].read_text(encoding="utf-8")
+    assert "Só tem descrição mesmo." in conteudo
+    assert "--- README ---" not in conteudo
+
+
 def test_github_pula_repositorio_sem_descricao(tmp_path, monkeypatch):
     monkeypatch.setattr(github, "NEURAL_DIR", str(tmp_path))
     mock_resp = MagicMock()
