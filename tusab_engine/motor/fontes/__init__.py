@@ -20,8 +20,9 @@ futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de
 """
 
 from . import (
-    arxiv_adapter, bcb, camara, clinicaltrials, datacite, doaj, europepmc,
-    github, nasa_cmr, openalex, pubmed, senado_leis, stackexchange, uniprot, zenodo,
+    arxiv_adapter, bcb, camara, cern_opendata, clinicaltrials, datacite, doaj,
+    europepmc, github, nasa_cmr, openalex, pubmed, senado_leis, stackexchange,
+    uniprot, zenodo,
 )
 
 _MODULOS = [
@@ -31,6 +32,7 @@ _MODULOS = [
     camara, senado_leis,
     pubmed, clinicaltrials, uniprot,
     nasa_cmr,
+    cern_opendata,
 ]
 
 FONTES = {m.FONTE_META["id"]: m for m in _MODULOS}
@@ -43,6 +45,7 @@ AREAS_META = {
     "direito":    "Direito, normas, legislação e governo",
     "saude":      "Saúde, biologia e genética",
     "terra":      "Ciências da Terra, clima e espaço",
+    "fisica":     "Física, química e materiais",
 }
 
 
