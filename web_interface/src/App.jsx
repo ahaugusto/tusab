@@ -902,6 +902,7 @@ function App() {
       .then(r => {
         if (r.data.error) { showError(r.data.message); return; }
         setFontePollingId(fonteId);
+        setFonteProjetoAtual(projetoNome);
         setFonteBackground(true);
       })
       .catch(() => showError(t('error.generic')));
@@ -917,23 +918,28 @@ function App() {
   // porque a busca pode continuar rodando no servidor.
   const [fontePollingId,  setFontePollingId]  = useState(null);
   const [fonteBackground, setFonteBackground] = useState(false);
+  // Nome do projeto-alvo da busca em andamento — capturado no momento da
+  // chamada porque o polling (useEffect abaixo) só tem fontePollingId no
+  // closure; precisa disso pro botão "Abrir no Repositório" saber qual
+  // projeto pré-selecionar quando a busca terminar.
+  const [fonteProjetoAtual, setFonteProjetoAtual] = useState('');
   // Resumo persistente da última busca — status.stats (usado pelo card de
   // resumo pós-extração do YouTube) nunca é tocado pela busca em fonte
   // pública, que roda num state isolado no backend. Sem isso, a única
   // confirmação era o ProgressToast, que some sozinho em alguns segundos.
-  const [lastFonteResult, setLastFonteResult] = useState(null); // { sucesso, processed, total }
+  const [lastFonteResult, setLastFonteResult] = useState(null); // { sucesso, processed, total, itens, projetoNome }
   useEffect(() => {
     if (!fontePollingId) return;
     const interval = setInterval(() => {
       statusFonte(fontePollingId).then(r => {
-        const { running, status, total, processed, message } = r.data;
+        const { running, status, total, processed, message, itens } = r.data;
         if (running) {
           setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
         } else {
           setFontePollingId(null);
           setFonteBackground(false);
           const sucesso = status === 'Finalizado ✓';
-          setLastFonteResult({ sucesso, processed, total });
+          setLastFonteResult({ sucesso, processed, total, itens: itens || [], projetoNome: fonteProjetoAtual });
           setProgressToast({
             type: sucesso ? 'success' : 'error',
             message: sucesso ? `Busca concluída (${processed}/${total} indexados)` : (message || 'Busca encerrada com erro'),
@@ -1649,6 +1655,11 @@ function App() {
                 }}
                 regras={regras}
                 lastFonteResult={lastFonteResult}
+                onAbrirBaseNoRepositorio={(nomeProjeto) => {
+                  setRepoProjetoInicial(nomeProjeto);
+                  setActiveTab('repositorio');
+                  setShowHome(false);
+                }}
                 fontePreSelecionada={fontePreSelecionada}
                 setFontePreSelecionada={setFontePreSelecionada}
               />

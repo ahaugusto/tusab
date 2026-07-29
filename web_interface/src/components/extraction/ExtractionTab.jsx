@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   Zap, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2,
   Link2, XCircle, Pause, Square, Terminal, Activity, Globe,
-  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight, Trash2,
-  Search,
+  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight, ChevronDown, Trash2,
+  Search, BookOpen,
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
@@ -62,11 +62,19 @@ export default function ExtractionTab({
   // Pesquisador) — essa busca não passa por status.stats, então sem isso
   // não sobra nenhum registro na tela depois que o ProgressToast some sozinho
   lastFonteResult,
+  // navega pro Repositório com o projeto da busca pré-selecionado —
+  // reaproveita o mesmo mecanismo de projetoInicial já usado por outros
+  // fluxos (ex: onAddFiles), só que nunca tinha sido acionado por aqui
+  onAbrirBaseNoRepositorio,
   // fonte escolhida no seletor desta tela (perfil Pesquisador) — repassada
   // ao modal via App.jsx pra abrir direto na busca certa
   fontePreSelecionada,
   setFontePreSelecionada,
 }) {
+  const [itensExpandido, setItensExpandido] = React.useState(false);
+  // Reseta o "mostrar mais" a cada nova busca — senão uma busca anterior
+  // expandida deixa a próxima já aberta por engano.
+  React.useEffect(() => { setItensExpandido(false); }, [lastFonteResult]);
   const { t } = useTranslation();
   const [logFiltroCanal, setLogFiltroCanal] = React.useState('');
 
@@ -464,14 +472,47 @@ export default function ExtractionTab({
                     {r.sucesso ? 'Busca em base pública concluída' : 'Busca em base pública interrompida'}
                   </h3>
                 </div>
-                <div className="px-5 py-4 flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-white/8' : 'bg-white border border-slate-200'}`}>
-                    <Icon size={16} className={darkMode ? 'text-slate-300' : 'text-slate-600'} aria-hidden="true" />
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-white/8' : 'bg-white border border-slate-200'}`}>
+                      <Icon size={16} className={darkMode ? 'text-slate-300' : 'text-slate-600'} aria-hidden="true" />
+                    </div>
+                    <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      <span className={`text-lg font-bold mr-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{r.processed}</span>
+                      de {r.total} resultado{r.total === 1 ? '' : 's'} salvos no projeto.
+                    </p>
                   </div>
-                  <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    <span className={`text-lg font-bold mr-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{r.processed}</span>
-                    de {r.total} resultado{r.total === 1 ? '' : 's'} salvos no projeto — confira na aba Repositório.
-                  </p>
+
+                  {/* Lista dos itens consultados — recolhida além de 5 pra não
+                      estourar a tela em buscas com muitos resultados (ex: 20-50). */}
+                  {r.itens?.length > 0 && (
+                    <div className="mt-3 pl-12">
+                      <ul className="space-y-1">
+                        {(itensExpandido ? r.itens : r.itens.slice(0, 5)).map((titulo, i) => (
+                          <li key={i} className={`text-[11px] truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {titulo}
+                          </li>
+                        ))}
+                      </ul>
+                      {r.itens.length > 5 && (
+                        <button onClick={() => setItensExpandido(v => !v)}
+                          className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${BTN_FOCUS} ${darkMode ? 'text-primary hover:text-primary/80' : 'text-primary hover:text-primary/70'}`}>
+                          {itensExpandido
+                            ? <>Mostrar menos <ChevronDown size={12} className="rotate-180" aria-hidden="true" /></>
+                            : <>Mostrar mais {r.itens.length - 5} <ChevronDown size={12} aria-hidden="true" /></>}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {r.projetoNome && (
+                    <button onClick={() => onAbrirBaseNoRepositorio?.(r.projetoNome)}
+                      className={`mt-3 ml-12 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${BTN_FOCUS}
+                        ${darkMode ? 'bg-white/5 border-white/15 text-slate-200 hover:bg-white/10' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                      <BookOpen size={12} aria-hidden="true" />
+                      Abrir base no Repositório
+                    </button>
+                  )}
                 </div>
               </motion.section>
             );
