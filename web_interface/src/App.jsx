@@ -195,7 +195,7 @@ function App() {
   const [status,           setStatus]           = useState({
     is_running: false, is_paused: false, canal_url: '',
     drive_status: 'nao_autenticado', drive_auth_error: null,
-    stats: { videos_processed: 0, videos_total: 0, videos_sem_legenda: 0, videos_legenda_curta: 0, files_generated: 0, status: 'Ocioso', progress: 0, canal_nome: '', idioma_detectado: '' },
+    stats: { videos_processed: 0, videos_total: 0, videos_sem_legenda: 0, videos_legenda_curta: 0, files_generated: 0, status: 'Ocioso', progress: 0, projeto_nome: '', idioma_detectado: '' },
     logs: [],
   });
   const [history,          setHistory]          = useState([]);
@@ -1076,7 +1076,7 @@ function App() {
                 const canais = [
                   ...new Set([
                     ...(repositorio.canais || []).map(c => c.nome),
-                    ...history.filter(h => h.canal_nome).map(h => h.canal_nome),
+                    ...history.filter(h => h.projeto).map(h => h.projeto),
                   ])
                 ];
                 if (canais.length === 0) {
@@ -1305,7 +1305,7 @@ function App() {
             is_running: false, is_paused: false, canal_url: '',
             stats: { videos_processed: 0, videos_total: 0, videos_sem_legenda: 0,
                      videos_legenda_curta: 0, files_generated: 0, status: 'Ocioso',
-                     progress: 0, canal_nome: '', idioma_detectado: '' },
+                     progress: 0, projeto_nome: '', idioma_detectado: '' },
             logs: [],
           }));
           setChatMessages([]);
@@ -1956,7 +1956,7 @@ function App() {
               canaisExtraidos={[
                 ...new Set([
                   ...(repositorio.canais || []).map(c => c.nome),
-                  ...history.filter(h => h.canal_nome).map(h => h.canal_nome),
+                  ...history.filter(h => h.projeto).map(h => h.projeto),
                 ])
               ]}
               projetosExtras={projetosExtras}

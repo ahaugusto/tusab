@@ -976,8 +976,17 @@ def agent_chat_clear(req: AgentChatRequest):
 
 
 class ResumeConversationRequest(BaseModel):
-    canal_nome: str  = Field(max_length=120)
-    historico:  list = []
+    projeto_nome: str  = Field(default="", max_length=120)
+    historico:    list = []
+
+    # campo legado — normalizado via model_validator:
+    canal_nome: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 
 @router.post("/agent/chat/resume")
@@ -995,8 +1004,8 @@ def agent_chat_resume(req: ResumeConversationRequest):
         if m.get("role") in ("user", "assistant") and m.get("content")
     ]
     with state.hist_lock:
-        state.chat_histories[req.canal_nome] = msgs_validas[-_MAX_HIST_MSGS:]
-    return {"restored": len(msgs_validas), "canal": req.canal_nome}
+        state.chat_histories[req.projeto_nome] = msgs_validas[-_MAX_HIST_MSGS:]
+    return {"restored": len(msgs_validas), "canal": req.projeto_nome}
 
 
 @router.post("/agent/chat/salvar-historico")
@@ -1103,8 +1112,17 @@ def agent_chat_historicos_salvos(projeto_nome: str):
 
 
 class InjetarHistoricoRequest(BaseModel):
-    canal_nome: str = Field(max_length=120)
-    hist_id:    str = Field(max_length=20)
+    projeto_nome: str = Field(default="", max_length=120)
+    hist_id:      str = Field(max_length=20)
+
+    # campo legado — normalizado via model_validator:
+    canal_nome: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 
 @router.post("/agent/chat/injetar-historico")
@@ -1118,9 +1136,9 @@ def agent_chat_injetar_historico(req: InjetarHistoricoRequest):
     import shutil
     from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
-    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     if not projeto_prefixo:
-        return {"error": True, "message": "Canal não especificado."}
+        return {"error": True, "message": "Projeto não especificado."}
 
     hist_dir = os.path.join(NEURAL_DIR, projeto_prefixo, "texts", "_chat_history")
     idx_path = os.path.join(hist_dir, "_index.json")

@@ -546,7 +546,7 @@ export default function ExtractionTab({
               // arXiv não gera pasta youtube/ — abrir documents/ nesse caso.
               const tipoPasta = fontePreSelecionada === 'youtube' ? 'canal_youtube' : 'canal_documents';
               const nomesRepo  = (repositorio?.canais || []).map(c => c.nome);
-              const nomesHist  = history.filter(h => h.canal_nome).map(h => h.canal_nome);
+              const nomesHist  = history.filter(h => h.projeto).map(h => h.projeto);
               const todos = [...new Set([...nomesRepo, ...nomesHist])];
               if (!todos.length && !canalConfigurado) return;
               if (todos.length > 1) { onOpenFolderPicker(); return; }
