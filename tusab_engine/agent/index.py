@@ -35,8 +35,8 @@ def _get_canal_doc_dirs(prefixo: str) -> list:
     return dirs
 
 
-def _index_path(canal_prefixo: str) -> str:
-    return os.path.join(INDEX_DIR, f"{canal_prefixo}_index.json")
+def _index_path(projeto_prefixo: str) -> str:
+    return os.path.join(INDEX_DIR, f"{projeto_prefixo}_index.json")
 
 
 # ── Cache BM25 em memória ─────────────────────────────────────────────────────
@@ -46,10 +46,10 @@ _bm25_cache: dict = {}
 _bm25_lock = threading.Lock()
 
 
-def _carregar_meta_canal(canal_prefixo: str) -> dict:
+def _carregar_meta_canal(projeto_prefixo: str) -> dict:
     import glob as _glob
     # Nova estrutura: neural/{projeto}/youtube/{canal}/{canal}_meta.json
-    youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+    youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
     for meta_path in _glob.glob(os.path.join(youtube_base, '*', '*_meta.json')):
         try:
             with open(meta_path, 'r', encoding='utf-8') as f:
@@ -57,7 +57,7 @@ def _carregar_meta_canal(canal_prefixo: str) -> dict:
         except Exception:
             pass
     # Legado: TXT_DIR plano
-    meta_path = os.path.join(TXT_DIR, f'{canal_prefixo}_meta.json')
+    meta_path = os.path.join(TXT_DIR, f'{projeto_prefixo}_meta.json')
     if os.path.exists(meta_path):
         try:
             with open(meta_path, 'r', encoding='utf-8') as f:
@@ -98,7 +98,7 @@ def get_agent_status() -> dict:
 def _get_agent_status_uncached() -> dict:
     config      = carregar_config()
     provider    = config.get('provider', '')
-    canal_nome  = config.get('canal_indexado', '')
+    projeto_nome = config.get('canal_indexado', '')
     index_count = 0
     canais_indexados = []
 
@@ -114,7 +114,11 @@ def _get_agent_status_uncached() -> dict:
                     chunks = data.get('chunks', [])
                     if not isinstance(chunks, list):
                         raise ValueError("chunks inválidos")
-                    nome  = data.get('canal_nome', fname.replace('_index.json', ''))
+                    # 'projeto_nome' é o campo atual; 'canal_nome' é lido como fallback
+                    # pra índices gerados antes da migração de nomenclatura (29/jul/2026)
+                    # — sem isso, projetos já indexados perderiam o nome de exibição
+                    # até serem reindexados.
+                    nome  = data.get('projeto_nome', data.get('canal_nome', fname.replace('_index.json', '')))
                     count = len(chunks)
                     indexed_at = data.get('indexed_at', None)
                     # Conta arquivos fonte para detectar índices órfãos
@@ -127,7 +131,7 @@ def _get_agent_status_uncached() -> dict:
                     txt_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'texts', '*.txt'))
                     n_fonte = len([f for f in doc_txts + txt_txts if not os.path.basename(f).startswith('_')]) + len(yt_txts)
                     canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at, 'n_arquivos_fonte': n_fonte})
-                    if nome == canal_nome:
+                    if nome == projeto_nome:
                         index_count = count
                 except (json.JSONDecodeError, ValueError):
                     # Índice corrompido (JSON inválido) — remove e invalida cache
@@ -150,14 +154,14 @@ def _get_agent_status_uncached() -> dict:
 
     base_desatualizada    = False
     novos_desde_indexacao = 0
-    if canal_nome and os.path.exists(INDEX_DIR):
+    if projeto_nome and os.path.exists(INDEX_DIR):
         try:
-            canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-            idx_path = _index_path(canal_prefixo)
+            projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+            idx_path = _index_path(projeto_prefixo)
             if os.path.exists(idx_path):
                 idx_mtime = os.path.getmtime(idx_path)
                 # Nova estrutura: varrer todos os subcanais de neural/{projeto}/youtube/
-                youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+                youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
                 dirs_a_verificar = []
                 if os.path.isdir(youtube_base):
                     for entry in os.scandir(youtube_base):
@@ -180,7 +184,7 @@ def _get_agent_status_uncached() -> dict:
     return {
         'configured':             bool(provider and (config.get('api_key') or provider == 'ollama')),
         'provider':               provider,
-        'canal_indexado':         canal_nome,
+        'canal_indexado':         projeto_nome,
         'index_count':            index_count,
         'indexed':                len(canais_indexados) > 0,
         'canais_indexados':       canais_indexados,
@@ -190,9 +194,9 @@ def _get_agent_status_uncached() -> dict:
     }
 
 
-def _invalidar_cache(canal_prefixo: str):
+def _invalidar_cache(projeto_prefixo: str):
     with _bm25_lock:
-        _bm25_cache.pop(canal_prefixo, None)
+        _bm25_cache.pop(projeto_prefixo, None)
     _invalidar_status_cache()
 
 
@@ -225,11 +229,11 @@ _STOPWORDS = {
 
 # ── Parser de chunks ──────────────────────────────────────────────────────────
 
-def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
+def _parsear_chunks(txt_dir: str, projeto_prefixo: str) -> list:
     chunks   = []
     arquivos = sorted([
         f for f in os.listdir(txt_dir)
-        if f.startswith(canal_prefixo) and f.endswith('.txt')
+        if f.startswith(projeto_prefixo) and f.endswith('.txt')
     ])
 
     for arquivo in arquivos:
@@ -282,7 +286,7 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
                 'tags':              tags,
                 'descricao':         desc_m.group(1).strip()   if desc_m   else '',
                 'arquivo':           arquivo,
-                'canal':             canal_prefixo,
+                'canal':             projeto_prefixo,
                 'video_id':          vid_id_m.group(1).strip() if vid_id_m else '',
                 'views':             int(views_m.group(1))     if views_m  else 0,
                 'timestamp_inicio':  int(ts_m.group(1))        if ts_m     else 0,
@@ -291,7 +295,7 @@ def _parsear_chunks(txt_dir: str, canal_prefixo: str) -> list:
     return chunks
 
 
-def _contar_unidades_fonte(canal_prefixo: str) -> int:
+def _contar_unidades_fonte(projeto_prefixo: str) -> int:
     """Conta unidades de fonte (pastas de canal YouTube + arquivos de doc/texto)
     sem ler conteúdo — usado só como denominador aproximado do progresso
     granular de indexação. Não precisa espelhar 100% a lógica de
@@ -299,7 +303,7 @@ def _contar_unidades_fonte(canal_prefixo: str) -> int:
     arquivos legados flat), só dar estimativa razoável para a barra de progresso.
     """
     total = 0
-    youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+    youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
     if os.path.isdir(youtube_base):
         for canal_entry in os.scandir(youtube_base):
             if canal_entry.is_dir():
@@ -310,7 +314,7 @@ def _contar_unidades_fonte(canal_prefixo: str) -> int:
         total += 1
 
     seen_files = set()
-    for source_dir in _get_canal_doc_dirs(canal_prefixo):
+    for source_dir in _get_canal_doc_dirs(projeto_prefixo):
         if not os.path.exists(source_dir):
             continue
         for fname in os.listdir(source_dir):
@@ -324,7 +328,7 @@ def _contar_unidades_fonte(canal_prefixo: str) -> int:
     return total
 
 
-def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
+def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
     """Lê chunks de todas as fontes: todos os canais do projeto + docs + avulso + legado.
 
     progress_callback(processed, total), se fornecido, é chamado após cada
@@ -333,7 +337,7 @@ def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
     interno de _parsear_chunks (ver aviso [IMPACTO] em indexar() sobre schema
     de chunks) — só envolve as chamadas já existentes com contagem de progresso.
     """
-    total = _contar_unidades_fonte(canal_prefixo) if progress_callback else 0
+    total = _contar_unidades_fonte(projeto_prefixo) if progress_callback else 0
     processed = 0
 
     def _tick():
@@ -345,7 +349,7 @@ def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
     chunks = []
     # Nova estrutura: data/neural/{projeto}/youtube/{canal}/*.txt
     # Varre TODOS os subdiretórios de canal dentro do projeto.
-    youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+    youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
     if os.path.isdir(youtube_base):
         for canal_entry in os.scandir(youtube_base):
             if canal_entry.is_dir():
@@ -354,15 +358,15 @@ def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
                 _tick()
             elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
                 # Legado flat: youtube/*.txt (arquivos anteriores à migração de estrutura)
-                chunks += _parsear_chunks(youtube_base, canal_prefixo)
+                chunks += _parsear_chunks(youtube_base, projeto_prefixo)
                 _tick()
-    # Legado: data/neural/youtube/ plano (arquivos nomeados {canal_prefixo}_*.txt)
+    # Legado: data/neural/youtube/ plano (arquivos nomeados {projeto_prefixo}_*.txt)
     if os.path.exists(TXT_DIR):
-        chunks += _parsear_chunks(TXT_DIR, canal_prefixo)
+        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo)
         _tick()
 
     seen_files = set()
-    for source_dir in _get_canal_doc_dirs(canal_prefixo):
+    for source_dir in _get_canal_doc_dirs(projeto_prefixo):
         if not os.path.exists(source_dir):
             continue
         aba_label  = 'texto' if os.path.basename(source_dir) == 'texts' else 'documento'
@@ -533,22 +537,22 @@ def _contar_canais_indexados() -> list:
             try:
                 with open(os.path.join(INDEX_DIR, fname), 'r', encoding='utf-8') as f:
                     data = __import__('json').load(f)
-                canais.append(data.get('canal_nome', fname.replace('_index.json', '')))
+                canais.append(data.get('projeto_nome', data.get('canal_nome', fname.replace('_index.json', ''))))
             except Exception:
                 pass
     return canais
 
 
-def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None, progress_callback=None) -> int:
+def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=None, progress_callback=None) -> int:
     # [IMPACTO] Mudança na estrutura dos chunks gerados aqui quebra chat.py:_recuperar_contexto().
     # Schema esperado por chat.py: {texto, titulo, aba, data, link, tags, arquivo, canal, descricao}.
     # Após mudança de schema, todos os índices existentes precisam ser re-gerados.
     # Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.2
     if callback: callback("🔍 Lendo arquivos do corpus...")
 
-    chunks = _parsear_todos_chunks(canal_prefixo, progress_callback=progress_callback)
+    chunks = _parsear_todos_chunks(projeto_prefixo, progress_callback=progress_callback)
     if not chunks:
-        raise ValueError(f"Nenhum conteúdo encontrado para '{canal_prefixo}'. Faça a extração ou adicione documentos.")
+        raise ValueError(f"Nenhum conteúdo encontrado para '{projeto_prefixo}'. Faça a extração ou adicione documentos.")
 
     if stop_event and stop_event.is_set():
         if callback: callback("🛑 Indexação cancelada.")
@@ -558,26 +562,29 @@ def indexar(canal_nome: str, canal_prefixo: str, callback=None, stop_event=None,
 
     os.makedirs(INDEX_DIR, exist_ok=True)
     import time as _time
-    salvar_json_atomico({'canal_nome': canal_nome, 'chunks': chunks, 'indexed_at': int(_time.time())}, _index_path(canal_prefixo))
+    # Campo 'projeto_nome' (não mais 'canal_nome') — ver leitura retrocompatível
+    # em _get_agent_status_uncached()/_contar_canais_indexados() acima, que ainda
+    # aceita o campo legado pra índices gerados antes de 29/jul/2026.
+    salvar_json_atomico({'projeto_nome': projeto_nome, 'chunks': chunks, 'indexed_at': int(_time.time())}, _index_path(projeto_prefixo))
 
     if callback: callback("🗄️ Construindo índice FTS5 para busca exata...")
     try:
         from tusab_engine.agent.fts import construir_fts
-        construir_fts(canal_prefixo, chunks)
+        construir_fts(projeto_prefixo, chunks)
     except Exception as e:
         if callback: callback(f"⚠️ FTS5 não disponível (degradação graciosa): {e}")
 
     config = carregar_config()
-    config['canal_indexado'] = canal_nome
+    config['canal_indexado'] = projeto_nome
     salvar_config(config)
 
     try:
         from tusab_engine.agent.calibration import _salvar_profile
-        _salvar_profile(canal_prefixo, chunks)
+        _salvar_profile(projeto_prefixo, chunks)
     except Exception as e:
         # Calibragem é otimização, nunca pode quebrar a indexação em si.
         if callback: callback(f"⚠️ Calibragem de corpus não disponível (degradação graciosa): {e}")
 
     if callback: callback(f"✅ Indexação concluída! {len(chunks)} chunks prontos para consulta.")
-    _invalidar_cache(canal_prefixo)
+    _invalidar_cache(projeto_prefixo)
     return len(chunks)
