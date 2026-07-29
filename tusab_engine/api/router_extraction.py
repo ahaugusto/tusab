@@ -88,7 +88,7 @@ def run_motor():
         url = proximo["url"]
         match = re.search(r'@([^/?\s]+)', url)
         state.canal_url             = url
-        state.stats["canal_nome"]   = match.group(1) if match else url.rstrip('/').split('/')[-1]
+        state.stats["projeto_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
         state.stats["status"]       = "Na fila"
         state.fontes_filtro         = proximo.get("fontes", [])
         raw_proj = proximo.get("projeto_nome", "")
@@ -129,12 +129,16 @@ def set_channel(req: ChannelRequest):
         return {"error": True, "message": "URL inválida. Use o formato: https://www.youtube.com/@canal"}
     state.canal_url = url
     match = re.search(r'@([^/?\s]+)', url)
-    state.stats["canal_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
+    state.stats["projeto_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
     if req.projeto_nome:
         state.projeto_nome = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     else:
         state.projeto_nome = ""
-    return {"message": "Canal configurado", "canal_nome": state.stats["canal_nome"]}
+    # Campo de resposta "canal_nome" mantido (não "projeto_nome") porque este
+    # endpoint é especificamente sobre configurar um canal do YouTube — a URL
+    # já foi validada por _YT_URL_RE acima. Valor vem de state.stats["projeto_nome"]
+    # (contrato genérico), mas o nome do campo aqui é legitimamente sobre canal.
+    return {"message": "Canal configurado", "canal_nome": state.stats["projeto_nome"]}
 
 
 @router.post("/start")

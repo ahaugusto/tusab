@@ -24,7 +24,7 @@ router = APIRouter()
 
 def _get_canal_prefixo_ativo(canal_form: str = "") -> str | None:
     """Retorna o prefixo de canal ativo (form > state). Retorna None se não houver projeto."""
-    raw = canal_form or state.stats.get("canal_nome", "") or ""
+    raw = canal_form or state.stats.get("projeto_nome", "") or ""
     if not raw:
         return None
     return re.sub(r'[<>:"/\\|?*\s]', '_', raw).strip('_') or None
@@ -1074,7 +1074,7 @@ def reset_total():
     # 6. Reseta estado de extração em memória
     with state.state_lock:
         state.logs = []
-        state.stats["canal_nome"]          = ""
+        state.stats["projeto_nome"]        = ""
         state.stats["status"]              = "Ocioso"
         state.stats["progress"]            = 0
         state.stats["videos_processed"]    = 0

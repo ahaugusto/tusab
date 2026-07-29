@@ -54,7 +54,12 @@ class AppState:
             "files_generated":     0,
             "status":              "Ocioso",
             "progress":            0,
-            "canal_nome":          "",
+            # Nome do projeto atualmente ativo (extração YouTube em andamento OU
+            # busca em fonte pública — router_fontes.py também escreve aqui, não
+            # é exclusivo de canal). Distinto de state.projeto_nome (atributo
+            # separado, write-once pra passar override de nome pro motor de
+            # extração antes de iniciar — não é lido continuamente como este).
+            "projeto_nome":        "",
             "idioma_detectado":    "",
             "eta_segundos":        0
         }
@@ -231,7 +236,7 @@ class LogRedirector:
             state.logs.append({
                 "timestamp": time.strftime("%H:%M:%S"),
                 "message": clean,
-                "canal": state.stats.get("canal_nome", ""),
+                "canal": state.stats.get("projeto_nome", ""),
             })
 
             if "✅" in text or "OK!" in text:
