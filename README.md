@@ -32,7 +32,7 @@ Tusab é um sistema de gestão de conhecimento pessoal (PKM) com IA local. Você
 - Busca acadêmica no arXiv por tema (perfil Pesquisador) — baixa e indexa os PDFs automaticamente
 - Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — servidor público, sem autenticação, escopo restrito a estudos de pesquisa
 - Upload de PDFs, DOCX, Markdown, CSV e TXT
-- Upload de imagens (PNG, JPG, WEBP etc.) — descrição via Ollama multimodal ou OCR Tesseract
+- Upload de imagens (PNG, JPG, WEBP etc.) — descrição via Ollama multimodal ou OCR (RapidOCR)
 - Upload de áudio (MP3, WAV, M4A etc.) — transcrição via faster-whisper local
 - Parser automático de conversas WhatsApp e transcrições de reuniões (Zoom, Teams, Otter)
 - Colar texto diretamente pela interface
@@ -71,7 +71,7 @@ O Ollama é configurado na primeira execução via wizard embutido. Para provedo
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React  
 **Desktop:** Electron 34 + electron-builder (instalador NSIS para Windows)  
 **Extração:** yt-dlp (bundled) + pdfplumber + python-docx  
-**Imagens:** Ollama multimodal (llava/gemma3) → fallback Tesseract OCR  
+**Imagens:** Ollama multimodal (llava/gemma3) → fallback RapidOCR (embutido, sem instalação externa)  
 **Áudio:** faster-whisper (modelo `base`, CPU, ~150 MB)  
 **Drive:** Google Auth OAuth2 (escopo `drive.file`)
 
