@@ -21,6 +21,7 @@ diretas com uso mais substancial no produto; não é exaustiva de toda a
 | [pdfplumber](https://github.com/jsvine/pdfplumber) | MIT | Extração de texto de PDF (upload, arXiv, Câmara dos Deputados) |
 | [python-docx](https://github.com/python-openxml/python-docx) | MIT | Leitura/geração de DOCX |
 | [trafilatura](https://github.com/adbar/trafilatura) (Adrien Barbaresi) | Apache-2.0 | Extração de conteúdo principal de página web avulsa — respeita `robots.txt` |
+| [RapidOCR](https://github.com/RapidAI/RapidOCR) | Apache-2.0 | OCR fallback para upload de imagem (atrás de Ollama multimodal) |
 | [pandas](https://github.com/pandas-dev/pandas) | BSD-3-Clause | Manipulação de CSV/relatórios |
 | [reportlab](https://github.com/MrBitBucket/reportlab-mirror) | BSD-3-Clause | Geração de PDF de relatório |
 | [cryptography](https://github.com/pyca/cryptography) | Apache-2.0 / BSD | Suporte a `safeStorage`/DPAPI |

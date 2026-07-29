@@ -543,6 +543,18 @@ Causa raiz encontrada por inspeção direta do retrieval: `_recuperar_contexto('
 
 Validado ao vivo: retrieval caiu de 4 chunks pra 1 (só a lei certa) para a mesma pergunta que antes causava conflação; 3/3 respostas de chat consecutivas corretas e consistentes, sem menção a nenhuma lei não perguntada.
 
+### RapidOCR substitui pytesseract (29/jul/2026)
+
+Consulta multi-agente (`/backend` + `/inovacao` + `/produto`) sobre 6 candidatos técnicos vindos de uma pesquisa GitHub/HuggingFace — todos os 3 agentes convergiram em RapidOCR como único item de "fazer agora" (menor esforço, fricção real e sentida, sem urgência de janela competitiva, mas custo quase zero). Implementado no mesmo dia.
+
+**Achado técnico:** `pytesseract` (`router_repositorio.py::_extrair_imagem()`, caminho 2 — fallback quando Ollama multimodal indisponível) exigia o binário Tesseract instalado à parte no sistema, fora do controle do instalador de 1-clique. Quando ausente, a mensagem de erro pedia pro usuário instalar algo manualmente — atrito técnico exatamente nos perfis que mais dependem de "sem configuração técnica" (Estudante, Professor).
+
+**API real confirmada ao vivo antes de codar** (`rapidocr_onnxruntime.RapidOCR()(np.array(img))` → `(resultado, elapse)`, `resultado` é lista de `[box, texto, score]` ou `None` sem texto) — não assumida da documentação. Lazy singleton (`_get_rapidocr_engine()`) seguindo o mesmo padrão de `_get_cross_encoder()`/`_get_keybert()` em `tusab_engine/agent/`. `rapidocr-onnxruntime` virou dependência REAL em `requirements.txt` (não mais comentada/opcional como `pytesseract` era) — é justamente o ponto: Python+ONNX puro pode ser bundled, binário externo não podia.
+
+Testado ao vivo sem mocks: imagem gerada com texto "Fatura numero 4582 vencimento 15/08/2026" → extração perfeita e literal. 4 testes novos (`tests/test_ocr_imagem.py`), suite completa 187/187.
+
+**Resto da consulta multi-agente, documentado em `Documentação do Produto/Roadmap.md` → "Candidatos a features futuras"** (não implementado agora): BGE-reranker-v2-m3 (spike de 1 dia pra checar adoção da Busca Ampla antes de comprometer benchmark completo — gap real de qualidade em PT-BR, `ms-marco-MiniLM` é majoritariamente treinado em inglês), Granite-Docling-258M (sem sinal de demanda, aguardando caso real), extração verbatim generalizada (nota de radar, fix pontual já resolveu o caso reportado). Descartados: LettuceDetect (sobrepõe fix já implementado, latência sempre-ligada sem novo caso que justifique), `options.grammar`/GBNF do Ollama (testado ao vivo, API REST do Ollama 0.32.3 ignora o parâmetro silenciosamente — não é caminho viável).
+
 ### Anakin (Anakin-Inc/anakin) — não adotado (jul/2026)
 
 **O que é:** API de web scraping open-source em Go — "anti-detect browser" + rotação de proxy + self-hosted, transforma qualquer site em markdown/JSON limpo mesmo com proteção anti-bot. Licença AGPL-3.0, 801 stars.

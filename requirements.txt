@@ -34,6 +34,7 @@ openpyxl>=3.1.5                  # leitura de XLSX no upload + export de tabela
 pandas>=3.0.3
 reportlab>=5.0.0                 # geração de PDF no /export/relatorio-pdf
 trafilatura>=2.1.0                # extração de conteúdo principal de página web (leitor de URL avulsa)
+rapidocr-onnxruntime>=1.2.3       # OCR fallback (upload de imagem) — Python+ONNX puro, sem binário externo
 
 # ── Sistema / utilitários ───────────────────────────────────────────────────
 psutil>=7.2.2                    # métricas de CPU/memória no router_metrics
@@ -44,7 +45,5 @@ cryptography>=48.0.0             # safeStorage / DPAPI via Electron
 # ── Testes ──────────────────────────────────────────────────────────────────
 pytest>=9.0.3
 
-# ── Opcional — imagens e áudio (não instalados por padrão) ──────────────────
-# pytesseract    # OCR fallback para imagens (requer binário Tesseract no sistema)
+# ── Opcional — áudio (não instalado por padrão) ──────────────────────────────
 # faster-whisper # transcrição de áudio local (CPU, modelo base ~150 MB)
-# Pillow         # pré-processamento de imagem para OCR
