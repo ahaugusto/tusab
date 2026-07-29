@@ -9,8 +9,12 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [Não lançado]
 ### Adicionado
-- **Busca em fontes públicas por área de conhecimento (perfil Pesquisador)** — registro genérico de fontes (arXiv, OpenAlex, Europe PMC, DataCite, DOAJ, Zenodo na área de Produção científica; GitHub e Stack Overflow na área de Tecnologia), com filtros de autor/data quando a fonte suportar. Mais áreas entram incrementalmente.
+- **Busca em fontes públicas por área de conhecimento (perfil Pesquisador)** — registro genérico de fontes cobrindo as 9 áreas do catálogo de dados abertos mapeado (Produção científica, Tecnologia, Economia, Direito, Saúde, Ciências da Terra, Física/Química, Patrimônio cultural, Antropologia/linguística), com filtros de autor/data quando a fonte suportar.
 - **Leitor de página web avulsa no Repositório** — cole uma URL e o Tusab extrai o conteúdo principal e indexa, ao lado de "colar texto". Usa a biblioteca open-source [trafilatura](https://github.com/adbar/trafilatura) (Apache-2.0) para extração de conteúdo; respeita `robots.txt` antes de buscar, sem tentar contornar bloqueio de nenhum site. Limitado a páginas estáticas (sem renderização de JavaScript).
+- **Tusab formalizado como source-available** — código sob [Elastic License 2.0](LICENSE): auditável, modificável e redistribuível, com a única restrição relevante sendo não oferecer como serviço hospedado/gerenciado a terceiros. Marca "Tusab" protegida separadamente ([TRADEMARK.md](TRADEMARK.md)). Pull Requests externos não aceitos por enquanto ([CONTRIBUTING.md](CONTRIBUTING.md)). Ver `agents/_historia.md`, entrada "Repositório fechado → revisado para source-available", para o histórico completo da decisão.
+
+### Alterado
+- **Triagem completa dos 14 PRs do Dependabot** (backend + frontend + GitHub Actions) — cada um verificado isoladamente (changelog de breaking changes + suite de testes) antes do merge, seguindo o protocolo já registrado. Destaque: `electron-builder` 25.1.8→26.15.3 (major) verificado com build real do instalador (`electron-builder --win --dir`, gerou `Tusab.exe` com sucesso) antes do merge, não só leitura de changelog. `anthropic` 0.116.0→0.120.2 e `google-genai` 2.10.0→2.14.0 verificados via changelog (sem breaking changes) e teste estrutural de import/instanciação de cliente — sem chamada de rede real por não haver chave de API configurada neste ambiente de desenvolvimento.
 
 ---
 

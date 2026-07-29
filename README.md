@@ -327,4 +327,5 @@ auditar, rodar e modificar livremente para uso próprio. A única restrição
 relevante: não oferecer o Tusab como serviço hospedado/gerenciado para
 terceiros. O nome "Tusab" e a marca são protegidos separadamente — ver
 [TRADEMARK.md](TRADEMARK.md). Não estamos aceitando Pull Requests externos
-no momento — ver [CONTRIBUTING.md](CONTRIBUTING.md).
+no momento — ver [CONTRIBUTING.md](CONTRIBUTING.md). Bibliotecas de
+terceiros usadas e suas licenças: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
