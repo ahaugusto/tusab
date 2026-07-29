@@ -584,6 +584,14 @@ Augusto: "começamos focados apenas em canais do youtube, porém agora temos mui
 
 Validado ao vivo: chat completo funcionando (mesma pergunta da Lei 14.688, resposta correta); reindexação completa; MCP `search_knowledge()` sem erro; retrocompatibilidade de índice antigo confirmada. 187 testes, nenhum quebrado.
 
+### Gateways multi-provider de LLM (OmniRoute, 9router) — não adotados (jul/2026)
+
+**O que são:** OmniRoute (diegosouzapw/OmniRoute, 33k stars) e 9router (decolua/9router, 24k stars) — mesma categoria de ferramenta, descrições quase idênticas: gateway que conecta ferramentas de código (Claude Code, Cursor, Copilot, Codex, Cline) a 40+ provedores de LLM com fallback automático entre camadas gratuitas, pra "nunca bater no limite". OmniRoute é AGPL-3.0-adjacent (não confirmado o tipo exato, mas licença restritiva); 9router é MIT.
+
+**Veredito: nenhum dos dois serve pro Tusab — mesmo motivo em ambos, independente da licença.** O Tusab já deixa o usuário escolher o provider diretamente (Ollama/Groq/OpenAI/Gemini/Anthropic, `agent/config.py`) — o problema que esses gateways resolvem (gerenciar múltiplos provedores, fallback entre camadas gratuitas) não existe aqui, porque o usuário só usa 1 provider por vez, deliberadamente. Adotar um gateway intermediário adicionaria superfície de risco em cima de chave de API (justamente o ponto mais protegido do projeto, ver `/seguranca`) sem resolver nada. Público-alvo é dev de ferramenta de código (Claude Code/Cursor/Copilot), não o usuário final de PKM do Tusab — desalinhado do perfil de usuário do produto.
+
+**Padrão a reconhecer:** essa categoria de ferramenta ("AI gateway pra ferramentas de código economizarem tokens") provavelmente vai continuar aparecendo — são projetos populares no momento (dezenas de milhares de stars). Antes de reavaliar do zero, checar se resolve um problema que o Tusab REALMENTE tem (hoje: não tem, usuário escolhe 1 provider por vez) — não avaliar pela popularidade/stars do repo.
+
 ### Anakin (Anakin-Inc/anakin) — não adotado (jul/2026)
 
 **O que é:** API de web scraping open-source em Go — "anti-detect browser" + rotação de proxy + self-hosted, transforma qualquer site em markdown/JSON limpo mesmo com proteção anti-bot. Licença AGPL-3.0, 801 stars.
