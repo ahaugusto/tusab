@@ -533,7 +533,7 @@ function App() {
         if (Date.now() < cancelingUntilRef.current && res.data.is_running) return;
         setStatus(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
         // Atualiza canal configurado quando motor está rodando — cobre troca da fila
-        const nomeDoMotor = res.data.stats?.canal_nome;
+        const nomeDoMotor = res.data.stats?.projeto_nome;
         if (nomeDoMotor && !canalRemovidoRef.current && res.data.is_running && nomeDoMotor !== canalConfigurado) {
           setCanalConfigurado(nomeDoMotor);
         }
@@ -663,7 +663,7 @@ function App() {
         sem_legenda:        status.stats.videos_sem_legenda,
       });
       const notify = () => new Notification(t('notify.extraction_done'), {
-        body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.canal_nome || ''),
+        body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.projeto_nome || ''),
         icon: '/logo_light_mode.svg',
       });
       if (Notification.permission === 'granted') {
