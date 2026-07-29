@@ -794,6 +794,25 @@ def _deduplicar_chunks(chunks: list, n: int, threshold: float = 0.85) -> list:
     return selecionados
 
 
+# ── Fidelidade numérica ────────────────────────────────────────────────────────
+#
+# Modelos locais pequenos (ex: llama3.2:1b) podem preservar a estrutura de uma
+# frase ao parafrasear um chunk denso em números mas apagar os números em si —
+# "Decreto-Lei nº 1.001, de 21 de outubro de 1969" vira "Decreto-Lei nº., de
+# de outubro de" na resposta (confirmado ao vivo, 29/jul/2026, ver
+# agents/_historia.md). Não é alucinação (não inventa número errado) nem é
+# pego por _verificar_alucinacao/_calcular_confianca_por_sentenca (nenhum dos
+# dois lê o texto pra achar lacuna estrutural, só cobertura de vocabulário).
+# "de de" e "nº." seguido de pontuação são a assinatura textual de um número
+# apagado nesse padrão de frase em português — cobrem o caso real observado,
+# não uma tentativa de cobrir todo tipo de omissão numérica possível.
+_RE_LACUNA_NUMERICA = re.compile(r'\bde\s+de\b|n[ºo°]\.?\s*[,;.]', re.IGNORECASE)
+
+
+def _tem_lacuna_numerica(resposta: str) -> bool:
+    return bool(_RE_LACUNA_NUMERICA.search(resposta))
+
+
 # ── Verificação de alucinação ─────────────────────────────────────────────────
 
 def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho_injetado: bool = False) -> str:
@@ -1220,6 +1239,111 @@ def _fallback_sem_contexto(canal_nome: str) -> str:
     )
 
 
+def _gerar_resposta_llm(provider: str, api_key: str, prompt: str, config: dict) -> str:
+    """Chama o provedor configurado e retorna o texto da resposta — sem
+    formatação/verificação pós-geração (isso é responsabilidade do caller).
+    Extraído de chat() pra poder ser chamado 2x (original + retry de
+    fidelidade numérica) sem duplicar o dispatch de provider."""
+    if provider == 'openai':
+        from openai import OpenAI
+        resp = OpenAI(api_key=api_key).chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500,
+        )
+        return resp.choices[0].message.content
+
+    if provider == 'anthropic':
+        import anthropic
+        msg = anthropic.Anthropic(api_key=api_key).messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return msg.content[0].text
+
+    if provider in ('gemini', 'google'):
+        import google.generativeai as _genai
+        _genai.configure(api_key=api_key)
+        CANDIDATOS = [
+            'gemini-1.5-flash', 'gemini-1.5-flash-latest',
+            'gemini-1.5-flash-002', 'gemini-1.5-pro',
+            'gemini-pro', 'gemini-2.0-flash-lite',
+        ]
+        modelos_ok = [
+            m.name.replace('models/', '') for m in _genai.list_models()
+            if 'generateContent' in m.supported_generation_methods
+        ]
+        modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+        if not modelo:
+            raise ValueError('Nenhum modelo Gemini disponível para esta chave.')
+        resp = _genai.GenerativeModel(modelo).generate_content(prompt)
+        return resp.text
+
+    if provider == 'groq':
+        from openai import OpenAI
+        modelo = config.get('groq_model', 'llama-3.1-8b-instant')
+        resp = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+            model=modelo,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500,
+        )
+        return resp.choices[0].message.content
+
+    if provider == 'ollama':
+        import requests as _req
+        modelo = config.get('ollama_model', 'llama3.2:1b')
+        resp = _req.post(
+            'http://localhost:11434/api/generate',
+            json={
+                'model':   modelo,
+                'prompt':  prompt,
+                'stream':  False,
+                'options': {
+                    'num_ctx':     2048,
+                    'num_predict': 512,
+                    'num_thread':  8,
+                    'temperature': 0.3,
+                },
+            },
+            timeout=300,
+        )
+        resp.raise_for_status()
+        return resp.json().get('response', '')
+
+    raise ValueError(f"Provedor desconhecido: {provider}")
+
+
+def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, config: dict, contexto: list) -> str:
+    """Chama _gerar_resposta_llm() e, se a resposta tiver assinatura de número/
+    data apagado (ver _tem_lacuna_numerica), tenta 1 vez mais com instrução
+    reforçada de fidelidade — confirmado ao vivo que reduz (não elimina
+    sozinha) a perda de dígitos em modelos locais pequenos ao parafrasear
+    contexto denso em números (ver agents/_historia.md, 29/jul/2026).
+
+    Não tenta de novo se não há contexto (nada pra ser fiel a) ou se a
+    segunda tentativa falhar — evita loop e latência sem ganho; a resposta
+    com lacuna ainda é melhor que travar o chat.
+    """
+    resposta = _gerar_resposta_llm(provider, api_key, prompt, config)
+
+    if contexto and _tem_lacuna_numerica(resposta):
+        prompt_reforcado = (
+            prompt + "\n\nATENÇÃO: a resposta anterior a essa pergunta omitiu números, "
+            "datas ou valores do contexto. Responda novamente preservando TODOS os "
+            "números, datas e valores EXATAMENTE como aparecem no contexto acima — "
+            "nunca substitua um número por espaço em branco ou omita uma data."
+        )
+        try:
+            resposta_retry = _gerar_resposta_llm(provider, api_key, prompt_reforcado, config)
+            if not _tem_lacuna_numerica(resposta_retry):
+                resposta = resposta_retry
+        except Exception:
+            pass  # mantém a resposta original — retry é best-effort, nunca derruba o chat
+
+    return resposta
+
+
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
 def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None) -> dict:
@@ -1295,75 +1419,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
     provider = config['provider']
     api_key  = config['api_key']
 
-    if provider == 'openai':
-        from openai import OpenAI
-        resp     = OpenAI(api_key=api_key).chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500,
-        )
-        resposta = resp.choices[0].message.content
-
-    elif provider == 'anthropic':
-        import anthropic
-        msg      = anthropic.Anthropic(api_key=api_key).messages.create(
-            model='claude-sonnet-4-6',
-            max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        resposta = msg.content[0].text
-
-    elif provider in ('gemini', 'google'):
-        import google.generativeai as _genai
-        _genai.configure(api_key=api_key)
-        CANDIDATOS = [
-            'gemini-1.5-flash', 'gemini-1.5-flash-latest',
-            'gemini-1.5-flash-002', 'gemini-1.5-pro',
-            'gemini-pro', 'gemini-2.0-flash-lite',
-        ]
-        modelos_ok = [
-            m.name.replace('models/', '') for m in _genai.list_models()
-            if 'generateContent' in m.supported_generation_methods
-        ]
-        modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
-        if not modelo:
-            raise ValueError('Nenhum modelo Gemini disponível para esta chave.')
-        resp     = _genai.GenerativeModel(modelo).generate_content(prompt)
-        resposta = resp.text
-
-    elif provider == 'groq':
-        from openai import OpenAI
-        modelo   = config.get('groq_model', 'llama-3.1-8b-instant')
-        resp     = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
-            model=modelo,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500,
-        )
-        resposta = resp.choices[0].message.content
-
-    elif provider == 'ollama':
-        import requests as _req
-        modelo = config.get('ollama_model', 'llama3.2:1b')
-        resp = _req.post(
-            'http://localhost:11434/api/generate',
-            json={
-                'model':   modelo,
-                'prompt':  prompt,
-                'stream':  False,
-                'options': {
-                    'num_ctx':     2048,
-                    'num_predict': 512,
-                    'num_thread':  8,
-                    'temperature': 0.3,
-                },
-            },
-            timeout=300,
-        )
-        resp.raise_for_status()
-        resposta = resp.json().get('response', '')
-
-    else:
-        raise ValueError(f"Provedor desconhecido: {provider}")
+    resposta = _gerar_com_fidelidade_numerica(provider, api_key, prompt, config, contexto)
 
     resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
     resposta = _normalizar_markdown(resposta)
