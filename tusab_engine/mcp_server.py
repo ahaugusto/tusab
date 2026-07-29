@@ -67,20 +67,20 @@ def _search_knowledge(query: str, project: str = None, top_k: int = 6) -> list:
     config = carregar_config()
 
     # Se project não foi especificado, tenta usar o canal_indexado da config
-    canal_nome = project or config.get('canal_indexado', '')
-    if not canal_nome:
+    projeto_nome = project or config.get('canal_indexado', '')
+    if not projeto_nome:
         # Tenta usar o primeiro projeto disponível
         projetos = _list_projects()
         if not projetos:
             return []
-        canal_nome = projetos[0]
+        projeto_nome = projetos[0]
 
     chunks = _recuperar_contexto(
         pergunta=query,
-        canal_nome=canal_nome,
+        projeto_nome=projeto_nome,
         n=top_k,
         config=config,
-        canais_extras=None,
+        projetos_extras=None,
         fontes_fixadas=None,
         busca_ampla=False,
         perfil='',
@@ -93,7 +93,7 @@ def _search_knowledge(query: str, project: str = None, top_k: int = 6) -> list:
             'texto':  c.get('texto', ''),
             'link':   c.get('link', ''),
             'data':   c.get('data', ''),
-            'canal':  c.get('canal', canal_nome),
+            'canal':  c.get('canal', projeto_nome),
             'score':  c.get('score', 0.0),
         })
     return resultado

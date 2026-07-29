@@ -32,13 +32,13 @@ def _fix_encoding(texto: str) -> str:
         return texto
 
 
-def _gerar_perguntas_sugeridas(canal_prefixo: str, n: int = 3) -> list:
+def _gerar_perguntas_sugeridas(projeto_prefixo: str, n: int = 3) -> list:
     """Gera até n perguntas sugeridas a partir dos títulos dos chunks indexados."""
     import random
     from tusab_engine.agent.index import _index_path
     from tusab_engine.storage import INDEX_DIR
 
-    idx_path = _index_path(canal_prefixo)
+    idx_path = _index_path(projeto_prefixo)
     if not os.path.exists(idx_path):
         return []
     try:
@@ -72,7 +72,7 @@ def _gerar_perguntas_sugeridas(canal_prefixo: str, n: int = 3) -> list:
         return []
 
 
-def _run_indexacao(canal_nome: str, canal_prefixo: str):
+def _run_indexacao(projeto_nome: str, projeto_prefixo: str):
     try:
         state.agent_indexing       = True
         state.agent_index_logs     = []
@@ -84,13 +84,13 @@ def _run_indexacao(canal_nome: str, canal_prefixo: str):
             state.agent_index_progress = {"processed": processed, "total": total}
 
         agent_tusab.indexar(
-            canal_nome=canal_nome,
-            canal_prefixo=canal_prefixo,
+            projeto_nome=projeto_nome,
+            projeto_prefixo=projeto_prefixo,
             callback=cb,
             stop_event=state.agent_index_stop,
             progress_callback=progress_cb,
         )
-        state.perguntas_sugeridas[canal_prefixo] = _gerar_perguntas_sugeridas(canal_prefixo)
+        state.perguntas_sugeridas[projeto_prefixo] = _gerar_perguntas_sugeridas(projeto_prefixo)
     except Exception as e:
         state.agent_index_logs.append({"timestamp": time.strftime("%H:%M:%S"), "message": f"❌ Erro na indexação: {e}"})
     finally:
@@ -212,9 +212,9 @@ def _bases_com_arquivos_novos(canais_indexados: list) -> list[str]:
             continue
         nome = canal["nome"]
         prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', nome).strip('_')
-        canal_dir = os.path.join(NEURAL_DIR, prefixo)
+        projeto_dir = os.path.join(NEURAL_DIR, prefixo)
         for sub in ['documents', 'texts', 'youtube']:
-            pasta = os.path.join(canal_dir, sub)
+            pasta = os.path.join(projeto_dir, sub)
             if not os.path.isdir(pasta):
                 continue
             for fname in os.listdir(pasta):
@@ -359,8 +359,8 @@ def agent_mencoes(projeto_nome: str):
 
     # Documentos do projeto ativo
     documentos = []
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
-    canal_dir = os.path.join(NEURAL_DIR, canal_prefixo)
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    projeto_dir = os.path.join(NEURAL_DIR, projeto_prefixo)
 
     _EMOJIS = {
         "youtube":      "🎬",
@@ -388,9 +388,9 @@ def agent_mencoes(projeto_nome: str):
                 "arquivo": fname,
             })
 
-    if os.path.isdir(canal_dir):
-        for sub in sorted(os.listdir(canal_dir)):
-            sub_path = os.path.join(canal_dir, sub)
+    if os.path.isdir(projeto_dir):
+        for sub in sorted(os.listdir(projeto_dir)):
+            sub_path = os.path.join(projeto_dir, sub)
             if os.path.isdir(sub_path):
                 _listar_pasta(sub_path, sub, _EMOJIS.get(sub, "📁"))
 
@@ -407,8 +407,8 @@ def agent_arquivos(projeto_nome: str):
     from tusab_engine.storage import NEURAL_DIR
     import json as _json
 
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
-    canal_dir = os.path.join(NEURAL_DIR, canal_prefixo)
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    projeto_dir = os.path.join(NEURAL_DIR, projeto_prefixo)
 
     _EMOJIS = {
         "youtube":   "🎬",
@@ -469,9 +469,9 @@ def agent_arquivos(projeto_nome: str):
         else:
             _listar_dir(pasta_path, sub)
 
-    if os.path.isdir(canal_dir):
+    if os.path.isdir(projeto_dir):
         for sub in ["youtube", "documents", "texts"]:
-            _listar(os.path.join(canal_dir, sub), sub)
+            _listar(os.path.join(projeto_dir, sub), sub)
 
     return {"arquivos": arquivos}
 
@@ -603,11 +603,11 @@ def ollama_pull_progress():
 @router.get("/agent/canal-meta")
 def agent_canal_meta():
     config = agent_tusab.carregar_config()
-    canal_nome = state.stats.get("projeto_nome", "") or config.get("canal_indexado", "")
-    if not canal_nome:
+    projeto_nome = state.stats.get("projeto_nome", "") or config.get("canal_indexado", "")
+    if not projeto_nome:
         return {}
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    return agent_tusab._carregar_meta_canal(canal_prefixo)
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    return agent_tusab._carregar_meta_canal(projeto_prefixo)
 
 
 @router.get("/agent/config")
@@ -658,13 +658,13 @@ def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None
 
     # req.projeto_nome tem prioridade — usuário escolheu explicitamente no modal.
     # Fallback para state.stats só quando o request não especifica projeto.
-    canal_nome = (req.projeto_nome if req and req.projeto_nome else "") or state.stats.get("projeto_nome", "")
-    if not canal_nome:
-        canal_nome = "repositorio"
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    projeto_nome = (req.projeto_nome if req and req.projeto_nome else "") or state.stats.get("projeto_nome", "")
+    if not projeto_nome:
+        projeto_nome = "repositorio"
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
 
-    background_tasks.add_task(_run_indexacao, canal_nome, canal_prefixo)
-    msg = f"Indexação iniciada para @{canal_nome}." if canal_nome != "repositorio" else "Indexação do repositório iniciada."
+    background_tasks.add_task(_run_indexacao, projeto_nome, projeto_prefixo)
+    msg = f"Indexação iniciada para @{projeto_nome}." if projeto_nome != "repositorio" else "Indexação do repositório iniciada."
     return {"message": msg}
 
 
@@ -749,15 +749,15 @@ def agent_index_cancel():
     return {"message": "Indexação cancelada."}
 
 
-def _atualizar_chat_stats(canal_nome: str, n_refs: int = 0):
+def _atualizar_chat_stats(projeto_nome: str, n_refs: int = 0):
     """Incrementa contadores de interações em _chat_stats.json do projeto."""
     import re as _re
     from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    if not canal_prefixo:
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not projeto_prefixo:
         return
-    stats_path = os.path.join(NEURAL_DIR, canal_prefixo, 'management', '_chat_stats.json')
+    stats_path = os.path.join(NEURAL_DIR, projeto_prefixo, 'management', '_chat_stats.json')
     mgmt_dir = os.path.dirname(stats_path)
     os.makedirs(mgmt_dir, exist_ok=True)
 
@@ -794,7 +794,7 @@ def agent_chat_stats():
     return result
 
 
-def _serializar_historico_bm25(mensagens: list, canal_nome: str, titulo: str) -> str:
+def _serializar_historico_bm25(mensagens: list, projeto_nome: str, titulo: str) -> str:
     """Serializa histórico de chat no formato par P+R otimizado para BM25.
 
     Cada par user+assistant vira um bloco separado com TEMA, DATA, PERGUNTA,
@@ -807,7 +807,7 @@ def _serializar_historico_bm25(mensagens: list, canal_nome: str, titulo: str) ->
     header = (
         f"TITULO: {titulo}\n"
         f"FONTE: historico_chat\n"
-        f"CANAL: {canal_nome}\n"
+        f"PROJETO: {projeto_nome}\n"
         f"DATA: {data_str}\n"
         + "-" * 70 + "\n\n"
     )
@@ -859,7 +859,7 @@ def _serializar_historico_bm25(mensagens: list, canal_nome: str, titulo: str) ->
     return header + "\n".join(blocos) if blocos else ""
 
 
-def _auto_salvar_historico(canal_nome: str, mensagens: list) -> None:
+def _auto_salvar_historico(projeto_nome: str, mensagens: list) -> None:
     """Salva histórico em texts/_chat_history/ no formato BM25-friendly.
 
     Chamado automaticamente ao limpar/trocar canal. Silencioso em caso de erro.
@@ -878,21 +878,21 @@ def _auto_salvar_historico(canal_nome: str, mensagens: list) -> None:
     if len(msgs_validas) < 2:
         return
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    if not canal_prefixo:
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not projeto_prefixo:
         return
 
     try:
-        hist_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_chat_history")
+        hist_dir = os.path.join(NEURAL_DIR, projeto_prefixo, "texts", "_chat_history")
         os.makedirs(hist_dir, exist_ok=True)
 
         ts  = _dt.now().strftime("%Y%m%d_%H%M%S")
         fid = str(_uuid.uuid4())[:8]
-        titulo = f"Chat — {canal_nome} — {_dt.now().strftime('%d/%m/%Y %H:%M')}"
+        titulo = f"Chat — {projeto_nome} — {_dt.now().strftime('%d/%m/%Y %H:%M')}"
         nome_arquivo = f"_hist_{fid}_{ts}.txt"
         txt_path = os.path.join(hist_dir, nome_arquivo)
 
-        conteudo = _serializar_historico_bm25(msgs_validas, canal_nome, titulo)
+        conteudo = _serializar_historico_bm25(msgs_validas, projeto_nome, titulo)
         if not conteudo:
             return
 
@@ -912,7 +912,7 @@ def _auto_salvar_historico(canal_nome: str, mensagens: list) -> None:
             "id":           fid,
             "titulo":       titulo,
             "nome_arquivo": nome_arquivo,
-            "canal":        canal_nome,
+            "canal":        projeto_nome,
             "data":         _dt.now().strftime("%d/%m/%Y"),
             "ts":           ts,
             "n_pares":      sum(1 for m in msgs_validas if m.get("role") == "user"),
@@ -935,14 +935,14 @@ def agent_feedback(req: FeedbackRequest):
     util=False → descarta silenciosamente (sem side-effects no corpus).
     """
     import time as _time
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
 
     if not req.util:
         return {"ok": True, "action": "discarded"}
 
     texts_dir = os.path.join(
         __import__('tusab_engine.storage', fromlist=['NEURAL_DIR']).NEURAL_DIR,
-        canal_prefixo, 'texts'
+        projeto_prefixo, 'texts'
     )
     os.makedirs(texts_dir, exist_ok=True)
 
@@ -960,7 +960,7 @@ def agent_feedback(req: FeedbackRequest):
         return {"ok": False, "error": str(e)}
 
     # Invalida cache BM25 para que o novo arquivo seja lido na próxima query
-    agent_tusab._invalidar_cache(canal_prefixo)
+    agent_tusab._invalidar_cache(projeto_prefixo)
     return {"ok": True, "action": "saved", "arquivo": fname}
 
 
@@ -1010,10 +1010,10 @@ def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
     if not req.mensagens:
         return {"error": True, "message": "Nenhuma mensagem para salvar"}
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
-    if not canal_prefixo:
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
+    if not projeto_prefixo:
         return {"error": True, "message": "Projeto não especificado."}
-    txt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts")
+    txt_dir = os.path.join(NEURAL_DIR, projeto_prefixo, "texts")
     os.makedirs(txt_dir, exist_ok=True)
 
     ts = _dt.now().strftime("%Y%m%d_%H%M%S")
@@ -1057,16 +1057,16 @@ def agent_chat_salvar_historico(req: SalvarHistoricoRequest):
     return {"ok": True, "id": fid, "titulo": titulo}
 
 
-@router.get("/agent/chat/historicos/{canal_nome}")
-def agent_chat_historicos(canal_nome: str):
-    """Lista arquivos de histórico de chat salvos para o canal."""
+@router.get("/agent/chat/historicos/{projeto_nome}")
+def agent_chat_historicos(projeto_nome: str):
+    """Lista arquivos de histórico de chat salvos para o projeto."""
     import re as _re
     from tusab_engine.storage import NEURAL_DIR
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    if not canal_prefixo:
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not projeto_prefixo:
         return {"historicos": []}
-    manifest_path = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_manifest.json")
+    manifest_path = os.path.join(NEURAL_DIR, projeto_prefixo, "texts", "_manifest.json")
 
     if not os.path.exists(manifest_path):
         return {"historicos": []}
@@ -1081,17 +1081,17 @@ def agent_chat_historicos(canal_nome: str):
     return {"historicos": historicos}
 
 
-@router.get("/agent/chat/historicos-salvos/{canal_nome}")
-def agent_chat_historicos_salvos(canal_nome: str):
+@router.get("/agent/chat/historicos-salvos/{projeto_nome}")
+def agent_chat_historicos_salvos(projeto_nome: str):
     """Lista históricos auto-salvos em texts/_chat_history/ (fora do corpus BM25)."""
     import re as _re
     from tusab_engine.storage import NEURAL_DIR
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    if not canal_prefixo:
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not projeto_prefixo:
         return {"historicos": []}
 
-    idx_path = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_chat_history", "_index.json")
+    idx_path = os.path.join(NEURAL_DIR, projeto_prefixo, "texts", "_chat_history", "_index.json")
     if not os.path.exists(idx_path):
         return {"historicos": []}
     try:
@@ -1118,11 +1118,11 @@ def agent_chat_injetar_historico(req: InjetarHistoricoRequest):
     import shutil
     from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
-    if not canal_prefixo:
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    if not projeto_prefixo:
         return {"error": True, "message": "Canal não especificado."}
 
-    hist_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts", "_chat_history")
+    hist_dir = os.path.join(NEURAL_DIR, projeto_prefixo, "texts", "_chat_history")
     idx_path = os.path.join(hist_dir, "_index.json")
     if not os.path.exists(idx_path):
         return {"error": True, "message": "Nenhum histórico salvo encontrado."}
@@ -1145,7 +1145,7 @@ def agent_chat_injetar_historico(req: InjetarHistoricoRequest):
         return {"error": True, "message": "Arquivo de histórico não encontrado em disco."}
 
     # Copia para texts/ sem o prefixo '_hist_' — torna-o visível ao indexador
-    txt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "texts")
+    txt_dir = os.path.join(NEURAL_DIR, projeto_prefixo, "texts")
     nome_destino = entrada["nome_arquivo"].lstrip("_").replace("hist_", "chat_hist_", 1)
     dst = os.path.join(txt_dir, nome_destino)
     shutil.copy2(src, dst)
@@ -1285,8 +1285,8 @@ def agent_chat_stream(req: AgentChatStreamRequest):
                     state.chat_histories[req.projeto_nome] = novo_hist[-_MAX_HIST_MSGS:]
                 # Persiste resposta completa para o classificador de intenção
                 try:
-                    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
-                    state.last_chat_response[canal_prefixo] = {
+                    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
+                    state.last_chat_response[projeto_prefixo] = {
                         'pergunta': mensagem,
                         'resposta': resposta_completa,
                         'fontes':   refs_acumuladas,
@@ -1303,7 +1303,7 @@ def agent_chat_stream(req: AgentChatStreamRequest):
 
 # ── Sumarização ──────────────────────────────────────────────────────────────
 
-def _run_summarize(canal_prefixo: str):
+def _run_summarize(projeto_prefixo: str):
     """Dispara resumir_canal() em background e atualiza state.summarize_*."""
     from tusab_engine.agent.summarize import resumir_canal
 
@@ -1311,10 +1311,10 @@ def _run_summarize(canal_prefixo: str):
         state.summarizing = True
         state.summarize_logs = []
         state.summarize_stop.clear()
-        state.summarize_progress[canal_prefixo] = {'n': 0, 'total': 0}
+        state.summarize_progress[projeto_prefixo] = {'n': 0, 'total': 0}
 
         def _cb(n, total):
-            state.summarize_progress[canal_prefixo] = {'n': n, 'total': total}
+            state.summarize_progress[projeto_prefixo] = {'n': n, 'total': total}
             state.summarize_logs.append({
                 'timestamp': time.strftime('%H:%M:%S'),
                 'message': f'Resumindo vídeos: {n}/{total}',
@@ -1323,13 +1323,13 @@ def _run_summarize(canal_prefixo: str):
                 state.summarize_logs = state.summarize_logs[-100:]
 
         resumir_canal(
-            canal_prefixo=canal_prefixo,
+            projeto_prefixo=projeto_prefixo,
             callback=_cb,
             stop_event=state.summarize_stop,
         )
         state.summarize_logs.append({
             'timestamp': time.strftime('%H:%M:%S'),
-            'message': f'✅ Sumarização de {canal_prefixo} concluída.',
+            'message': f'✅ Sumarização de {projeto_prefixo} concluída.',
         })
         if len(state.summarize_logs) > 100:
             state.summarize_logs = state.summarize_logs[-100:]
@@ -1359,8 +1359,8 @@ def agent_summarize_pending():
         return {'total': 0, 'canais': [], 'error': str(e)}
 
 
-@router.post('/agent/summarize/{canal_prefixo}')
-def agent_summarize_start(canal_prefixo: str, background_tasks: BackgroundTasks):
+@router.post('/agent/summarize/{projeto_prefixo}')
+def agent_summarize_start(projeto_prefixo: str, background_tasks: BackgroundTasks):
     """Dispara sumarização assíncrona de vídeos de um canal em background.
 
     Progresso disponível em GET /agent/status (campos summarizing + summarize_logs
@@ -1369,7 +1369,7 @@ def agent_summarize_start(canal_prefixo: str, background_tasks: BackgroundTasks)
     if state.summarizing:
         return {'error': True, 'message': 'Sumarização já em andamento. Aguarde ou cancele.'}
     # Sanitiza o prefixo recebido (defesa em profundidade — path param)
-    prefixo_safe = re.sub(r'[<>:"/\\|?*\s]', '_', canal_prefixo).strip('_')
+    prefixo_safe = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_prefixo).strip('_')
     if not prefixo_safe:
         return {'error': True, 'message': 'Prefixo de canal inválido.'}
     # Valida LLM configurado
@@ -1397,10 +1397,10 @@ def agent_summarize_cancel():
 @router.delete("/agent/canal/{projeto_nome}")  # alias legado
 def agent_canal_delete(projeto_nome: str):
     import re as _re
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
-    agent_tusab._invalidar_cache(canal_prefixo)
+    projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    agent_tusab._invalidar_cache(projeto_prefixo)
     # Remove índice BM25 se existir
-    idx_path = agent_tusab._index_path(canal_prefixo)
+    idx_path = agent_tusab._index_path(projeto_prefixo)
     if os.path.exists(idx_path):
         try:
             os.remove(idx_path)
@@ -1408,7 +1408,7 @@ def agent_canal_delete(projeto_nome: str):
             pass
     # Remove banco FTS5 se existir
     from tusab_engine.agent.fts import _fts_path, _sanitizar_prefixo
-    fts_path = _fts_path(canal_prefixo)
+    fts_path = _fts_path(projeto_prefixo)
     if os.path.exists(fts_path):
         try:
             os.remove(fts_path)
