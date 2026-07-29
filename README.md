@@ -320,6 +320,11 @@ Lançamento inicial. Extração de YouTube, RAG local com BM25 + CrossEncoder, c
 
 ## Licença
 
-Copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57  
-Todos os direitos reservados. Lei nº 9.609/1998 (Lei do Software) + Lei nº 9.610/1998.  
-Proibida reprodução sem autorização expressa.
+Copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
+
+Código-fonte disponível sob [Elastic License 2.0](LICENSE) — você pode ler,
+auditar, rodar e modificar livremente para uso próprio. A única restrição
+relevante: não oferecer o Tusab como serviço hospedado/gerenciado para
+terceiros. O nome "Tusab" e a marca são protegidos separadamente — ver
+[TRADEMARK.md](TRADEMARK.md). Não estamos aceitando Pull Requests externos
+no momento — ver [CONTRIBUTING.md](CONTRIBUTING.md).
