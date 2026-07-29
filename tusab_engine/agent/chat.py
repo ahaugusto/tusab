@@ -485,7 +485,7 @@ def _filtrar_por_identificador(pergunta: str, resultados: list) -> list:
     return com_identificador if com_identificador else resultados
 
 
-def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '', trechos_fixados: list = None) -> list:
+def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: dict = None, projetos_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '', trechos_fixados: list = None) -> list:
     # Trechos fixados via @@ já passaram pelo pipeline BM25+CrossEncoder no momento da busca.
     # Retorná-los diretamente evita dupla pesquisa e garante que o LLM vê exatamente o que o usuário selecionou.
     if trechos_fixados:
@@ -495,7 +495,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                 'texto':          t.get('texto', ''),
                 'titulo':         t.get('titulo', t.get('arquivo', '')),
                 'arquivo':        t.get('arquivo', t.get('titulo', '')),
-                'canal':          canal_nome,
+                'canal':          projeto_nome,
                 'score':          1.0,
                 'aba':            'documento',
             }
@@ -504,7 +504,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     import numpy as np
 
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
 
     # Separa fontes_fixadas em três categorias:
     #   @@pasta/arquivo.txt  → arquivo específico (@ no chat → dropdown de arquivos)
@@ -528,15 +528,15 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     # ── Modo unificado: corpus merged quando há múltiplos projetos ────────────
     # Constrói um único BM25 sobre todos os chunks de todos os projetos ativos.
     # Scores são comparáveis porque o IDF é calculado sobre o vocabulário completo.
-    todos_projetos = [canal_prefixo] + [
+    todos_projetos = [projeto_prefixo] + [
         re.sub(r'[<>:"/\\|?*\s]', '_', e).strip('_')
-        for e in (canais_extras or []) if e != canal_nome
+        for e in (projetos_extras or []) if e != projeto_nome
     ]
 
     if len(todos_projetos) > 1 and not arquivos_fixados:
         merged = _obter_corpus_merged(todos_projetos)
         if merged is None:
-            raise ValueError(f"Índice não encontrado para '{canal_nome}'. Clique em Indexar Agora.")
+            raise ValueError(f"Índice não encontrado para '{projeto_nome}'. Clique em Indexar Agora.")
 
         scores = _scores_para_queries(merged['bm25'], queries)
         # Recupera top-2n para o CrossEncoder ter candidatos suficientes de todos os projetos
@@ -544,12 +544,12 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
         top_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_n]
         resultados = [
             {**merged['chunks'][i], 'score': round(float(scores[i]), 3),
-             'canal': merged['chunks'][i].get('_prefixo', canal_prefixo)}
+             'canal': merged['chunks'][i].get('_prefixo', projeto_prefixo)}
             for i in top_idx if scores[i] > 0
         ]
         # Normaliza '_prefixo' → nome legível do projeto
-        prefixo_para_nome = {canal_prefixo: canal_nome}
-        for extra in (canais_extras or []):
+        prefixo_para_nome = {projeto_prefixo: projeto_nome}
+        for extra in (projetos_extras or []):
             p = re.sub(r'[<>:"/\\|?*\s]', '_', extra).strip('_')
             prefixo_para_nome[p] = extra
         for r in resultados:
@@ -558,9 +558,9 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
 
     else:
         # ── Modo single: BM25 no projeto principal (comportamento original) ───
-        cached = _carregar_projeto_cache(canal_prefixo)
+        cached = _carregar_projeto_cache(projeto_prefixo)
         if cached is None:
-            raise ValueError(f"Índice não encontrado para '{canal_nome}'. Clique em Indexar Agora.")
+            raise ValueError(f"Índice não encontrado para '{projeto_nome}'. Clique em Indexar Agora.")
 
         chunks_ativos = cached['chunks']
         if arquivos_fixados:
@@ -583,15 +583,15 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
             top_idx = sorted(range(len(scores_full)), key=lambda i: scores_full[i], reverse=True)[:n]
 
         resultados = [
-            {**cached['chunks'][i], 'score': round(float(scores_full[i]), 3), 'canal': canal_nome}
+            {**cached['chunks'][i], 'score': round(float(scores_full[i]), 3), 'canal': projeto_nome}
             for i in top_idx if scores_full[i] > 0
         ]
 
         # FTS5 exact-match no projeto principal
         try:
             from tusab_engine.agent.fts import buscar_fts, fts_existe
-            if fts_existe(canal_prefixo):
-                fts_rowids = buscar_fts(pergunta, canal_prefixo, n=n)
+            if fts_existe(projeto_prefixo):
+                fts_rowids = buscar_fts(pergunta, projeto_prefixo, n=n)
                 chunks_result = cached['chunks']
                 for rid in fts_rowids:
                     if rid < len(chunks_result):
@@ -607,7 +607,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
                             resultados.append({
                                 **chunks_result[rid],
                                 'score': 0.1,
-                                'canal': canal_nome,
+                                'canal': projeto_nome,
                                 'fts_match': True,
                             })
         except Exception:
@@ -674,7 +674,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     # achar o chunk certo. Fallback para n*2 (comportamento original) sem perfil.
     if busca_ampla:
         from tusab_engine.agent.calibration import _carregar_profile
-        n_candidatos = _carregar_profile(canal_prefixo).get('n_candidatos_bm25', n * 2)
+        n_candidatos = _carregar_profile(projeto_prefixo).get('n_candidatos_bm25', n * 2)
         candidatos = _rerankar(pergunta, resultados[:n_candidatos])
     else:
         candidatos = resultados
@@ -687,7 +687,7 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
     if not top and resultados:
         top = resultados[:1]
     elif not top and 'cached' in locals() and cached and cached.get('chunks'):
-        top = [{**cached['chunks'][0], 'score': 0.0, 'canal': canal_nome}]
+        top = [{**cached['chunks'][0], 'score': 0.0, 'canal': projeto_nome}]
 
     return top
 
@@ -704,14 +704,14 @@ def buscar_trechos(query: str, canais: list = None, n: int = 8, busca_ampla: boo
     # Normaliza: projetos tem prioridade sobre canais (legado)
     lista_projetos = projetos if projetos is not None else (canais or [])
 
-    for canal_nome in lista_projetos:
+    for projeto_nome in lista_projetos:
         try:
             chunks = _recuperar_contexto(
                 pergunta=query,
-                canal_nome=canal_nome,
+                projeto_nome=projeto_nome,
                 n=n,
                 config=config,
-                canais_extras=[],
+                projetos_extras=[],
                 busca_ampla=busca_ampla,
                 perfil='',
             )
@@ -720,7 +720,7 @@ def buscar_trechos(query: str, canais: list = None, n: int = 8, busca_ampla: boo
                     'titulo':            c.get('titulo', ''),
                     'trecho':            c.get('texto_original') or c.get('texto', ''),
                     'score':             c.get('score', 0.0),
-                    'canal':             canal_nome,
+                    'canal':             projeto_nome,
                     'aba':               c.get('aba', ''),
                     'link':              c.get('link', ''),
                     'data':              c.get('data', ''),
@@ -736,7 +736,7 @@ def buscar_trechos(query: str, canais: list = None, n: int = 8, busca_ampla: boo
     return resultados
 
 
-def _carregar_resumos_relevantes(chunks: list, canal_prefixo: str) -> list:
+def _carregar_resumos_relevantes(chunks: list, projeto_prefixo: str) -> list:
     """Carrega _resumo.json dos vídeos mais relevantes recuperados pelo BM25.
 
     Percorre os chunks em ordem de relevância, carrega até 2 resumos distintos.
@@ -754,7 +754,7 @@ def _carregar_resumos_relevantes(chunks: list, canal_prefixo: str) -> list:
 
         # Tenta localizar o _resumo.json: nova estrutura ou legado
         # Nova estrutura: neural/{prefixo}/youtube/{canal_sub}/{video_id}_resumo.json
-        youtube_base = os.path.join(NEURAL_DIR, canal_prefixo, 'youtube')
+        youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
         candidatos = []
 
         if os.path.isdir(youtube_base):
@@ -844,7 +844,7 @@ def _tem_lacuna_numerica(resposta: str) -> bool:
 
 # ── Verificação de alucinação ─────────────────────────────────────────────────
 
-def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho_injetado: bool = False) -> str:
+def _verificar_alucinacao(resposta: str, contexto: list, projeto_nome: str, trecho_injetado: bool = False) -> str:
     # Quando há trecho injetado, não filtramos: o usuário enviou conteúdo próprio da base
     # e o LLM sempre vai usar vocabulário analítico diferente do corpus original.
     if trecho_injetado:
@@ -873,7 +873,7 @@ def _verificar_alucinacao(resposta: str, contexto: list, canal_nome: str, trecho
     # 0.12 em vez de 0.20 — LLMs legítimos usam sinônimos e paráfrases;
     # threshold muito alto descartar respostas corretas que só parafraseiam.
     if cobertura < 0.12:
-        handle = f'@{canal_nome}' if canal_nome else 'este canal'
+        handle = f'@{projeto_nome}' if projeto_nome else 'este canal'
         return (
             f'Não encontrei informações suficientes sobre esse tema no conteúdo de {handle}. '
             f'Tente reformular a pergunta ou verifique se o canal aborda esse assunto.'
@@ -1011,7 +1011,7 @@ def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, hi
 
 _IDIOMA_LABEL = {"pt": "português", "en": "English", "es": "español"}
 
-def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt', canal_prefixo: str = '') -> str:
+def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt', projeto_prefixo: str = '') -> str:
     pergunta = pergunta[:2000].strip()
     handle   = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
@@ -1019,9 +1019,9 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
 
     # Tenta carregar resumos dos vídeos mais relevantes para dar visão macro ao LLM
     resumo_str = ''
-    if canal_prefixo:
+    if projeto_prefixo:
         try:
-            resumos = _carregar_resumos_relevantes(contexto, canal_prefixo)
+            resumos = _carregar_resumos_relevantes(contexto, projeto_prefixo)
             if resumos:
                 partes_resumo = []
                 for r in resumos:
@@ -1144,7 +1144,7 @@ def _prompt_sem_contexto(idioma: str = 'pt') -> str:
     )
 
 
-def _responder_sem_contexto(pergunta: str, config: dict, canal_nome: str) -> str:
+def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> str:
     """Gera resposta inteligente quando o BM25 não retorna contexto relevante."""
     pergunta_lower = pergunta.strip().lower().rstrip('!?.')
     idioma = config.get('idioma', 'pt')
@@ -1210,7 +1210,7 @@ def _responder_sem_contexto(pergunta: str, config: dict, canal_nome: str) -> str
                 timeout=30,
             )
             resp.raise_for_status()
-            return resp.json().get('response', '').strip() or _fallback_sem_contexto(canal_nome)
+            return resp.json().get('response', '').strip() or _fallback_sem_contexto(projeto_nome)
 
         elif provider == 'openai':
             from openai import OpenAI
@@ -1256,11 +1256,11 @@ def _responder_sem_contexto(pergunta: str, config: dict, canal_nome: str) -> str
     except Exception:
         pass
 
-    return _fallback_sem_contexto(canal_nome)
+    return _fallback_sem_contexto(projeto_nome)
 
 
-def _fallback_sem_contexto(canal_nome: str) -> str:
-    handle = f'@{canal_nome}' if canal_nome else 'esta base'
+def _fallback_sem_contexto(projeto_nome: str) -> str:
+    handle = f'@{projeto_nome}' if projeto_nome else 'esta base'
     return (
         f"Não encontrei conteúdo relevante para essa pergunta em {handle}.\n\n"
         f"**Dica:** vá ao Repositório, busque pelo tema e clique em **\"Referenciar no chat\"** "
@@ -1376,15 +1376,14 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
 
 def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None) -> dict:
-    canal_nome = projeto_nome          # alias interno — não altera o restante do código
-    canais_extras = projetos_extras or []
+    projetos_extras = projetos_extras or []
     config   = carregar_config()
     provider = config.get('provider', '')
     if not provider or (not _api_key_valida(config) and provider != 'ollama'):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    meta_canal    = _carregar_meta_canal(canal_prefixo)
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    meta_canal    = _carregar_meta_canal(projeto_prefixo)
     persona       = config.get('persona', '')
     idioma        = config.get('idioma', 'pt')
 
@@ -1403,8 +1402,8 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
         n_chunks = 4 if config.get('provider') == 'ollama' else 6
         try:
             contexto_bm25 = _recuperar_contexto(
-                pergunta, canal_nome, n=n_chunks, config=config,
-                canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
+                pergunta, projeto_nome, n=n_chunks, config=config,
+                projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
                 busca_ampla=busca_ampla, perfil=perfil,
                 trechos_fixados=trechos_fixados or [],
             )
@@ -1415,7 +1414,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
         except Exception:
             intencao = 'BUSCA'
 
-        ultima = _state.last_chat_response.get(canal_prefixo, {})
+        ultima = _state.last_chat_response.get(projeto_prefixo, {})
 
         if intencao == 'CONTEXTO' and not ultima:
             intencao = 'BUSCA'
@@ -1436,21 +1435,21 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
             prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
         elif intencao == 'CONVERSA':
             contexto = []
-            resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
+            resposta_vazia = _responder_sem_contexto(pergunta, config, projeto_nome)
             return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': False}
         else:
             contexto = contexto_bm25
             if not contexto:
-                resposta_vazia = _responder_sem_contexto(pergunta, config, canal_nome)
+                resposta_vazia = _responder_sem_contexto(pergunta, config, projeto_nome)
                 return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
-            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
+            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo)
 
     provider = config['provider']
     api_key  = config['api_key']
 
     resposta = _gerar_com_fidelidade_numerica(provider, api_key, prompt, config, contexto)
 
-    resposta = _verificar_alucinacao(resposta, contexto, canal_nome, trecho_injetado=trecho_mode)
+    resposta = _verificar_alucinacao(resposta, contexto, projeto_nome, trecho_injetado=trecho_mode)
     resposta = _normalizar_markdown(resposta)
 
     # Confiança graduada por sentença (P1-e) — sinal visual opcional para o
@@ -1476,12 +1475,12 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
         } for c in contexto]
 
     if trecho_mode and not fontes:
-        fontes = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
+        fontes = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': projeto_nome, 'score': 1.0}]
 
     # Persiste resposta para uso pelo classificador de intenção na próxima mensagem
     try:
         from tusab_engine.state import state as _state
-        _state.last_chat_response[canal_prefixo] = {
+        _state.last_chat_response[projeto_prefixo] = {
             'pergunta': pergunta,
             'resposta': resposta,
             'fontes':   fontes,
@@ -1501,15 +1500,14 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
 
 def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None):
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
-    canal_nome = projeto_nome          # alias interno — não altera o restante do código
-    canais_extras = projetos_extras or []
+    projetos_extras = projetos_extras or []
     config = carregar_config()
     if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') != 'ollama'):
         yield json.dumps({'error': 'Configure a chave de API antes de usar o chat.'})
         return
 
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
-    meta_canal    = _carregar_meta_canal(canal_prefixo)
+    projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    meta_canal    = _carregar_meta_canal(projeto_prefixo)
     persona       = config.get('persona', '')
     idioma        = config.get('idioma', 'pt')
 
@@ -1520,7 +1518,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
     if trecho_mode:
         contexto = []
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
-        fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': canal_nome, 'score': 1.0}]
+        fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': projeto_nome, 'score': 1.0}]
     else:
         from tusab_engine.state import state as _state
 
@@ -1529,8 +1527,8 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         n_chunks = 4 if config.get('provider') == 'ollama' else 6
         try:
             contexto_bm25 = _recuperar_contexto(
-                pergunta, canal_nome, n=n_chunks, config=config,
-                canais_extras=canais_extras, fontes_fixadas=fontes_fixadas,
+                pergunta, projeto_nome, n=n_chunks, config=config,
+                projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
                 busca_ampla=busca_ampla, perfil=perfil,
                 trechos_fixados=trechos_fixados or [],
             )
@@ -1542,7 +1540,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         except Exception:
             intencao = 'BUSCA'
 
-        ultima = _state.last_chat_response.get(canal_prefixo, {})
+        ultima = _state.last_chat_response.get(projeto_prefixo, {})
 
         if intencao == 'CONTEXTO' and not ultima:
             intencao = 'BUSCA'
@@ -1563,7 +1561,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             fontes   = ultima.get('fontes', [])  # reusar fontes da resposta anterior
         elif intencao == 'CONVERSA':
             config_s = carregar_config()
-            resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
+            resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
             yield resposta_vazia
             yield json.dumps({'done': True})
@@ -1572,12 +1570,12 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             contexto = contexto_bm25
             if not contexto:
                 config_s = carregar_config()
-                resposta_vazia = _responder_sem_contexto(pergunta, config_s, canal_nome)
+                resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
                 yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
                 yield resposta_vazia
                 yield json.dumps({'done': True})
                 return
-            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, canal_prefixo=canal_prefixo)
+            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo)
             fontes = [{
                 'titulo':            c['titulo'],
                 'aba':               c.get('aba', 'youtube'),
