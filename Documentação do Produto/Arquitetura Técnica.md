@@ -22,9 +22,9 @@ Atualizado: Junho 2026
 | python-multipart | upload de arquivos via FastAPI |
 | rank_bm25 | indexação e busca lexical BM25Okapi |
 
-**Dependências opcionais (imagens e áudio):**
-- `pytesseract` — OCR fallback para imagens (requer Tesseract binário)
-- `faster-whisper` — transcrição local de áudio, modelo base ~150 MB, roda em CPU sem GPU
+**Dependências (imagens e áudio):**
+- `rapidocr-onnxruntime` — OCR fallback para imagens, Python+ONNX puro sem binário externo (substitui `pytesseract`, jul/2026 — este exigia o Tesseract instalado à parte no sistema)
+- `faster-whisper` (opcional) — transcrição local de áudio, modelo base ~150 MB, roda em CPU sem GPU
 
 ### Agente RAG
 - **BM25Okapi** — busca lexical com cache em memória por projeto; enriquecimento com tags YouTube (3×) + keywords TF-IDF (2×) + descrições

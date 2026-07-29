@@ -601,9 +601,53 @@ def _recuperar_contexto(...):
 
 ## Candidatos a features futuras
 
+### Reranker: BGE-reranker-v2-m3 (spike de validação)
+
+**O que é:** candidato a substituir/complementar `cross-encoder/ms-marco-MiniLM-L-6-v2` (CrossEncoder da Busca Ampla, `chat.py`). Multilíngue, benchmark de qualidade melhor no nDCG. Achado numa rodada de pesquisa GitHub/HuggingFace em jul/2026, avaliado por `/backend`+`/inovacao`+`/produto` em consulta multi-agente.
+
+**Por que interessa:** `ms-marco-MiniLM-L-6-v2` é treinado majoritariamente em inglês — o Tusab é "Brazil First" (maioria dos usuários em PT-BR), então o reranking semântico da Busca Ampla provavelmente perde precisão pra quem mais usa o produto. Gap de qualidade real, não hipotético.
+
+**Por que não direto pra produção:** é um modelo maior (~568M params vs. ~33M do MiniLM atual) — a Busca Ampla já tem latência **medida** (+236ms). Trocar sem medir de novo pode estourar esse orçamento sem ninguém perceber até o usuário reclamar de lentidão. Mesma disciplina já aplicada ao LanceDB (benchmark real antes de migrar).
+
+**Próximo passo:** spike de 1 dia — (1) checar adoção real da Busca Ampla via métrica `busca_ampla_toggled` (PostHog) antes de investir mais, já que o ganho só existe pra quem usa esse modo; (2) se adoção justificar, benchmark de latência + qualidade no corpus real do Tusab antes de decidir trocar.
+
+---
+
+### OCR: RapidOCR (✅ implementado, jul/2026)
+
+Substituiu `pytesseract` como fallback de OCR (upload de imagem, atrás de Ollama multimodal). `pytesseract` exigia o binário Tesseract instalado separadamente no sistema — o instalador de 1-clique do Tusab não provisiona isso, gerando erro técnico pro usuário não-técnico (Estudante/Professor) quando o binário faltava. RapidOCR (`rapidocr-onnxruntime`, Apache-2.0) é Python+ONNX puro, sem instalação externa — fecha um gap real no princípio "1 clique, sem instalar nada". Ver `agents/_historia.md` pra detalhes da migração.
+
+---
+
+### Parsing de tabela em PDF: Granite-Docling-258M (aguardando sinal de demanda)
+
+**O que é:** modelo de visão pequeno (IBM, Apache-2.0, 258M params, ONNX) especializado em layout/tabela de documento — mais preciso que `pdfplumber` (extração de texto simples, sem entendimento de estrutura) pra PDFs com tabela densa (financeiro, jurídico, técnico).
+
+**Por que não agora:** sem nenhum sinal — telemetria, reclamação registrada — de que usuários reais estão perdendo informação de tabela em PDF hoje. Mesma disciplina de "medir antes de propor" já aplicada em outras áreas do produto (design system, LanceDB).
+
+**Por que é mais esforço do que parece:** não é troca de parâmetro — é modelo de visão, processa imagem de página, não texto. Exigiria rasterizar PDF pra imagem (dependência nova: `pdf2image` ou equivalente) antes de rodar inferência por página. Estágio de pipeline novo.
+
+**Gatilho pra revisitar:** primeiro caso real e concreto de usuário com PDF de tabela complexa onde o chat claramente não conseguiu responder por causa disso.
+
+---
+
+### Verificação de fidelidade numérica generalizada (extração verbatim)
+
+**O que é:** generalização da correção pontual já implementada em `chat.py::_gerar_com_fidelidade_numerica()` (jul/2026 — detecta padrão de número/data apagado e retenta com instrução reforçada). A generalização trocaria paráfrase livre por citação literal (span exato do chunk-fonte) especificamente pra perguntas que pedem dado numérico/factual — inspirado na técnica do projeto Verbatim RAG (MIT), sem adotar o pacote completo (pesado demais — SPLADE/ModernBERT/Milvus/torch).
+
+**Por que não agora:** o fix pontual já resolveu o caso concreto reportado. Generalizar exige um classificador/heurística pra decidir QUANDO usar modo extrativo vs. generativo — mudança de estilo de resposta mais invasiva que o fix já embarcado.
+
+**Gatilho pra revisitar:** novos casos de perda de fidelidade numérica que o retry atual não capture.
+
+**Descartado nesta rodada:** `LettuceDetect`/`TinyLettuce` (MIT, detector pós-geração de span não-suportado) — sobrepõe o que `_verificar_alucinacao`/`_calcular_confianca_por_sentenca` já fazem, rodaria em TODA resposta do chat (latência sempre-ligada) sem um novo caso concreto que justifique. `options.grammar` (GBNF) do Ollama — testado ao vivo e confirmado que a API REST do Ollama 0.32.3 ignora esse parâmetro silenciosamente; não é um caminho viável, não repropor sem reteste.
+
+---
+
 ### RAG: Embeddings via Ollama + LanceDB (pós-Sprint 5)
 
 **O que é:** RAG Híbrido — após o Sprint 5 (LanceDB), adicionar busca vetorial como complemento ao BM25. `nomic-embed-text` (Ollama) gera embeddings; LanceDB armazena vetores na mesma tabela dos chunks (sem ChromaDB separado). Fusão de scores BM25 + vetorial antes de montar o prompt.
+
+**Candidatos pro bake-off (achados jul/2026, ainda não testados no corpus do Tusab):** `Qwen3-Embedding-0.6B` (Apache-2.0, nativo Ollama, ~639MB) e `EmbeddingGemma-300M` (licença Gemma — checar cláusulas de uso restrito antes de embarcar, especialmente se for pra variante B2B). Nenhum dos dois é obviamente melhor que `nomic-embed-text` sem teste real — comparar os três no Sprint 6, não decidir antes.
 
 **Por que depois do LanceDB:** o LanceDB já tem suporte a vetores nativamente — a mesma tabela que guarda os chunks BM25 pode guardar o vetor de embedding de cada chunk. Elimina a necessidade de ChromaDB como dependência separada.
 
