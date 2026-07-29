@@ -379,6 +379,22 @@ def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
                     conteudo = f.read().strip()
                 if len(conteudo) < 80:
                     continue
+
+                # Todo arquivo em documents/texts/ é salvo com cabeçalho
+                # TITULO/FONTE/DATA/[URL_ORIGEM] (upload manual, texto colado,
+                # scraper de URL, todas as fontes públicas — ver _salvar_documento
+                # em fontes/_base.py e router_repositorio.py). Sem esse parsing,
+                # 'titulo' caía pro nome de arquivo sanitizado (uuid+underscores)
+                # e 'data'/'link' ficavam sempre vazios — afetava tanto a citação
+                # exibida no chat quanto qualquer filtro que dependa do título real
+                # (ex: filtro por identificador literal, ver _recuperar_contexto).
+                titulo_m = re.search(r'TITULO:\s*(.+)', conteudo)
+                data_m   = re.search(r'DATA:\s*(.+)', conteudo)
+                link_m   = re.search(r'URL_ORIGEM:\s*(.+)', conteudo)
+                titulo_doc = titulo_m.group(1).strip() if titulo_m else fname.replace('.txt', '')
+                data_doc   = data_m.group(1).strip() if data_m else ''
+                link_doc   = link_m.group(1).strip() if link_m else ''
+
                 # Chunking dinâmico por tipo:
                 #   documento (PDF/DOCX) → janelas maiores, conteúdo denso e estruturado
                 #   texto/WhatsApp → janelas médias: 500 chars capturava só 2-3 mensagens,
@@ -395,10 +411,10 @@ def _parsear_todos_chunks(canal_prefixo: str, progress_callback=None) -> list:
                     chunks.append({
                         'texto':          _enriquecer_com_keywords(parte),
                         'texto_original': parte,
-                        'titulo':         fname.replace('.txt', ''),
+                        'titulo':         titulo_doc,
                         'aba':            aba_label,
-                        'data':           '',
-                        'link':           '',
+                        'data':           data_doc,
+                        'link':           link_doc,
                         'tags':           [],
                         'arquivo':        fname,
                         'canal':          canal_dir,

@@ -458,6 +458,33 @@ def _obter_corpus_merged(prefixos: list[str]) -> dict | None:
         return entry
 
 
+# S3.4 — Filtro por identificador literal: quando a pergunta cita um número
+# específico no formato "nº de lei" (ex: "14.688"), restringe aos chunks cujo
+# TÍTULO contém esse mesmo identificador. Sem isso, BM25 recupera outros
+# documentos que só compartilham vocabulário genérico (ex: "crimes hediondos",
+# "Código Penal") com score bem mais baixo mas ainda dentro do top-n — e o LLM
+# confunde o conteúdo deles com o do documento perguntado (confirmado ao vivo,
+# 29/jul/2026: pergunta sobre a Lei 14.688 trouxe conteúdo real da Lei 14.344
+# na resposta, não invenção — conflação entre chunks, ver agents/_historia.md).
+# Extraído como função própria (não inline em _recuperar_contexto) pra ser
+# testável sem precisar de um corpus BM25 real — BM25 degenera com corpus
+# sintético pequeno (IDF fica negativo quando um termo aparece na maioria dos
+# poucos documentos), o que tornava esse trecho difícil de testar isolado.
+_RE_IDENTIFICADOR = re.compile(r'\b\d{1,3}(?:\.\d{3})+\b')
+
+
+def _filtrar_por_identificador(pergunta: str, resultados: list) -> list:
+    """Só aplica quando há match real; sem match, retorna resultados inalterado."""
+    identificadores_pergunta = set(_RE_IDENTIFICADOR.findall(pergunta))
+    if not identificadores_pergunta:
+        return resultados
+    com_identificador = [
+        r for r in resultados
+        if identificadores_pergunta & set(_RE_IDENTIFICADOR.findall(r.get('titulo', '')))
+    ]
+    return com_identificador if com_identificador else resultados
+
+
 def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict = None, canais_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '', trechos_fixados: list = None) -> list:
     # Trechos fixados via @@ já passaram pelo pipeline BM25+CrossEncoder no momento da busca.
     # Retorná-los diretamente evita dupla pesquisa e garante que o LLM vê exatamente o que o usuário selecionou.
@@ -635,6 +662,8 @@ def _recuperar_contexto(pergunta: str, canal_nome: str, n: int = 6, config: dict
             r['score'] = round(r['score'] * boost, 3)
 
     resultados.sort(key=lambda x: x['score'], reverse=True)
+
+    resultados = _filtrar_por_identificador(pergunta, resultados)
 
     # Re-rankeamento semântico com CrossEncoder — ativado quando busca_ampla=True.
     # O toggle de Busca Ampla é a decisão consciente do usuário de querer mais profundidade:
