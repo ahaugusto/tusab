@@ -434,8 +434,25 @@ def _processar_formato_especial(texto: str, filename: str) -> tuple[str, str | N
     return texto, None
 
 
+# RapidOCR (lazy, singleton) — mesmo padrão de _get_cross_encoder()/_get_keybert()
+# em tusab_engine/agent/; evita recarregar os modelos ONNX a cada upload de imagem.
+_rapidocr_engine = None
+_rapidocr_lock = __import__('threading').Lock()
+
+def _get_rapidocr_engine():
+    global _rapidocr_engine
+    if _rapidocr_engine is not None:
+        return _rapidocr_engine
+    with _rapidocr_lock:
+        if _rapidocr_engine is not None:
+            return _rapidocr_engine
+        from rapidocr_onnxruntime import RapidOCR
+        _rapidocr_engine = RapidOCR()
+        return _rapidocr_engine
+
+
 def _extrair_imagem(conteudo_bytes: bytes, filename: str) -> str:
-    """Extrai texto de imagem: tenta Ollama multimodal, fallback Tesseract OCR."""
+    """Extrai texto de imagem: tenta Ollama multimodal, fallback RapidOCR."""
     import io, base64
 
     # ── Caminho 1: Ollama multimodal (llava / gemma3) ─────────────────────────
@@ -464,20 +481,29 @@ def _extrair_imagem(conteudo_bytes: bytes, filename: str) -> str:
             if texto:
                 return f"[Descrição gerada por Ollama multimodal]\n\n{texto}"
     except Exception:
-        pass  # Ollama indisponível ou modelo não instalado → tenta Tesseract
+        pass  # Ollama indisponível ou modelo não instalado → tenta RapidOCR
 
-    # ── Caminho 2: Tesseract OCR ──────────────────────────────────────────────
+    # ── Caminho 2: RapidOCR ────────────────────────────────────────────────────
+    # Substitui pytesseract (jul/2026) — pytesseract exigia o binário Tesseract
+    # instalado separadamente no sistema, algo que o instalador de 1-clique do
+    # Tusab não provisiona; falha silenciosa/mensagem técnica pro usuário não-
+    # técnico (Estudante/Professor) era o resultado mais comum. RapidOCR
+    # (Apache-2.0) é Python + ONNX puro, sem binário externo — modelos (<20MB)
+    # baixados e cacheados automaticamente no primeiro uso, mesmo padrão já
+    # usado pelo sentence-transformers/CrossEncoder. Ver agents/_historia.md.
     try:
-        import pytesseract
+        import numpy as np
         from PIL import Image
-        img = Image.open(io.BytesIO(conteudo_bytes))
-        texto = pytesseract.image_to_string(img, lang="por+eng")
-        if texto.strip():
-            return f"[Texto extraído por OCR (Tesseract)]\n\n{texto.strip()}"
+        img = Image.open(io.BytesIO(conteudo_bytes)).convert("RGB")
+        resultado, _ = _get_rapidocr_engine()(np.array(img))
+        if resultado:
+            texto = "\n".join(item[1] for item in resultado)
+            if texto.strip():
+                return f"[Texto extraído por OCR (RapidOCR)]\n\n{texto.strip()}"
     except ImportError:
         raise RuntimeError(
             "Nenhum extrator de imagem disponível. "
-            "Instale pytesseract (pip install pytesseract) e o Tesseract binário, "
+            "Instale rapidocr-onnxruntime (pip install rapidocr-onnxruntime), "
             "ou inicie o Ollama com um modelo multimodal (llava ou gemma3:12b)."
         )
     except Exception as e:
@@ -668,15 +694,18 @@ async def cerebro_upload(
             try:
                 texto = _extrair_imagem(conteudo_bytes, arquivo.filename)
             except RuntimeError as e:
-                # Salva a imagem no repositório sem texto extraído.
-                # O usuário pode reindexar após instalar Ollama/Tesseract.
+                # Salva a imagem no repositório sem texto extraído. RapidOCR já
+                # vem embutido (sem instalação externa) — esse fallback só é
+                # atingido se o próprio RapidOCR não detectar nenhum texto na
+                # imagem, ou em erro genuíno de processamento.
                 aviso_extracao = str(e)
                 texto = (
                     f"[Imagem registrada sem extração de texto]\n"
                     f"Arquivo: {arquivo.filename}\n"
                     f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                    f"Para extrair o conteúdo desta imagem, instale Ollama com modelo "
-                    f"multimodal (llava ou gemma3) ou Tesseract OCR e reindexe a base."
+                    f"Não foi possível extrair texto desta imagem. Se ela contém texto "
+                    f"visível, tente instalar Ollama com um modelo multimodal (llava ou "
+                    f"gemma3) para uma extração mais precisa e reindexe a base."
                 )
         elif eh_audio:
             texto = _extrair_audio(conteudo_bytes, arquivo.filename)
