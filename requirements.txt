@@ -17,7 +17,7 @@ keybert>=0.8.0                   # extração de frases-chave para enriqueciment
 
 # ── Provedores de IA ────────────────────────────────────────────────────────
 openai>=2.41.1                   # OpenAI + Groq (Groq usa client OpenAI)
-anthropic>=0.109.1
+anthropic>=0.120.2
 google-genai>=2.14.0              # SDK google-genai (Gemini) — substitui o google-generativeai legado
 
 # ── Google Drive ────────────────────────────────────────────────────────────
