@@ -8,7 +8,7 @@
     "email": "tusab@tusab.solutions",
     "url": "https://linkedin.com/in/augustoalvesbrasil"
   },
-  "license": "UNLICENSED",
+  "license": "Elastic-2.0",
   "private": true,
   "scripts": {
     "dev": "electron .",
