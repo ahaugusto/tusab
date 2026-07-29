@@ -66,7 +66,7 @@ class ExportHistoricoRequest(BaseModel):
 @router.post("/export/historico")
 def export_historico(req: ExportHistoricoRequest):
     """Exporta o histórico de chat de um canal como Markdown."""
-    canal = req.canal_nome or state.stats.get("canal_nome", "") or "chat"
+    canal = req.canal_nome or state.stats.get("projeto_nome", "") or "chat"
 
     with state.hist_lock:
         hist = list(state.chat_histories.get(canal, []))
@@ -125,7 +125,7 @@ def export_resumo_canal(req: ExportResumoCanalRequest):
             "message": "Dependência não instalada: python-docx. Execute: pip install python-docx"
         })
 
-    canal = req.canal_nome or state.stats.get("canal_nome", "") or "chat"
+    canal = req.canal_nome or state.stats.get("projeto_nome", "") or "chat"
 
     # Prioriza mensagens enviadas pelo frontend; fallback ao histórico server-side
     if req.mensagens:
@@ -202,7 +202,7 @@ def export_tabela_videos(req: ExportTabelaVideosRequest):
             "message": "Dependência não instalada: openpyxl. Execute: pip install openpyxl"
         })
 
-    canal = req.canal or state.stats.get("canal_nome", "") or ""
+    canal = req.canal or state.stats.get("projeto_nome", "") or ""
     if not canal:
         return JSONResponse({"error": True, "message": "Nome do canal não informado."})
 
@@ -279,7 +279,7 @@ def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
             "message": "Recurso de exportação PDF não disponível. Reinstale a aplicação ou contacte o suporte em tusab@tusab.solutions"
         })
 
-    canal = req.canal_nome or state.stats.get("canal_nome", "") or "chat"
+    canal = req.canal_nome or state.stats.get("projeto_nome", "") or "chat"
 
     # Prioriza mensagens enviadas pelo frontend; fallback ao histórico server-side
     if req.mensagens:
