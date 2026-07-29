@@ -10,7 +10,7 @@ import time
 import random
 
 from fastapi import APIRouter, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 import agent_tusab
 from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
@@ -19,9 +19,18 @@ router = APIRouter()
 
 
 class StudyRequest(BaseModel):
-    canal_nome: str = Field(max_length=120)
-    tipo:       str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos
-    n_cards:    int = Field(default=10, ge=1, le=30)
+    projeto_nome: str = Field(default="", max_length=120)
+    tipo:         str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos
+    n_cards:      int = Field(default=10, ge=1, le=30)
+
+    # campo legado — normalizado via model_validator:
+    canal_nome: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 
 class TTSRequest(BaseModel):
@@ -130,14 +139,14 @@ def agent_study(req: StudyRequest):
     if req.tipo not in ("flashcards", "resumo", "ambos"):
         return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo ou ambos."}
 
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal_nome).strip('_')
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     if not canal_prefixo:
-        return {"error": True, "message": "Canal não especificado."}
+        return {"error": True, "message": "Projeto não especificado."}
 
     from tusab_engine.agent.index import _index_path
     idx_path = _index_path(canal_prefixo)
     if not os.path.exists(idx_path):
-        return {"error": True, "message": f"Índice não encontrado para '{req.canal_nome}'. Indexe a base primeiro."}
+        return {"error": True, "message": f"Índice não encontrado para '{req.projeto_nome}'. Indexe a base primeiro."}
 
     try:
         with open(idx_path, 'r', encoding='utf-8') as f:
@@ -169,7 +178,7 @@ def agent_study(req: StudyRequest):
             for c in amostra
         )
         prompt_fc = (
-            f"Você é um tutor especializado. Com base nos trechos abaixo de \"{req.canal_nome}\", "
+            f"Você é um tutor especializado. Com base nos trechos abaixo de \"{req.projeto_nome}\", "
             f"gere exatamente {req.n_cards} flashcards de estudo.\n\n"
             "RESPONDA APENAS com um array JSON válido. Nenhum texto antes ou depois.\n"
             "Formato:\n"
@@ -192,7 +201,7 @@ def agent_study(req: StudyRequest):
                 return {"error": True, "message": "O modelo não retornou flashcards no formato esperado. Tente novamente."}
             fc_path = os.path.join(mgmt_dir, "flashcards.json")
             salvar_json_atomico({
-                "canal": req.canal_nome,
+                "canal": req.projeto_nome,
                 "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "flashcards": flashcards_resultado,
             }, fc_path, indent=2)
@@ -206,7 +215,7 @@ def agent_study(req: StudyRequest):
             for c in amostra_resumo
         )
         prompt_rs = (
-            f"Com base nos trechos abaixo de {req.canal_nome}, crie um resumo estruturado de estudo.\n\n"
+            f"Com base nos trechos abaixo de {req.projeto_nome}, crie um resumo estruturado de estudo.\n\n"
             "Inclua:\n"
             "1. Tema central (1 frase)\n"
             "2. Conceitos-chave (3-5 bullet points)\n"
@@ -230,10 +239,10 @@ def agent_study(req: StudyRequest):
     }
 
 
-@router.get("/agent/study/{canal_nome}")
-def agent_study_get(canal_nome: str):
+@router.get("/agent/study/{projeto_nome}")
+def agent_study_get(projeto_nome: str):
     """Retorna flashcards e resumo salvos para o projeto."""
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     if not canal_prefixo:
         return {"flashcards": [], "resumo": None, "total": 0}
 

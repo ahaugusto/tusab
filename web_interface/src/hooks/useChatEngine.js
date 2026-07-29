@@ -181,8 +181,8 @@ export function useChatEngine({
       setFontesFixadas([]);
       const response = await sendChatStream({
         mensagem:        msg,
-        canal_nome:      canalConfigurado || agentStatus.canal_indexado,
-        canais_extras:   canaisExtras,
+        projeto_nome:    canalConfigurado || agentStatus.canal_indexado,
+        projetos_extras: canaisExtras,
         busca_ampla:     buscaAmpla,
         fontes_fixadas:  idsFixados,
         trechos_fixados: trechosFixados.length > 0 ? trechosFixados : undefined,
@@ -317,7 +317,7 @@ export function useChatEngine({
     if (canal && conv.messages.length > 0) {
       try {
         const ultimas = conv.messages.slice(-6); // últimas 3 trocas (6 mensagens)
-        await resumeConversation({ canal_nome: canal, historico: ultimas.map(m => ({ role: m.role, content: m.content })) });
+        await resumeConversation({ projeto_nome: canal, historico: ultimas.map(m => ({ role: m.role, content: m.content })) });
       } catch { /* servidor pode estar offline — chat visual ainda funciona */ }
     }
   }, [agentStatus, canalConfigurado, history]);

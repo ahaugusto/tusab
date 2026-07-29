@@ -3,9 +3,9 @@
 Endpoints de export — feature Pro.
 
   POST /export/base           → ZIP com cerebro/ + CSVs de gestão
-  POST /export/historico      → Markdown do histórico de chat de um canal
+  POST /export/historico      → Markdown do histórico de chat de um projeto
   POST /export/resumo-canal   → DOCX com mensagens do assistente + fontes
-  POST /export/tabela-videos  → XLSX com dados do CSV de gestão do canal
+  POST /export/tabela-videos  → XLSX com dados do CSV de gestão do projeto
   POST /export/relatorio-pdf  → PDF com pares de Q&A do histórico
 """
 
@@ -19,7 +19,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 import motor_tusab
 from tusab_engine.state import state
@@ -60,13 +60,22 @@ def export_base():
 # ── Export do histórico de chat ───────────────────────────────────────────────
 
 class ExportHistoricoRequest(BaseModel):
+    projeto_nome: str = Field(default="", max_length=120)
+
+    # campo legado — normalizado via model_validator:
     canal_nome: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 
 @router.post("/export/historico")
 def export_historico(req: ExportHistoricoRequest):
-    """Exporta o histórico de chat de um canal como Markdown."""
-    canal = req.canal_nome or state.stats.get("projeto_nome", "") or "chat"
+    """Exporta o histórico de chat de um projeto como Markdown."""
+    canal = req.projeto_nome or state.stats.get("projeto_nome", "") or "chat"
 
     with state.hist_lock:
         hist = list(state.chat_histories.get(canal, []))
@@ -109,13 +118,22 @@ def export_historico(req: ExportHistoricoRequest):
 # ── Export de resumo do canal (DOCX) ─────────────────────────────────────────
 
 class ExportResumoCanalRequest(BaseModel):
-    canal_nome: str = Field(default="", max_length=120)
+    projeto_nome: str = Field(default="", max_length=120)
     mensagens:  list = Field(default_factory=list)  # histórico do frontend (fallback ao state)
+
+    # campo legado — normalizado via model_validator:
+    canal_nome: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 
 @router.post("/export/resumo-canal")
 def export_resumo_canal(req: ExportResumoCanalRequest):
-    """Exporta as respostas do assistente para um canal como documento Word (.docx)."""
+    """Exporta as respostas do assistente para um projeto como documento Word (.docx)."""
     try:
         from docx import Document
         from docx.shared import Pt
@@ -125,7 +143,7 @@ def export_resumo_canal(req: ExportResumoCanalRequest):
             "message": "Dependência não instalada: python-docx. Execute: pip install python-docx"
         })
 
-    canal = req.canal_nome or state.stats.get("projeto_nome", "") or "chat"
+    canal = req.projeto_nome or state.stats.get("projeto_nome", "") or "chat"
 
     # Prioriza mensagens enviadas pelo frontend; fallback ao histórico server-side
     if req.mensagens:
@@ -187,12 +205,21 @@ def export_resumo_canal(req: ExportResumoCanalRequest):
 # ── Export de tabela de vídeos (XLSX) ────────────────────────────────────────
 
 class ExportTabelaVideosRequest(BaseModel):
+    projeto_nome: str = Field(default="", max_length=120)
+
+    # campo legado — normalizado via model_validator:
     canal: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal:
+            self.projeto_nome = self.canal
+        return self
 
 
 @router.post("/export/tabela-videos")
 def export_tabela_videos(req: ExportTabelaVideosRequest):
-    """Exporta o CSV de gestão de um canal como planilha Excel (.xlsx)."""
+    """Exporta o CSV de gestão de um projeto como planilha Excel (.xlsx)."""
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font
@@ -202,9 +229,9 @@ def export_tabela_videos(req: ExportTabelaVideosRequest):
             "message": "Dependência não instalada: openpyxl. Execute: pip install openpyxl"
         })
 
-    canal = req.canal or state.stats.get("projeto_nome", "") or ""
+    canal = req.projeto_nome or state.stats.get("projeto_nome", "") or ""
     if not canal:
-        return JSONResponse({"error": True, "message": "Nome do canal não informado."})
+        return JSONResponse({"error": True, "message": "Nome do projeto não informado."})
 
     csv_path = os.path.join(gestao_canal_dir(canal), f"{canal}_base.csv")
     if not os.path.exists(csv_path):
@@ -260,13 +287,22 @@ def export_tabela_videos(req: ExportTabelaVideosRequest):
 # ── Export de relatório de pesquisa (PDF) ─────────────────────────────────────
 
 class ExportRelatorioPdfRequest(BaseModel):
-    canal_nome: str = Field(default="", max_length=120)
+    projeto_nome: str = Field(default="", max_length=120)
     mensagens:  list = Field(default_factory=list)  # histórico do frontend (fallback ao state)
+
+    # campo legado — normalizado via model_validator:
+    canal_nome: str = Field(default="", max_length=120)
+
+    @model_validator(mode='after')
+    def _normalizar(self):
+        if not self.projeto_nome and self.canal_nome:
+            self.projeto_nome = self.canal_nome
+        return self
 
 
 @router.post("/export/relatorio-pdf")
 def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
-    """Exporta os pares de Q&A do histórico de um canal como PDF (.pdf)."""
+    """Exporta os pares de Q&A do histórico de um projeto como PDF (.pdf)."""
     try:
         from reportlab.pdfgen import canvas
         from reportlab.lib.pagesizes import A4
@@ -279,7 +315,7 @@ def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
             "message": "Recurso de exportação PDF não disponível. Reinstale a aplicação ou contacte o suporte em tusab@tusab.solutions"
         })
 
-    canal = req.canal_nome or state.stats.get("projeto_nome", "") or "chat"
+    canal = req.projeto_nome or state.stats.get("projeto_nome", "") or "chat"
 
     # Prioriza mensagens enviadas pelo frontend; fallback ao histórico server-side
     if req.mensagens:
@@ -480,19 +516,19 @@ async def import_base_compartilhavel(arquivo: UploadFile = File(...)):
 
 # ── Export de flashcards Anki (.csv) ─────────────────────────────────────────
 
-@router.get("/export/flashcards/{canal_nome}")
-def export_flashcards_anki(canal_nome: str):
+@router.get("/export/flashcards/{projeto_nome}")
+def export_flashcards_anki(projeto_nome: str):
     """Exporta flashcards salvos de um projeto como CSV compatível com Anki (frente;verso)."""
     import re as _re
     from tusab_engine.storage import NEURAL_DIR
 
-    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
+    canal_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     if not canal_prefixo:
-        return JSONResponse({"error": True, "message": "Canal não especificado."})
+        return JSONResponse({"error": True, "message": "Projeto não especificado."})
 
     fc_path = os.path.join(NEURAL_DIR, canal_prefixo, "management", "flashcards.json")
     if not os.path.exists(fc_path):
-        return JSONResponse({"error": True, "message": f"Nenhum flashcard encontrado para '{canal_nome}'. Gere os flashcards primeiro."})
+        return JSONResponse({"error": True, "message": f"Nenhum flashcard encontrado para '{projeto_nome}'. Gere os flashcards primeiro."})
 
     try:
         with open(fc_path, 'r', encoding='utf-8') as f:

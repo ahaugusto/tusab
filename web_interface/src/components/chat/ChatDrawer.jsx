@@ -186,8 +186,8 @@ function normalizarRespostaIA(texto) {
  * @param {React.RefObject} props.chatEndRef   - ref to scroll anchor at end of messages
  * @param {boolean}  props.buscaAmpla          - enables broader LLM knowledge beyond indexed base
  * @param {Function} props.setBuscaAmpla       - toggles broad search mode
- * @param {Array}    props.canaisExtraidos     - extraction history (canal_nome items)
- * @param {Function} props.onIndexar          - callback(canal_nome) to trigger indexing
+ * @param {Array}    props.canaisExtraidos     - extraction history (project names)
+ * @param {Function} props.onIndexar          - callback(projeto_nome) to trigger indexing
  * @returns {JSX.Element}
  */
 function ChatDrawer({
@@ -2351,10 +2351,10 @@ function ChatDrawer({
                   <button
                     key={h.id}
                     onClick={async () => {
-                      const canal_prefixo = (agentStatus?.canal_indexado || projetoSelecionado || '').replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '') || '_avulso';
+                      const projeto_prefixo = (agentStatus?.canal_indexado || projetoSelecionado || '').replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '') || '_avulso';
                       setHistLoading(true);
                       try {
-                        const r = await lerArquivo(`${canal_prefixo}/textos/${h.nome_txt}`);
+                        const r = await lerArquivo(`${projeto_prefixo}/textos/${h.nome_txt}`);
                         setHistSelecionado({ titulo: h.titulo, conteudo: r.data.conteudo || '' });
                       } catch { setHistSelecionado({ titulo: h.titulo, conteudo: '(Erro ao carregar conversa)' }); }
                       finally { setHistLoading(false); }
