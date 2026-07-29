@@ -68,7 +68,7 @@ export default function AgentTab({
     setEstudoResumo('');
     setEstudoRevisados(new Set());
     try {
-      const res = await gerarEstudo({ canal_nome: estudoProjeto, tipo: estudoTipo, n_cards: estudoNCards });
+      const res = await gerarEstudo({ projeto_nome: estudoProjeto, tipo: estudoTipo, n_cards: estudoNCards });
       const data = res.data;
       if (data.error) { setEstudoErro(data.message || 'Erro ao gerar conteúdo de estudo.'); return; }
       if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);

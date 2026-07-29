@@ -158,7 +158,7 @@ export const loadAgentConfig = () => axios.get(`${API_BASE}/agent/config`);
 export const testAgentKey = (payload = {}) => axios.post(`${API_BASE}/agent/test-key`, payload);
 
 /** Starts knowledge base indexing */
-export const startIndexing = (canal_nome) => axios.post(`${API_BASE}/agent/index`, { canal_nome });
+export const startIndexing = (projeto_nome) => axios.post(`${API_BASE}/agent/index`, { projeto_nome });
 
 /** Cancels ongoing indexing */
 export const cancelIndexing = () => axios.post(`${API_BASE}/agent/index-cancel`);
@@ -166,8 +166,8 @@ export const cancelIndexing = () => axios.post(`${API_BASE}/agent/index-cancel`)
 /** Returns videos without summary per project */
 export const fetchSummarizePending = () => axios.get(`${API_BASE}/agent/summarize/pending`);
 
-/** Starts deep summarization for a channel prefix */
-export const startSummarize = (canal_prefixo) => axios.post(`${API_BASE}/agent/summarize/${encodeURIComponent(canal_prefixo)}`);
+/** Starts deep summarization for a project prefix */
+export const startSummarize = (projeto_prefixo) => axios.post(`${API_BASE}/agent/summarize/${encodeURIComponent(projeto_prefixo)}`);
 
 /** Cancels ongoing summarization */
 export const cancelSummarize = () => axios.post(`${API_BASE}/agent/summarize/cancel`);
@@ -182,23 +182,23 @@ export const sendChatStream = (payload) => fetch(`${API_BASE}/agent/chat/stream`
   body: JSON.stringify(payload),
 });
 
-/** Clears server-side conversation history for a canal */
-export const clearChatHistory = (canal_nome) => axios.post(`${API_BASE}/agent/chat/clear`, { canal_nome, mensagem: '', historico: [], canais_extras: [], busca_ampla: false });
+/** Clears server-side conversation history for a project */
+export const clearChatHistory = (projeto_nome) => axios.post(`${API_BASE}/agent/chat/clear`, { projeto_nome, mensagem: '', historico: [], projetos_extras: [], busca_ampla: false });
 
 /** Resumes a saved conversation by reloading its messages into server-side context */
 export const resumeConversation = (payload) => axios.post(`${API_BASE}/agent/chat/resume`, payload);
 
-/** Saves current chat messages as a .md file in the canal's text repository */
-export const salvarHistoricoChat = (canal_nome, mensagens) => axios.post(`${API_BASE}/agent/chat/salvar-historico`, { canal_nome, mensagens });
+/** Saves current chat messages as a .md file in the project's text repository */
+export const salvarHistoricoChat = (projeto_nome, mensagens) => axios.post(`${API_BASE}/agent/chat/salvar-historico`, { projeto_nome, mensagens });
 
-/** Lists saved chat history files for a canal */
-export const listarHistoricosChat = (canal_nome) => axios.get(`${API_BASE}/agent/chat/historicos/${encodeURIComponent(canal_nome)}`);
+/** Lists saved chat history files for a project */
+export const listarHistoricosChat = (projeto_nome) => axios.get(`${API_BASE}/agent/chat/historicos/${encodeURIComponent(projeto_nome)}`);
 
 /** Lists mentionable items (bases + documents) for @ dropdown in chat */
-export const fetchMencoes = (canal_nome) => axios.get(`${API_BASE}/agent/mencoes/${encodeURIComponent(canal_nome)}`);
+export const fetchMencoes = (projeto_nome) => axios.get(`${API_BASE}/agent/mencoes/${encodeURIComponent(projeto_nome)}`);
 
 /** Lists individual files inside a project for @@ dropdown in chat */
-export const fetchArquivos = (canal_nome) => axios.get(`${API_BASE}/agent/arquivos/${encodeURIComponent(canal_nome)}`);
+export const fetchArquivos = (projeto_nome) => axios.get(`${API_BASE}/agent/arquivos/${encodeURIComponent(projeto_nome)}`);
 
 /** Fetches Ollama service status and installed models */
 export const fetchOllamaStatus = () => axios.get(`${API_BASE}/agent/ollama/status`);
@@ -209,8 +209,8 @@ export const pullOllamaModel = (model = '') => axios.post(`${API_BASE}/agent/oll
 /** Fetches Ollama model download progress */
 export const fetchOllamaPullProgress = () => axios.get(`${API_BASE}/agent/ollama/pull-progress`);
 
-/** Deletes a canal index */
-export const deleteCanalIndex = (canal_nome) => axios.delete(`${API_BASE}/agent/canal/${encodeURIComponent(canal_nome)}`);
+/** Deletes a project's BM25 index */
+export const deleteCanalIndex = (projeto_nome) => axios.delete(`${API_BASE}/agent/projeto/${encodeURIComponent(projeto_nome)}`);
 
 // ─── Repositório ─────────────────────────────────────────────────────────────
 
@@ -235,11 +235,11 @@ export const limparHistorico = (prefixos = []) => axios.delete(`${API_BASE}/hist
 /** Full reset: wipes cerebro, gestao CSVs, BM25 indexes and chat history */
 export const resetTotal = () => axios.delete(`${API_BASE}/reset-total`);
 
-/** Deletes cerebro files + BM25 index for a single canal */
-export const limparCanal = (canal_nome) => Promise.all([
-  axios.delete(`${API_BASE}/neural/limpar`, { data: { youtube: true, documentos: true, textos: true, canal: canal_nome } }),
-  axios.delete(`${API_BASE}/agent/canal/${encodeURIComponent(canal_nome)}`),
-  axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos: [canal_nome.replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '')] } }),
+/** Deletes neural files + BM25 index for a single project */
+export const limparCanal = (projeto_nome) => Promise.all([
+  axios.delete(`${API_BASE}/neural/limpar`, { data: { youtube: true, documentos: true, textos: true, canal: projeto_nome } }),
+  axios.delete(`${API_BASE}/agent/projeto/${encodeURIComponent(projeto_nome)}`),
+  axios.delete(`${API_BASE}/historico/limpar`, { data: { prefixos: [projeto_nome.replace(/[<>:"/\\|?*\s]/g, '_').replace(/^_+|_+$/g, '')] } }),
 ]);
 
 // ─── Base Compartilhável ─────────────────────────────────────────────────────
@@ -273,33 +273,33 @@ export const openFolder = (name, prefixo = '') =>
 export const exportBase = () =>
   fetch(`${API_BASE}/export/base`, { method: 'POST' });
 
-/** Downloads chat history for a canal as Markdown */
-export const exportHistorico = (canal_nome = '') =>
+/** Downloads chat history for a project as Markdown */
+export const exportHistorico = (projeto_nome = '') =>
   fetch(`${API_BASE}/export/historico`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ canal_nome }),
+    body: JSON.stringify({ projeto_nome }),
   });
 
 // ─── Modo Estudo ──────────────────────────────────────────────────────────────
 
-/** Gera flashcards e/ou resumo para um canal a partir do índice BM25 */
+/** Gera flashcards e/ou resumo para um projeto a partir do índice BM25 */
 export const gerarEstudo = (data) => axios.post(`${API_BASE}/agent/study`, data, { timeout: 300000 });
 
-/** Busca flashcards e resumo salvos para um canal */
-export const fetchEstudo = (canal) => axios.get(`${API_BASE}/agent/study/${encodeURIComponent(canal)}`);
+/** Busca flashcards e resumo salvos para um projeto */
+export const fetchEstudo = (projeto_nome) => axios.get(`${API_BASE}/agent/study/${encodeURIComponent(projeto_nome)}`);
 
 /** Lista históricos auto-salvos em _chat_history/ (fora do corpus BM25) */
-export const listarHistoricosSalvos = (canal) => axios.get(`${API_BASE}/agent/chat/historicos-salvos/${encodeURIComponent(canal)}`);
+export const listarHistoricosSalvos = (projeto_nome) => axios.get(`${API_BASE}/agent/chat/historicos-salvos/${encodeURIComponent(projeto_nome)}`);
 
 /** Move um histórico de _chat_history/ para texts/ — torna-o indexável */
-export const injetarHistorico = (canal_nome, hist_id) => axios.post(`${API_BASE}/agent/chat/injetar-historico`, { canal_nome, hist_id });
+export const injetarHistorico = (projeto_nome, hist_id) => axios.post(`${API_BASE}/agent/chat/injetar-historico`, { projeto_nome, hist_id });
 
-export const enviarFeedback = (canal_nome, pergunta, resposta, util) =>
-  axios.post(`${API_BASE}/agent/feedback`, { canal_nome, pergunta, resposta, util });
+export const enviarFeedback = (projeto_nome, pergunta, resposta, util) =>
+  axios.post(`${API_BASE}/agent/feedback`, { projeto_nome, pergunta, resposta, util });
 
 /** Exporta flashcards como CSV compatível com Anki (frente;verso) */
-export const exportFlashcardsAnki = (canal) => fetch(`${API_BASE}/export/flashcards/${encodeURIComponent(canal)}`);
+export const exportFlashcardsAnki = (projeto_nome) => fetch(`${API_BASE}/export/flashcards/${encodeURIComponent(projeto_nome)}`);
 
 // ─── TTS local (Pocket TTS, build Beta/Enterprise) ────────────────────────────
 // Reservado: torch+pocket-tts não fazem parte do instalador B2C — ver
@@ -313,28 +313,28 @@ export const ttsStatus = () => axios.get(`${API_BASE}/agent/tts/status`);
 export const ttsSintetizar = (texto) =>
   axios.post(`${API_BASE}/agent/tts`, { texto }, { responseType: 'blob', timeout: 60000 });
 
-/** Downloads canal summary as Word .docx — sends frontend messages to avoid empty server-side history */
-export const exportResumoCanalDocx = (canal_nome, mensagens = []) =>
+/** Downloads project summary as Word .docx — sends frontend messages to avoid empty server-side history */
+export const exportResumoCanalDocx = (projeto_nome, mensagens = []) =>
   fetch(`${API_BASE}/export/resumo-canal`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ canal_nome, mensagens }),
+    body: JSON.stringify({ projeto_nome, mensagens }),
   });
 
 /** Downloads video table as Excel .xlsx */
-export const exportTabelaVideosXlsx = (canal) =>
+export const exportTabelaVideosXlsx = (projeto_nome) =>
   fetch(`${API_BASE}/export/tabela-videos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ canal }),
+    body: JSON.stringify({ projeto_nome }),
   });
 
 /** Downloads research report as PDF — sends frontend messages to avoid empty server-side history */
-export const exportRelatorioPdf = (canal_nome, mensagens = []) =>
+export const exportRelatorioPdf = (projeto_nome, mensagens = []) =>
   fetch(`${API_BASE}/export/relatorio-pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ canal_nome, mensagens }),
+    body: JSON.stringify({ projeto_nome, mensagens }),
   });
 
 /** Fetches the MCP server config JSON — paste into Claude Code / Cursor / any MCP client */
