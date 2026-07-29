@@ -555,6 +555,23 @@ Testado ao vivo sem mocks: imagem gerada com texto "Fatura numero 4582 venciment
 
 **Resto da consulta multi-agente, documentado em `Documentação do Produto/Roadmap.md` → "Candidatos a features futuras"** (não implementado agora): BGE-reranker-v2-m3 (spike de 1 dia pra checar adoção da Busca Ampla antes de comprometer benchmark completo — gap real de qualidade em PT-BR, `ms-marco-MiniLM` é majoritariamente treinado em inglês), Granite-Docling-258M (sem sinal de demanda, aguardando caso real), extração verbatim generalizada (nota de radar, fix pontual já resolveu o caso reportado). Descartados: LettuceDetect (sobrepõe fix já implementado, latência sempre-ligada sem novo caso que justifique), `options.grammar`/GBNF do Ollama (testado ao vivo, API REST do Ollama 0.32.3 ignora o parâmetro silenciosamente — não é caminho viável).
 
+### Migração de nomenclatura "canal" → "projeto" (iniciada 29/jul/2026)
+
+Augusto: "começamos focados apenas em canais do youtube, porém agora temos muito mais uma visão de estruturação de um projeto. Precisamos ajeitar essa nomenclatura e essa visão." Mapeamento completo (via agente Explore) confirmou o escopo: **~46 arquivos** (23 frontend, 20 backend, 3 i18n).
+
+**Achado principal:** a arquitetura de disco (`data/neural/{projeto}/youtube/{canal}/`, `storage.py::get_canal_youtube_dir()`) e os módulos mais recentes (todas as fontes públicas, 24 arquivos em `tusab_engine/motor/fontes/`) **já tratam "projeto" corretamente** como container multi-fonte — o débito está concentrado no núcleo histórico YouTube (`extraction.py`, `chat.py`, `index.py`, `router_agent.py`, `router_extraction.py`, `state.py`) e no frontend que consome esse contrato. Evidência de que a migração já tinha começado e foi abandonada no meio: `router_agent.py` tem 5 modelos Pydantic com `canal_nome` como alias legado que cai pra `projeto_nome` via `@model_validator`; `chat.py::chat()` tem `canal_nome = projeto_nome  # alias interno — não altera o restante do código`; `HistoricoTab.jsx` já mostra "Todos os projetos" no filtro; `aprofundar.more_channels` no i18n já tem o VALOR certo ("+ {{count}} project(s)") só a CHAVE ficou com nome antigo.
+
+**Achado de risco:** `state.stats["canal_nome"]` é contrato direto com o frontend (marcado `[CONTRATO]` em `state.py`, lido via polling em `App.jsx`) — generalizar isso exige commit sincronizado front+back, não é refactor isolado. `router_fontes.py:63-68` reaproveita esse mesmo campo (`state.stats["canal_nome"] = projeto_nome`) pra guardar o nome do projeto durante busca em fontes públicas 100% não-YouTube (arXiv, leis, Wikipedia) — sintoma direto do problema.
+
+**Plano de 5 fases acordado com Augusto** (perguntado explicitamente antes de começar, dado o tamanho):
+1. **i18n** (strings visíveis, pt/en/es.json) — ✅ feito nesta entrada
+2. `state.stats` (contrato canal_nome→projeto_nome, sincronizado front+back)
+3. Completar migração do backend (chat.py, router_agent.py, extraction.py, router_extraction.py, index.py — trocar variável local pra bater com o parâmetro público já migrado)
+4. Variáveis/props do frontend (App.jsx, RepositorioTab, ExtractionTab, RelatorioTab, VisaoGeralTab, HistoricoTab, api.js)
+5. Decisões estruturais (cards YouTube-específicos condicionais em vez de renomeados — `videos_mapeados`/legenda/views continuam existindo DENTRO de um projeto, não viram "projeto_mapeados"; resolver o hack do `router_fontes.py`; ícone dinâmico por fonte dominante)
+
+**Fase 1 concluída**: `pt.json`/`en.json`/`es.json` — 9 chaves alteradas em cada idioma (`header.channel`, `stats.no_channel`, `modal.agent_desc`, `agent.index_what`, `repo.project_name_placeholder`, `repo.clear_canal_title`/`_desc`, `cancel_queue.btn_keep_desc`, `chat.index_all_channels`/`_desc`). Mantidas como "canal" (corretas, genuinamente YouTube-específicas): `channel.*` (config do card de canal), `progress.mapping`, `home.card_extract_*`, `periodicidade.*` (auto-update é por canal de verdade — checa vídeo novo), `relatorio.*`/`guide.step9`/`onboarding.s7_body` (Relatório é estruturalmente sobre cobertura de vídeo/legenda — vira decisão de Fase 5, não troca de palavra). Achado 2 strings hardcoded fora do i18n em `ExtractionTab.jsx` ("Seus canais"/"{{n}} canal(is)" no header do log, "Todos os canais" no filtro de log) — corrigidas junto por serem texto visível ao usuário, mesmo critério da fase. Build do frontend limpo, sem quebra.
+
 ### Anakin (Anakin-Inc/anakin) — não adotado (jul/2026)
 
 **O que é:** API de web scraping open-source em Go — "anti-detect browser" + rotação de proxy + self-hosted, transforma qualquer site em markdown/JSON limpo mesmo com proteção anti-bot. Licença AGPL-3.0, 801 stars.
