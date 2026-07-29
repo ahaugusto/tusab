@@ -24,7 +24,7 @@ const DEFAULT_STATUS = {
     files_generated: 0,
     status: 'Ocioso',
     progress: 0,
-    canal_nome: '',
+    projeto_nome: '',
     idioma_detectado: '',
   },
   logs: [],
