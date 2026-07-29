@@ -110,7 +110,7 @@ def executar_busca_generica(
                 manifest.append(entry)
                 total_salvos += 1
                 if dispatch_event:
-                    dispatch_event("processed", processed=total_salvos, total=len(itens))
+                    dispatch_event("processed", processed=total_salvos, total=len(itens), titulo=extraido["titulo"])
         except Exception as e:
             erros.append({"titulo": str(item)[:80], "erro": str(e)})
 

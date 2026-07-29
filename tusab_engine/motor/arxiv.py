@@ -196,7 +196,7 @@ def buscar_arxiv(
             total_salvos += 1
 
             if dispatch_event:
-                dispatch_event("arxiv_processed", processed=total_salvos, total=len(entradas))
+                dispatch_event("arxiv_processed", processed=total_salvos, total=len(entradas), titulo=item["titulo"])
 
         except Exception as e:
             erros.append({"id": item.get("id", "?"), "titulo": item.get("titulo", "?"), "erro": str(e)})

@@ -63,7 +63,7 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
     canal_nome_anterior = state.stats.get("canal_nome", "")
     try:
         fstate["running"] = True
-        fstate["stats"] = {"status": f"Buscando em {nome_fonte}", "total": 0, "processed": 0}
+        fstate["stats"] = {"status": f"Buscando em {nome_fonte}", "total": 0, "processed": 0, "itens": []}
         fstate["cancel"].clear()
         state.stats["canal_nome"] = projeto_nome
 
@@ -80,6 +80,9 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
             elif event == "processed":
                 processed = kwargs.get("processed", 0)
                 fstate["stats"]["processed"] = processed
+                titulo = kwargs.get("titulo", "")
+                if titulo:
+                    fstate["stats"]["itens"].append(titulo)
                 print(f"💾 Resultado {processed}/{fstate['stats']['total']} salvo no projeto ({nome_fonte})")
 
         resultado = fonte.buscar(

@@ -271,3 +271,53 @@ def test_arxiv_adapter_traduz_eventos_para_contrato_generico():
 
     assert resultado["ok"] is True
     assert eventos_recebidos == [("total", {"total": 3}), ("processed", {"processed": 1, "total": 3})]
+
+
+# ─── Rastreamento de itens consultados (lista + botão "Abrir no Repositório") ─
+#
+# Antes, GET /fontes/{id}/status só devolvia processed/total (contador) — sem
+# nenhum jeito de saber O QUE foi encontrado até o usuário ir manualmente na
+# aba Repositório. dispatch_event("processed", ...) agora carrega o título de
+# cada item salvo, e router_fontes acumula isso em fstate["stats"]["itens"].
+
+def test_executar_busca_generica_inclui_titulo_no_evento_processed(tmp_path):
+    from tusab_engine.motor.fontes._base import executar_busca_generica
+
+    eventos = []
+
+    def extrair(item):
+        return {"titulo": f"Item {item}", "texto": "conteúdo de teste " * 20, "url_origem": ""}
+
+    executar_busca_generica(
+        [1, 2], extrair, "fonte_teste", str(tmp_path / "docs"),
+        dispatch_event=lambda event, **kw: eventos.append((event, kw)),
+        throttle=0,
+    )
+
+    processed_eventos = [kw for ev, kw in eventos if ev == "processed"]
+    assert [e["titulo"] for e in processed_eventos] == ["Item 1", "Item 2"]
+
+
+def test_run_fonte_search_acumula_itens_no_estado():
+    import tusab_engine.api.router_fontes as router_fontes
+    from tusab_engine.state import state
+
+    fonte_fake = MagicMock()
+    fonte_fake.FONTE_META = {"nome": "Fonte Fake"}
+
+    def fake_buscar(*, query, max_resultados, projeto_nome, data_inicio, data_fim, autor, evento_cancelar, dispatch_event):
+        dispatch_event("total", total=2)
+        dispatch_event("processed", processed=1, total=2, titulo="Primeiro resultado")
+        dispatch_event("processed", processed=2, total=2, titulo="Segundo resultado")
+        return {"ok": True, "total_salvos": 2, "erros": []}
+    fonte_fake.buscar.side_effect = fake_buscar
+
+    state.fontes_publicas_state.pop("fonte_teste_run", None)
+    with patch.object(router_fontes, "obter_fonte", return_value=fonte_fake):
+        router_fontes._run_fonte_search(
+            "fonte_teste_run", "query qualquer", 5, "projeto_run_fonte", "", "", "",
+        )
+
+    assert state.fontes_publicas_state["fonte_teste_run"]["stats"]["itens"] == [
+        "Primeiro resultado", "Segundo resultado",
+    ]
