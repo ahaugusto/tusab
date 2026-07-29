@@ -99,8 +99,18 @@ PT como idioma primário. Groq destacado como melhor alternativa gratuita para q
 ### Freemium removido (jun 2026)
 O produto serve como vitrine técnica de Augusto Brasil/CriAugu. Paywall nessa fase criaria atrito antes de validar tração. Infraestrutura de licença está pronta (`config.get('pro', False)`) mas desabilitada. Quando ativar: após caso documentado + landing page + sistema de licença.
 
-### Repositório fechado
-Proteção via Lei nº 9.609/1998 + Lei nº 9.610/1998 + CNPJ + INPI pendente. Código aberto exigiria suporte a contribuições externas — overhead inviável nesta fase.
+### Repositório fechado → revisado para source-available (28/jul/2026)
+Decisão original (acima) revertida conscientemente, não abandonada por acidente. Contexto que mudou: (1) achado factual — `tusab-public` já existia como mirror PUBLIC do GitHub há tempos, criado como bugfix do feed do `electron-updater` (`CHANGELOG.md:391`, não como decisão deliberada de abrir o projeto), recebendo os mesmos commits que o repo privado a cada push desta sessão; (2) auditoria de segurança (`git log --all -p` completo) não encontrou nenhum segredo/chave jamais commitado em nenhum ponto do histórico — o acidente não teve o pior desfecho possível; (3) achado que muda o cálculo de risco: o backend Python inteiro (`tusab_engine/**`) já é distribuído como código-fonte legível dentro de todo instalador via `extraResources` (`electron/package.json`) — "fechado" nunca protegeu o pipeline RAG de um concorrente disposto a instalar e vasculhar, só impunha fricção; (4) zero stars/forks/issues/watchers em ambos os repos — não havia comunidade formada pra fragmentar ou risco de imagem por formalizar agora.
+
+Motivação declarada por Augusto: visibilidade. Decisão tomada após consulta a 4 agentes (memoria, seguranca, produto-b2b, produto) na mesma sessão — não foi decisão solo.
+
+**Licenciamento escolhido: Elastic License 2.0 (ELv2)**, não MIT/Apache puro. Motivo (`/produto-b2b`): MIT/Apache permitiria um concorrente clonar o repo e vender uma "Tusab Enterprise" rival com menos esforço do que Augusto teve — ELv2 mantém o código 100% legível/auditável (a prova real de "local-first" que importa pro perfil Pesquisador) mas proíbe oferecer como serviço hospedado/gerenciado a terceiros. Precedente citado: Elastic, Sentry, MongoDB (SSPL) adotaram licenças equivalentes pelo mesmo motivo.
+
+**Marca separada do código**: `TRADEMARK.md` novo — nome "Tusab" e logo não entram na licença de código, forks precisam se renomear. INPI pendente não bloqueia a decisão: direito autoral sobre código é automático (Lei 9.610/1998), INPI protege é a marca — a separação de arquivo resolve isso sem esperar o registro sair.
+
+**Overhead de contribuição não foi resolvido, foi adiado deliberadamente**: `CONTRIBUTING.md` novo declara explicitamente "source-available, sem PRs externos aceitos por enquanto" — desacopla "tornar visível" (custo zero de manutenção) de "aceitar contribuição de terceiro" (custo real, não assumido agora). Pode ser revisitado depois.
+
+**Pendente, não decidido ainda**: consolidar `tusab` (privado) e `tusab-public` (mirror) num único repo público. Augusto levantou a ideia; recomendação dada foi tornar `ahaugusto/tusab` o repo canônico público (nome mais limpo, sem sufixo "-public" que lê como mirror secundário) e migrar `build.publish.repo` do electron-builder pra lá, mantendo `tusab-public` vivo até 1 release de transição pra não quebrar auto-update de instalações existentes — ação de flip de visibilidade não executada ainda, aguardando confirmação explícita (é ação difícil de reverter de verdade: uma vez público, pode ficar indexado/cacheado mesmo se voltar a privado).
 
 ---
 
