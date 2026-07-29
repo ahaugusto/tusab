@@ -584,7 +584,7 @@ export default function ExtractionTab({
                   ${darkMode
                     ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Todos os canais</option>
+                <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Todos os projetos</option>
                 {canaisNoLog.map(c => (
                   <option key={c} value={c} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{c}</option>
                 ))}
@@ -683,8 +683,8 @@ export default function ExtractionTab({
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
               <Clock size={14} className="text-cyan-500" />
-              <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Seus canais</span>
-              <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} canal{history.length !== 1 ? 'is' : ''}</span>
+              <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Seus projetos</span>
+              <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} projeto{history.length !== 1 ? 's' : ''}</span>
             </div>
             <div className={`divide-y ${darkMode ? 'divide-white/5' : 'divide-slate-100'}`}>
               {history.length === 0 ? (
