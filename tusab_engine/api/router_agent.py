@@ -603,7 +603,7 @@ def ollama_pull_progress():
 @router.get("/agent/canal-meta")
 def agent_canal_meta():
     config = agent_tusab.carregar_config()
-    canal_nome = state.stats.get("canal_nome", "") or config.get("canal_indexado", "")
+    canal_nome = state.stats.get("projeto_nome", "") or config.get("canal_indexado", "")
     if not canal_nome:
         return {}
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')
@@ -658,7 +658,7 @@ def agent_index(background_tasks: BackgroundTasks, req: AgentIndexRequest = None
 
     # req.projeto_nome tem prioridade — usuário escolheu explicitamente no modal.
     # Fallback para state.stats só quando o request não especifica projeto.
-    canal_nome = (req.projeto_nome if req and req.projeto_nome else "") or state.stats.get("canal_nome", "")
+    canal_nome = (req.projeto_nome if req and req.projeto_nome else "") or state.stats.get("projeto_nome", "")
     if not canal_nome:
         canal_nome = "repositorio"
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', canal_nome).strip('_')

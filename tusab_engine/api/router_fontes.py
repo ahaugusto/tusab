@@ -60,12 +60,15 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
 
     # Tag temporária pra os prints abaixo aparecerem sob o projeto certo no
     # filtro do log — mesmo padrão de _run_arxiv_search (removido, migrado pra cá).
-    canal_nome_anterior = state.stats.get("canal_nome", "")
+    # state.stats["projeto_nome"] é o campo genérico "projeto ativo agora" (não
+    # exclusivo de canal do YouTube, apesar do nome antigo "canal_nome" sugerir
+    # isso — corrigido em 29/jul/2026, ver agents/_historia.md).
+    projeto_nome_anterior = state.stats.get("projeto_nome", "")
     try:
         fstate["running"] = True
         fstate["stats"] = {"status": f"Buscando em {nome_fonte}", "total": 0, "processed": 0, "itens": []}
         fstate["cancel"].clear()
-        state.stats["canal_nome"] = projeto_nome
+        state.stats["projeto_nome"] = projeto_nome
 
         filtro_autor = f" do(a) autor(a) {autor}" if autor.strip() else ""
         periodo = f" entre {data_inicio or '...'} e {data_fim or 'hoje'}" if (data_inicio or data_fim) else ""
@@ -100,7 +103,7 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
         fstate["stats"]["message"] = mensagem
     finally:
         fstate["running"] = False
-        state.stats["canal_nome"] = canal_nome_anterior
+        state.stats["projeto_nome"] = projeto_nome_anterior
 
 
 @router.post("/fontes/{fonte_id}/search")
