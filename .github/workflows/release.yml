@@ -175,4 +175,4 @@ jobs:
         # ulimit padrão do runner (256) é baixo demais pra assinar cada um dos
         # milhares de arquivos dentro de python_env (torch/onnxruntime/
         # transformers) — sem isso, EMFILE: too many open files.
-        run: ulimit -n 10240 && npm run build:mac:publish
+        run: ulimit -n 10240 && npm run build:mac:publish -- -c.mac.notarize=true
