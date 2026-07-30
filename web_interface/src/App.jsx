@@ -257,6 +257,9 @@ function App() {
     keyTested,            setKeyTested,
     savingConfig,
     useExternalProvider,  setUseExternalProvider,
+    useCustomEndpoint,    setUseCustomEndpoint,
+    customBaseUrl,        setCustomBaseUrl,
+    customModel,          setCustomModel,
     ollamaStatus,         setOllamaStatus,
     ollamaModel,          setOllamaModel,
     configOpen,           setConfigOpen,
@@ -297,12 +300,12 @@ function App() {
     retomar:       retomar,
     novaConversa,
   } = useChatEngine({
-    agentProvider,
+    agentProvider: useCustomEndpoint ? 'custom' : agentProvider,
     agentStatus,
     ollamaStatus,
     canalConfigurado: projetoChat,
     canaisExtras: projetosExtras,
-    useExternalProvider,
+    useExternalProvider: useExternalProvider || useCustomEndpoint,
     showError,
     perfil: perfil ?? '',
     chatOpenRef,
@@ -1870,6 +1873,12 @@ function App() {
                 savingConfig={savingConfig}
                 useExternalProvider={useExternalProvider}
                 setUseExternalProvider={setUseExternalProvider}
+                useCustomEndpoint={useCustomEndpoint}
+                setUseCustomEndpoint={setUseCustomEndpoint}
+                customBaseUrl={customBaseUrl}
+                setCustomBaseUrl={setCustomBaseUrl}
+                customModel={customModel}
+                setCustomModel={setCustomModel}
                 ollamaStatus={ollamaStatus}
                 setOllamaStatus={setOllamaStatus}
                 ollamaModel={ollamaModel}
@@ -1917,7 +1926,7 @@ function App() {
               onPersonaChange={PERFIS_CONFIG[perfil]?.config_api === false ? (novaPersona) => {
                 handlePersonaChange(novaPersona);
               } : undefined}
-              agentProvider={useExternalProvider ? agentProvider : 'ollama'}
+              agentProvider={useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama'}
               ollamaStatus={ollamaStatus}
               onGoToAgent={() => {
                 setChatOpen(false);

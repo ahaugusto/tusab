@@ -62,6 +62,12 @@ export function useAgentConfig({ activeTab, showError }) {
   const [keyTested,            setKeyTested]            = useState(false);
   const [savingConfig,         setSavingConfig]         = useState(false);
   const [useExternalProvider,  setUseExternalProvider]  = useState(false);
+  // Terceiro modo, distinto de useExternalProvider: servidor OpenAI-compatible
+  // self-hosted (ex: 9router) — posicionado como opção grátis/local, não como
+  // mais um provider de chave paga. Mutuamente exclusivo com useExternalProvider.
+  const [useCustomEndpoint,    setUseCustomEndpoint]    = useState(false);
+  const [customBaseUrl,        setCustomBaseUrl]        = useState('');
+  const [customModel,          setCustomModel]          = useState('');
   const [ollamaStatus,         setOllamaStatus]         = useState({ running: false, models: [] });
   const [ollamaModel,          setOllamaModel]          = useState('llama3.2:1b');
   const [configOpen,           setConfigOpen]           = useState(true);
@@ -83,6 +89,23 @@ export function useAgentConfig({ activeTab, showError }) {
       if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
       if (r.data.query_expansion !== undefined) setQueryExpansion(!!r.data.query_expansion);
       if (r.data.persona !== undefined) setPersona(r.data.persona || '');
+      if (r.data.provider === 'custom') {
+        setUseCustomEndpoint(true);
+        setUseExternalProvider(false);
+        setCustomBaseUrl(r.data.custom_base_url || '');
+        setCustomModel(r.data.custom_model || '');
+        if (r.data.api_key === '__encrypted__' && window.tusab?.getApiKey) {
+          const realKey = await window.tusab.getApiKey('custom').catch(() => null);
+          if (realKey) {
+            saveAgentConfig({
+              provider: 'custom', api_key: realKey,
+              custom_base_url: r.data.custom_base_url, custom_model: r.data.custom_model,
+            }).catch(() => {});
+          }
+        }
+        setAgentApiKey('');
+        return;
+      }
       const hasExternalKey = r.data.provider && r.data.provider !== 'ollama' && r.data.api_key;
       if (hasExternalKey) {
         setAgentProvider(r.data.provider);
@@ -171,6 +194,7 @@ export function useAgentConfig({ activeTab, showError }) {
   const handleOllamaModelChange = async (model) => {
     setOllamaModel(model);
     setUseExternalProvider(false);
+    setUseCustomEndpoint(false);
     setAgentProvider('ollama');
     await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona, idioma: i18n.language })
       .catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
@@ -184,19 +208,23 @@ export function useAgentConfig({ activeTab, showError }) {
       .catch(() => {});
   };
 
-  /** Clears external API key and resets provider to Ollama */
+  /** Clears external API key or endpoint customizado, resets provider to Ollama */
   const handleRemoveApiKey = async () => {
+    const providerAtual = useCustomEndpoint ? 'custom' : agentProvider;
     setAgentApiKey('');
     setTestKeyResult(null);
     setAgentKeyError('');
     setKeyTested(false);
     // Remove do keychain também
-    if (agentProvider && window.tusab?.deleteApiKey) {
-      window.tusab.deleteApiKey(agentProvider).catch(() => {});
+    if (providerAtual && window.tusab?.deleteApiKey) {
+      window.tusab.deleteApiKey(providerAtual).catch(() => {});
     }
     await saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language })
       .catch(() => showError('Erro ao remover chave. Tente novamente.'));
     setUseExternalProvider(false);
+    setUseCustomEndpoint(false);
+    setCustomBaseUrl('');
+    setCustomModel('');
     setAgentProvider('ollama');
     // Força refresh do agentStatus via leitura do config
     loadAgentConfig().catch(() => {});
@@ -208,12 +236,16 @@ export function useAgentConfig({ activeTab, showError }) {
       setAgentKeyError(t('agent.key_error_required'));
       return;
     }
+    if (useCustomEndpoint && !customBaseUrl.trim()) {
+      setAgentKeyError(t('agent.custom_url_error_required'));
+      return;
+    }
     setSavingConfig(true);
     setAgentKeyError('');
     setConfigSaved(false);
     setTestKeyResult(null);
-    const provider = useExternalProvider ? agentProvider : 'ollama';
-    const apiKey   = useExternalProvider ? agentApiKey.trim() : '';
+    const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
+    const apiKey   = (useExternalProvider || useCustomEndpoint) ? agentApiKey.trim() : '';
     try {
       // Grava no OS keychain quando disponível; backend recebe sentinel
       let backendKey = apiKey;
@@ -221,7 +253,12 @@ export function useAgentConfig({ activeTab, showError }) {
         const stored = await window.tusab.setApiKey(provider, apiKey).catch(() => false);
         if (stored) backendKey = '__encrypted__';
       }
-      const res = await saveAgentConfig({ provider, api_key: backendKey, persona, idioma: i18n.language });
+      const payload = { provider, api_key: backendKey, persona, idioma: i18n.language };
+      if (useCustomEndpoint) {
+        payload.custom_base_url = customBaseUrl.trim();
+        payload.custom_model = customModel.trim();
+      }
+      const res = await saveAgentConfig(payload);
       if (res.data.error) {
         setAgentKeyError(res.data.message);
       } else {
@@ -243,13 +280,16 @@ export function useAgentConfig({ activeTab, showError }) {
     setSavingConfig(false);
   };
 
-  /** Tests the API key inline (without saving) */
+  /** Tests the API key or endpoint customizado inline (without saving) */
   const handleTestKey = async () => {
     setTestingKey(true);
     setTestKeyResult(null);
     setKeyTested(false);
     try {
-      const res = await testAgentKey({ provider: agentProvider, api_key: agentApiKey.trim() });
+      const payload = useCustomEndpoint
+        ? { provider: 'custom', api_key: agentApiKey.trim(), custom_base_url: customBaseUrl.trim(), custom_model: customModel.trim() }
+        : { provider: agentProvider, api_key: agentApiKey.trim() };
+      const res = await testAgentKey(payload);
       const ok = !res.data.error;
       setTestKeyResult({ ok, message: res.data.message });
       setKeyTested(ok);
@@ -294,6 +334,9 @@ export function useAgentConfig({ activeTab, showError }) {
     keyTested,            setKeyTested,
     savingConfig,
     useExternalProvider,  setUseExternalProvider,
+    useCustomEndpoint,    setUseCustomEndpoint,
+    customBaseUrl,        setCustomBaseUrl,
+    customModel,          setCustomModel,
     ollamaStatus,         setOllamaStatus,
     ollamaModel,          setOllamaModel,
     configOpen,           setConfigOpen,
