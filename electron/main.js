@@ -88,7 +88,6 @@ function findOllamaExe () {
 function getOllamaPlatformConfig () {
   const os      = require('os')
   const platform = os.platform()
-  const arch     = os.arch()
 
   if (platform === 'win32') {
     return {
@@ -102,9 +101,12 @@ function getOllamaPlatformConfig () {
   }
 
   if (platform === 'darwin') {
-    const suffix = arch === 'arm64' ? 'arm64' : 'x86_64'
+    // A Ollama parou de publicar .zip separado por arquitetura — hoje é um
+    // único build universal (arm64+x86_64) chamado Ollama-darwin.zip.
+    // Confirmado via GitHub API em 2026-07-30: a URL antiga (com sufixo
+    // -arm64/-x86_64) retorna HTTP 404.
     return {
-      url:      `https://github.com/ollama/ollama/releases/latest/download/Ollama-darwin-${suffix}.zip`,
+      url:      'https://github.com/ollama/ollama/releases/latest/download/Ollama-darwin.zip',
       filename: 'Ollama-darwin.zip',
       install:  async (file) => {
         // Extrai e move para /Applications
