@@ -56,23 +56,33 @@ function findOllamaExe () {
     ? [
         path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe'),
         path.join(process.env.PROGRAMFILES || '', 'Ollama', 'ollama.exe'),
-        'ollama',
       ]
     : platform === 'darwin'
       ? [
           '/Applications/Ollama.app/Contents/Resources/ollama',
           path.join(os.homedir(), 'Applications', 'Ollama.app', 'Contents', 'Resources', 'ollama'),
           '/usr/local/bin/ollama',
-          'ollama',
         ]
       : [  // Linux
           '/usr/local/bin/ollama',
           '/usr/bin/ollama',
           path.join(os.homedir(), '.local', 'bin', 'ollama'),
-          'ollama',
         ]
 
-  return candidates.find(p => p === 'ollama' || fs.existsSync(p)) || null
+  const found = candidates.find(p => fs.existsSync(p))
+  if (found) return found
+
+  // Nenhum caminho conhecido existe — 'ollama' pode ainda estar no PATH.
+  // Antes disso era um fallback incondicional (sempre truthy), o que fazia
+  // ensureOllama() achar que o Ollama já estava instalado mesmo quando não
+  // estava — o download/instalação automática nunca disparava de verdade.
+  try {
+    const { execSync } = require('child_process')
+    execSync(platform === 'win32' ? 'where ollama' : 'command -v ollama', { stdio: 'ignore' })
+    return 'ollama'
+  } catch {
+    return null
+  }
 }
 
 function getOllamaPlatformConfig () {
