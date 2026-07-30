@@ -101,6 +101,20 @@ def test_agent_config_custom_salva_e_le_de_volta(client):
         assert body["provider"] == "custom"
         assert body["custom_base_url"] == "http://localhost:20128/v1"
         assert body["custom_model"] == "kr/claude-sonnet-4.5"
+
+        # Regressão: save parcial (troca de idioma/persona) não reenvia
+        # custom_base_url — não pode ser rejeitado, nem apagar o que já
+        # estava salvo (bug real: usuário não conseguia manter o endpoint
+        # customizado ativo porque todo save parcial derrubava pra "").
+        r3 = client.post("/agent/config", json={"provider": "custom", "api_key": "__keep__", "idioma": "en"})
+        assert r3.status_code == 200
+        assert r3.json().get("error") is not True
+
+        r4 = client.get("/agent/config")
+        body4 = r4.json()
+        assert body4["provider"] == "custom"
+        assert body4["custom_base_url"] == "http://localhost:20128/v1"
+        assert body4["custom_model"] == "kr/claude-sonnet-4.5"
     finally:
         # POST /agent/config não permite limpar custom_base_url de volta pra ""
         # (a validação de URL rejeitaria) — reseta o arquivo direto.
