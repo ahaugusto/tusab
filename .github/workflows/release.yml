@@ -177,5 +177,5 @@ jobs:
         # transformers) — sem isso, EMFILE: too many open files. 10240 ainda
         # não foi suficiente num teste real; 65536 confirmado necessário.
         run: |
-          ulimit -n 65536
+          ulimit -n 1000000
           npm run build:mac:publish -- -c.mac.notarize=true
