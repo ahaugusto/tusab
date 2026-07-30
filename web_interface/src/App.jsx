@@ -1930,6 +1930,14 @@ function App() {
               onPersonaChange={PERFIS_CONFIG[perfil]?.config_api === false ? (novaPersona) => {
                 handlePersonaChange(novaPersona);
               } : undefined}
+              onOpenProviderConfig={PERFIS_CONFIG[perfil]?.config_api !== false ? () => {
+                setAgentInitialSubTab('configuracoes');
+                setActiveTab('agente');
+                setChatOpen(false);
+                setTimeout(() => {
+                  document.getElementById('agent-config-body')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 120);
+              } : undefined}
               agentProvider={useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama'}
               ollamaStatus={ollamaStatus}
               onGoToAgent={() => {
