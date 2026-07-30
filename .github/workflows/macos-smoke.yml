@@ -543,7 +543,10 @@ jobs:
           APPLE_API_KEY: /Users/runner/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-        run: ulimit -n 10240 && npm run build:mac
+        # mac.notarize é false no package.json (padrão da Fase 6/8, sem
+        # notarizar) — override via CLI só aqui, onde as credenciais da Apple
+        # API Key realmente estão disponíveis.
+        run: ulimit -n 10240 && npm run build:mac -- -c.mac.notarize=true
 
       - name: Localizar o .app gerado
         run: |
