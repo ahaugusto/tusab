@@ -92,7 +92,12 @@
           "from": "python_env-macos-arm64",
           "to": "python_env"
         }
-      ]
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "build_resources/entitlements.mac.plist",
+      "entitlementsInherit": "build_resources/entitlements.mac.plist",
+      "gatekeeperAssess": false,
+      "notarize": false
     },
     "dmg": {
       "title": "Tusab ${version}"
