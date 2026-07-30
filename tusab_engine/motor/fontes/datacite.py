@@ -15,7 +15,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "datacite",
     "nome": "DataCite",
-    "area": "cientifica",
+    "area": "geral",
     "descricao": "DOIs de datasets, software e produção de pesquisa.",
     "requer_auth": False,
     "suporta_data": False,

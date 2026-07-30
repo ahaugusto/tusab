@@ -12,7 +12,7 @@ from tusab_engine.motor import arxiv as _arxiv_motor
 FONTE_META = {
     "id": "arxiv",
     "nome": "arXiv",
-    "area": "cientifica",
+    "area": "geral",
     "descricao": "Preprints de física, matemática, ciência da computação e áreas correlatas.",
     "requer_auth": False,
     "suporta_data": True,

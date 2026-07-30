@@ -1,9 +1,10 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Testes do registro genérico de fontes públicas (perfil Pesquisador) e dos
-adaptadores da área "Produção científica e literatura" — OpenAlex, Europe PMC,
+adaptadores da área "geral" (buscadores multidisciplinares) — OpenAlex,
 DataCite, DOAJ, Zenodo (arXiv já coberto em test_arxiv.py; o adapter aqui só
-testa a ponte de eventos, não repete os testes do módulo).
+testa a ponte de eventos, não repete os testes do módulo). Europe PMC
+(biomédico) foi realocado pra área "saude" — ver __init__.py.
 
 Sem chamada de rede real — requests é mockado em todos os testes de módulo.
 """
@@ -18,9 +19,10 @@ from tusab_engine.motor.fontes import arxiv_adapter, datacite, doaj, europepmc, 
 
 def test_listar_fontes_agrupa_por_area():
     areas = fontes_registry.listar_fontes()
-    assert "cientifica" in areas
-    ids = {f["id"] for f in areas["cientifica"]["fontes"]}
-    assert ids == {"arxiv", "openalex", "europepmc", "datacite", "doaj", "zenodo"}
+    assert "geral" in areas
+    ids = {f["id"] for f in areas["geral"]["fontes"]}
+    assert ids == {"arxiv", "openalex", "datacite", "doaj", "zenodo"}
+    assert "europepmc" in {f["id"] for f in areas["saude"]["fontes"]}
 
 
 def test_obter_fonte_existente_e_inexistente():
@@ -43,7 +45,7 @@ def test_get_fontes_retorna_areas(client):
     r = client.get("/fontes")
     assert r.status_code == 200
     body = r.json()
-    assert "cientifica" in body["areas"]
+    assert "geral" in body["areas"]
 
 
 def test_fonte_search_rejeita_fonte_desconhecida(client):

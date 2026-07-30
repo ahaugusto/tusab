@@ -7,8 +7,12 @@ compartilhado de salvamento.
 
 Mapeado a partir do documento "Bases de Dados Abertas — Consolidação Ampliada
 de Endpoints de API" (Equipe NDTI/DECIT/SCTIE, Ministério da Saúde, jul/2026),
-9 áreas de conhecimento. Implementação começa pela área 1 (Produção científica,
-acadêmica e literatura) — as demais entram incrementalmente, mesma arquitetura.
+9 áreas de conhecimento por domínio + 1 área "geral" pros buscadores
+multidisciplinares (arXiv, OpenAlex, DataCite, DOAJ, Zenodo) — esses não
+"pertencem" a uma área de domínio como PubMed pertence a saúde ou CERN Open
+Data pertence a física; indexam produção de qualquer campo, então ficavam
+soterrados dentro de "Produção científica e literatura" mesmo cobrindo muito
+mais que isso (decisão de 30/jul/2026, ver agents/_historia.md).
 
 Só entram fontes testadas ao vivo, sem cadastro/chave, com conteúdo textual
 substantivo (não apenas metadado) — mesmo critério usado pra FHIR/
@@ -26,11 +30,11 @@ from . import (
 )
 
 _MODULOS = [
-    arxiv_adapter, openalex, europepmc, datacite, doaj, zenodo,
+    arxiv_adapter, openalex, datacite, doaj, zenodo,
     github, stackexchange,
     bcb,
     camara, senado_leis,
-    pubmed, clinicaltrials, uniprot,
+    pubmed, clinicaltrials, uniprot, europepmc,
     nasa_cmr,
     cern_opendata,
     art_institute_chicago, the_met,
@@ -41,7 +45,7 @@ FONTES = {m.FONTE_META["id"]: m for m in _MODULOS}
 
 # Nome de exibição de cada área — chave bate com FONTE_META["area"] de cada módulo.
 AREAS_META = {
-    "cientifica": "Produção científica e literatura",
+    "geral":      "Buscadores gerais e multidisciplinares",
     "tecnologia": "Tecnologia, IA e ciência de dados",
     "economia":   "Economia, finanças e ciências sociais",
     "direito":    "Direito, normas, legislação e governo",
