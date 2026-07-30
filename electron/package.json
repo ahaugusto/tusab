@@ -15,6 +15,7 @@
     "build": "electron-builder --win",
     "build:dir": "electron-builder --win --dir",
     "build:mac:dir": "electron-builder --mac --dir",
+    "build:mac": "electron-builder --mac",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -74,12 +75,27 @@
       ]
     },
     "mac": {
+      "icon": "../assets/logo.icns",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64"]
+        }
+      ],
       "extraResources": [
         {
           "from": "python_env-macos-arm64",
           "to": "python_env"
         }
       ]
+    },
+    "dmg": {
+      "title": "Tusab ${version}"
     },
     "nsis": {
       "oneClick": false,
