@@ -381,6 +381,8 @@
   "chat.search_broad_label": "Broad",
   "chat.search_restricted_label": "Restricted",
   "chat.search_info_aria": "Learn more about Broad and Restricted Search",
+  "chat.provider_error_hint": "This error came from your AI provider (configured key or server) — it's not a knowledge base issue.",
+  "chat.provider_error_cta": "Check provider configuration",
   "chat.collapse_aria": "Collapse chat",
   "chat.expand_aria": "Expand chat",
   "chat.ollama_required_title": "Ollama not detected",

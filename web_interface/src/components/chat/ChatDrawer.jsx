@@ -220,6 +220,7 @@ function ChatDrawer({
   persona,
   onOpenPersona,
   onPersonaChange,
+  onOpenProviderConfig,
   agentProvider,
   ollamaStatus,
   onAbrirIndexacaoRepositorio,
@@ -513,10 +514,29 @@ function ChatDrawer({
   // Conteúdo interno compartilhado entre drawer e modo expandido
   const conteudo = (onFechar) => (<>
     {/* Header */}
-    <div className={`px-4 py-3.5 border-b flex items-center gap-3 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-      <Sparkles size={15} className="text-primary shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
+    <div className={`px-4 py-3 border-b flex flex-col gap-2 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+      {/* Linha 1: identidade + controles de janela */}
+      <div className="flex items-center gap-2">
+        <Sparkles size={15} className="text-primary shrink-0" />
+        <p className={`text-xs font-bold flex-1 min-w-0 truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
+        {/* Botão expandir/recolher */}
+        {setExpandido && (
+          <button
+            onClick={() => expandido ? setExpandido(false) : setExpandido(true)}
+            className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+            aria-label={expandido ? t('chat.collapse_aria') : t('chat.expand_aria')}>
+            {expandido ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+        )}
+        <button onClick={onFechar}
+          className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+          aria-label={t('chat.close')}>
+          <X size={16} />
+        </button>
+      </div>
+      {/* Linha 2: base ativa, provider, busca ampla/restrita, limpar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex-1 min-w-0">
         {precisaSelecionarBase ? (
           <button
             onClick={() => setShowBaseModal(true)}
@@ -614,20 +634,7 @@ function ChatDrawer({
           {t('chat.clear')}
         </button>
       )}
-      {/* Botão expandir/recolher */}
-      {setExpandido && (
-        <button
-          onClick={() => expandido ? setExpandido(false) : setExpandido(true)}
-          className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-          aria-label={expandido ? t('chat.collapse_aria') : t('chat.expand_aria')}>
-          {expandido ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-        </button>
-      )}
-      <button onClick={onFechar}
-        className={`p-1.5 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-        aria-label={t('chat.close')}>
-        <X size={16} />
-      </button>
+      </div>
     </div>
     {/* Messages area */}
     <div className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
@@ -1062,7 +1069,7 @@ function ChatDrawer({
                           )}
                           </>
                         )}
-                        {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && (
+                        {msg.role === 'error' && onRecriarIndice && !agentStatus?.indexing && !msg.erro_provider && (
                           <button
                             onClick={() => onRecriarIndice(projetoAtivo)}
                             className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100 transition-opacity">
@@ -1075,6 +1082,23 @@ function ChatDrawer({
                             ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
                             <AlertTriangle size={11} className="shrink-0 mt-0.5" />
                             <span>Este modelo pode ser pesado demais para o seu hardware. Tente um modelo menor como <strong>Llama 3.2 1B</strong> ou <strong>Llama 3.2 3B</strong> na aba <strong>Agente</strong>.</span>
+                          </div>
+                        )}
+                        {msg.role === 'error' && msg.erro_provider && (
+                          <div className={`mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded-lg border text-[10px] leading-relaxed
+                            ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                            <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+                            <div>
+                              <span>{t('chat.provider_error_hint')}</span>
+                              {onOpenProviderConfig && (
+                                <button
+                                  onClick={onOpenProviderConfig}
+                                  className="mt-1 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-90 hover:opacity-100 transition-opacity">
+                                  <RefreshCw size={9} aria-hidden="true" />
+                                  {t('chat.provider_error_cta')}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                         {msg.sem_contexto && !msg.streaming && (

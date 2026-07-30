@@ -378,6 +378,8 @@
   "chat.search_broad_label": "Ampla",
   "chat.search_restricted_label": "Restrita",
   "chat.search_info_aria": "Saiba mais sobre Busca Ampla e Restrita",
+  "chat.provider_error_hint": "Esse erro veio do seu provedor de IA (chave ou servidor configurado) — não é problema com a base de conhecimento.",
+  "chat.provider_error_cta": "Verificar configuração do provedor",
   "chat.collapse_aria": "Recolher chat",
   "chat.expand_aria": "Expandir chat",
   "chat.ollama_required_title": "Ollama não detectado",
