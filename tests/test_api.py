@@ -102,7 +102,10 @@ def test_agent_config_custom_salva_e_le_de_volta(client):
         assert body["custom_base_url"] == "http://localhost:20128/v1"
         assert body["custom_model"] == "kr/claude-sonnet-4.5"
     finally:
-        client.post("/agent/config", json={"provider": "", "api_key": ""})
+        # POST /agent/config não permite limpar custom_base_url de volta pra ""
+        # (a validação de URL rejeitaria) — reseta o arquivo direto.
+        import agent_tusab
+        agent_tusab.salvar_config({})
 
 
 def test_test_key_custom_falha_com_endpoint_inexistente(client, monkeypatch):
@@ -127,6 +130,33 @@ def test_test_key_custom_bloqueia_url_invalida(client, monkeypatch):
     })
     assert r.status_code == 200
     assert r.json().get("error") is True
+
+
+def test_custom_status_sem_url_retorna_nao_rodando(client):
+    # Garante estado limpo — não depende de ordem/cleanup de outros testes,
+    # nem do ambiente ter (ou não) um servidor real rodando em custom_base_url
+    # salvo de uma sessão anterior.
+    import agent_tusab
+    agent_tusab.salvar_config({})
+    r = client.get("/agent/custom/status")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["running"] is False
+    assert body["models"] == []
+
+
+def test_custom_status_endpoint_inexistente_retorna_nao_rodando(client):
+    r = client.get("/agent/custom/status", params={"base_url": "http://localhost:1/v1"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["running"] is False
+    assert body["models"] == []
+
+
+def test_custom_status_bloqueia_ip_metadata_cloud(client):
+    r = client.get("/agent/custom/status", params={"base_url": "http://169.254.169.254/v1"})
+    assert r.status_code == 200
+    assert r.json()["running"] is False
 
 
 # ─── Chat (sem índice → erro claro, não crash) ───────────────────────────────
