@@ -52,6 +52,10 @@ function OllamaSetup({
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [refreshing,   setRefreshing]   = React.useState(false);
 
+  // preload.js expõe process.platform via window.tusab.platform — usado só
+  // pra decidir o link/rótulo de download do Ollama (instalador difere por SO).
+  const isMac = window.tusab?.platform === 'darwin';
+
   // Tempo restante estimado — calculado localmente a partir dos props (ephemeral, não precisa persistir)
   const [tempoRestante, setTempoRestante] = React.useState(null);
 
@@ -152,11 +156,11 @@ function OllamaSetup({
             </p>
             <div className="flex items-center gap-2">
               <a
-                href="https://github.com/ollama/ollama/releases/latest/download/OllamaSetup.exe"
+                href={isMac ? 'https://ollama.com/download/mac' : 'https://github.com/ollama/ollama/releases/latest/download/OllamaSetup.exe'}
                 target="_blank" rel="noreferrer"
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-colors
                   ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-600 text-white hover:bg-violet-700'}`}>
-                ↓ Baixar Ollama (.exe)
+                {isMac ? '↓ Baixar Ollama (macOS)' : '↓ Baixar Ollama (.exe)'}
               </a>
               <button onClick={refresh} disabled={refreshing}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors disabled:opacity-60
