@@ -206,8 +206,9 @@ export function useChatEngine({
             const parsed = JSON.parse(line);
             if (parsed.error) {
               const isModeloLento = /timeout|timed out|read timeout|connection.*reset|model.*load/i.test(parsed.error);
+              const isErroProvider = /credential|api[ _-]?key|unauthorized|401|authentication_error|invalid_api_key|model_not_found/i.test(parsed.error);
               setChatMessages(prev => prev.map(m =>
-                m._streamId === streamId ? { role: 'error', content: parsed.error, modelo_lento: isModeloLento } : m
+                m._streamId === streamId ? { role: 'error', content: parsed.error, modelo_lento: isModeloLento, erro_provider: isErroProvider } : m
               ));
             } else if (parsed.fontes !== undefined) {
               const fontes = parsed.fontes;

@@ -381,6 +381,8 @@
   "chat.search_broad_label": "Amplia",
   "chat.search_restricted_label": "Restringida",
   "chat.search_info_aria": "Más información sobre Búsqueda Amplia y Restringida",
+  "chat.provider_error_hint": "Este error vino de tu proveedor de IA (clave o servidor configurado) — no es un problema con la base de conocimiento.",
+  "chat.provider_error_cta": "Verificar configuración del proveedor",
   "chat.collapse_aria": "Contraer chat",
   "chat.expand_aria": "Expandir chat",
   "chat.ollama_required_title": "Ollama no detectado",
