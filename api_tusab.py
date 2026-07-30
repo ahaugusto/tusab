@@ -204,22 +204,25 @@ if __name__ == "__main__":
 
     if not os.environ.get("ELECTRON_RUN"):
         def open_app_window():
+            # Modo dev fora do Electron (ELECTRON_RUN não setado) — só faz
+            # sentido no Windows tentar abrir em modo --app (janela sem chrome
+            # do navegador); em qualquer outra plataforma (macOS/Linux) vai
+            # direto pro navegador padrão via webbrowser, sem tentar adivinhar
+            # caminho de instalação de Edge/Chrome.
             url = "http://127.0.0.1:8001"
-            app_flags = [f"--app={url}", "--start-maximized"]
-            launched = False
-            for browser_path in [
-                "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-                "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-            ]:
-                if os.path.exists(browser_path):
-                    subprocess.Popen([browser_path] + app_flags)
-                    launched = True
-                    break
-            if not launched:
-                import webbrowser
-                webbrowser.open(url)
+            if sys.platform == "win32":
+                app_flags = [f"--app={url}", "--start-maximized"]
+                for browser_path in [
+                    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+                    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+                ]:
+                    if os.path.exists(browser_path):
+                        subprocess.Popen([browser_path] + app_flags)
+                        return
+            import webbrowser
+            webbrowser.open(url)
 
         Timer(2.0, open_app_window).start()
 

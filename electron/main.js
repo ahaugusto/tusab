@@ -10,25 +10,32 @@ const path       = require('path')
 const http       = require('http')
 const fs         = require('fs')
 
-// ─── Resolução de caminhos (dev vs. prod) ──────────────────────────────────
+// ─── Resolução de caminhos (dev vs. prod, Windows vs. macOS) ────────────────
 // app.isPackaged não está disponível no top-level antes de app.ready;
 // detectamos via process.resourcesPath (só existe em produção empacotada)
-const IS_PACKED   = typeof process.resourcesPath === 'string' && !process.resourcesPath.includes('node_modules')
+const IS_PACKED = typeof process.resourcesPath === 'string' && !process.resourcesPath.includes('node_modules')
+const IS_MAC    = process.platform === 'darwin'
 const RESOURCES   = IS_PACKED ? process.resourcesPath : path.join(__dirname, '..')
 const BACKEND_DIR = IS_PACKED ? path.join(RESOURCES, 'app')            : RESOURCES
-const PYTHON_EXE  = IS_PACKED ? path.join(RESOURCES, 'python_env', 'python.exe')
-                               : path.join(RESOURCES, 'electron', 'python_env', 'python.exe')
-const BIN_DIR     = IS_PACKED ? path.join(RESOURCES, 'bin')            : path.join(RESOURCES, 'electron', 'bin')
+
+// python_env empacotado: Windows embeddable tem python.exe na raiz da pasta;
+// python-build-standalone (macOS) segue o layout Unix padrão, bin/python3.
+const PYTHON_EXE = IS_PACKED
+  ? (IS_MAC ? path.join(RESOURCES, 'python_env', 'bin', 'python3') : path.join(RESOURCES, 'python_env', 'python.exe'))
+  : (IS_MAC ? path.join(RESOURCES, 'electron', 'python_env', 'bin', 'python3') : path.join(RESOURCES, 'electron', 'python_env', 'python.exe'))
+const BIN_DIR = IS_PACKED ? path.join(RESOURCES, 'bin') : path.join(RESOURCES, 'electron', 'bin')
 
 // Em desenvolvimento usa o .venv local se existir, depois python_env, depois python do sistema
-const VENV_PYTHON = path.join(RESOURCES, '..', '.venv', 'Scripts', 'python.exe')
+const VENV_PYTHON = IS_MAC
+  ? path.join(RESOURCES, '..', '.venv', 'bin', 'python3')
+  : path.join(RESOURCES, '..', '.venv', 'Scripts', 'python.exe')
 const PYTHON = IS_PACKED
   ? PYTHON_EXE
   : (require('fs').existsSync(VENV_PYTHON)
       ? VENV_PYTHON
       : require('fs').existsSync(PYTHON_EXE)
         ? PYTHON_EXE
-        : 'python')
+        : (IS_MAC ? 'python3' : 'python'))
 
 const PORT = 8001
 
