@@ -16,6 +16,7 @@
     "build:dir": "electron-builder --win --dir",
     "build:mac:dir": "electron-builder --mac --dir",
     "build:mac": "electron-builder --mac --publish never",
+    "build:mac:publish": "electron-builder --mac --publish always",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -97,7 +98,9 @@
       "entitlements": "build_resources/entitlements.mac.plist",
       "entitlementsInherit": "build_resources/entitlements.mac.plist",
       "gatekeeperAssess": false,
-      "notarize": false
+      "notarize": {
+        "teamId": "3FM3Y2U75M"
+      }
     },
     "dmg": {
       "title": "Tusab ${version}"

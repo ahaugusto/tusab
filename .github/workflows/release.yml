@@ -99,3 +99,80 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: npm run build -- --publish always
+
+  # ── 3. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
+  build-macos:
+    name: Build macOS (.dmg + .zip)
+    runs-on: macos-latest
+    needs: tests
+    timeout-minutes: 40
+    permissions:
+      contents: write   # necessário para publicar a release em ahaugusto/tusab-public
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Sincronizar versão do package.json com a tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Versão: $VERSION"
+          cd electron
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      # Python portátil (equivalente macOS do python_env embeddable do Windows)
+      # — mesmo par release/versão usado no macos-smoke.yml (Fases 1-7).
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+        run: |
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p electron/python_env-macos-arm64
+          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
+
+      - name: Instalar dependências Python
+        run: |
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+
+      - name: Build frontend
+        working-directory: web_interface
+        run: npm install && npx vite build
+
+      - name: Instalar dependências Electron
+        working-directory: electron
+        run: npm ci
+
+      # APPLE_API_KEY precisa ser um caminho de arquivo .p8 — o secret guarda
+      # o conteúdo (ver macos-smoke.yml, job electron-notarize).
+      - name: Preparar API Key da App Store Connect (arquivo .p8)
+        run: |
+          mkdir -p "$HOME/private_keys"
+          echo "${{ secrets.APPLE_API_KEY }}" > "$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8"
+
+      # electron-builder assina (CSC_LINK/CSC_KEY_PASSWORD), notariza e
+      # grampeia (staple) o ticket automaticamente com base no mac.notarize
+      # do package.json + os 3 env vars da API Key, depois publica na release.
+      - name: Build, assinar, notarizar e publicar (.dmg + .zip)
+        working-directory: electron
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: /Users/runner/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        # ulimit padrão do runner (256) é baixo demais pra assinar cada um dos
+        # milhares de arquivos dentro de python_env (torch/onnxruntime/
+        # transformers) — sem isso, EMFILE: too many open files.
+        run: ulimit -n 10240 && npm run build:mac:publish
