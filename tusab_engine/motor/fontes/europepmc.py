@@ -15,7 +15,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "europepmc",
     "nome": "Europe PMC",
-    "area": "cientifica",
+    "area": "saude",
     "descricao": "Literatura biomédica com camada semântica de anotações.",
     "requer_auth": False,
     "suporta_data": False,
