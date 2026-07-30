@@ -204,3 +204,33 @@ jobs:
           name: tusab-app-log
           path: app.log
           retention-days: 14
+
+  # ── Fase 4 (passo único): gera o .icns a partir do logo.png ────────────────
+  # sips/iconutil são ferramentas nativas do macOS — não dá pra gerar isso a
+  # partir do Windows. Roda uma vez, publica como artifact; depois de revisado
+  # e commitado em assets/logo.icns, esse job pode ser removido (mesmo padrão
+  # do logo.ico já versionado, que não é regenerado a cada build).
+  gerar-icns:
+    name: "Fase 4: Gerar .icns a partir do logo"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Montar .iconset e converter pra .icns
+        run: |
+          set -e
+          mkdir -p logo.iconset
+          for size in 16 32 128 256 512; do
+            sips -z $size $size assets/logo.png --out "logo.iconset/icon_${size}x${size}.png"
+            double=$((size * 2))
+            sips -z $double $double assets/logo.png --out "logo.iconset/icon_${size}x${size}@2x.png"
+          done
+          iconutil -c icns logo.iconset -o logo.icns
+          ls -la logo.icns
+
+      - name: Publicar .icns como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logo-icns
+          path: logo.icns
+          retention-days: 14
