@@ -649,7 +649,14 @@ function setupAppMenu () {
 // ─── Ciclo de vida do app ──────────────────────────────────────────────────
 app.whenReady().then(() => {
   registerIpcHandlers()
-  ensureOllama().catch(e => console.error('[ollama] erro:', e))
+  // TUSAB_SMOKE_TEST: usado pelo smoke test de CI (macos-smoke.yml, Fase 3)
+  // pra isolar "o backend Python sobe e responde HTTP" sem arrastar junto
+  // o fluxo de auto-instalação do Ollama (rede + escrita em /Applications
+  // no branch darwin de installOllama(), nunca testado em produção ainda —
+  // variável separada, não deve ser testada no mesmo ciclo de CI).
+  if (!process.env.TUSAB_SMOKE_TEST) {
+    ensureOllama().catch(e => console.error('[ollama] erro:', e))
+  }
   spawnBackend()
   createWindow()
   setupAutoUpdater()
