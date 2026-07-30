@@ -203,6 +203,9 @@ export const fetchArquivos = (projeto_nome) => axios.get(`${API_BASE}/agent/arqu
 /** Fetches Ollama service status and installed models */
 export const fetchOllamaStatus = () => axios.get(`${API_BASE}/agent/ollama/status`);
 
+/** Checks if a custom OpenAI-compatible endpoint (ex: 9router) is reachable and lists its models */
+export const fetchCustomStatus = (base_url = '') => axios.get(`${API_BASE}/agent/custom/status`, { params: { base_url } });
+
 /** Triggers Ollama model download — pass model name or omit for default */
 export const pullOllamaModel = (model = '') => axios.post(`${API_BASE}/agent/ollama/pull`, model ? { model } : {});
 

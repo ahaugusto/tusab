@@ -13,6 +13,7 @@ import {
   loadAgentConfig,
   testAgentKey,
   fetchOllamaStatus,
+  fetchCustomStatus,
   fetchCanalMeta,
   fetchAgentStatus,
   fetchSummarizePending,
@@ -68,6 +69,8 @@ export function useAgentConfig({ activeTab, showError }) {
   const [useCustomEndpoint,    setUseCustomEndpoint]    = useState(false);
   const [customBaseUrl,        setCustomBaseUrl]        = useState('');
   const [customModel,          setCustomModel]          = useState('');
+  const [customStatus,         setCustomStatus]         = useState({ running: false, models: [] });
+  const [customStatusChecking, setCustomStatusChecking] = useState(false);
   const [ollamaStatus,         setOllamaStatus]         = useState({ running: false, models: [] });
   const [ollamaModel,          setOllamaModel]          = useState('llama3.2:1b');
   const [configOpen,           setConfigOpen]           = useState(true);
@@ -168,6 +171,28 @@ export function useAgentConfig({ activeTab, showError }) {
     fetchOllamaStatus().then(r => setOllamaStatus(r.data)).catch(() => {});
     return () => clearInterval(iv);
   }, []);
+
+  /** Checks the custom endpoint (only while the section is open) — debounced
+   *  while typing, so it doesn't fire a request per keystroke. Só verifica
+   *  URLs que já parecem http(s) válidas — não bate em texto incompleto. */
+  const refreshCustomStatus = async (url) => {
+    setCustomStatusChecking(true);
+    try {
+      const r = await fetchCustomStatus(url);
+      setCustomStatus(r.data);
+    } catch {
+      setCustomStatus({ running: false, models: [] });
+    }
+    setCustomStatusChecking(false);
+  };
+
+  useEffect(() => {
+    if (!useCustomEndpoint) return;
+    const url = customBaseUrl.trim();
+    if (!/^https?:\/\/.+/i.test(url)) { setCustomStatus({ running: false, models: [] }); return; }
+    const timer = setTimeout(() => { refreshCustomStatus(url); }, 700);
+    return () => clearTimeout(timer);
+  }, [useCustomEndpoint, customBaseUrl]);
 
   /** Fetches canal metadata when the agent tab is active */
   useEffect(() => {
@@ -337,6 +362,7 @@ export function useAgentConfig({ activeTab, showError }) {
     useCustomEndpoint,    setUseCustomEndpoint,
     customBaseUrl,        setCustomBaseUrl,
     customModel,          setCustomModel,
+    customStatus,         customStatusChecking,  refreshCustomStatus,
     ollamaStatus,         setOllamaStatus,
     ollamaModel,          setOllamaModel,
     configOpen,           setConfigOpen,
