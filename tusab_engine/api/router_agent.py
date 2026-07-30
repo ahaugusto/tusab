@@ -676,11 +676,15 @@ def get_agent_config():
 def agent_config(req: AgentConfigRequest):
     if state.agent_indexing:
         return {"error": True, "message": "Indexação em andamento. Aguarde."}
+    config = agent_tusab.carregar_config()
     if req.provider == "custom":
-        erro = _validar_custom_base_url(req.custom_base_url)
+        # Saves parciais (troca de idioma/persona) não reenviam a URL — valida
+        # a efetiva (a nova, se veio no request, senão a já persistida), não
+        # exige o campo em toda chamada.
+        url_efetiva = req.custom_base_url or config.get("custom_base_url", "")
+        erro = _validar_custom_base_url(url_efetiva)
         if erro:
             return {"error": True, "message": erro}
-    config = agent_tusab.carregar_config()
     config["provider"] = req.provider
     # '__keep__' é sentinel do frontend para sincronizações parciais (ex.: troca de idioma)
     # que não devem sobrescrever a chave já persistida (WARN-19).
@@ -695,8 +699,10 @@ def agent_config(req: AgentConfigRequest):
     if req.ollama_model:
         config["ollama_model"] = req.ollama_model
     if req.provider == "custom":
-        config["custom_base_url"] = req.custom_base_url.rstrip("/")
-        config["custom_model"] = req.custom_model
+        if req.custom_base_url:
+            config["custom_base_url"] = req.custom_base_url.rstrip("/")
+        if req.custom_model:
+            config["custom_model"] = req.custom_model
     if req.persona in _PERSONAS_VALIDAS:
         config["persona"] = req.persona
     if req.idioma in ("pt", "en", "es"):
