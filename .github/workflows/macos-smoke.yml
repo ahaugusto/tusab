@@ -1,0 +1,28 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+# Fase 1 do suporte a macOS: valida só que o runner macos-latest responde e
+# tem a arquitetura esperada (arm64). Sem nenhuma lógica do Tusab ainda —
+# cada fase subsequente do plano de suporte a macOS expande este workflow
+# isolando uma variável nova por vez (ver plano aprovado em
+# C:\Users\augus\.claude\plans\no-git-j-estamos-binary-wilkinson.md).
+
+name: macOS Smoke (Fase 1)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  runner-check:
+    name: Verificar runner macOS
+    runs-on: macos-latest
+    steps:
+      - name: Versão do macOS
+        run: sw_vers
+
+      - name: Arquitetura
+        run: uname -m
+
+      - name: Versão do Python do sistema
+        run: python3 --version
+
+      - name: Versão do Node do sistema
+        run: node --version
