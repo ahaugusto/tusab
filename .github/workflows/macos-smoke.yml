@@ -7,12 +7,18 @@ name: macOS Smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      only_job:
+        description: "ID do job a rodar sozinho (vazio = roda todos). Ex: ollama-autoinstall"
+        required: false
+        default: ''
 
 jobs:
   # ── Fase 1: o runner responde e é a arquitetura certa? ─────────────────────
   runner-check:
     name: "Fase 1: Verificar runner macOS"
     runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'runner-check' }}
     steps:
       - name: Versão do macOS
         run: sw_vers
@@ -30,6 +36,7 @@ jobs:
   python-portatil:
     name: "Fase 2: Python portátil + dependências"
     runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'python-portatil' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -74,6 +81,7 @@ jobs:
   electron-dir:
     name: "Fase 3: Electron real (--dir, sem instalador)"
     runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-dir' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -211,6 +219,7 @@ jobs:
   electron-dmg:
     name: "Fase 4: Empacotar .dmg + .zip (sem assinatura)"
     runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-dmg' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -348,6 +357,7 @@ jobs:
   keychain-safestorage:
     name: "Validação: safeStorage roundtrip no Keychain real"
     runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'keychain-safestorage' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -398,6 +408,7 @@ jobs:
   ollama-autoinstall:
     name: "Validação: auto-instalação real do Ollama"
     runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'ollama-autoinstall' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
