@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   KeyRound, CheckCircle2, Eye, EyeOff, AlertTriangle, Loader2,
   Zap, ArrowUp, Sparkles, X, Info, ExternalLink, GraduationCap,
-  Settings, LayoutGrid,
+  Settings, LayoutGrid, RefreshCw, Copy, Check,
 } from 'lucide-react';
 import OllamaSetup from '../agent/OllamaSetup';
 import EstudoTab from '../agent/EstudoTab';
@@ -32,6 +32,7 @@ export default function AgentTab({
   useCustomEndpoint,   setUseCustomEndpoint,
   customBaseUrl,       setCustomBaseUrl,
   customModel,         setCustomModel,
+  customStatus,        customStatusChecking,  refreshCustomStatus,
   ollamaStatus,        setOllamaStatus,
   ollamaModel,
   configOpen,          setConfigOpen,
@@ -51,6 +52,13 @@ export default function AgentTab({
     if (initialSubTab) setSubTab(initialSubTab);
   }, [initialSubTab]);
   const [estudoOpen, setEstudoOpen] = useState(true);
+  const [comandoCopiado, setComandoCopiado] = useState(false);
+  const copiarComandoInstalacao = () => {
+    navigator.clipboard?.writeText('npm install -g 9router').then(() => {
+      setComandoCopiado(true);
+      setTimeout(() => setComandoCopiado(false), 2000);
+    }).catch(() => {});
+  };
   const projetosIndexados = agentStatus?.canais_indexados || [];
 
   // ── Estado persistente do Modo Estudo (sobrevive à troca de aba/accordion) ──
@@ -484,15 +492,66 @@ export default function AgentTab({
                                 className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
                             </div>
 
-                            {/* Model field */}
+                            {/* Status de detecção — mesmo padrão do card do Ollama (badge + refresh) */}
+                            {customBaseUrl.trim() && (
+                              <div className={`rounded-xl p-3 space-y-2 border ${customStatus.running
+                                ? darkMode ? 'bg-secondary/5 border-secondary/20' : 'bg-emerald-50 border-emerald-200'
+                                : darkMode ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+                                <div className="flex items-center gap-2">
+                                  {customStatusChecking ? (
+                                    <Loader2 size={12} className="shrink-0 animate-spin text-slate-400" />
+                                  ) : customStatus.running ? (
+                                    <div className="w-2 h-2 rounded-full shrink-0 bg-secondary animate-pulse" />
+                                  ) : (
+                                    <AlertTriangle size={12} className="shrink-0 text-amber-500" />
+                                  )}
+                                  <span className={`text-[11px] font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                                    {customStatusChecking
+                                      ? t('agent.custom_checking')
+                                      : customStatus.running
+                                        ? t('agent.custom_detected', { count: customStatus.models.length })
+                                        : t('agent.custom_not_detected')}
+                                  </span>
+                                  <button onClick={() => refreshCustomStatus(customBaseUrl.trim())} title={t('agent.custom_refresh')}
+                                    className={`shrink-0 p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'} ${BTN_FOCUS}`}>
+                                    <RefreshCw size={11} className={customStatusChecking ? 'animate-spin' : ''} />
+                                  </button>
+                                </div>
+
+                                {!customStatus.running && !customStatusChecking && (
+                                  <div className="space-y-2 pt-1">
+                                    <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-amber-300/80' : 'text-amber-800'}`}>
+                                      {t('agent.custom_not_detected_hint')}
+                                    </p>
+                                    <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${darkMode ? 'bg-black/20' : 'bg-white'}`}>
+                                      <code className={`flex-1 text-[10px] font-mono ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>npm install -g 9router</code>
+                                      <button onClick={copiarComandoInstalacao} title={t('agent.custom_copy')}
+                                        className={`shrink-0 p-1 rounded transition-colors ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'} ${BTN_FOCUS}`}>
+                                        {comandoCopiado ? <Check size={11} className="text-secondary" /> : <Copy size={11} />}
+                                      </button>
+                                    </div>
+                                    <a href="https://github.com/decolua/9router" target="_blank" rel="noreferrer"
+                                      className={`flex items-center gap-1 text-[10px] font-medium underline underline-offset-2 w-fit ${darkMode ? 'text-primary/80 hover:text-primary' : 'text-violet-600 hover:text-violet-800'}`}>
+                                      GitHub <ExternalLink size={9} />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Model field — datalist sugere modelos detectados, mas aceita texto livre */}
                             <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
                               ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                               <input type="text"
+                                list="custom-models-datalist"
                                 placeholder={t('agent.custom_model_placeholder')}
                                 value={customModel}
                                 onChange={e => { setCustomModel(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
                                 className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
                             </div>
+                            <datalist id="custom-models-datalist">
+                              {customStatus.models.map(m => <option key={m} value={m} />)}
+                            </datalist>
 
                             {/* Key field — opcional pra servidores locais */}
                             <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40

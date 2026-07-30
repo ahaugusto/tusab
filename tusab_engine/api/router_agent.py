@@ -575,6 +575,29 @@ def ollama_status():
         return {'running': False, 'models': []}
 
 
+@router.get("/agent/custom/status")
+def custom_status(base_url: str = ""):
+    """Verifica se um endpoint OpenAI-compatible (ex: 9router) está no ar e
+    lista os modelos que ele expõe. Não exige api_key — listar modelos
+    tipicamente não é uma operação autenticada nesses servidores (confirmado
+    contra 9router real).
+    """
+    import requests as _req
+    url = base_url or agent_tusab.carregar_config().get("custom_base_url", "")
+    if not url:
+        return {"running": False, "models": []}
+    erro = _validar_custom_base_url(url)
+    if erro:
+        return {"running": False, "models": []}
+    try:
+        r = _req.get(f"{url.rstrip('/')}/models", timeout=3)
+        r.raise_for_status()
+        models = [m["id"] for m in r.json().get("data", []) if m.get("id")]
+        return {"running": True, "models": models}
+    except Exception:
+        return {"running": False, "models": []}
+
+
 class OllamaPullRequest(BaseModel):
     model: str = 'llama3.2:1b'
 

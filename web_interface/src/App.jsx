@@ -260,6 +260,7 @@ function App() {
     useCustomEndpoint,    setUseCustomEndpoint,
     customBaseUrl,        setCustomBaseUrl,
     customModel,          setCustomModel,
+    customStatus,         customStatusChecking,  refreshCustomStatus,
     ollamaStatus,         setOllamaStatus,
     ollamaModel,          setOllamaModel,
     configOpen,           setConfigOpen,
@@ -1879,6 +1880,9 @@ function App() {
                 setCustomBaseUrl={setCustomBaseUrl}
                 customModel={customModel}
                 setCustomModel={setCustomModel}
+                customStatus={customStatus}
+                customStatusChecking={customStatusChecking}
+                refreshCustomStatus={refreshCustomStatus}
                 ollamaStatus={ollamaStatus}
                 setOllamaStatus={setOllamaStatus}
                 ollamaModel={ollamaModel}
