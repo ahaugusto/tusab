@@ -174,5 +174,8 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         # ulimit padrão do runner (256) é baixo demais pra assinar cada um dos
         # milhares de arquivos dentro de python_env (torch/onnxruntime/
-        # transformers) — sem isso, EMFILE: too many open files.
-        run: ulimit -n 10240 && npm run build:mac:publish -- -c.mac.notarize=true
+        # transformers) — sem isso, EMFILE: too many open files. 10240 ainda
+        # não foi suficiente num teste real; 65536 confirmado necessário.
+        run: |
+          ulimit -n 65536
+          npm run build:mac:publish -- -c.mac.notarize=true
