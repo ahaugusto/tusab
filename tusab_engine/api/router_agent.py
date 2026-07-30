@@ -101,14 +101,36 @@ def _run_indexacao(projeto_nome: str, projeto_prefixo: str):
 
 _PERSONAS_VALIDAS = {'', 'objetivo', 'tecnico', 'didatico', 'descontraido', 'socratico'}
 
+# Ranges sem uso legítimo pra um endpoint de LLM — bloqueados independente de a
+# URL ser "local" ou não. 169.254.0.0/16 é o range de metadata cloud
+# (AWS/GCP/Azure expõem credenciais em 169.254.169.254) — permitir um endpoint
+# customizado apontar pra lá abriria SSRF via campo de config persistido.
+_HOSTS_BASE_URL_BLOQUEADOS_PREFIXOS = ('169.254.',)
+
+def _validar_custom_base_url(url: str) -> str:
+    """Retorna mensagem de erro se a URL for inválida/bloqueada, ou '' se ok."""
+    from urllib.parse import urlparse
+    if not url:
+        return "Informe a URL do servidor."
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return "A URL precisa começar com http:// ou https://"
+    if not parsed.hostname:
+        return "URL inválida — verifique o formato (ex: http://localhost:20128/v1)."
+    if any(parsed.hostname.startswith(p) for p in _HOSTS_BASE_URL_BLOQUEADOS_PREFIXOS):
+        return "Esse endereço não pode ser usado como endpoint de IA."
+    return ""
+
 class AgentConfigRequest(BaseModel):
-    provider:      str  = Field(max_length=30)
-    api_key:       str  = Field(max_length=300)
-    embed_api_key: str  = Field(default="", max_length=300)
-    groq_model:    str  = Field(default="", max_length=80)
-    ollama_model:  str  = Field(default="", max_length=80)
-    persona:       str  = Field(default="", max_length=30)
-    idioma:        str  = Field(default="pt", max_length=10)
+    provider:        str  = Field(max_length=30)
+    api_key:         str  = Field(max_length=300)
+    embed_api_key:   str  = Field(default="", max_length=300)
+    groq_model:      str  = Field(default="", max_length=80)
+    ollama_model:    str  = Field(default="", max_length=80)
+    custom_base_url: str  = Field(default="", max_length=200)
+    custom_model:    str  = Field(default="", max_length=120)
+    persona:         str  = Field(default="", max_length=30)
+    idioma:          str  = Field(default="pt", max_length=10)
 
 class AgentChatRequest(BaseModel):
     mensagem:         str  = Field(max_length=4000)
@@ -175,8 +197,10 @@ class SalvarHistoricoRequest(BaseModel):
         return self
 
 class TestKeyRequest(BaseModel):
-    provider: str = Field(default='', max_length=30)
-    api_key:  str = Field(default='', max_length=300)
+    provider:        str = Field(default='', max_length=30)
+    api_key:         str = Field(default='', max_length=300)
+    custom_base_url: str = Field(default='', max_length=200)
+    custom_model:    str = Field(default='', max_length=120)
 
 class AgentChatStreamRequest(BaseModel):
     mensagem:         str  = Field(max_length=4000)
@@ -618,6 +642,8 @@ def get_agent_config():
         "provider":     config.get("provider", "gemini"),
         "api_key":      "***" if raw_key else "",
         "ollama_model": config.get("ollama_model", "llama3.2:1b"),
+        "custom_base_url": config.get("custom_base_url", ""),
+        "custom_model":    config.get("custom_model", ""),
         "persona":      config.get("persona", ""),
         "query_expansion": config.get("query_expansion", False),
     }
@@ -627,13 +653,17 @@ def get_agent_config():
 def agent_config(req: AgentConfigRequest):
     if state.agent_indexing:
         return {"error": True, "message": "Indexação em andamento. Aguarde."}
+    if req.provider == "custom":
+        erro = _validar_custom_base_url(req.custom_base_url)
+        if erro:
+            return {"error": True, "message": erro}
     config = agent_tusab.carregar_config()
     config["provider"] = req.provider
     # '__keep__' é sentinel do frontend para sincronizações parciais (ex.: troca de idioma)
     # que não devem sobrescrever a chave já persistida (WARN-19).
     if req.api_key and req.api_key != '__keep__':
         config["api_key"] = req.api_key
-    elif req.provider == "ollama" and req.api_key != '__keep__':
+    elif req.provider in ("ollama", "custom") and req.api_key != '__keep__':
         config["api_key"] = ""
     if req.embed_api_key:
         config["embed_api_key"] = req.embed_api_key
@@ -641,6 +671,9 @@ def agent_config(req: AgentConfigRequest):
         config["groq_model"] = req.groq_model
     if req.ollama_model:
         config["ollama_model"] = req.ollama_model
+    if req.provider == "custom":
+        config["custom_base_url"] = req.custom_base_url.rstrip("/")
+        config["custom_model"] = req.custom_model
     if req.persona in _PERSONAS_VALIDAS:
         config["persona"] = req.persona
     if req.idioma in ("pt", "en", "es"):
@@ -675,16 +708,23 @@ def agent_test_key(req: TestKeyRequest = None):
     if now - _test_key_last < 5.0:
         return {"error": True, "message": "Aguarde alguns segundos antes de testar novamente."}
     _test_key_last = now
-    if req and req.provider and req.api_key:
+    if req and req.provider == "custom":
+        config = {"provider": "custom", "api_key": req.api_key,
+                  "custom_base_url": req.custom_base_url, "custom_model": req.custom_model}
+    elif req and req.provider and req.api_key:
         config = {"provider": req.provider, "api_key": req.api_key}
     else:
         config = agent_tusab.carregar_config()
     provider = config.get("provider", "")
-    if not provider or (not config.get("api_key") and provider != "ollama"):
+    if provider == "custom":
+        erro = _validar_custom_base_url(config.get("custom_base_url", ""))
+        if erro:
+            return {"error": True, "message": erro}
+    elif not provider or (not config.get("api_key") and provider != "ollama"):
         return {"error": True, "message": "Nenhuma chave configurada."}
     try:
         provider = config["provider"]
-        api_key  = config["api_key"]
+        api_key  = config.get("api_key", "")
         if provider == "ollama":
             import requests as _req
             r = _req.get('http://localhost:11434/api/tags', timeout=3)
@@ -692,6 +732,16 @@ def agent_test_key(req: TestKeyRequest = None):
             if not models:
                 return {"error": True, "message": "Ollama rodando mas nenhum modelo instalado. Instale um modelo primeiro."}
             return {"ok": True, "message": f"Ollama ativo! Modelos: {', '.join(models[:3])}"}
+        if provider == "custom":
+            import requests as _req
+            base_url = config.get("custom_base_url", "").rstrip("/")
+            headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+            r = _req.get(f"{base_url}/models", headers=headers, timeout=5)
+            r.raise_for_status()
+            modelo = config.get("custom_model", "")
+            if modelo:
+                return {"ok": True, "message": f"Servidor respondeu! Modelo configurado: {modelo}"}
+            return {"ok": True, "message": "Servidor respondeu, mas nenhum modelo foi informado — configure o nome do modelo antes de usar no chat."}
         if provider == "groq":
             from openai import OpenAI
             modelo = config.get("groq_model", "llama-3.1-8b-instant")
