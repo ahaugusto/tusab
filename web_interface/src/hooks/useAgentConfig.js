@@ -86,9 +86,19 @@ export function useAgentConfig({ activeTab, showError }) {
 
   // ─── Effects ─────────────────────────────────────────────────────────────
 
+  // Guarda contra a corrida entre este load assíncrono e o efeito de sync de
+  // idioma logo abaixo: sem isso, o efeito de idioma dispara no primeiro
+  // render com os defaults do useState (useExternalProvider=false,
+  // useCustomEndpoint=false) — ANTES da config real ter voltado do backend —
+  // e grava provider:'ollama' por cima do que estava configurado de verdade
+  // (custom ou externo). Bug real reportado: "não consigo desabilitar o
+  // Ollama" / "algum deles sempre parece ativo".
+  const configLoadedRef = useRef(false);
+
   /** Loads saved agent config on mount and sets Ollama as default if no external key */
   useEffect(() => {
     loadAgentConfig().then(async r => {
+      configLoadedRef.current = true;
       if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
       if (r.data.query_expansion !== undefined) setQueryExpansion(!!r.data.query_expansion);
       if (r.data.persona !== undefined) setPersona(r.data.persona || '');
@@ -133,10 +143,13 @@ export function useAgentConfig({ activeTab, showError }) {
   }, []);
 
   /** Syncs UI language to agent_config.json whenever the user changes the language.
-   *  Não envia api_key para evitar apagar chave externa configurada (WARN-19). */
+   *  Não envia api_key para evitar apagar chave externa configurada (WARN-19).
+   *  Só dispara depois do load inicial (configLoadedRef) — antes disso, o
+   *  provider "atual" ainda são os defaults do useState, não o que está
+   *  realmente salvo (ver comentário no load acima). */
   useEffect(() => {
-    if (!i18n.language) return;
-    const provider = useExternalProvider ? agentProvider : 'ollama';
+    if (!i18n.language || !configLoadedRef.current) return;
+    const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
     saveAgentConfig({ provider, api_key: '__keep__', idioma: i18n.language }).catch(() => {});
   }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -228,8 +241,8 @@ export function useAgentConfig({ activeTab, showError }) {
   /** Saves persona immediately (no key required) */
   const handlePersonaChange = async (novaPersona) => {
     setPersona(novaPersona);
-    const provider = useExternalProvider ? agentProvider : 'ollama';
-    await saveAgentConfig({ provider, api_key: '', persona: novaPersona, idioma: i18n.language })
+    const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
+    await saveAgentConfig({ provider, api_key: '__keep__', persona: novaPersona, idioma: i18n.language })
       .catch(() => {});
   };
 
