@@ -349,6 +349,143 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  # ── Fase 6: assina de verdade (sem notarizar ainda) ─────────────────────────
+  # Usa os secrets CSC_LINK/CSC_KEY_PASSWORD (Developer ID Application .p12,
+  # gerado na Fase 5). electron-builder detecta esses 2 env vars sozinho, sem
+  # precisar de config adicional em package.json além de hardenedRuntime +
+  # entitlements (já configurados). Verifica a assinatura ANTES de gastar uma
+  # tentativa de notarização (Fase 7, minutos + cota limitada) num problema
+  # que na real seria só de entitlement/assinatura.
+  electron-sign:
+    name: "Fase 6: Assinatura local (Developer ID, sem notarizar)"
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-sign' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+        run: |
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p electron/python_env-macos-arm64
+          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
+
+      - name: Instalar dependências Python
+        run: |
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+
+      - name: Build do frontend
+        working-directory: web_interface
+        run: npm install && npx vite build
+
+      - name: Instalar dependências do Electron
+        working-directory: electron
+        run: npm ci
+
+      - name: Build Electron assinado (--mac, gera .dmg + .zip)
+        working-directory: electron
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run build:mac
+
+      - name: Localizar o .app gerado
+        run: |
+          APP_PATH=$(find dist_electron -maxdepth 2 -name "*.app" -type d | head -1)
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+          echo "App encontrado: $APP_PATH"
+          if [ -z "$APP_PATH" ]; then
+            echo "Nenhum .app encontrado — conteúdo de dist_electron:"
+            find dist_electron -maxdepth 3
+            exit 1
+          fi
+
+      - name: "codesign --verify no .app (deep)"
+        run: |
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH" 2>&1
+
+      - name: "codesign --verify em cada binário Mach-O do python_env"
+        run: |
+          set +e
+          FAIL=0
+          # find todo arquivo que o `file` identifica como Mach-O (executável ou .so/.dylib)
+          while IFS= read -r -d '' bin; do
+            if file "$bin" | grep -q "Mach-O"; then
+              if ! codesign --verify --strict "$bin" > /tmp/codesign_out.txt 2>&1; then
+                echo "FALHOU: $bin"
+                cat /tmp/codesign_out.txt
+                FAIL=1
+              fi
+            fi
+          done < <(find "$APP_PATH/Contents/Resources/python_env" -type f -print0)
+          if [ "$FAIL" = "1" ]; then
+            echo "=== Um ou mais binários do python_env falharam na verificação de assinatura ==="
+            exit 1
+          fi
+          echo "OK: todos os binários Mach-O do python_env verificados"
+
+      - name: Rodar o app assinado e confirmar que ainda funciona (Hardened Runtime não quebrou nada)
+        env:
+          TUSAB_SMOKE_TEST: '1'
+        run: |
+          BIN="$APP_PATH/Contents/MacOS/Tusab"
+          nohup "$BIN" > app-signed.log 2>&1 &
+          APP_PID=$!
+          disown
+          echo "APP_PID=$APP_PID" >> "$GITHUB_ENV"
+
+          ok=0
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:8001/status > /dev/null 2>&1; then
+              ok=1
+              echo "Backend respondeu após ${i}s rodando assinado sob Hardened Runtime"
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ok" != "1" ]; then
+            echo "=== app-signed.log ==="
+            cat app-signed.log
+            exit 1
+          fi
+
+      - name: Smoke HTTP (app assinado)
+        run: |
+          set -e
+          curl -sf "http://127.0.0.1:8001/status" | grep -q '"is_running"' && echo "OK: /status"
+          curl -sf "http://127.0.0.1:8001/repositorio" | grep -q '"youtube"' && echo "OK: /repositorio"
+
+      - name: Encerrar o app
+        if: always()
+        run: kill "$APP_PID" 2>/dev/null || true
+
+      - name: Publicar .dmg/.zip assinados como artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tusab-mac-signed
+          path: |
+            dist_electron/*.dmg
+            dist_electron/*.zip
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Publicar log do app assinado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tusab-app-signed-log
+          path: app-signed.log
+          retention-days: 14
+          if-no-files-found: warn
+
   # ── Validação extra: safeStorage/Keychain funciona de verdade no macOS? ────
   # Levantamento apontava isso como "portável no papel" (API do próprio
   # Electron) mas nunca exercitado neste projeto em macOS real. Roda o
