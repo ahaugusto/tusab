@@ -399,7 +399,8 @@ jobs:
         # transformers) — sem isso, EMFILE: too many open files.
         run: |
           echo "ulimit -Hn (hard limit): $(ulimit -Hn)"
-          ulimit -n 1000000
+          sudo sysctl -w kern.maxfilesperproc=200000 kern.maxfiles=300000
+          ulimit -n 100000
           npm run build:mac
 
       - name: Localizar o .app gerado
@@ -551,7 +552,8 @@ jobs:
         # API Key realmente estão disponíveis.
         run: |
           echo "ulimit -Hn (hard limit): $(ulimit -Hn)"
-          ulimit -n 1000000
+          sudo sysctl -w kern.maxfilesperproc=200000 kern.maxfiles=300000
+          ulimit -n 100000
           npm run build:mac -- -c.mac.notarize=true
 
       - name: Localizar o .app gerado
