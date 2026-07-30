@@ -17,7 +17,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "zenodo",
     "nome": "Zenodo",
-    "area": "cientifica",
+    "area": "geral",
     "descricao": "Repositório do CERN/OpenAIRE — datasets, código e artefatos com DOI.",
     "requer_auth": False,
     "suporta_data": False,

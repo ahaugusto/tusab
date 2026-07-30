@@ -16,7 +16,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "doaj",
     "nome": "DOAJ",
-    "area": "cientifica",
+    "area": "geral",
     "descricao": "Diretório de periódicos e artigos de acesso aberto.",
     "requer_auth": False,
     "suporta_data": False,
