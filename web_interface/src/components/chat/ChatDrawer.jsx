@@ -572,13 +572,14 @@ function ChatDrawer({
       </div>
       {/* Chip de provider */}
       {agentProvider && agentProvider !== 'ollama' && (() => {
-        const LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini', google: 'Gemini' };
+        const LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini', google: 'Gemini', custom: t('agent.custom_chip_label') };
         const COLORS = {
           groq:      darkMode ? 'bg-orange-500/15 text-orange-400 border-orange-500/25' : 'bg-orange-50 text-orange-600 border-orange-200',
           openai:    darkMode ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
           anthropic: darkMode ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' : 'bg-amber-50 text-amber-700 border-amber-200',
           gemini:    darkMode ? 'bg-blue-500/15 text-blue-400 border-blue-500/25' : 'bg-blue-50 text-blue-700 border-blue-200',
           google:    darkMode ? 'bg-blue-500/15 text-blue-400 border-blue-500/25' : 'bg-blue-50 text-blue-700 border-blue-200',
+          custom:    darkMode ? 'bg-violet-500/15 text-violet-400 border-violet-500/25' : 'bg-violet-50 text-violet-700 border-violet-200',
         };
         const label = LABELS[agentProvider] || agentProvider;
         const color = COLORS[agentProvider] || (darkMode ? 'bg-white/10 text-slate-300 border-white/15' : 'bg-slate-100 text-slate-600 border-slate-200');

@@ -29,6 +29,9 @@ export default function AgentTab({
   keyTested,           setKeyTested,
   savingConfig,
   useExternalProvider, setUseExternalProvider,
+  useCustomEndpoint,   setUseCustomEndpoint,
+  customBaseUrl,       setCustomBaseUrl,
+  customModel,         setCustomModel,
   ollamaStatus,        setOllamaStatus,
   ollamaModel,
   configOpen,          setConfigOpen,
@@ -298,7 +301,7 @@ export default function AgentTab({
                         ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus}
                         btnFocus={BTN_FOCUS}
                         ollamaModel={ollamaModel} onModelChange={handleOllamaModelChange}
-                        isStandby={useExternalProvider}
+                        isStandby={useExternalProvider || useCustomEndpoint}
                         pullProgress={pullProgress}   setPullProgress={setPullProgress}
                         pulling={pulling}             setPulling={setPulling}
                         pullingModel={pullingModel}   setPullingModel={setPullingModel}
@@ -317,7 +320,9 @@ export default function AgentTab({
                           onClick={() => {
                             const next = !useExternalProvider;
                             setUseExternalProvider(next);
-                            if (!next) {
+                            if (next) {
+                              setUseCustomEndpoint(false);
+                            } else {
                               setAgentProvider('ollama');
                               saveAgentConfig({ provider: 'ollama', api_key: '' }).catch(() => {});
                             }
@@ -420,6 +425,133 @@ export default function AgentTab({
                               <button onClick={handleSaveAgentConfig}
                                 disabled={savingConfig || !keyTested}
                                 title={!keyTested ? 'Teste a chave primeiro' : undefined}
+                                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+                                  ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
+                                {savingConfig ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
+                                {savingConfig ? t('agent.saving') : configSaved ? `✓ ${t('agent.config_saved')}` : t('agent.save_config')}
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Endpoint customizado — servidor OpenAI-compatible self-hosted
+                          (ex: 9router). Posicionado como opção grátis/local (como o
+                          Ollama), não como mais um provider de chave paga — mas
+                          tecnicamente reaproveita o mesmo protocolo OpenAI do Groq. */}
+                      <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                        <div>
+                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('agent.custom_toggle_title')}</p>
+                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('agent.custom_toggle_desc')}</p>
+                        </div>
+                        <button
+                          role="switch" aria-checked={useCustomEndpoint}
+                          onClick={() => {
+                            const next = !useCustomEndpoint;
+                            setUseCustomEndpoint(next);
+                            setTestKeyResult(null); setKeyTested(false);
+                            if (next) {
+                              setUseExternalProvider(false);
+                            } else {
+                              setAgentProvider('ollama');
+                              saveAgentConfig({ provider: 'ollama', api_key: '' }).catch(() => {});
+                            }
+                          }}
+                          className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${useCustomEndpoint ? 'bg-primary' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+                          <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${useCustomEndpoint ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+
+                      <AnimatePresence initial={false}>
+                        {useCustomEndpoint && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            style={{ overflow: 'hidden' }}
+                            className="space-y-3">
+                            <div className={`text-[11px] flex items-start gap-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                              <Info size={11} className="shrink-0 mt-0.5" />
+                              <span>{t('agent.custom_help')}</span>
+                            </div>
+
+                            {/* URL field */}
+                            <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
+                              ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                              <input type="text"
+                                placeholder="http://localhost:20128/v1"
+                                value={customBaseUrl}
+                                onChange={e => { setCustomBaseUrl(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
+                                className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                            </div>
+
+                            {/* Model field */}
+                            <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
+                              ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                              <input type="text"
+                                placeholder={t('agent.custom_model_placeholder')}
+                                value={customModel}
+                                onChange={e => { setCustomModel(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
+                                className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                            </div>
+
+                            {/* Key field — opcional pra servidores locais */}
+                            <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
+                              ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+                              <input type={showApiKey ? 'text' : 'password'}
+                                placeholder={t('agent.custom_key_placeholder')}
+                                value={agentApiKey}
+                                onChange={e => { setAgentApiKey(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
+                                className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
+                              <button onClick={() => setShowApiKey(!showApiKey)}
+                                className={`shrink-0 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500'} ${BTN_FOCUS}`}
+                                aria-label={showApiKey ? t('agent.key_hide') : t('agent.key_show')}>
+                                {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                            </div>
+
+                            {/* Aviso de dados saindo da máquina — só quando a URL não é local */}
+                            {customBaseUrl.trim() && !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i.test(customBaseUrl.trim()) && (
+                              <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border border-amber-500/20 text-amber-300/70' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+                                <Info size={11} className="shrink-0 mt-0.5" />
+                                <span>{t('agent.custom_remote_warning')}</span>
+                              </div>
+                            )}
+
+                            {/* Test button */}
+                            <button onClick={handleTestKey}
+                              disabled={testingKey || !customBaseUrl.trim() || keyTested}
+                              className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed ${BTN_FOCUS}
+                                ${keyTested
+                                  ? darkMode ? 'bg-secondary/15 text-secondary border border-secondary/30' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : !customBaseUrl.trim()
+                                    ? 'opacity-40 ' + (darkMode ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200')
+                                    : darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 border border-violet-200'}`}>
+                              {testingKey
+                                ? <><Loader2 size={12} className="animate-spin" /> Testando…</>
+                                : keyTested
+                                  ? <><CheckCircle2 size={12} /> {t('agent.custom_verified')}</>
+                                  : <><Zap size={12} /> {t('agent.custom_test')}</>}
+                            </button>
+
+                            {agentKeyError && (
+                              <p role="alert" className="text-[11px] text-danger flex items-center gap-1">
+                                <AlertTriangle size={11} /> {agentKeyError}
+                              </p>
+                            )}
+                            {testKeyResult && (
+                              <p role="status" className={`text-[11px] flex items-center gap-1 font-medium ${testKeyResult.ok ? 'text-secondary' : 'text-danger'}`}>
+                                {testKeyResult.ok ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />} {testKeyResult.message}
+                              </p>
+                            )}
+
+                            <div className="flex gap-2">
+                              <button onClick={handleRemoveApiKey}
+                                className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
+                                Limpar
+                              </button>
+                              <button onClick={handleSaveAgentConfig}
+                                disabled={savingConfig || !keyTested}
+                                title={!keyTested ? t('agent.custom_test_first') : undefined}
                                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                                   ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
                                 {savingConfig ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}

@@ -64,6 +64,71 @@ def test_test_key_rejeita_chave_invalida(client):
     assert r.json().get("error") is True
 
 
+# ─── Endpoint customizado (provider='custom' — ex: 9router self-hosted) ──────
+
+def test_agent_config_custom_bloqueia_url_sem_scheme(client):
+    r = client.post("/agent/config", json={
+        "provider": "custom", "api_key": "",
+        "custom_base_url": "localhost:20128/v1", "custom_model": "kr/test",
+    })
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
+def test_agent_config_custom_bloqueia_ip_metadata_cloud(client):
+    r = client.post("/agent/config", json={
+        "provider": "custom", "api_key": "",
+        "custom_base_url": "http://169.254.169.254/v1", "custom_model": "kr/test",
+    })
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
+def test_agent_config_custom_salva_e_le_de_volta(client):
+    # client é session-scoped (mesmo agent_config.json pra toda a suíte) —
+    # restaura provider="" no final pra não vazar estado pros testes de
+    # chat que assumem "nenhum provider configurado" (ver finally abaixo).
+    try:
+        r = client.post("/agent/config", json={
+            "provider": "custom", "api_key": "",
+            "custom_base_url": "http://localhost:20128/v1", "custom_model": "kr/claude-sonnet-4.5",
+        })
+        assert r.status_code == 200
+        assert r.json().get("error") is not True
+
+        r2 = client.get("/agent/config")
+        body = r2.json()
+        assert body["provider"] == "custom"
+        assert body["custom_base_url"] == "http://localhost:20128/v1"
+        assert body["custom_model"] == "kr/claude-sonnet-4.5"
+    finally:
+        client.post("/agent/config", json={"provider": "", "api_key": ""})
+
+
+def test_test_key_custom_falha_com_endpoint_inexistente(client, monkeypatch):
+    # _test_key_last é rate-limit global (1 chamada/5s) — reset pra não colidir
+    # com outros testes de /agent/test-key rodados na mesma sessão pytest.
+    import tusab_engine.api.router_agent as router_agent
+    monkeypatch.setattr(router_agent, "_test_key_last", 0.0)
+    r = client.post("/agent/test-key", json={
+        "provider": "custom", "api_key": "",
+        "custom_base_url": "http://localhost:1/v1", "custom_model": "kr/test",
+    })
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
+def test_test_key_custom_bloqueia_url_invalida(client, monkeypatch):
+    import tusab_engine.api.router_agent as router_agent
+    monkeypatch.setattr(router_agent, "_test_key_last", 0.0)
+    r = client.post("/agent/test-key", json={
+        "provider": "custom", "api_key": "",
+        "custom_base_url": "ftp://not-http", "custom_model": "kr/test",
+    })
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
 # ─── Chat (sem índice → erro claro, não crash) ───────────────────────────────
 
 def test_chat_sem_indice_retorna_erro_claro(client):
