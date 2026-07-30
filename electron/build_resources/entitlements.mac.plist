@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sem isso, o app crasha ao importar torch/onnxruntime sob Hardened
+	     Runtime: o Python portátil e as .so nativas em site-packages não são
+	     assinadas pelo mesmo Team ID do app. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<!-- torch usa JIT/memória executável em runtime (mesma razão de stacks
+	     de ML/JIT precisarem desse entitlement sob Hardened Runtime). -->
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<!-- Backend Python fala com o app via localhost:8001; motor de extração
+	     e chat RAG fazem chamadas HTTP externas (yt-dlp, LLM providers). -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.network.server</key>
+	<true/>
+</dict>
+</plist>
