@@ -117,11 +117,14 @@ jobs:
           # em /Applications) junto com o que este smoke quer validar.
           TUSAB_SMOKE_TEST: '1'
         run: |
-          APP_BIN=$(find electron/dist_electron -path "*.app/Contents/MacOS/Tusab" | head -1)
+          # directories.output em package.json é "../dist_electron", relativo
+          # à pasta electron/ (onde o package.json mora) — resolve pra
+          # dist_electron/ na RAIZ do repo, não dentro de electron/.
+          APP_BIN=$(find dist_electron -path "*.app/Contents/MacOS/Tusab" | head -1)
           echo "Binário encontrado: $APP_BIN"
           if [ -z "$APP_BIN" ]; then
             echo "Binário do app não encontrado — conteúdo de dist_electron:"
-            find electron/dist_electron -maxdepth 3
+            find dist_electron -maxdepth 3
             exit 1
           fi
 
