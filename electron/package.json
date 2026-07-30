@@ -14,6 +14,7 @@
     "dev": "electron .",
     "build": "electron-builder --win",
     "build:dir": "electron-builder --win --dir",
+    "build:mac:dir": "electron-builder --mac --dir",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -51,14 +52,6 @@
           "web_interface/dist/**",
           "assets/**"
         ]
-      },
-      {
-        "from": "python_env",
-        "to": "python_env"
-      },
-      {
-        "from": "bin",
-        "to": "bin"
       }
     ],
     "win": {
@@ -68,7 +61,25 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "../assets/logo.ico"
+      "icon": "../assets/logo.ico",
+      "extraResources": [
+        {
+          "from": "python_env",
+          "to": "python_env"
+        },
+        {
+          "from": "bin",
+          "to": "bin"
+        }
+      ]
+    },
+    "mac": {
+      "extraResources": [
+        {
+          "from": "python_env-macos-arm64",
+          "to": "python_env"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

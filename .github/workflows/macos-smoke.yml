@@ -69,3 +69,135 @@ jobs:
           name: requirements-lock-macos-arm64
           path: requirements-lock-macos-arm64.txt
           retention-days: 14
+
+  # ── Fase 3: o Electron sobe o backend real e responde HTTP? (--dir, sem instalador) ──
+  electron-dir:
+    name: "Fase 3: Electron real (--dir, sem instalador)"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      # Python portátil vai direto em electron/python_env-macos-arm64 — é de
+      # lá que electron/package.json (build.mac.extraResources) lê o "from".
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+        run: |
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p electron/python_env-macos-arm64
+          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
+          ./electron/python_env-macos-arm64/bin/python3 --version
+
+      - name: Instalar dependências Python
+        run: |
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+
+      - name: Build do frontend
+        working-directory: web_interface
+        run: npm install && npx vite build
+
+      - name: Instalar dependências do Electron
+        working-directory: electron
+        run: npm ci
+
+      - name: Build Electron (--mac --dir)
+        working-directory: electron
+        run: npm run build:mac:dir
+
+      - name: Rodar o app empacotado e aguardar o backend responder
+        env:
+          # Isola o teste do backend Python — sem isso o app tentaria baixar
+          # e instalar o Ollama (branch darwin nunca testado, rede + escrita
+          # em /Applications) junto com o que este smoke quer validar.
+          TUSAB_SMOKE_TEST: '1'
+        run: |
+          APP_BIN=$(find electron/dist_electron -path "*.app/Contents/MacOS/Tusab" | head -1)
+          echo "Binário encontrado: $APP_BIN"
+          if [ -z "$APP_BIN" ]; then
+            echo "Binário do app não encontrado — conteúdo de dist_electron:"
+            find electron/dist_electron -maxdepth 3
+            exit 1
+          fi
+
+          # nohup + disown: sem isso o processo em background morre quando o
+          # shell deste step termina, e os steps seguintes (que rodam num
+          # shell novo) não acham mais nada escutando na porta 8001.
+          nohup "$APP_BIN" > app.log 2>&1 &
+          APP_PID=$!
+          disown
+          echo "APP_PID=$APP_PID" >> "$GITHUB_ENV"
+
+          ok=0
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:8001/status > /dev/null 2>&1; then
+              ok=1
+              echo "Backend respondeu após ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ok" != "1" ]; then
+            echo "=== app.log (backend nunca respondeu) ==="
+            cat app.log
+            exit 1
+          fi
+
+      # Mesmos asserts do smoke.ps1 (suíte minor): /status, /repositorio,
+      # /queue e /queue/add checam conteúdo do corpo; /history e /agent/status
+      # no smoke.ps1 só checam HTTP 200 (curl -sf já falha em não-2xx).
+      - name: Smoke HTTP
+        run: |
+          set -e
+          check() {
+            local path="$1" expect="$2" body
+            body=$(curl -sf "http://127.0.0.1:8001$path")
+            if [ -n "$expect" ] && ! echo "$body" | grep -Eq "$expect"; then
+              echo "FALHOU: $path — esperado conter '$expect', recebido: $body"
+              exit 1
+            fi
+            echo "OK: $path"
+          }
+          check_post() {
+            local path="$1" payload="$2" expect="$3" body
+            body=$(curl -sf -X POST -H "Content-Type: application/json" -d "$payload" "http://127.0.0.1:8001$path")
+            if ! echo "$body" | grep -Eq "$expect"; then
+              echo "FALHOU: POST $path — esperado conter '$expect', recebido: $body"
+              exit 1
+            fi
+            echo "OK: POST $path"
+          }
+
+          check "/status" '"is_running"'
+          check "/history" ""
+          check "/repositorio" '"youtube"'
+          check "/queue" '"queue"'
+          check_post "/queue/add" '{"canal_url":"https://www.youtube.com/@investidorsardinha","fontes":[]}' '"ok":true'
+          check "/agent/status" ""
+
+      - name: Confirmar diretório de dados resolvido (app.getPath('userData'))
+        run: |
+          if [ -d "$HOME/Library/Application Support/Tusab" ]; then
+            echo "OK: dados gravados em $HOME/Library/Application Support/Tusab"
+            find "$HOME/Library/Application Support/Tusab" -maxdepth 2
+          else
+            echo "AVISO: pasta de dados esperada não encontrada — pode indicar problema em TUSAB_DATA_DIR"
+          fi
+
+      - name: Encerrar o app
+        if: always()
+        run: kill "$APP_PID" 2>/dev/null || true
+
+      - name: Publicar log do app (sempre, ajuda a depurar mesmo em sucesso)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tusab-app-log
+          path: app.log
+          retention-days: 14
