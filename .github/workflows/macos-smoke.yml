@@ -339,3 +339,174 @@ jobs:
           path: app-dmg.log
           retention-days: 14
           if-no-files-found: warn
+
+  # ── Validação extra: safeStorage/Keychain funciona de verdade no macOS? ────
+  # Levantamento apontava isso como "portável no papel" (API do próprio
+  # Electron) mas nunca exercitado neste projeto em macOS real. Roda o
+  # primitivo exato usado por get/set/delete-api-key em main.js, sem precisar
+  # subir o app inteiro.
+  keychain-safestorage:
+    name: "Validação: safeStorage roundtrip no Keychain real"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Instalar dependências do Electron
+        working-directory: electron
+        run: npm ci
+
+      - name: Roundtrip encryptString/decryptString via Keychain
+        working-directory: electron
+        run: |
+          cat > test-safestorage.js << 'EOF'
+          const { app, safeStorage } = require('electron')
+          app.whenReady().then(() => {
+            const available = safeStorage.isEncryptionAvailable()
+            console.log('isEncryptionAvailable:', available)
+            if (!available) {
+              console.log('RESULT: UNAVAILABLE — Keychain não acessível neste runner')
+              app.exit(1)
+              return
+            }
+            const original = 'teste-tusab-chave-123'
+            const enc = safeStorage.encryptString(original)
+            const dec = safeStorage.decryptString(enc)
+            const ok = dec === original
+            console.log('roundtrip:', ok ? 'OK' : 'FALHOU')
+            console.log('RESULT:', ok ? 'OK' : 'FAIL')
+            app.exit(ok ? 0 : 1)
+          })
+          EOF
+          npx electron test-safestorage.js
+
+  # ── Validação extra: auto-instalação do Ollama funciona de verdade? ────────
+  # findOllamaExe() tinha um bug real (corrigido nesta sessão): o fallback
+  # 'ollama' era retornado incondicionalmente (sempre truthy), então
+  # ensureOllama() achava que o Ollama já estava instalado mesmo quando não
+  # estava — o download/instalação nunca disparava. No Windows isso ficava
+  # mascarado porque o instalador NSIS já oferece instalar o Ollama antes do
+  # primeiro launch; no macOS, sem instalador equivalente, ensureOllama() é o
+  # ÚNICO mecanismo — por isso essa validação roda num runner limpo, sem
+  # Ollama pré-instalado, exercitando o fluxo real de download do .zip do
+  # GitHub + extração + mv para /Applications.
+  ollama-autoinstall:
+    name: "Validação: auto-instalação real do Ollama"
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+        run: |
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p electron/python_env-macos-arm64
+          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
+
+      - name: Instalar dependências Python
+        run: |
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+
+      - name: Build do frontend
+        working-directory: web_interface
+        run: npm install && npx vite build
+
+      - name: Instalar dependências do Electron
+        working-directory: electron
+        run: npm ci
+
+      - name: Build Electron (--mac --dir)
+        working-directory: electron
+        run: npm run build:mac:dir
+
+      - name: Confirmar que este runner não tem Ollama pré-instalado
+        run: |
+          if [ -d "/Applications/Ollama.app" ]; then
+            echo "AVISO: Ollama.app já existe neste runner — validação não é limpa"
+          else
+            echo "OK: runner limpo, sem Ollama.app"
+          fi
+
+      # SEM TUSAB_SMOKE_TEST — deixa ensureOllama() rodar de verdade.
+      - name: Rodar o app (ensureOllama real, sem guard de smoke test)
+        run: |
+          APP_BIN=$(find dist_electron -path "*.app/Contents/MacOS/Tusab" | head -1)
+          echo "Binário: $APP_BIN"
+          nohup "$APP_BIN" > app-ollama.log 2>&1 &
+          APP_PID=$!
+          disown
+          echo "APP_PID=$APP_PID" >> "$GITHUB_ENV"
+
+          echo "Aguardando o backend (não deve ser bloqueado pelo fluxo do Ollama)..."
+          ok=0
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:8001/status > /dev/null 2>&1; then
+              ok=1
+              echo "Backend respondeu após ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ok" != "1" ]; then
+            echo "=== app-ollama.log ==="
+            cat app-ollama.log
+            exit 1
+          fi
+
+      - name: Aguardar instalação + inicialização real do Ollama (até 10min)
+        run: |
+          ok=0
+          for i in $(seq 1 600); do
+            if curl -sf http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then
+              ok=1
+              echo "Ollama respondeu em http://127.0.0.1:11434 após ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          echo "=== Estado final ==="
+          if [ -d "/Applications/Ollama.app" ]; then
+            echo "OK: /Applications/Ollama.app foi criado"
+          else
+            echo "FALHOU: /Applications/Ollama.app não existe"
+          fi
+
+          if [ "$ok" = "1" ]; then
+            echo "OK: servidor Ollama respondendo em :11434"
+          else
+            echo "FALHOU: servidor Ollama nunca respondeu em :11434"
+          fi
+
+          echo "=== app-ollama.log (completo) ==="
+          cat app-ollama.log
+
+          if [ ! -d "/Applications/Ollama.app" ] || [ "$ok" != "1" ]; then
+            exit 1
+          fi
+
+      - name: Encerrar o app
+        if: always()
+        run: kill "$APP_PID" 2>/dev/null || true
+
+      - name: Publicar log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tusab-ollama-autoinstall-log
+          path: app-ollama.log
+          retention-days: 14
+          if-no-files-found: warn
