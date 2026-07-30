@@ -205,32 +205,137 @@ jobs:
           path: app.log
           retention-days: 14
 
-  # ── Fase 4 (passo único): gera o .icns a partir do logo.png ────────────────
-  # sips/iconutil são ferramentas nativas do macOS — não dá pra gerar isso a
-  # partir do Windows. Roda uma vez, publica como artifact; depois de revisado
-  # e commitado em assets/logo.icns, esse job pode ser removido (mesmo padrão
-  # do logo.ico já versionado, que não é regenerado a cada build).
-  gerar-icns:
-    name: "Fase 4: Gerar .icns a partir do logo"
+  # ── Fase 4: empacota .dmg + .zip de verdade (ainda sem assinar) ────────────
+  # .zip é obrigatório pro MacUpdater funcionar — o .dmg sozinho só serve pra
+  # instalação manual inicial, não pro mecanismo de auto-update em background.
+  electron-dmg:
+    name: "Fase 4: Empacotar .dmg + .zip (sem assinatura)"
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
 
-      - name: Montar .iconset e converter pra .icns
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+        run: |
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p electron/python_env-macos-arm64
+          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
+          ./electron/python_env-macos-arm64/bin/python3 --version
+
+      - name: Instalar dependências Python
+        run: |
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
+          ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+
+      - name: Build do frontend
+        working-directory: web_interface
+        run: npm install && npx vite build
+
+      - name: Instalar dependências do Electron
+        working-directory: electron
+        run: npm ci
+
+      # Sem CSC_LINK/CSC_KEY_PASSWORD nos secrets (Fase 5 ainda não aconteceu),
+      # o electron-builder empacota sem assinar — esperado nesta fase.
+      - name: Build Electron (--mac, gera .dmg + .zip)
+        working-directory: electron
+        run: npm run build:mac
+
+      - name: Listar artefatos gerados
+        run: |
+          find dist_electron -maxdepth 1 -name "*.dmg" -o -maxdepth 1 -name "*.zip" | tee artefatos.txt
+          if [ ! -s artefatos.txt ]; then
+            echo "Nenhum .dmg/.zip encontrado — conteúdo de dist_electron:"
+            find dist_electron -maxdepth 2
+            exit 1
+          fi
+
+      - name: Montar o .dmg (hdiutil attach) e rodar o app de dentro do volume
+        env:
+          TUSAB_SMOKE_TEST: '1'
+        run: |
+          DMG=$(find dist_electron -maxdepth 1 -name "*.dmg" | head -1)
+          echo "DMG: $DMG"
+          MOUNT_OUT=$(hdiutil attach "$DMG" -nobrowse -noautoopen)
+          echo "$MOUNT_OUT"
+          MOUNT_POINT=$(echo "$MOUNT_OUT" | grep -oE "/Volumes/[^ ]+.*" | tail -1)
+          echo "MOUNT_POINT=$MOUNT_POINT" >> "$GITHUB_ENV"
+          echo "Montado em: $MOUNT_POINT"
+
+          APP_BIN=$(find "$MOUNT_POINT" -maxdepth 4 -path "*.app/Contents/MacOS/Tusab" | head -1)
+          echo "Binário: $APP_BIN"
+          if [ -z "$APP_BIN" ]; then
+            echo "Binário não encontrado dentro do volume montado:"
+            find "$MOUNT_POINT" -maxdepth 3
+            exit 1
+          fi
+
+          nohup "$APP_BIN" > app-dmg.log 2>&1 &
+          APP_PID=$!
+          disown
+          echo "APP_PID=$APP_PID" >> "$GITHUB_ENV"
+
+          ok=0
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:8001/status > /dev/null 2>&1; then
+              ok=1
+              echo "Backend respondeu após ${i}s (rodando direto do .dmg montado)"
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ok" != "1" ]; then
+            echo "=== app-dmg.log (backend nunca respondeu) ==="
+            cat app-dmg.log
+            exit 1
+          fi
+
+      - name: Smoke HTTP (a partir do .dmg montado)
         run: |
           set -e
-          mkdir -p logo.iconset
-          for size in 16 32 128 256 512; do
-            sips -z $size $size assets/logo.png --out "logo.iconset/icon_${size}x${size}.png"
-            double=$((size * 2))
-            sips -z $double $double assets/logo.png --out "logo.iconset/icon_${size}x${size}@2x.png"
-          done
-          iconutil -c icns logo.iconset -o logo.icns
-          ls -la logo.icns
+          check() {
+            local path="$1" expect="$2" body
+            body=$(curl -sf "http://127.0.0.1:8001$path")
+            if [ -n "$expect" ] && ! echo "$body" | grep -Eq "$expect"; then
+              echo "FALHOU: $path — esperado conter '$expect', recebido: $body"
+              exit 1
+            fi
+            echo "OK: $path"
+          }
+          check "/status" '"is_running"'
+          check "/repositorio" '"youtube"'
+          check "/queue" '"queue"'
 
-      - name: Publicar .icns como artifact
+      - name: Encerrar o app e desmontar o .dmg
+        if: always()
+        run: |
+          kill "$APP_PID" 2>/dev/null || true
+          sleep 1
+          hdiutil detach "$MOUNT_POINT" 2>/dev/null || true
+
+      - name: Publicar .dmg/.zip como artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logo-icns
-          path: logo.icns
+          name: tusab-mac-unsigned
+          path: |
+            dist_electron/*.dmg
+            dist_electron/*.zip
           retention-days: 14
+          if-no-files-found: warn
+
+      - name: Publicar log do app rodando via .dmg
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tusab-app-dmg-log
+          path: app-dmg.log
+          retention-days: 14
+          if-no-files-found: warn
