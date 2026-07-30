@@ -1,18 +1,17 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
-# Fase 1 do suporte a macOS: valida só que o runner macos-latest responde e
-# tem a arquitetura esperada (arm64). Sem nenhuma lógica do Tusab ainda —
-# cada fase subsequente do plano de suporte a macOS expande este workflow
-# isolando uma variável nova por vez (ver plano aprovado em
+# Fases 1-4 do suporte a macOS — cada job isola uma variável nova antes da
+# próxima entrar em cena (ver plano aprovado em
 # C:\Users\augus\.claude\plans\no-git-j-estamos-binary-wilkinson.md).
 
-name: macOS Smoke (Fase 1)
+name: macOS Smoke
 
 on:
   workflow_dispatch:
 
 jobs:
+  # ── Fase 1: o runner responde e é a arquitetura certa? ─────────────────────
   runner-check:
-    name: Verificar runner macOS
+    name: "Fase 1: Verificar runner macOS"
     runs-on: macos-latest
     steps:
       - name: Versão do macOS
@@ -26,3 +25,47 @@ jobs:
 
       - name: Versão do Node do sistema
         run: node --version
+
+  # ── Fase 2: as libs pesadas instalam num Python portátil macOS? ────────────
+  python-portatil:
+    name: "Fase 2: Python portátil + dependências"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # python-build-standalone (astral-sh) — equivalente conceitual do Python
+      # "embeddable" já usado no Windows: build relocável, extraível em
+      # qualquer pasta, sem instalação no sistema. 3.12.13 em vez de 3.12.10
+      # (usado no Windows) porque o release mais recente do projeto não mantém
+      # mais o patch exato 3.12.10 disponível — mesma minor, patch mais novo,
+      # sem risco de comportamento pras dependências do Tusab.
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+        run: |
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p python_env-macos-arm64
+          tar -xzf python-macos-arm64.tar.gz -C python_env-macos-arm64 --strip-components=1
+          ./python_env-macos-arm64/bin/python3 --version
+
+      - name: Instalar dependências (requirements.txt)
+        run: |
+          ./python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
+          ./python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+
+      - name: Smoke de import das libs críticas
+        run: |
+          ./python_env-macos-arm64/bin/python3 -c "
+          import fastapi, uvicorn, sentence_transformers, torch, cryptography
+          import rapidocr_onnxruntime, pandas, reportlab, trafilatura, yt_dlp
+          print('Import OK — todas as libs críticas carregaram sem erro')
+          "
+
+      - name: Gerar lock de dependências (pip freeze)
+        run: ./python_env-macos-arm64/bin/python3 -m pip freeze > requirements-lock-macos-arm64.txt
+
+      - name: Publicar lock como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: requirements-lock-macos-arm64
+          path: requirements-lock-macos-arm64.txt
+          retention-days: 14
