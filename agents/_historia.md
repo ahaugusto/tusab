@@ -628,3 +628,31 @@ Criadores educacionais, professores, coaches. Oferecem assistente com a própria
 Cursinhos, universidades, conselhos, hospitais, empresas. Acervo institucional (YouTube + PDFs + atas) consultável internamente. Modelo: licença por instituição + onboarding assistido. Pré-requisito: OAuth Drive público (P3) + landing page (P4).
 
 **O flywheel:** aluno B2C que usa Tusab com conteúdo da FGV → vira case para a FGV contratar Camada 3. Criador que vê audiência usando sua base → tem argumento para contratar Camada 2.
+
+---
+
+### Fontes públicas — área "geral" (recategorização) + segunda rodada de descoberta (30/jul/2026)
+
+**Recategorização — "geral" (Buscadores gerais e multidisciplinares)** substitui a antiga área "cientifica" (Produção científica e literatura). Augusto notou que arXiv, OpenAlex, DataCite, DOAJ e Zenodo não "pertencem" a uma área de domínio como PubMed pertence a saúde ou CERN Open Data pertence a física — são buscadores generalistas, indexam produção de qualquer campo, e ficavam soterrados dentro de uma área supostamente de nicho. Movidos os 5 pra `area: "geral"`. **Europe PMC foi pra "saude"** — diferente dos 5 acima, é especificamente literatura biomédica, mesmo motivo do PubMed já estar naquela área (não é generalista). `AREAS_META["cientifica"]` removida (zero módulos restantes). `tests/test_fontes.py` atualizado e verde (19/19).
+
+**Segunda rodada de descoberta, critérios idênticos às 9 áreas originais** (sem cadastro/chave, busca real por palavra-chave, conteúdo narrativo real — não numérico/estruturado, sem bloqueio anti-bot):
+
+**Confirmados ao vivo, prontos pra implementar:**
+- **data.europa.eu** (Portal de Dados Abertos da UE) — sem chave, busca full-text real (`api/hub/search/search`). Testado: descrição de ~120.000 caracteres num resultado real sobre mudança climática.
+- **Crossref** (global, 150M+ trabalhos) — sem chave. Só tem abstract real com `filter=has-abstract:true` (nem todo registro tem; mesmo padrão de cobertura parcial já aceito em DataCite). Testado: abstract completo real sobre AutoML.
+- **data.gov.uk** (Reino Unido, CKAN — mesmo padrão do BCB) — sem chave. Testado: campo `notes` com descrição real (403 caracteres) sobre resiliência climática.
+
+Esses 3 abrem caminho pra um filtro por país/bloco na UI (Brasil via BCB, Reino Unido via data.gov.uk, União Europeia via data.europa.eu) — pedido do Augusto, ainda não implementado.
+
+**Rejeitados nesta rodada, mesmos critérios de sempre:**
+- **Library of Congress (loc.gov)** — bloqueio anti-bot real (Cloudflare, HTTP 403, "Just a moment..."), mesmo padrão já visto no LexML.
+- **WHO Global Health Observatory** — só nomes/códigos de indicador (`{"IndicatorName": "Archived, see TOBACCO_INDICATOR"}`), nenhum campo narrativo — mesmo problema estrutural do World Bank/IBGE (Área 3).
+- **data.gov (EUA)** — API antiga (CKAN, sem chave) foi descontinuada; API nova (`api.gsa.gov/technology/datagov/v4`) exige `X-Api-Key` cadastrado. Confirmado ao vivo (404 na antiga) + documentação oficial.
+- **Semantic Scholar** — retestado por suspeita de ter mudado desde a Área 1; primeira requisição já veio HTTP 429 de novo. Sem mudança real.
+- **SciELO** — endpoint ArticleMeta retornou 404 nas tentativas ao vivo; confirma o achado original ("endpoint desatualizado"), não investigado mais a fundo.
+- **Smithsonian Open Access, EUR-Lex (webservice oficial), CORE** — todos exigem cadastro/chave (mesmo grátis), quebra a regra de zero-cadastro mantida em todas as 9 áreas.
+
+**Endpoints armazenados aqui para futura implementação** (ainda não codados — Augusto vai rodar uma pesquisa mais ampla em outra IA antes de decidir o lote final):
+- `data.europa.eu/api/hub/search/search` (query param `q`)
+- `api.crossref.org/works` (query param `query`, filtro `has-abstract:true`)
+- `data.gov.uk/api/3/action/package_search` (CKAN, query param `q`)

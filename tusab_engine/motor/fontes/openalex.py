@@ -15,7 +15,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "openalex",
     "nome": "OpenAlex",
-    "area": "cientifica",
+    "area": "geral",
     "descricao": "Catálogo aberto da produção científica global (~322mi de trabalhos).",
     "requer_auth": False,
     "suporta_data": True,

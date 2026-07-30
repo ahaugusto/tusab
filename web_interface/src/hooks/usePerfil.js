@@ -55,10 +55,10 @@ export const PERFIS_CONFIG = {
     deletar_arquivos: true,
     limpar_canal: true,
     // Busca em fontes públicas por área de conhecimento — registro genérico
-    // em tusab_engine/motor/fontes/ (arXiv, OpenAlex, Europe PMC, DataCite,
-    // DOAJ, Zenodo na área "Produção científica"; mais áreas entram
-    // incrementalmente). Compartilhado com o futuro vertical Tusab Saúde,
-    // não exclusivo dele. Ver agents/_historia.md.
+    // em tusab_engine/motor/fontes/ (9 áreas de domínio + "Buscadores gerais"
+    // pros multidisciplinares: arXiv, OpenAlex, DataCite, DOAJ, Zenodo).
+    // Compartilhado com o futuro vertical Tusab Saúde, não exclusivo dele.
+    // Ver agents/_historia.md.
     fontes_publicas: true,
   },
   profissional: {
