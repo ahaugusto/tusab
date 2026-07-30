@@ -98,9 +98,7 @@
       "entitlements": "build_resources/entitlements.mac.plist",
       "entitlementsInherit": "build_resources/entitlements.mac.plist",
       "gatekeeperAssess": false,
-      "notarize": {
-        "teamId": "3FM3Y2U75M"
-      }
+      "notarize": false
     },
     "dmg": {
       "title": "Tusab ${version}"
