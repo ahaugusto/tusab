@@ -92,7 +92,14 @@ def _rerankar(pergunta: str, chunks: list) -> list:
 # original — o chat nunca é bloqueado por falha na expansão.
 
 # Provedores rápidos o suficiente para query expansion sem degradar UX
-PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google'}
+# 'custom' entra aqui porque fala o mesmo protocolo síncrono OpenAI-compatible
+# do Groq — a latência real depende do que está atrás do endpoint, mas o
+# público dessa opção (perfil técnico, servidor próprio) já assume esse risco.
+PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google', 'custom'}
+
+# Providers que não exigem api_key real — Ollama roda sem chave por natureza;
+# 'custom' cobre servidores locais tipo 9router que tipicamente não pedem chave.
+_PROVEDORES_SEM_CHAVE_OBRIGATORIA = {'ollama', 'custom'}
 
 # ── Personas ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +132,21 @@ def _api_key_valida(config: dict) -> bool:
     """Retorna True se há chave de API real configurada (não sentinel, não vazia)."""
     key = config.get('api_key', '')
     return bool(key) and key != SENTINEL_KEY
+
+
+def _client_openai_compat(provider: str, api_key: str, config: dict):
+    """Retorna (client, modelo) para provedores que falam o protocolo OpenAI
+    (Groq e endpoint customizado — ex: 9router, github.com/decolua/9router).
+    Centraliza a escolha de base_url pra não duplicar o padrão em cada um
+    dos pontos de dispatch por provider.
+    """
+    from openai import OpenAI
+    if provider == 'custom':
+        base_url = config.get('custom_base_url', '').rstrip('/')
+        modelo   = config.get('custom_model', '')
+        return OpenAI(api_key=api_key or 'local', base_url=base_url), modelo
+    modelo = config.get('groq_model', 'llama-3.1-8b-instant')
+    return OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1'), modelo
 
 
 def _expandir_query(pergunta: str, config: dict) -> list:
@@ -188,13 +210,9 @@ def _expandir_query(pergunta: str, config: dict) -> list:
             linhas = msg.content[0].text.strip().splitlines()
             variacoes = [l.strip() for l in linhas if l.strip()][:2]
 
-        elif provider == 'groq':
-            from openai import OpenAI
-            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-            resp = OpenAI(
-                api_key=api_key,
-                base_url='https://api.groq.com/openai/v1',
-            ).chat.completions.create(
+        elif provider in ('groq', 'custom'):
+            client, modelo = _client_openai_compat(provider, api_key, config)
+            resp = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt_expansion}],
                 max_tokens=120,
@@ -320,10 +338,9 @@ def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
             )
             resultado = msg.content[0].text.strip().upper()
 
-        elif provider == 'groq':
-            from openai import OpenAI
-            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-            resp = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+        elif provider in ('groq', 'custom'):
+            client, modelo = _client_openai_compat(provider, api_key, config)
+            resp = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
                 max_tokens=5, temperature=0.0, timeout=8,
@@ -1173,7 +1190,7 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
     api_key  = config.get('api_key', '')
 
     # Sem LLM configurado: mensagem estática melhorada
-    if not provider or (not api_key and provider != 'ollama'):
+    if not provider or (not api_key and provider not in _PROVEDORES_SEM_CHAVE_OBRIGATORIA):
         _sem_llm_i18n = {
             'en': (
                 "No relevant content found for this question in the knowledge base.\n\n"
@@ -1231,10 +1248,9 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
             )
             return msg.content[0].text.strip()
 
-        elif provider == 'groq':
-            from openai import OpenAI
-            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-            resp = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+        elif provider in ('groq', 'custom'):
+            client, modelo = _client_openai_compat(provider, api_key, config)
+            resp = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
                 max_tokens=400,
@@ -1309,10 +1325,9 @@ def _gerar_resposta_llm(provider: str, api_key: str, prompt: str, config: dict) 
         resp = _genai.GenerativeModel(modelo).generate_content(prompt)
         return resp.text
 
-    if provider == 'groq':
-        from openai import OpenAI
-        modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-        resp = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+    if provider in ('groq', 'custom'):
+        client, modelo = _client_openai_compat(provider, api_key, config)
+        resp = client.chat.completions.create(
             model=modelo,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1500,
@@ -1379,7 +1394,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
     projetos_extras = projetos_extras or []
     config   = carregar_config()
     provider = config.get('provider', '')
-    if not provider or (not _api_key_valida(config) and provider != 'ollama'):
+    if not provider or (not _api_key_valida(config) and provider not in _PROVEDORES_SEM_CHAVE_OBRIGATORIA):
         raise ValueError("Configure a chave de API antes de usar o chat.")
 
     projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
@@ -1502,7 +1517,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
     """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
     projetos_extras = projetos_extras or []
     config = carregar_config()
-    if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') != 'ollama'):
+    if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') not in _PROVEDORES_SEM_CHAVE_OBRIGATORIA):
         yield json.dumps({'error': 'Configure a chave de API antes de usar o chat.'})
         return
 
@@ -1631,10 +1646,9 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                     if chunk.text:
                         yield chunk.text
 
-        elif provider == 'groq':
-            from openai import OpenAI
-            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-            stream = OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1').chat.completions.create(
+        elif provider in ('groq', 'custom'):
+            client, modelo = _client_openai_compat(provider, api_key, config)
+            stream = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
                 max_tokens=1500,
