@@ -164,45 +164,47 @@ export default function ExtractionTab({
                   aqui, antes de abrir o modal, pro usuário saber o que pode
                   buscar antes mesmo de ver quais bases estão disponíveis ── */
               <div className={`p-4 rounded-xl border ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <Search size={20} className="text-primary shrink-0" aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                      {t('extraction.public_search_title')}
-                    </p>
-                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {t('extraction.public_search_subtitle')}
-                    </p>
-                  </div>
-                </div>
-
-                {areasFontesStatus === 'loading' && (
-                  <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t('extraction.loading_areas')}
-                  </p>
-                )}
-                {areasFontesStatus === 'ok' && Object.keys(areasFontes).length > 1 && (
-                  <div>
-                    <label className={`text-[10px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {t('extraction.area_label')}
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(areasFontes).map(([areaId, area]) => {
-                        const ativo = areaId === areaSelecionada;
-                        return (
-                          <button key={areaId}
-                            onClick={() => setAreaSelecionada(areaId)}
-                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
-                              ${ativo
-                                ? 'bg-primary border-primary text-white'
-                                : darkMode ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/25' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                            {t(`extraction.area_${areaId}`, area.nome)}
-                          </button>
-                        );
-                      })}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">
+                  <div className="flex items-center gap-3 sm:flex-1 min-w-0">
+                    <Search size={20} className="text-primary shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                        {t('extraction.public_search_title')}
+                      </p>
+                      <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {t('extraction.public_search_subtitle')}
+                      </p>
                     </div>
                   </div>
-                )}
+
+                  {areasFontesStatus === 'loading' && (
+                    <p className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {t('extraction.loading_areas')}
+                    </p>
+                  )}
+                  {areasFontesStatus === 'ok' && Object.keys(areasFontes).length > 1 && (
+                    <div className="w-full sm:flex-1 min-w-0">
+                      <label className={`text-[10px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {t('extraction.area_label')}
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(areasFontes).map(([areaId, area]) => {
+                          const ativo = areaId === areaSelecionada;
+                          return (
+                            <button key={areaId}
+                              onClick={() => setAreaSelecionada(areaId)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
+                                ${ativo
+                                  ? 'bg-primary border-primary text-white'
+                                  : darkMode ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/25' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                              {t(`extraction.area_${areaId}`, area.nome)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {areasFontesStatus === 'error' && (
                   <div className={`mt-3 rounded-lg border px-3 py-2.5 text-[11px] ${darkMode ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-red-50 border-red-200 text-red-700'}`}>
