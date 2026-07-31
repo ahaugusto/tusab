@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { X, Zap, Loader2, Search } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
+import CanalUrlSearchInput from './CanalUrlSearchInput';
 import { getCanalInfo, criarProjeto, listarFontes } from '../../services/api';
 
 /**
@@ -481,14 +482,14 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   {t('extraction.channel_url_label')}
                 </label>
-                <input
-                  type="url"
+                <CanalUrlSearchInput
+                  darkMode={darkMode}
                   value={canalUrl}
-                  onChange={e => setCanalUrl(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && podeAvancarUrl) avancar(); }}
+                  onChange={setCanalUrl}
+                  onEnter={() => podeAvancarUrl && avancar()}
                   placeholder="https://www.youtube.com/@canal"
+                  inputSize={13}
                   autoFocus
-                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                 />
               </div>
               {/* Mapa de cobertura */}

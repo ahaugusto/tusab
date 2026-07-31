@@ -62,6 +62,9 @@ export const removeChannel = () => axios.post(`${API_BASE}/set-channel`, { canal
 /** Fetches channel coverage map (titles + topics) without downloading transcriptions */
 export const getCanalInfo = (url) => axios.get(`${API_BASE}/canal-info`, { params: { url } });
 
+/** Searches YouTube channels by name/term — no API key, local yt-dlp */
+export const buscarCanaisYoutube = (q) => axios.get(`${API_BASE}/canal-search`, { params: { q } });
+
 // ─── Motor ───────────────────────────────────────────────────────────────────
 
 /** Starts extraction engine with selected content types */
