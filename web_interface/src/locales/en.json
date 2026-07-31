@@ -1123,12 +1123,8 @@
   "repo.search_placeholder": "Search for a base by name...",
   "repo.search_no_matches": "No base found for \"{{query}}\".",
   "repo.search_clear": "Clear search",
-  "channel.mode_paste": "Paste URL",
-  "channel.mode_search": "Search channel",
-  "channel.search_placeholder": "Channel name...",
-  "channel.search_empty": "Type at least 2 letters to search",
+  "channel.input_placeholder": "Paste the channel URL or type its name...",
   "channel.search_no_results": "No channel found for \"{{query}}\"",
   "channel.search_error": "Error searching channels. Try again.",
-  "channel.search_subscribers": "{{count}} subscribers",
-  "channel.search_selected": "Channel selected — change search"
+  "channel.search_subscribers": "{{count}} subscribers"
 }
