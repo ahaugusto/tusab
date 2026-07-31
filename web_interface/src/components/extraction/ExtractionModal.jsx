@@ -330,7 +330,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                             ? darkMode ? 'bg-primary/15 border-primary text-white' : 'bg-primary/5 border-primary text-slate-800'
                             : darkMode ? 'bg-white/3 border-white/10 text-slate-300 hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
                         <span className={`text-[11px] font-bold block ${ativo ? 'text-primary' : ''}`}>{f.nome}</span>
-                        <span className="text-[10px] leading-snug block mt-0.5 opacity-70">{f.descricao}</span>
+                        <span className="text-[10px] leading-snug block mt-0.5 opacity-70">{t(`extraction.fonte_${f.id}_desc`, f.descricao)}</span>
                       </button>
                     );
                   })}
