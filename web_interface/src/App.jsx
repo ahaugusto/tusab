@@ -1337,7 +1337,7 @@ function App() {
 
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmFonte={handleStartConfirmFonte} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning && canalConfigurado ? (canalInput || status.canal_url || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} regras={regras} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmFonte={handleStartConfirmFonte} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning ? (canalInput || (canalConfigurado ? status.canal_url : '') || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} regras={regras} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
         )}
       </AnimatePresence>
       <AnimatePresence>
