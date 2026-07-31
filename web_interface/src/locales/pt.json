@@ -906,6 +906,8 @@
   "ollama.large_model_hint": "Modelos grandes podem levar vários minutos dependendo da sua conexão.",
   "ollama.install_success": "✓ {{model}} instalado com sucesso!",
   "ollama.error_prefix": "Erro: {{message}}",
+  "admin.language_title": "Idioma",
+  "admin.language_desc": "Muda o idioma da interface. Conteúdo já extraído e as respostas do chat não são traduzidos automaticamente — veja os detalhes no aviso exibido ao trocar de idioma.",
   "admin.update_available_title": "Atualização disponível",
   "admin.update_downloaded_desc": "O Tusab {{version}} foi baixado e está pronto para instalar. Feche o app para aplicar a atualização automaticamente.",
   "admin.update_downloading_desc": "Uma nova versão do Tusab ({{version}}) está sendo baixada em segundo plano. A atualização será aplicada ao fechar o app.",
@@ -1152,5 +1154,10 @@
   "channel.input_placeholder": "Cole a URL do canal ou digite o nome...",
   "channel.search_no_results": "Nenhum canal encontrado para \"{{query}}\"",
   "channel.search_error": "Erro ao buscar canais. Tente novamente.",
-  "channel.search_subscribers": "{{count}} inscritos"
+  "channel.search_subscribers": "{{count}} inscritos",
+  "language_notice.aria_label": "Aviso sobre tradução de conteúdo",
+  "language_notice.title": "Antes de trocar de idioma",
+  "language_notice.content_not_translated": "O conteúdo que você já extraiu ou adicionou (transcrições, documentos, textos) continua no idioma original — trocar o idioma da interface não traduz o que já está na base.",
+  "language_notice.chat_follows_input": "O chat responde no idioma em que você escreve, não no idioma da interface — se você escrever em inglês, ele responde em inglês, independente do idioma selecionado aqui.",
+  "language_notice.ciente": "Ciente"
 }

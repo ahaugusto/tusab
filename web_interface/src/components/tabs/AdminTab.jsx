@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2, RefreshCw, Plug, Copy, Check } from 'lucide-react';
+import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2, RefreshCw, Plug, Copy, Check, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import PrivacidadeRede from '../agent/PrivacidadeRede';
 import RedesCorporativas from '../agent/RedesCorporativas';
 import { BTN_FOCUS } from '../../constants';
@@ -17,6 +18,7 @@ export default function AdminTab({
   appUpdateInfo,
   onInstallUpdate,
   onShowToast,
+  onChangeLang,
 }) {
   const { t } = useTranslation();
 
@@ -95,6 +97,31 @@ export default function AdminTab({
 
   return (
     <div ref={mainScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
+
+      {/* Idioma do aplicativo — disponível pra todos os perfis */}
+      <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+          <Globe size={14} className="text-primary" aria-hidden="true" />
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+            {t('admin.language_title')}
+          </h3>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            {t('admin.language_desc')}
+          </p>
+          <select
+            value={i18n.language.startsWith('pt') ? 'pt' : i18n.language.startsWith('en') ? 'en' : 'es'}
+            onChange={e => onChangeLang?.(e.target.value)}
+            aria-label={t('admin.language_title')}
+            className={`rounded-xl border px-3 py-2 text-xs font-bold outline-none focus:border-primary transition-colors ${BTN_FOCUS}
+              ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+            <option value="pt" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Português</option>
+            <option value="en" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>English</option>
+            <option value="es" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Español</option>
+          </select>
+        </div>
+      </section>
 
       {/* Card de atualização do app */}
       {appUpdateInfo && (
