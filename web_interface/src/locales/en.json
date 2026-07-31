@@ -906,6 +906,8 @@
   "ollama.large_model_hint": "Large models can take several minutes depending on your connection.",
   "ollama.install_success": "✓ {{model}} installed successfully!",
   "ollama.error_prefix": "Error: {{message}}",
+  "admin.language_title": "Language",
+  "admin.language_desc": "Changes the interface language. Already-extracted content and chat replies aren't automatically translated — see the details in the notice shown when you switch language.",
   "admin.update_available_title": "Update available",
   "admin.update_downloaded_desc": "Tusab {{version}} has been downloaded and is ready to install. Close the app to apply the update automatically.",
   "admin.update_downloading_desc": "A new version of Tusab ({{version}}) is being downloaded in the background. The update will be applied when you close the app.",
@@ -1152,5 +1154,10 @@
   "channel.input_placeholder": "Paste the channel URL or type its name...",
   "channel.search_no_results": "No channel found for \"{{query}}\"",
   "channel.search_error": "Error searching channels. Try again.",
-  "channel.search_subscribers": "{{count}} subscribers"
+  "channel.search_subscribers": "{{count}} subscribers",
+  "language_notice.aria_label": "Notice about content translation",
+  "language_notice.title": "Before you switch language",
+  "language_notice.content_not_translated": "Content you've already extracted or added (transcripts, documents, texts) stays in its original language — switching the interface language doesn't translate what's already in your base.",
+  "language_notice.chat_follows_input": "Chat replies in the language you write in, not the interface language — if you write in English, it replies in English, regardless of the language selected here.",
+  "language_notice.ciente": "Got it"
 }

@@ -29,6 +29,7 @@ import { usePerfil, PERFIS_META, PERFIS_CONFIG } from './hooks/usePerfil';
 import ConsentModal from './components/shared/ConsentModal';
 import ProgressToast from './components/shared/ProgressToast';
 import DriveWarningModal, { useDriveWarning } from './components/shared/DriveWarningModal';
+import LanguageNoticeModal, { hasAckedLanguageNotice } from './components/shared/LanguageNoticeModal';
 import AprofundarModal from './components/shared/AprofundarModal';
 import {
   fetchHistory, fetchRepositorio, fetchQueue, setChannel, startExtraction, pauseExtraction, queueAdd, queueClear,
@@ -169,6 +170,7 @@ function App() {
   const [repoImportOpen,   setRepoImportOpen]   = useState(false);
   const [showPostModal,    setShowPostModal]    = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
+  const [showLanguageNotice, setShowLanguageNotice] = useState(false);
   // Fonte escolhida no seletor da tela principal da Extração (perfil Pesquisador)
   // — repassada ao modal pra abrir direto na busca certa, sem escolher de novo.
   const [fontePreSelecionada, setFontePreSelecionada] = useState('youtube');
@@ -756,10 +758,12 @@ function App() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  /** Changes i18n language and syncs HTML lang attribute */
+  /** Changes i18n language, syncs HTML lang attribute, and shows the
+   *  content/chat-language notice unless the user already acknowledged it. */
   const changeLang = (lng) => {
     i18n.changeLanguage(lng);
     document.documentElement.lang = lng === 'en' ? 'en' : lng === 'es' ? 'es' : 'pt-BR';
+    if (!hasAckedLanguageNotice()) setShowLanguageNotice(true);
   };
 
   /** Selects a previously extracted canal by URL (history quick-select) */
@@ -1208,6 +1212,12 @@ function App() {
         darkMode={darkMode}
         onConfirm={handleDriveWarningConfirm}
         onCancel={() => { setShowDriveWarning(false); setDriveOpen(false); }} />
+
+      {/* Aviso de idioma — mostrado a cada troca de idioma até o usuário clicar "Ciente" */}
+      <LanguageNoticeModal
+        open={showLanguageNotice}
+        darkMode={darkMode}
+        onClose={() => setShowLanguageNotice(false)} />
 
       {/* Aprofundar base — oferecido após salvar config LLM quando há vídeos sem resumo */}
       <AprofundarModal
@@ -1976,6 +1986,7 @@ function App() {
                 appUpdateInfo={appUpdateInfo}
                 onInstallUpdate={() => window.tusab?.installUpdate?.(appUpdateInfo?.version)}
                 onShowToast={setProgressToast}
+                onChangeLang={changeLang}
               />
             )}
 
