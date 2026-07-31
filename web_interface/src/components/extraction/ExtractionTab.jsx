@@ -10,6 +10,7 @@ import {
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
 import RelatorioTab from '../agent/RelatorioTab';
+import CanalUrlSearchInput from './CanalUrlSearchInput';
 import { BTN_FOCUS } from '../../constants';
 import {
   fetchHistory, setChannel, saveAutoUpdateConfig, runAutoUpdate, openFolder, clearLog,
@@ -181,15 +182,14 @@ export default function ExtractionTab({
                 {/* Esquerda — nova URL */}
                 <div className="flex-1 space-y-2">
                   <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>{t('channel.title')}</p>
-                  <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all
-                    ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-                    <Link2 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
-                    <input type="url" placeholder={t('channel.placeholder')} value={canalInput}
-                      onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
-                      onKeyDown={e => e.key === 'Enter' && handleConfigurarCanal()}
-                      aria-invalid={!!canalError}
-                      className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-                  </div>
+                  <CanalUrlSearchInput
+                    darkMode={darkMode}
+                    value={canalInput}
+                    onChange={v => { setCanalInput(v); setCanalError(''); }}
+                    onEnter={handleConfigurarCanal}
+                    placeholder={t('channel.placeholder')}
+                    inputSize={13}
+                  />
                   {canalError && (
                     <p role="alert" className="text-[11px] text-danger flex items-center gap-1 font-medium">
                       <AlertTriangle size={11} aria-hidden="true" /> {canalError}
@@ -252,15 +252,14 @@ export default function ExtractionTab({
               /* ── Sem histórico: só input de URL ── */
               <div className="space-y-2">
                 <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('channel.title')}</p>
-                <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-all
-                  ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
-                  <Link2 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
-                  <input type="url" placeholder={t('channel.placeholder')} value={canalInput}
-                    onChange={e => { setCanalInput(e.target.value); setCanalError(''); }}
-                    onKeyDown={e => e.key === 'Enter' && handleConfigurarCanal()}
-                    aria-invalid={!!canalError}
-                    className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
-                </div>
+                <CanalUrlSearchInput
+                  darkMode={darkMode}
+                  value={canalInput}
+                  onChange={v => { setCanalInput(v); setCanalError(''); }}
+                  onEnter={handleConfigurarCanal}
+                  placeholder={t('channel.placeholder')}
+                  inputSize={14}
+                />
                 {canalError && (
                   <p role="alert" className="text-[11px] text-danger flex items-center gap-1 font-medium">
                     <AlertTriangle size={11} aria-hidden="true" /> {canalError}

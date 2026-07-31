@@ -296,6 +296,25 @@ def canal_info(url: str):
     }
 
 
+@router.get("/canal-search")
+def canal_search(q: str):
+    """Busca canais do YouTube por nome/termo — sem API key, via yt-dlp local.
+
+    Complementa o fluxo de colar URL: usuário digita um nome e escolhe entre
+    os candidatos retornados em vez de precisar copiar a URL do canal.
+    """
+    from tusab_engine.motor.extraction import buscar_canais_youtube
+
+    q = (q or '').strip()
+    if not q:
+        return {"canais": []}
+    if len(q) > 200:
+        return {"error": True, "message": "Termo de busca muito longo"}
+
+    canais = buscar_canais_youtube(q, max_resultados=8)
+    return {"canais": canais}
+
+
 class QueueMoveRequest(BaseModel):
     from_index: int
     to_index: int
