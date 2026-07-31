@@ -30,20 +30,28 @@ jobs:
       # macOS: o script de instalação hardcoda /Users/runner (convenção do
       # runner HOSPEDADO) em alguns pontos internos, ignorando
       # RUNNER_TOOL_CACHE — "mkdir: /Users/runner: Permission denied" pro
-      # usuário real deste self-hosted (m1). Usa o python3 do sistema
-      # (Xcode Command Line Tools, já presente) em vez de lutar contra a
-      # action.
+      # usuário real deste self-hosted (m1). O python3 do sistema (Xcode
+      # Command Line Tools) também não serve — é 3.9.6, e requirements.txt
+      # pede fastapi>=0.136.3, que não tem wheel pra 3.9. Reusa o mesmo
+      # Python portátil (python-build-standalone) já usado nos jobs de
+      # assinatura/notarização macOS.
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
-      - name: Instalar dependências Python (python3 do sistema)
+      - name: Baixar Python portátil (cpython 3.12.13, arm64)
         run: |
-          which python3
-          python3 --version
-          python3 -m pip install --user -r requirements.txt pytest httpx
+          curl -L -o python-macos-arm64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          mkdir -p python_env_tests
+          tar -xzf python-macos-arm64.tar.gz -C python_env_tests --strip-components=1
+
+      - name: Instalar dependências Python
+        run: |
+          ./python_env_tests/bin/python3 -m pip install --upgrade pip
+          ./python_env_tests/bin/python3 -m pip install -r requirements.txt pytest httpx
 
       - name: Dist mínimo para testes
         run: |
@@ -51,7 +59,7 @@ jobs:
           echo '<!doctype html><html><body>Tusab CI</body></html>' > web_interface/dist/index.html
 
       - name: Pytest
-        run: python3 -m pytest tests/ -v --tb=short
+        run: ./python_env_tests/bin/python3 -m pytest tests/ -v --tb=short
 
       - name: Build frontend
         working-directory: web_interface
