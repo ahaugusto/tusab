@@ -1100,5 +1100,14 @@
   "chat.base_status_no_content": "Sem conteúdo",
   "chat.reindex_base_tooltip": "Reindexar @{{nome}}",
   "chat.index_base_tooltip": "Indexar @{{nome}}",
-  "chat.select_at_least_one_base": "Selecione ao menos uma base para continuar."
+  "chat.select_at_least_one_base": "Selecione ao menos uma base para continuar.",
+  "extraction.area_geral": "Buscadores gerais e multidisciplinares",
+  "extraction.area_tecnologia": "Tecnologia, IA e ciência de dados",
+  "extraction.area_economia": "Economia, finanças e ciências sociais",
+  "extraction.area_direito": "Direito, normas, legislação e governo",
+  "extraction.area_saude": "Saúde, biologia e genética",
+  "extraction.area_terra": "Ciências da Terra, clima e espaço",
+  "extraction.area_fisica": "Física, química e materiais",
+  "extraction.area_patrimonio": "Patrimônio cultural, história e arquivos",
+  "extraction.area_antropologia": "Antropologia, linguística e conhecimento estruturado"
 }

@@ -1100,5 +1100,14 @@
   "chat.base_status_no_content": "No content",
   "chat.reindex_base_tooltip": "Reindex @{{nome}}",
   "chat.index_base_tooltip": "Index @{{nome}}",
-  "chat.select_at_least_one_base": "Select at least one base to continue."
+  "chat.select_at_least_one_base": "Select at least one base to continue.",
+  "extraction.area_geral": "General and multidisciplinary search engines",
+  "extraction.area_tecnologia": "Technology, AI, and data science",
+  "extraction.area_economia": "Economics, finance, and social sciences",
+  "extraction.area_direito": "Law, standards, legislation, and government",
+  "extraction.area_saude": "Health, biology, and genetics",
+  "extraction.area_terra": "Earth sciences, climate, and space",
+  "extraction.area_fisica": "Physics, chemistry, and materials",
+  "extraction.area_patrimonio": "Cultural heritage, history, and archives",
+  "extraction.area_antropologia": "Anthropology, linguistics, and structured knowledge"
 }
