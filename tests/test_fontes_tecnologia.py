@@ -16,7 +16,7 @@ def test_area_tecnologia_registrada():
     areas = fontes_registry.listar_fontes()
     assert "tecnologia" in areas
     ids = {f["id"] for f in areas["tecnologia"]["fontes"]}
-    assert ids == {"github", "stackexchange"}
+    assert ids == {"github", "stackexchange", "hacker_news"}
 
 
 # ─── GitHub ──────────────────────────────────────────────────────────────────
