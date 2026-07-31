@@ -183,7 +183,7 @@ export default function ExtractionTab({
                     </p>
                   )}
                   {areasFontesStatus === 'ok' && Object.keys(areasFontes).length > 1 && (
-                    <div className="w-full sm:w-72 shrink-0">
+                    <div className="w-full sm:w-[26rem] shrink-0">
                       <label className={`text-[10px] font-bold block mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         {t('extraction.area_label')}
                       </label>
