@@ -656,3 +656,32 @@ Esses 3 abrem caminho pra um filtro por país/bloco na UI (Brasil via BCB, Reino
 - `data.europa.eu/api/hub/search/search` (query param `q`)
 - `api.crossref.org/works` (query param `query`, filtro `has-abstract:true`)
 - `data.gov.uk/api/3/action/package_search` (CKAN, query param `q`)
+
+**Atualização (30/jul/2026, mesmo dia) — 5 fontes implementadas de verdade.** Módulos criados: `data_europa_eu.py`, `crossref.py`, `data_gov_uk.py` (os 3 confirmados acima) + `open_library.py` e `hacker_news.py` (validados na mesma sessão). Achados de implementação:
+- **Open Library**: busca (`search.json`) não traz descrição — só o endpoint de detalhe da obra (`/works/{id}.json`) tem texto narrativo real. Padrão de 2 chamadas (busca → detalhe), mesmo já usado em Câmara dos Deputados/PubMed.
+- **Hacker News** (Algolia API): só tem corpo de texto real em posts do tipo Ask HN/Show HN (`tags=(ask_hn,show_hn)`) — posts de link (a maioria) não têm `story_text`. Fica na área "tecnologia", ao lado de GitHub/Stack Exchange.
+- **Portal da Transparência**: schema público (Swagger, sem precisar de chave) mostra campos que parecem narrativos no CEIS (`textoPublicacao`, `fundamentacao`, `detalhamentoPublicacao`) — promissor, mas a API em si exige chave via login gov.br, então o conteúdo real não foi confirmado ao vivo ainda. Se confirmado, é candidato a usar OAuth via navegador (mesmo padrão do Google Drive) em vez do padrão zero-cadastro das outras fontes — pendente.
+
+---
+
+### Suporte a macOS — Fases 0-8, lições reais de assinatura de código (30/jul/2026)
+
+Plano completo de 9 fases aprovado e documentado em `C:\Users\augus\.claude\plans\no-git-j-estamos-binary-wilkinson.md`. Fases 0-4 (portabilidade de código, runner macOS, Python portátil via python-build-standalone, Electron real `--dir`, `.dmg`/`.zip` sem assinar) fechadas e verificadas via CI real (`macos-latest`, GitHub Actions) antes desta entrada. Sem regressão no Windows em nenhum passo (`pytest` + `smoke.ps1` verdes a cada mudança).
+
+**2 bugs reais encontrados testando o fluxo de auto-instalação do Ollama no macOS** (não simulado — rodado de verdade num runner limpo sem Ollama pré-instalado):
+1. `findOllamaExe()` (`main.js`) tinha um fallback `'ollama'` retornado incondicionalmente (sempre truthy) — `ensureOllama()` achava que o Ollama já estava instalado mesmo quando não estava, e o download nunca disparava. Mascarado no Windows porque o instalador NSIS já deixa o Ollama instalado antes do primeiro launch; no macOS, sem instalador equivalente, esse era o único mecanismo. Corrigido: só retorna `'ollama'` se o comando resolver de fato no PATH (`where`/`command -v`).
+2. A URL de download (`Ollama-darwin-${arch}.zip`) estava quebrada — a Ollama parou de publicar `.zip` separado por arquitetura; hoje é um único build universal `Ollama-darwin.zip`. Confirmado via GitHub API antes de corrigir.
+
+**Certificado Developer ID Application — gerado sem precisar de Mac**, via OpenSSL no Git Bash: chave RSA 2048 + CSR (`openssl req -new -newkey rsa:2048 -nodes`), CSR enviado pelo portal web da Apple, `.cer` baixado e combinado com a chave num `.p12`. Escolhido **G2 Sub-CA** (não "Previous Sub-CA" — esse expira em fev/2027 pra certificados emitidos depois de fev/2022, G2 não tem essa bomba-relógio). Team ID: `3FM3Y2U75M`.
+
+**Sequência real de bugs até a assinatura funcionar de verdade (Fase 6), cada um isolado e corrigido em CI antes do próximo aparecer:**
+1. `security: SecKeychainItemImport: MAC verification failed during PKCS12 import (wrong password?)` — mensagem sugere senha errada, mas **não era a senha**. Causa real: OpenSSL 3.x usa AES-256-CBC por padrão pro PKCS12, e o `security`/Keychain do macOS só entende o esquema legado (RC2-40-CBC/3DES). Fix: gerar o `.p12` com `openssl pkcs12 -export -legacy`. Lição: a mensagem de erro do macOS pra PKCS12 malformado/incompatível é idêntica à de senha errada — sempre verificar o algoritmo (`openssl pkcs12 -info`) antes de assumir que é a senha.
+2. `configuration.mac.notarize should be a boolean` — electron-builder 26.15.3 rejeita `mac.notarize` como objeto (`{teamId: ...}`), só aceita `true`/`false` estrito. Fix: manter `false` no `package.json` (padrão, sem notarizar) e ligar via override de CLI só nos jobs que notarizam de verdade: `electron-builder --mac -c.mac.notarize=true`.
+3. `EMFILE: too many open files` — deep-sign de todo o `python_env` (torch/onnxruntime/transformers, dezenas de milhares de arquivos) esgota o limite de arquivos abertos. **`ulimit -n` sozinho não resolve, mesmo setado pra 1000000 com hard limit "unlimited"** — o macOS impõe um teto de KERNEL (`kern.maxfilesperproc`/`kern.maxfiles`, via `sysctl`) separado e mais restritivo que o ulimit do processo. Sintoma que confirmou o diagnóstico: o erro batia exatamente no mesmo arquivo da árvore (`site-packages/anthropic/types/beta/...`) independente do valor de ulimit testado — se o ulimit estivesse realmente valendo, o ponto de falha teria avançado a cada tentativa. Fix: `sudo sysctl -w kern.maxfilesperproc=200000 kern.maxfiles=300000` antes do build (runners do GitHub Actions permitem sudo sem senha).
+4. `ditto: ... No space left on device` ao montar o `.dmg` — não é o disco físico do runner, é o volume VIRTUAL da imagem `.dmg` que o `dmgbuild` (usado internamente pelo electron-builder) monta e que ficou pequeno demais pro app assinado inteiro. Em investigação — ver próxima entrada quando resolvido.
+
+**Timeouts ajustados com base em medição real, não estimativa:** assinar sozinho (deep-sign de todo o `python_env`) leva 30-40+ minutos no runner `macos-latest` — `timeout-minutes` dos jobs que assinam/notarizam subido de 30/40 pra 90 pra dar margem (notarização soma submissão + espera da Apple em cima da assinatura).
+
+**Metodologia que se provou valiosa de novo:** isolar cada variável (Fase 6 = só assinar, sem notarizar) antes de avançar pra uma etapa mais cara (Fase 7 = notarização real, depende de serviço externo da Apple, mais lenta) evitou gastar ciclos caros de notarização diagnosticando problemas que eram, na real, da camada de assinatura local — exatamente o motivo dado quando o plano original foi desenhado.
+
+Secrets no GitHub (`ahaugusto/tusab`): `CSC_LINK` (`.p12` em base64), `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (conteúdo do `.p8` da App Store Connect API Key — **atenção**: `@electron/notarize` espera um CAMINHO de arquivo, não o conteúdo direto, então o CI escreve o secret num arquivo antes de usar), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`.
