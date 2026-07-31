@@ -107,7 +107,7 @@ export default function ExtractionTab({
           {[
             { id: 'extrair',       label: t('tabs.extraction'), icon: Zap     },
             { id: 'relatorio',     label: t('tabs.relatorio'),  icon: BarChart3 },
-            { id: 'periodicidade', label: 'Auto-Update',        icon: Clock   },
+            { id: 'periodicidade', label: t('tabs.periodicidade'), icon: Clock   },
           ].map(({ id, label, icon: Icon }) => (
             <button key={id}
               onClick={() => setExtracaoSubTab(id)}
@@ -143,7 +143,7 @@ export default function ExtractionTab({
                 onClick={() => setFontePreSelecionada('fonte-publica')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
                   ${fontePreSelecionada === 'fonte-publica' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                <Search size={12} aria-hidden="true" /> Base pública
+                <Search size={12} aria-hidden="true" /> {t('extraction.source_public')}
               </button>
             </div>
           )}
@@ -153,10 +153,10 @@ export default function ExtractionTab({
               <div className={`p-4 rounded-xl border text-center ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
                 <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
                 <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  Buscar em base pública
+                  {t('extraction.public_search_title')}
                 </p>
                 <p className={`text-[11px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Escolha a área de conhecimento e a fonte no modal de busca.
+                  {t('extraction.public_search_subtitle')}
                 </p>
               </div>
             ) : canalConfigurado ? (
@@ -207,20 +207,20 @@ export default function ExtractionTab({
                 {/* Divisor */}
                 <div className="flex flex-col items-center gap-1 pt-5">
                   <div className={`flex-1 w-px ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
-                  <span className={`text-[10px] font-bold px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ou</span>
+                  <span className={`text-[10px] font-bold px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('common.or')}</span>
                   <div className={`flex-1 w-px ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
                 </div>
 
                 {/* Direita — canais anteriores */}
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-1.5">
-                    <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>Extraídos anteriormente</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>{t('channel.extracted_before')}</p>
                     <div className="relative group/hint">
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className={`cursor-default ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}><circle cx="8" cy="8" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="7.4" y="7" width="1.2" height="5.5" rx="0.5"/><circle cx="8" cy="4.8" r="0.75"/></svg>
                       <div className={`absolute left-0 bottom-full mb-2 w-56 px-3 py-2 rounded-xl text-[10px] leading-relaxed pointer-events-none
                         opacity-0 group-hover/hint:opacity-100 transition-opacity duration-150 z-50 shadow-xl
                         ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-slate-900 text-white'}`}>
-                        Selecione um canal já extraído para carregá-lo como ativo e extrair novos vídeos sem redigitar a URL.
+                        {t('channel.extracted_before_hint')}
                         <div className={`absolute left-3 top-full w-2 h-2 rotate-45 -translate-y-1 ${darkMode ? 'bg-slate-800' : 'bg-slate-900'}`} />
                       </div>
                     </div>
@@ -236,11 +236,11 @@ export default function ExtractionTab({
                       className={`w-full px-3 py-2 pr-8 text-xs bg-transparent outline-none cursor-pointer appearance-none
                         ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                       <option value="" disabled className={darkMode ? 'bg-slate-900' : 'bg-white'}>
-                        Selecionar canal...
+                        {t('channel.select_placeholder')}
                       </option>
                       {history.map((h, i) => (
                         <option key={i} value={h.canal_url} className={darkMode ? 'bg-slate-900' : 'bg-white'}>
-                          @{h.canal} · {h.extraidos} vídeos · {h.cobertura}%
+                          {t('channel.history_option', { canal: h.canal, count: h.extraidos, cobertura: h.cobertura })}
                         </option>
                       ))}
                     </select>
@@ -281,7 +281,7 @@ export default function ExtractionTab({
               <button onClick={onOpenQueueModal}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${BTN_FOCUS} ${darkMode ? 'border-white/15 text-slate-400 hover:border-white/30 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                Fila ({extractionQueue.length})
+                {t('queue.button_label', { count: extractionQueue.length })}
               </button>
             )}
             <button onClick={handleStart} disabled={!canalConfigurado && !isRunning && !regras.fontes_publicas}
@@ -306,11 +306,11 @@ export default function ExtractionTab({
               <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                 <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" aria-hidden="true" />
                 <span className={`text-[11px] font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Na fila · {extractionQueue.length} {extractionQueue.length === 1 ? 'canal' : 'canais'}
+                  {t('queue.inline_count', { count: extractionQueue.length })}
                 </span>
                 <button onClick={onOpenQueueModal}
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-lg transition-colors ${BTN_FOCUS} ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'}`}>
-                  Gerenciar
+                  {t('queue.manage')}
                 </button>
               </div>
               <div className="divide-y divide-white/5">
@@ -329,14 +329,14 @@ export default function ExtractionTab({
                         )}
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                        {(item.fontes || []).length > 0 ? (item.fontes || []).length + ' tipos' : 'todos'}
+                        {(item.fontes || []).length > 0 ? t('queue.types_count', { count: (item.fontes || []).length }) : t('queue.types_all')}
                       </span>
                     </div>
                   );
                 })}
                 {extractionQueue.length > 3 && (
                   <div className={`px-4 py-2 text-[10px] font-bold text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                    + {extractionQueue.length - 3} mais canais na fila
+                    {t('queue.more_channels', { count: extractionQueue.length - 3 })}
                   </div>
                 )}
               </div>
@@ -360,7 +360,7 @@ export default function ExtractionTab({
                     <span className={`text-xs font-mono ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{processedVideos} / {totalVideos}</span>
                   )}
                   {totalVideos === 0 && status.stats.videos_mapeados > 0 && (
-                    <span className={`text-xs font-mono ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{status.stats.videos_mapeados} mapeados</span>
+                    <span className={`text-xs font-mono ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('progress.mapped_count', { count: status.stats.videos_mapeados })}</span>
                   )}
                   <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{progress}%</span>
                 </div>
@@ -469,7 +469,7 @@ export default function ExtractionTab({
                   <h3 id="summary-busca-heading" className={`text-xs font-bold uppercase tracking-wider ${r.sucesso
                     ? darkMode ? 'text-secondary' : 'text-emerald-700'
                     : darkMode ? 'text-warning' : 'text-amber-700'}`}>
-                    {r.sucesso ? 'Busca em base pública concluída' : 'Busca em base pública interrompida'}
+                    {r.sucesso ? t('extraction.fonte_search_done') : t('extraction.fonte_search_interrupted')}
                   </h3>
                 </div>
                 <div className="px-5 py-4">
@@ -479,7 +479,7 @@ export default function ExtractionTab({
                     </div>
                     <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                       <span className={`text-lg font-bold mr-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{r.processed}</span>
-                      de {r.total} resultado{r.total === 1 ? '' : 's'} salvos no projeto.
+                      {t('extraction.fonte_saved_count', { count: r.total })}
                     </p>
                   </div>
 
@@ -498,8 +498,8 @@ export default function ExtractionTab({
                         <button onClick={() => setItensExpandido(v => !v)}
                           className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${BTN_FOCUS} ${darkMode ? 'text-primary hover:text-primary/80' : 'text-primary hover:text-primary/70'}`}>
                           {itensExpandido
-                            ? <>Mostrar menos <ChevronDown size={12} className="rotate-180" aria-hidden="true" /></>
-                            : <>Mostrar mais {r.itens.length - 5} <ChevronDown size={12} aria-hidden="true" /></>}
+                            ? <>{t('extraction.show_less')} <ChevronDown size={12} className="rotate-180" aria-hidden="true" /></>
+                            : <>{t('extraction.show_more', { count: r.itens.length - 5 })} <ChevronDown size={12} aria-hidden="true" /></>}
                         </button>
                       )}
                     </div>
@@ -510,7 +510,7 @@ export default function ExtractionTab({
                       className={`mt-3 ml-12 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                         ${darkMode ? 'bg-white/5 border-white/15 text-slate-200 hover:bg-white/10' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
                       <BookOpen size={12} aria-hidden="true" />
-                      Abrir base no Repositório
+                      {t('extraction.open_in_repo')}
                     </button>
                   )}
                 </div>
@@ -532,8 +532,8 @@ export default function ExtractionTab({
         {/* Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
           {fontePreSelecionada === 'fonte-publica' ? (
-            <StatCard icon={Search} label="Resultados processados" value={lastFonteResult?.processed ?? 0}
-              color="primary" sub={lastFonteResult ? `${lastFonteResult.total} encontrados` : 'aguardando busca'}
+            <StatCard icon={Search} label={t('extraction.results_processed_label')} value={lastFonteResult?.processed ?? 0}
+              color="primary" sub={lastFonteResult ? t('extraction.results_found_short', { count: lastFonteResult.total }) : t('extraction.waiting_search')}
               darkMode={darkMode} />
           ) : (
             <StatCard icon={Video}    label={t('stats.processed')} value={processedVideos}
@@ -584,7 +584,7 @@ export default function ExtractionTab({
                   ${darkMode
                     ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Todos os projetos</option>
+                <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{t('log.all_projects')}</option>
                 {canaisNoLog.map(c => (
                   <option key={c} value={c} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{c}</option>
                 ))}
@@ -610,7 +610,7 @@ export default function ExtractionTab({
                 {status.stats.status === 'Cancelando...' ? (
                   <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-500/30 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     <Loader2 size={10} className="animate-spin" aria-hidden="true" />
-                    Aguardando...
+                    {t('ops.awaiting_cancel')}
                   </span>
                 ) : (
                   <button onClick={handleCancel}
@@ -629,7 +629,7 @@ export default function ExtractionTab({
               <div className="h-full flex flex-col items-center justify-center space-y-3">
                 <Activity size={28} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
                 <p className={`text-xs opacity-60 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {logFiltroCanal ? `Sem logs para "${logFiltroCanal}"` : canalConfigurado ? t('log.ready') : t('log.complete_steps')}
+                  {logFiltroCanal ? t('log.no_logs_for', { canal: logFiltroCanal }) : canalConfigurado ? t('log.ready') : t('log.complete_steps')}
                 </p>
               </div>
             ) : (
@@ -665,7 +665,7 @@ export default function ExtractionTab({
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
           <div className="flex items-center justify-between">
             <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Configure a frequência de verificação de novos vídeos por canal.
+              {t('autoupdate.subtitle_tab')}
             </p>
             <button
               onClick={() => {
@@ -676,27 +676,32 @@ export default function ExtractionTab({
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${BTN_FOCUS}
                 ${darkMode ? 'border-cyan-500/30 text-cyan-400 bg-cyan-500/8 hover:bg-cyan-500/15' : 'border-cyan-500/40 text-cyan-700 bg-cyan-50 hover:bg-cyan-100'}`}>
               <RefreshCw size={11} className={autoUpdateChecking ? 'animate-spin' : ''} />
-              Verificar agora
+              {t('autoupdate.check_now')}
             </button>
           </div>
 
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
               <Clock size={14} className="text-cyan-500" />
-              <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>Seus projetos</span>
-              <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{history.length} projeto{history.length !== 1 ? 's' : ''}</span>
+              <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('autoupdate.your_projects')}</span>
+              <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('autoupdate.project_count', { count: history.length })}</span>
             </div>
             <div className={`divide-y ${darkMode ? 'divide-white/5' : 'divide-slate-100'}`}>
               {history.length === 0 ? (
                 <div className="px-5 py-10 flex flex-col items-center gap-2">
                   <Clock size={24} className={darkMode ? 'text-slate-700' : 'text-slate-300'} />
                   <p className={`text-xs text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Nenhum canal extraído ainda.<br />Extraia um canal para configurar o Auto-Update.
+                    {t('autoupdate.empty_title')}<br />{t('autoupdate.empty_hint')}
                   </p>
                 </div>
               ) : history.map((h) => {
                 const cfg = autoUpdateConfigs[h.canal] || { enabled: false, frequencia: 'semanal' };
-                const FREQ_LABELS = { ao_abrir: 'Ao abrir', diario: 'Diária', semanal: 'Semanal', mensal: 'Mensal' };
+                const FREQ_LABELS = {
+                  ao_abrir: t('extraction.freq_on_open'),
+                  diario:   t('extraction.freq_daily'),
+                  semanal:  t('extraction.freq_weekly'),
+                  mensal:   t('extraction.freq_monthly'),
+                };
                 const canalUrl = h.canal_url || '';
                 const projetoPrefixo = h.projeto || '';
                 const rowKey = projetoPrefixo ? `${h.canal}__${projetoPrefixo}` : h.canal;
@@ -718,8 +723,8 @@ export default function ExtractionTab({
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>@{h.canal}</p>
                       <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                        {h.extraidos ?? h.total ?? 0} vídeos extraídos
-                        {projetoPrefixo && <> · Projeto: <span className="font-medium">{projetoPrefixo}</span></>}
+                        {t('autoupdate.videos_extracted', { count: h.extraidos ?? h.total ?? 0 })}
+                        {projetoPrefixo && <> · {t('autoupdate.project_label')} <span className="font-medium">{projetoPrefixo}</span></>}
                       </p>
                     </div>
                     {cfg.enabled && (
@@ -749,7 +754,7 @@ export default function ExtractionTab({
           </div>
 
           <p className={`text-[10px] text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-            O Tusab verifica novos vídeos na frequência configurada e os enfileira automaticamente para extração.
+            {t('autoupdate.footer_hint')}
           </p>
         </div>
       )}

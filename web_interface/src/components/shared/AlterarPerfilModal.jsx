@@ -86,7 +86,7 @@ function AlterarPerfilModal({ darkMode, btnFocus = BTN_FOCUS, perfilAtual, onCon
           </h2>
           <button
             onClick={onFechar}
-            aria-label="Fechar"
+            aria-label={t('modal.close')}
             className={`p-1.5 rounded-lg transition-colors ${btnFocus}
               ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
             <X size={15} aria-hidden="true" />

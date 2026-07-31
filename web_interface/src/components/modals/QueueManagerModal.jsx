@@ -24,7 +24,7 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
   return (
     <AnimatePresence>
       {open && (
-        <ModalWrapper key="queue-modal" onClose={onClose} zIndex="z-50" backdrop="bg-black/60 backdrop-blur-sm" label="Gerenciar fila de extração">
+        <ModalWrapper key="queue-modal" onClose={onClose} zIndex="z-50" backdrop="bg-black/60 backdrop-blur-sm" label={t('ops.queue_manage_aria')}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.2 }}
@@ -34,18 +34,18 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
               <div>
                 <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('ops.queue_title')}</h2>
                 <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                  {extractionQueue.length === 0 ? 'Fila vazia.' : `${extractionQueue.length} ${extractionQueue.length === 1 ? 'canal aguardando' : 'canais aguardando'}`}
+                  {extractionQueue.length === 0 ? t('ops.queue_empty') : t('ops.queue_waiting', { count: extractionQueue.length })}
                 </p>
               </div>
               <button onClick={onClose}
                 className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'} ${BTN_FOCUS}`}
-                aria-label="Fechar">
+                aria-label={t('modal.close')}>
                 <X size={16} />
               </button>
             </div>
 
             {extractionQueue.length === 0 ? (
-              <p className={`text-center text-xs py-6 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum canal na fila.</p>
+              <p className={`text-center text-xs py-6 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('ops.queue_empty_list')}</p>
             ) : (
               <div className="space-y-1 mb-4 max-h-72 overflow-y-auto custom-scrollbar">
                 {extractionQueue.map((item, i) => {
@@ -58,14 +58,14 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
                         <button
                           onClick={() => handleMover(i, i - 1)}
                           disabled={i === 0}
-                          aria-label="Mover para cima"
+                          aria-label={t('ops.queue_move_up')}
                           className={`p-0.5 rounded transition-colors disabled:opacity-20 ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'} ${BTN_FOCUS}`}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6"/></svg>
                         </button>
                         <button
                           onClick={() => handleMover(i, i + 1)}
                           disabled={i === extractionQueue.length - 1}
-                          aria-label="Mover para baixo"
+                          aria-label={t('ops.queue_move_down')}
                           className={`p-0.5 rounded transition-colors disabled:opacity-20 ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'} ${BTN_FOCUS}`}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
                         </button>
@@ -78,11 +78,11 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
                         )}
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
-                        {(item.fontes || []).length > 0 ? (item.fontes || []).length + ' tipos' : 'todos'}
+                        {(item.fontes || []).length > 0 ? t('queue.types_count', { count: (item.fontes || []).length }) : t('queue.types_all')}
                       </span>
                       <button
                         onClick={() => handleRemover(i)}
-                        aria-label="Remover da fila"
+                        aria-label={t('ops.queue_remove_item')}
                         className={`p-1 rounded-lg transition-colors shrink-0 ${darkMode ? 'text-slate-600 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'} ${BTN_FOCUS}`}>
                         <X size={12} />
                       </button>
@@ -97,7 +97,7 @@ export default function QueueManagerModal({ open, darkMode, extractionQueue, set
                 onClick={() => { queueClear(); setExtractionQueue([]); }}
                 className={`w-full py-2.5 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
                   ${darkMode ? 'border-danger/30 text-danger hover:bg-danger/10' : 'border-red-200 text-red-600 hover:bg-red-50'}`}>
-                Limpar fila
+                {t('ops.queue_clear_btn')}
               </button>
             )}
           </motion.div>

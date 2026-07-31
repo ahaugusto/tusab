@@ -5,6 +5,7 @@
  * (sistema de licença ainda não ativo); informa e apresenta CTA de interesse.
  */
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X } from 'lucide-react';
 
@@ -19,10 +20,11 @@ import { Sparkles, X } from 'lucide-react';
  * @param {number}   [props.autoClose]  - ms para fechar automaticamente (padrão: 6000)
  */
 function ProSnackbar({ visible, onClose, feature, darkMode, autoClose = 6000 }) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!visible) return;
-    const t = setTimeout(onClose, autoClose);
-    return () => clearTimeout(t);
+    const timer = setTimeout(onClose, autoClose);
+    return () => clearTimeout(timer);
   }, [visible, autoClose, onClose]);
 
   return (
@@ -49,16 +51,16 @@ function ProSnackbar({ visible, onClose, feature, darkMode, autoClose = 6000 }) 
           {/* Texto */}
           <div className="flex-1 min-w-0">
             <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-              Feature Pro{feature ? ` — ${feature}` : ''}
+              {feature ? t('pro_snackbar.title_with_feature', { feature }) : t('pro_snackbar.title')}
             </p>
             <p className={`text-[11px] mt-0.5 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Disponível no plano Pro. Fique de olho no lançamento!
+              {t('pro_snackbar.body')}
             </p>
             <a
               href="mailto:tusab@tusab.solutions?subject=Interesse%20no%20Tusab%20Pro"
               className={`inline-flex items-center gap-1 mt-2 text-[11px] font-bold transition-colors
                 ${darkMode ? 'text-primary hover:text-primary/80' : 'text-violet-600 hover:text-violet-800'}`}>
-              Quero ser avisado →
+              {t('pro_snackbar.cta')}
             </a>
           </div>
 
@@ -67,7 +69,7 @@ function ProSnackbar({ visible, onClose, feature, darkMode, autoClose = 6000 }) 
             onClick={onClose}
             className={`p-1 rounded-lg self-start transition-colors shrink-0
               ${darkMode ? 'text-slate-500 hover:bg-white/10' : 'text-slate-400 hover:bg-slate-100'}`}
-            aria-label="Fechar">
+            aria-label={t('modal.close')}>
             <X size={13} />
           </button>
         </motion.div>

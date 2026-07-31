@@ -12,16 +12,21 @@ import { BTN_FOCUS } from '../../constants';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtDate(ts) {
+function localeFor(lang) {
+  return lang?.startsWith('en') ? 'en-US' : lang?.startsWith('es') ? 'es-ES' : 'pt-BR';
+}
+
+function fmtDate(ts, t, lang) {
   if (!ts) return '';
   const d = new Date(ts);
   const now = new Date();
   const diffMs = now - d;
   const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return 'Hoje ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  if (diffDays === 1) return 'Ontem';
-  if (diffDays < 7)  return `Há ${diffDays} dias`;
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  const loc = localeFor(lang);
+  if (diffDays === 0) return t('historico.date_today', { time: d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) });
+  if (diffDays === 1) return t('historico.date_yesterday');
+  if (diffDays < 7)  return t('historico.date_days_ago', { count: diffDays });
+  return d.toLocaleDateString(loc, { day: '2-digit', month: 'short' });
 }
 
 function exportJSON(conv) {
@@ -37,6 +42,7 @@ function exportJSON(conv) {
 // ─── ConvCard ────────────────────────────────────────────────────────────────
 
 function ConvCard({ conv, darkMode, btnFocus, onRetomar, onDelete, onToggleFav, onRename }) {
+  const { t, i18n } = useTranslation();
   const [editando, setEditando] = useState(false);
   const [titulo,   setTitulo]   = useState(conv.titulo);
   const msgCount = conv.messages?.length || 0;
@@ -71,7 +77,7 @@ function ConvCard({ conv, darkMode, btnFocus, onRetomar, onDelete, onToggleFav, 
               className={`text-xs font-bold leading-tight truncate cursor-pointer hover:text-primary transition-colors
                 ${darkMode ? 'text-white' : 'text-slate-800'}`}
               onDoubleClick={() => setEditando(true)}
-              title="Duplo clique para renomear"
+              title={t('historico.rename_hint')}
             >
               {conv.titulo}
             </p>
@@ -84,7 +90,7 @@ function ConvCard({ conv, darkMode, btnFocus, onRetomar, onDelete, onToggleFav, 
               </span>
             )}
             <span className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-              {fmtDate(conv.updatedAt)} · {msgCount} msg
+              {fmtDate(conv.updatedAt, t, i18n.language)} · {t('historico.msg_count', { count: msgCount })}
             </span>
           </div>
         </div>
@@ -95,17 +101,17 @@ function ConvCard({ conv, darkMode, btnFocus, onRetomar, onDelete, onToggleFav, 
             ${conv.favorito
               ? 'text-amber-400'
               : darkMode ? 'text-slate-600 hover:text-amber-400' : 'text-slate-300 hover:text-amber-500'}`}
-            title={conv.favorito ? 'Remover favorito' : 'Favoritar'}>
+            title={conv.favorito ? t('historico.unfavorite_title') : t('historico.favorite_title')}>
             <Star size={12} fill={conv.favorito ? 'currentColor' : 'none'} />
           </button>
           <button onClick={() => exportJSON(conv)} className={`p-1.5 rounded-lg transition-colors ${btnFocus}
             ${darkMode ? 'text-slate-600 hover:text-slate-300' : 'text-slate-300 hover:text-slate-600'}`}
-            title="Exportar como JSON">
+            title={t('historico.export_json_title')}>
             <Download size={12} />
           </button>
           <button onClick={() => onDelete(conv.id)} className={`p-1.5 rounded-lg transition-colors ${btnFocus}
             ${darkMode ? 'text-slate-600 hover:text-red-400' : 'text-slate-300 hover:text-red-500'}`}
-            title="Excluir conversa">
+            title={t('historico.delete_title')}>
             <Trash2 size={12} />
           </button>
         </div>
@@ -126,7 +132,7 @@ function ConvCard({ conv, darkMode, btnFocus, onRetomar, onDelete, onToggleFav, 
             ? 'bg-primary/15 text-primary hover:bg-primary/25'
             : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
         <RotateCcw size={11} />
-        Retomar conversa
+        {t('historico.resume_btn')}
       </button>
     </div>
   );
@@ -176,10 +182,10 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <MessageSquare size={32} className={darkMode ? 'text-slate-700' : 'text-slate-300'} />
         <p className={`text-sm font-medium ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          Nenhuma conversa ainda
+          {t('historico.empty_title')}
         </p>
         <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-          Suas conversas com o agente serão salvas automaticamente aqui.
+          {t('historico.empty_desc')}
         </p>
       </div>
     );
@@ -195,7 +201,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar em conversas..."
+            placeholder={t('historico.search_placeholder')}
             className={`flex-1 text-xs bg-transparent outline-none ${darkMode ? 'text-white placeholder:text-slate-600' : 'text-slate-800 placeholder:text-slate-400'}`}
           />
           {busca && (
@@ -212,7 +218,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
               onChange={e => setFiltroCanal(e.target.value)}
               className={`flex-1 text-[11px] rounded-xl border px-2 py-1.5 outline-none ${BTN_FOCUS}
                 ${darkMode ? 'bg-white/5 border-white/15 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
-              <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Todos os projetos</option>
+              <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{t('log.all_projects')}</option>
               {canais.map(c => <option key={c} value={c} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>@{c}</option>)}
             </select>
           )}
@@ -223,13 +229,14 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
                 ? 'bg-amber-400/20 border-amber-400/40 text-amber-400'
                 : darkMode ? 'bg-white/5 border-white/15 text-slate-400 hover:text-amber-400' : 'bg-white border-slate-200 text-slate-500 hover:text-amber-500'}`}>
             <Star size={11} fill={apenaseFav ? 'currentColor' : 'none'} />
-            Favoritos
+            {t('historico.favorites_btn')}
           </button>
         </div>
 
         <p className={`text-[10px] px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-          {filtered.length} conversa{filtered.length !== 1 ? 's' : ''}
-          {busca || filtroCanal || apenaseFav ? ' encontrada' + (filtered.length !== 1 ? 's' : '') : ''}
+          {(busca || filtroCanal || apenaseFav)
+            ? t('historico.conversation_count_filtered', { count: filtered.length })
+            : t('historico.conversation_count', { count: filtered.length })}
         </p>
       </div>
 
@@ -237,7 +244,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
       {favoritos.length > 0 && (
         <div className="space-y-2">
           <p className={`text-[10px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-amber-500/60' : 'text-amber-600'}`}>
-            ★ Favoritos
+            ★ {t('historico.favorites_btn')}
           </p>
           {favoritos.map(conv => (
             <ConvCard
@@ -259,7 +266,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
         <div className="space-y-2">
           {favoritos.length > 0 && (
             <p className={`text-[10px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-              Recentes
+              {t('historico.recent_section')}
             </p>
           )}
           {normais.map(conv => (
@@ -279,7 +286,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
 
       {filtered.length === 0 && conversations.length > 0 && (
         <p className={`text-xs text-center py-8 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-          Nenhuma conversa encontrada para os filtros aplicados.
+          {t('historico.no_results')}
         </p>
       )}
     </div>

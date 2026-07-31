@@ -9,6 +9,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, BarChart2, Globe, HardDrive, ShieldCheck } from 'lucide-react';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
@@ -16,29 +17,31 @@ import { useAriaHidden } from '../../hooks/useAriaHidden';
 
 // ─── Data flows disclosed ─────────────────────────────────────────────────────
 
-const FLOWS = [
-  {
-    icon: BarChart2,
-    color: 'text-primary',
-    bg:    'bg-primary/10',
-    title: 'Telemetria anônima (opcional)',
-    desc:  'Eventos de uso — quais funcionalidades você usa, onde trava. Nenhum conteúdo da base é enviado. Você escolhe aceitar ou recusar abaixo.',
-  },
-  {
-    icon: Globe,
-    color: 'text-amber-500',
-    bg:    'bg-amber-500/10',
-    title: 'APIs externas (só se configurar)',
-    desc:  "Se você configurar Gemini, OpenAI, Claude ou Groq, as mensagens do chat e trechos da base saem da máquina para servidores fora do Brasil. O Tusab não acessa esses dados — eles vão direto ao provedor escolhido.",
-  },
-  {
-    icon: HardDrive,
-    color: 'text-emerald-500',
-    bg:    'bg-emerald-500/10',
-    title: 'Google Drive (só se autenticar)',
-    desc:  'Se você conectar o Drive, a pasta data/neural/ é sincronizada na sua conta Google. A pasta data/config/ (chaves de API) nunca é sincronizada.',
-  },
-];
+function getFlows(t) {
+  return [
+    {
+      icon: BarChart2,
+      color: 'text-primary',
+      bg:    'bg-primary/10',
+      title: t('consent.flow_telemetry_title'),
+      desc:  t('consent.flow_telemetry_desc'),
+    },
+    {
+      icon: Globe,
+      color: 'text-amber-500',
+      bg:    'bg-amber-500/10',
+      title: t('consent.flow_apis_title'),
+      desc:  t('consent.flow_apis_desc'),
+    },
+    {
+      icon: HardDrive,
+      color: 'text-emerald-500',
+      bg:    'bg-emerald-500/10',
+      title: t('consent.flow_drive_title'),
+      desc:  t('consent.flow_drive_desc'),
+    },
+  ];
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -51,6 +54,8 @@ const FLOWS = [
  * @returns {JSX.Element}
  */
 function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = false }) {
+  const { t } = useTranslation();
+  const FLOWS = getFlows(t);
   const [expanded, setExpanded] = useState(false);
   const firstBtnRef = useRef(null);
   useAriaHidden(!skipAriaHidden);
@@ -94,10 +99,9 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
               <ShieldCheck size={17} className="text-primary" />
             </div>
             <div>
-              <p id="consent-title" className="text-sm font-bold">Antes de começar — seus dados</p>
+              <p id="consent-title" className="text-sm font-bold">{t('consent.title')}</p>
               <p className={`text-[11px] mt-0.5 leading-relaxed ${muted}`}>
-                O Tusab é local-first: sua base de conhecimento fica na sua máquina.
-                Três fluxos de dados existem, todos opcionais ou condicionais.
+                {t('consent.intro')}
               </p>
             </div>
           </div>
@@ -109,7 +113,7 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
             <ChevronDown
               size={13}
               className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-            {expanded ? 'Ocultar detalhes' : 'Ver o que é coletado'}
+            {expanded ? t('consent.hide_details') : t('consent.show_details')}
           </button>
         </div>
 
@@ -144,23 +148,23 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
         {/* Analytics consent question */}
         <div className={`px-5 pt-0 pb-5 border-t ${darkMode ? 'border-white/8' : 'border-slate-100'} mt-1`}>
           <p className={`text-[11px] font-semibold mt-3 mb-2.5 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-            Permitir telemetria anônima para ajudar a melhorar o Tusab?
+            {t('consent.question')}
           </p>
           <div className="flex gap-2">
             <button
               ref={firstBtnRef}
               onClick={handleAccept}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30">
-              Aceitar
+              {t('consent.accept')}
             </button>
             <button
               onClick={handleDecline}
               className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
-              Recusar
+              {t('consent.decline')}
             </button>
           </div>
           <p className={`text-[10px] mt-2 text-center ${muted}`}>
-            Você pode mudar essa decisão a qualquer momento nas configurações.
+            {t('consent.footer_note')}
           </p>
         </div>
 
