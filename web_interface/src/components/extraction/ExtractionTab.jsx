@@ -71,6 +71,15 @@ export default function ExtractionTab({
   // ao modal via App.jsx pra abrir direto na busca certa
   fontePreSelecionada,
   setFontePreSelecionada,
+  // catálogo de fontes públicas por área — carregado em App.jsx; a área é
+  // escolhida aqui, antes de abrir o modal, pro usuário ver o que pode
+  // buscar antes de ver as bases disponíveis pra área escolhida
+  areasFontes,
+  areaSelecionada,
+  setAreaSelecionada,
+  areasFontesStatus,
+  areasFontesErro,
+  onRetryFontes,
 }) {
   const [itensExpandido, setItensExpandido] = React.useState(false);
   // Reseta o "mostrar mais" a cada nova busca — senão uma busca anterior
@@ -150,15 +159,66 @@ export default function ExtractionTab({
           )}
           <div className="p-4">
             {fontePreSelecionada !== 'youtube' ? (
-              /* ── Fonte pública escolhida — resumo simplificado, sem input de URL ── */
-              <div className={`p-4 rounded-xl border text-center ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
-                <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
-                <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  {t('extraction.public_search_title')}
-                </p>
-                <p className={`text-[11px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.public_search_subtitle')}
-                </p>
+              /* ── Fonte pública escolhida — área de conhecimento visível já
+                  aqui, antes de abrir o modal, pro usuário saber o que pode
+                  buscar antes mesmo de ver quais bases estão disponíveis ── */
+              <div className={`p-4 rounded-xl border ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
+                <div className="text-center mb-3">
+                  <Search size={20} className="text-primary mx-auto mb-2" aria-hidden="true" />
+                  <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                    {t('extraction.public_search_title')}
+                  </p>
+                  <p className={`text-[11px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {t('extraction.public_search_subtitle')}
+                  </p>
+                </div>
+
+                {areasFontesStatus === 'loading' && (
+                  <p className={`text-[11px] text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {t('extraction.loading_areas')}
+                  </p>
+                )}
+                {areasFontesStatus === 'error' && (
+                  <div className={`rounded-lg border px-3 py-2.5 text-[11px] ${darkMode ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                    <p className="font-bold mb-1">{t('extraction.load_error_title')}</p>
+                    <p className="opacity-80 mb-2">{areasFontesErro}</p>
+                    <button onClick={onRetryFontes} className={`underline font-semibold ${BTN_FOCUS}`}>
+                      {t('extraction.retry')}
+                    </button>
+                  </div>
+                )}
+                {areasFontesStatus === 'ok' && Object.keys(areasFontes).length > 1 && (
+                  <div>
+                    <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {t('extraction.area_label')}
+                    </label>
+                    {Object.keys(areasFontes).length > 4 ? (
+                      <select
+                        value={areaSelecionada}
+                        onChange={e => setAreaSelecionada(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
+                          ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                        {Object.entries(areasFontes).map(([areaId, area]) => (
+                          <option key={areaId} value={areaId} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{t(`extraction.area_${areaId}`, area.nome)}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(areasFontes).map(([areaId, area]) => {
+                          const ativo = areaId === areaSelecionada;
+                          return (
+                            <button key={areaId}
+                              onClick={() => setAreaSelecionada(areaId)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
+                                ${ativo ? 'bg-primary border-primary text-white' : darkMode ? 'bg-white/5 border-white/15 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                              {t(`extraction.area_${areaId}`, area.nome)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : canalConfigurado ? (
               /* ── Canal já configurado ── */
