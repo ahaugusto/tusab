@@ -97,6 +97,12 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
 
   // Step URL: channel URL
   const [canalUrl, setCanalUrl] = React.useState(canalUrlInicial);
+  // Nome real do canal quando escolhido via busca por nome — extrairHandle()
+  // só consegue extrair algo legível de URLs com @handle; pra URLs
+  // /channel/UC... (canais sem handle público) o "handle" derivado seria o
+  // ID cru. { url, nome } comparado por igualdade de URL pra não vazar pra
+  // uma URL diferente que o usuário digite depois.
+  const [nomeConhecidoPara, setNomeConhecidoPara] = React.useState(null);
 
   // Mapa de cobertura pré-extração
   const [canalInfo,        setCanalInfo]        = React.useState(null);
@@ -134,10 +140,10 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // Atualiza sugestão em tempo real conforme URL muda (só se usuário não editou manualmente)
   React.useEffect(() => {
     if (step === 'url' && !nomeEditadoManual) {
-      const handle = extrairHandle(canalUrl);
-      setProjetoNome(handle || '');
+      const nome = (nomeConhecidoPara && nomeConhecidoPara.url === canalUrl) ? nomeConhecidoPara.nome : extrairHandle(canalUrl);
+      setProjetoNome(nome || '');
     }
-  }, [canalUrl]);
+  }, [canalUrl, nomeConhecidoPara]);
 
   // Busca mapa de cobertura com debounce de 800ms quando URL parece válida
   React.useEffect(() => {
@@ -161,8 +167,8 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
       if (sourceType === 'fonte-publica') { setStep('projeto'); return; }
       // Garante que o nome está atualizado com o handle da URL ao avançar
       if (!nomeEditadoManual) {
-        const handle = extrairHandle(canalUrl);
-        setProjetoNome(handle || '');
+        const nome = (nomeConhecidoPara && nomeConhecidoPara.url === canalUrl) ? nomeConhecidoPara.nome : extrairHandle(canalUrl);
+        setProjetoNome(nome || '');
       }
       setStep('projeto');
     } else if (step === 'projeto') {
@@ -410,6 +416,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                   darkMode={darkMode}
                   value={canalUrl}
                   onChange={setCanalUrl}
+                  onSelectCanal={canal => setNomeConhecidoPara({ url: canal.url, nome: canal.nome })}
                   onEnter={() => podeAvancarUrl && avancar()}
                   placeholder="https://www.youtube.com/@canal"
                   inputSize={13}

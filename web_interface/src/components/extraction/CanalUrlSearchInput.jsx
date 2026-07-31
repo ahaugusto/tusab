@@ -15,7 +15,7 @@ import { buscarCanaisYoutube } from '../../services/api';
 const RE_URL = /^https?:\/\//i;
 const RE_YT_DOMAIN = /youtube\.com|youtu\.be/i;
 
-function CanalUrlSearchInput({ darkMode, value, onChange, onEnter, placeholder, inputSize = 14, autoFocus = false }) {
+function CanalUrlSearchInput({ darkMode, value, onChange, onEnter, onSelectCanal, placeholder, inputSize = 14, autoFocus = false }) {
   const { t } = useTranslation();
   const [resultados,  setResultados]  = React.useState([]);
   const [buscando,    setBuscando]    = React.useState(false);
@@ -49,6 +49,7 @@ function CanalUrlSearchInput({ darkMode, value, onChange, onEnter, placeholder, 
 
   const escolherCanal = (canal) => {
     onChange(canal.url);
+    onSelectCanal?.(canal);
     setCanalEscolhido({ nome: canal.nome, thumbnail: canal.thumbnail, handle: canal.handle });
     setResultados([]);
   };
