@@ -786,11 +786,16 @@ function App() {
 
   const handleUsarCanalHistorico = async (canalUrl, canalNomeFallback) => {
     try {
-      const res = await setChannel(canalUrl);
+      // canalNomeFallback já é o nome real do histórico (extração anterior
+      // já resolveu o nome verdadeiro) — manda pro backend como projeto_nome
+      // pra state.stats["projeto_nome"] (usado em status, logs em tempo real
+      // e no canal_nome de resposta) refletir o nome, não o ID cru que a
+      // regex de URL usaria como fallback pra /channel/UCxxxx.
+      const res = await setChannel(canalUrl, canalNomeFallback || '');
       if (!res.data.error) {
         canalRemovidoRef.current = false;
         canalConfiguradoNaSessaoRef.current = true;
-        setCanalConfigurado(res.data.canal_nome || canalNomeFallback);
+        setCanalConfigurado(canalNomeFallback || res.data.canal_nome);
         setCanalInput('');
       }
     } catch { /* silencioso */ }
@@ -802,11 +807,11 @@ function App() {
     if (!/^https:\/\/(www\.)?youtube\.com\/(@[\w.\-]+|channel\/[\w\-]+|c\/[\w.\-]+)\/?$/.test(canalInput.trim())) { setCanalError(t('channel.error_invalid')); return; }
     setConfigurando(true); setCanalError('');
     try {
-      const res = await setChannel(canalInput.trim());
+      const nomeConhecido = (canalNomeConhecido && canalNomeConhecido.url === canalInput.trim()) ? canalNomeConhecido.nome : null;
+      const res = await setChannel(canalInput.trim(), nomeConhecido || '');
       if (res.data.error) { setCanalError(res.data.message); }
       else {
         canalRemovidoRef.current = false; canalConfiguradoNaSessaoRef.current = true;
-        const nomeConhecido = (canalNomeConhecido && canalNomeConhecido.url === canalInput.trim()) ? canalNomeConhecido.nome : null;
         setCanalConfigurado(nomeConhecido || res.data.canal_nome || canalInput);
         setCanalInput('');
       }

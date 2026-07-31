@@ -86,13 +86,20 @@ def run_motor():
 
         # Próximo canal da fila — configura e continua o loop
         url = proximo["url"]
-        match = re.search(r'@([^/?\s]+)', url)
         state.canal_url             = url
-        state.stats["projeto_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
+        raw_proj = proximo.get("projeto_nome", "")
+        if raw_proj:
+            # Mesmo fix de /set-channel: nome real já conhecido (item da fila
+            # veio com projeto_nome) tem prioridade sobre a derivação por
+            # regex, que cai no ID cru pra URLs /channel/UCxxxx.
+            state.stats["projeto_nome"] = raw_proj.strip()
+            state.projeto_nome = re.sub(r'[<>:"/\\|?*\s]', '_', raw_proj).strip('_')
+        else:
+            match = re.search(r'@([^/?\s]+)', url)
+            state.stats["projeto_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
+            state.projeto_nome = ""
         state.stats["status"]       = "Na fila"
         state.fontes_filtro         = proximo.get("fontes", [])
-        raw_proj = proximo.get("projeto_nome", "")
-        state.projeto_nome = re.sub(r'[<>:"/\\|?*\s]', '_', raw_proj).strip('_') if raw_proj else ""
         state.evento_cancelar.clear()
         state.evento_pausa.set()
         state.is_paused             = False
@@ -128,11 +135,18 @@ def set_channel(req: ChannelRequest):
     if url and not _YT_URL_RE.match(url):
         return {"error": True, "message": "URL inválida. Use o formato: https://www.youtube.com/@canal"}
     state.canal_url = url
-    match = re.search(r'@([^/?\s]+)', url)
-    state.stats["projeto_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
     if req.projeto_nome:
+        # Nome real já conhecido pelo frontend (ex: escolhido via busca por
+        # nome ou vindo do histórico) — usa direto em vez de derivar da URL.
+        # Necessário pra canais sem @handle público (/channel/UCxxxx): sem
+        # isso, o fallback abaixo usaria o ID cru como "nome" do canal em
+        # todo lugar que lê state.stats["projeto_nome"] (status, logs,
+        # resposta deste endpoint).
+        state.stats["projeto_nome"] = req.projeto_nome.strip()
         state.projeto_nome = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     else:
+        match = re.search(r'@([^/?\s]+)', url)
+        state.stats["projeto_nome"] = match.group(1) if match else url.rstrip('/').split('/')[-1]
         state.projeto_nome = ""
     # Campo de resposta "canal_nome" mantido (não "projeto_nome") porque este
     # endpoint é especificamente sobre configurar um canal do YouTube — a URL
