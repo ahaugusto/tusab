@@ -1109,5 +1109,15 @@
   "extraction.area_terra": "Ciencias de la Tierra, clima y espacio",
   "extraction.area_fisica": "Física, química y materiales",
   "extraction.area_patrimonio": "Patrimonio cultural, historia y archivos",
-  "extraction.area_antropologia": "Antropología, lingüística y conocimiento estructurado"
+  "extraction.area_antropologia": "Antropología, lingüística y conocimiento estructurado",
+  "repo.hint_title": "Tu repositorio de conocimiento",
+  "repo.hint_body": "Aquí quedan los archivos de YouTube y todo lo que agregues. Después de agregar contenido, haz clic en Indexar base para que el chat pueda responder preguntas sobre él.",
+  "repo.hint_docs_title": "Documentos",
+  "repo.hint_docs_desc": "PDF, Word, Excel, Markdown, TXT",
+  "repo.hint_conversas_title": "Conversaciones",
+  "repo.hint_conversas_desc": "WhatsApp, Zoom, Teams, Otter",
+  "repo.hint_textos_title": "Textos",
+  "repo.hint_textos_desc": "Pega cualquier texto directamente",
+  "repo.hint_share_title": "Compartir",
+  "repo.hint_share_desc": "Exporta e importa bases"
 }
