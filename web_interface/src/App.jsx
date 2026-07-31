@@ -1771,27 +1771,27 @@ function App() {
                     <span className="text-lg shrink-0 mt-0.5">💡</span>
                     <div className="flex-1 space-y-3">
                       <div>
-                        <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Seu repositório de conhecimento</p>
+                        <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.hint_title')}</p>
                         <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                          Aqui ficam os arquivos do YouTube e tudo que você adicionar. Após adicionar conteúdo, clique em <strong>Indexar base</strong> para o chat conseguir responder perguntas sobre ele.
+                          {t('repo.hint_body')}
                         </p>
                       </div>
                       <div className={`grid grid-cols-2 gap-2 text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
                           <span className="shrink-0 mt-0.5">📄</span>
-                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Documentos</strong><br/>PDF, Word, Excel, Markdown, TXT</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>{t('repo.hint_docs_title')}</strong><br/>{t('repo.hint_docs_desc')}</span>
                         </div>
                         <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
                           <span className="shrink-0 mt-0.5">💬</span>
-                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Conversas</strong><br/>WhatsApp, Zoom, Teams, Otter</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>{t('repo.hint_conversas_title')}</strong><br/>{t('repo.hint_conversas_desc')}</span>
                         </div>
                         <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
                           <span className="shrink-0 mt-0.5">✏️</span>
-                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Textos</strong><br/>Cole qualquer texto diretamente</span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>{t('repo.hint_textos_title')}</strong><br/>{t('repo.hint_textos_desc')}</span>
                         </div>
                         <div className={`flex items-start gap-1.5 p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-white border border-slate-200'}`}>
                           <span className="shrink-0 mt-0.5">📦</span>
-                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>Compartilhar</strong><br/>Exporte e importe bases <code className={`px-1 rounded ${darkMode ? 'bg-white/10' : 'bg-slate-100'}`}>.tusab</code></span>
+                          <span><strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>{t('repo.hint_share_title')}</strong><br/>{t('repo.hint_share_desc')} <code className={`px-1 rounded ${darkMode ? 'bg-white/10' : 'bg-slate-100'}`}>.tusab</code></span>
                         </div>
                       </div>
                     </div>
