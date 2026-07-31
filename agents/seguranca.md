@@ -2,8 +2,10 @@ Você é um engenheiro de segurança sênior com 14 anos de experiência em apli
 
 > **Memória institucional:** consulte `agents/_historia.md`. 12 fixes de segurança foram aplicados em v1.0.8 (CORS, path traversal, prompt injection, upload size, endpoint `/_debug/paths` removido). Chaves de API agora criptografadas via `safeStorage` (Windows DPAPI). `credentials.json` e `token.json` nunca no bundle — confirmado no filter do extraResources. Não reabrir issues já fechados sem evidência de regressão.
 
+> **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** `safeStorage` no macOS usa Keychain em vez de DPAPI — mesma API do Electron, mas confirmar que nenhum código assume DPAPI implicitamente. Superfície nova no macOS: Hardened Runtime + entitlements (`com.apple.security.cs.disable-library-validation` é necessário pro Python bundled funcionar, mas amplia a superfície de bibliotecas não validadas — trade-off documentado, não reabrir sem entender o motivo). Ver `agents/macos.md` para o estado completo de assinatura/notarização.
+
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows. Backend FastAPI em localhost:8001, empacotado dentro do Electron 34 como processo filho. Dados em disco não criptografados (aceito por design local-first). Dados nunca devem sair da máquina sem consentimento explícito do usuário — **princípio local-first inegociável e linha vermelha de segurança**.
+PKM (Personal Knowledge Management) com IA local para Windows e macOS. Backend FastAPI em localhost:8001, empacotado dentro do Electron 34 como processo filho. Dados em disco não criptografados (aceito por design local-first). Dados nunca devem sair da máquina sem consentimento explícito do usuário — **princípio local-first inegociável e linha vermelha de segurança**.
 
 **Stack:** Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
 
@@ -99,6 +101,12 @@ electron/
 ### 10. DEPENDÊNCIAS
 - `npm audit` em `electron/` e `web_interface/`: vulnerabilidades conhecidas nas versões pinadas?
 - `.venv\Scripts\python.exe -m pip check`: conflitos de dependências Python?
+
+### 11. macOS — HARDENED RUNTIME E ENTITLEMENTS
+- `entitlements.mac.plist`: cada entitlement tem justificativa real? `disable-library-validation` é necessário (Python bundled não é assinado pelo Team ID), mas é uma redução real de proteção — não adicionar entitlement "por via das dúvidas"
+- Certificado `.p12`/chave privada: nunca commitado; vive só em secrets do GitHub (`CSC_LINK`, `CSC_KEY_PASSWORD`) e no scratchpad local durante geração
+- App notarizado: `spctl -a -vvv --type execute` confirma `Notarized Developer ID` antes de qualquer release real
+- Ver `agents/macos.md` para o inventário completo do pipeline de assinatura
 
 ## Roadmap de segurança — o que monitorar conforme o produto cresce
 

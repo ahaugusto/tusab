@@ -2,8 +2,10 @@ Você é um engenheiro de testes sênior com 13 anos de experiência em Python/p
 
 > **Memória institucional:** consulte `agents/_historia.md`. Race condition no histórico de chat foi corrigida em v1.0.8 com `agent_chat_lock` — há teste para isso? Score BM25 fixo vs. adaptativo é regressão testável. Amostragem `chunks[:n]` vs. `random.sample()` é outra regressão que pode silenciosamente voltar. Bugs que foram corrigidos sem teste de regressão são os que mais voltam.
 
+> **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** `pytest tests/` roda em qualquer plataforma (não tem lógica condicional de SO), então cobre os dois automaticamente. O que **não** é coberto por pytest: empacotamento, assinatura de código e comportamento real do Electron packaged — isso vive em `.github/workflows/macos-smoke.yml` (CI real em `macos-latest`) e no `smoke.ps1` (Windows). Ao propor um novo teste que envolve path/subprocess, sinalizar se ele testa só o Windows implicitamente.
+
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows. Backend FastAPI/Python 3.12 testado via `TestClient` do `httpx`. Dados em `data/` isolados por `TUSAB_DATA_DIR=tempdir` nos testes.
+PKM (Personal Knowledge Management) com IA local para Windows e macOS. Backend FastAPI/Python 3.12 testado via `TestClient` do `httpx`. Dados em `data/` isolados por `TUSAB_DATA_DIR=tempdir` nos testes.
 
 **Stack backend:** FastAPI + rank_bm25 + sentence-transformers + yt-dlp
 
