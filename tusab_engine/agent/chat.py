@@ -111,6 +111,25 @@ PERSONAS = {
     'socratico':     'Ao final de cada resposta, inclua uma pergunta que aprofunde o raciocínio do usuário sobre o tema.',
 }
 
+
+def _resolver_instrucao_tom(persona: str, persona_custom: str = '') -> str:
+    """Resolve a linha 'TOM DE RESPOSTA' injetada no fim do prompt.
+
+    'custom' usa o texto livre definido pelo usuário (persona_custom) em vez
+    de um preset de PERSONAS — mesmo mecanismo de injeção, só troca a fonte
+    do texto. Sem sanitização especial: já é limitado a 300 chars pelo
+    Pydantic (AgentConfigRequest) e só alimenta o prompt do LLM, nunca
+    comando de shell, path de arquivo ou query — não há superfície de SQL/
+    command injection aqui, só o mesmo risco de prompt injection que
+    qualquer texto livre do usuário já tem no RAG (mitigado a jusante pela
+    verificação anti-alucinação).
+    """
+    if persona == 'custom' and persona_custom.strip():
+        return f'TOM DE RESPOSTA: {persona_custom.strip()}\n\n'
+    if persona and persona in PERSONAS:
+        return f'TOM DE RESPOSTA: {PERSONAS[persona]}\n\n'
+    return ''
+
 # Instrução de formato compartilhada por todos os prompt builders (_montar_prompt,
 # _montar_prompt_contexto, _montar_prompt_trecho) — o ChatDrawer já renderiza
 # ReactMarkdown com remark-gfm (tabelas, negrito, listas) e components estilizados
@@ -361,7 +380,7 @@ def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
 
 
 def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dict,
-                             persona: str = '', idioma: str = 'pt') -> str:
+                             persona: str = '', idioma: str = 'pt', persona_custom: str = '') -> str:
     """Prompt para intenção CONTEXTO — opera sobre a resposta anterior, sem BM25."""
     lang_label = _IDIOMA_LABEL.get(idioma, 'português')
 
@@ -378,9 +397,7 @@ def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dic
     resposta_anterior = ultima_resposta.get('resposta', '')
     pergunta_anterior = ultima_resposta.get('pergunta', '')
 
-    instrucao_tom = ''
-    if persona and persona in PERSONAS:
-        instrucao_tom = f'TOM DE RESPOSTA: {PERSONAS[persona]}\n\n'
+    instrucao_tom = _resolver_instrucao_tom(persona, persona_custom)
 
     return (
         f'Você é o Tusab, um assistente de gestão de conhecimento.\n\n'
@@ -986,15 +1003,13 @@ def _extrair_trecho_injetado(pergunta: str):
     return None, None
 
 
-def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, historico: list = None, persona: str = '', idioma: str = 'pt') -> str:
+def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, historico: list = None, persona: str = '', idioma: str = 'pt', persona_custom: str = '') -> str:
     """Prompt especializado para análise de trecho injetado sem pergunta explícita."""
     handle = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
     lang_label = _IDIOMA_LABEL.get(idioma, 'português')
     lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}.\n\n"
 
-    instrucao_tom = ''
-    if persona and persona in PERSONAS:
-        instrucao_tom = f"TOM DE RESPOSTA: {PERSONAS[persona]}\n\n"
+    instrucao_tom = _resolver_instrucao_tom(persona, persona_custom)
 
     hist_str = ''
     if historico:
@@ -1028,7 +1043,7 @@ def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, hi
 
 _IDIOMA_LABEL = {"pt": "português", "en": "English", "es": "español"}
 
-def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt', projeto_prefixo: str = '') -> str:
+def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, historico: list = None, busca_ampla: bool = False, persona: str = '', idioma: str = 'pt', projeto_prefixo: str = '', persona_custom: str = '') -> str:
     pergunta = pergunta[:2000].strip()
     handle   = meta_canal.get('canal_handle', 'este canal') if meta_canal else 'este canal'
 
@@ -1076,9 +1091,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
         if trocas:
             hist_str = "<conversation_history>\n" + "\n".join(trocas) + "\n</conversation_history>\n\n"
 
-    instrucao_tom = ''
-    if persona and persona in PERSONAS:
-        instrucao_tom = f"TOM DE RESPOSTA: {PERSONAS[persona]}\n\n"
+    instrucao_tom = _resolver_instrucao_tom(persona, persona_custom)
 
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}, independentemente do idioma das fontes.\n\n"
@@ -1400,6 +1413,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
     projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     meta_canal    = _carregar_meta_canal(projeto_prefixo)
     persona       = config.get('persona', '')
+    persona_custom = config.get('persona_custom', '')
     idioma        = config.get('idioma', 'pt')
 
     # Detecta trecho injetado: usa prompt especializado sem precisar do BM25
@@ -1408,7 +1422,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
 
     if trecho_mode:
         contexto = []
-        prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
+        prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma, persona_custom)
     else:
         from tusab_engine.state import state as _state
 
@@ -1447,7 +1461,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
         if intencao == 'CONTEXTO':
             # Bypass total do BM25 — opera sobre a resposta anterior
             contexto = []
-            prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
+            prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma, persona_custom)
         elif intencao == 'CONVERSA':
             contexto = []
             resposta_vazia = _responder_sem_contexto(pergunta, config, projeto_nome)
@@ -1457,7 +1471,7 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
             if not contexto:
                 resposta_vazia = _responder_sem_contexto(pergunta, config, projeto_nome)
                 return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
-            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo)
+            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo, persona_custom=persona_custom)
 
     provider = config['provider']
     api_key  = config['api_key']
@@ -1524,6 +1538,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
     projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     meta_canal    = _carregar_meta_canal(projeto_prefixo)
     persona       = config.get('persona', '')
+    persona_custom = config.get('persona_custom', '')
     idioma        = config.get('idioma', 'pt')
 
     # Detecta trecho injetado: bypass do BM25, prompt especializado de análise
@@ -1532,7 +1547,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
 
     if trecho_mode:
         contexto = []
-        prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma)
+        prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma, persona_custom)
         fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': projeto_nome, 'score': 1.0}]
     else:
         from tusab_engine.state import state as _state
@@ -1572,7 +1587,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
 
         if intencao == 'CONTEXTO':
             contexto = []
-            prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma)
+            prompt   = _montar_prompt_contexto(pergunta, historico or [], ultima, persona, idioma, persona_custom)
             fontes   = ultima.get('fontes', [])  # reusar fontes da resposta anterior
         elif intencao == 'CONVERSA':
             config_s = carregar_config()
@@ -1590,7 +1605,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 yield resposta_vazia
                 yield json.dumps({'done': True})
                 return
-            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo)
+            prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo, persona_custom=persona_custom)
             fontes = [{
                 'titulo':            c['titulo'],
                 'aba':               c.get('aba', 'youtube'),
