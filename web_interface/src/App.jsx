@@ -757,7 +757,7 @@ function App() {
   /** Submits the canal URL to the backend and updates configured state */
   const handleConfigurarCanal = async () => {
     if (!canalInput.trim()) { setCanalError(t('channel.error_required')); return; }
-    if (!canalInput.includes('@')) { setCanalError(t('channel.error_invalid')); return; }
+    if (!/^https:\/\/(www\.)?youtube\.com\/(@[\w.\-]+|channel\/[\w\-]+|c\/[\w.\-]+)\/?$/.test(canalInput.trim())) { setCanalError(t('channel.error_invalid')); return; }
     setConfigurando(true); setCanalError('');
     try {
       const res = await setChannel(canalInput.trim());
