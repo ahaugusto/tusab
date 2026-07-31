@@ -1122,5 +1122,13 @@
   "repo.hint_share_desc": "Exporte e importe bases",
   "repo.search_placeholder": "Buscar uma base pelo nome...",
   "repo.search_no_matches": "Nenhuma base encontrada para \"{{query}}\".",
-  "repo.search_clear": "Limpar busca"
+  "repo.search_clear": "Limpar busca",
+  "channel.mode_paste": "Colar URL",
+  "channel.mode_search": "Buscar canal",
+  "channel.search_placeholder": "Nome do canal...",
+  "channel.search_empty": "Digite ao menos 2 letras para buscar",
+  "channel.search_no_results": "Nenhum canal encontrado para \"{{query}}\"",
+  "channel.search_error": "Erro ao buscar canais. Tente novamente.",
+  "channel.search_subscribers": "{{count}} inscritos",
+  "channel.search_selected": "Canal selecionado — trocar busca"
 }

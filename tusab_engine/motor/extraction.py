@@ -11,6 +11,7 @@ import re
 import json
 import pandas as pd
 from datetime import datetime
+from urllib.parse import quote
 
 from tusab_engine.storage import (
     DATA_DIR, NEURAL_DIR, LOCAL_TXT_DIR,
@@ -465,6 +466,53 @@ Tusab — {canal_nome_raw}/
 
     print(f"      ✅ README gerado: {caminho_readme}")
     return caminho_readme
+
+
+# ── Busca de canais por nome (sem API key, sem dados saindo da máquina) ────────
+
+def buscar_canais_youtube(query: str, max_resultados: int = 8) -> list:
+    """Busca canais do YouTube por termo/nome via yt-dlp — sem API key.
+
+    sp=EgIQAg (parâmetro de filtro nativo do YouTube, mesmo usado pela busca
+    web deles) restringe os resultados a canais; sem ele a busca padrão do
+    yt-dlp (ytsearch:) retorna vídeos, não canais. Testado ao vivo antes de
+    implementar (ver agents/_historia.md).
+    """
+    query = (query or '').strip()
+    if not query:
+        return []
+    creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+    url = f'https://www.youtube.com/results?search_query={quote(query)}&sp=EgIQAg%253D%253D'
+    try:
+        result = subprocess.run(
+            _resolve_cmd(['yt-dlp', '--flat-playlist', '--playlist-items', f'1-{max_resultados}',
+             '--print', '%(channel)s|||%(uploader_id)s|||%(channel_follower_count)s|||%(channel_url)s|||%(thumbnails.-1.url)s',
+             url]),
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=20
+        )
+    except (subprocess.TimeoutExpired, Exception):
+        return []
+
+    canais, vistos = [], set()
+    for linha in result.stdout.strip().splitlines():
+        partes = linha.split('|||')
+        if len(partes) < 5:
+            continue
+        nome, handle, seguidores, canal_url, thumb = [p.strip() for p in partes[:5]]
+        if not nome or not canal_url or canal_url in vistos:
+            continue
+        vistos.add(canal_url)
+        if handle and handle != 'NA' and not handle.startswith('@'):
+            handle = '@' + handle
+        canais.append({
+            'nome':       nome,
+            'handle':     handle if handle and handle != 'NA' else '',
+            'seguidores': int(seguidores) if seguidores.isdigit() else None,
+            'url':        canal_url,
+            'thumbnail':  ('https:' + thumb) if thumb.startswith('//') else (thumb if thumb and thumb != 'NA' else ''),
+        })
+    return canais
 
 
 # ── Metadados do canal ────────────────────────────────────────────────────────
