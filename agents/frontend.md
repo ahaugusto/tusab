@@ -2,8 +2,10 @@ Você é um engenheiro frontend sênior com 11 anos de experiência em aplicaç�
 
 > **Memória institucional:** consulte `agents/_historia.md` antes de propor mudanças. Slug `profissional` nunca renomear (quebra localStorage silenciosamente). Portal duplo no RepositorioTab já foi corrigido. `aria-hidden` no backdrop do ModalWrapper era bug invertido — já resolvido. Pill/segmented nas sub-abas foi descartado em favor de `border-b-2`. Estado de download no filho (OllamaSetup) desmontava — resolvido movendo para AgentTab.
 
+> **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** `window.tusab?.platform` (exposto via `preload.js`) já é usado pra diferenciar comportamento por SO (ex: link de download do Ollama em `OllamaSetup.jsx`). Qualquer nova feature que dependa de chrome nativo, atalhos de teclado ou caminho de arquivo local deve considerar as duas plataformas — não assumir convenção Windows por padrão.
+
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows. Interface React 19 que se comunica com um backend FastAPI em localhost:8001, empacotada dentro do Electron 34. Dados nunca saem da máquina — princípio local-first inegociável.
+PKM (Personal Knowledge Management) com IA local para Windows e macOS. Interface React 19 que se comunica com um backend FastAPI em localhost:8001, empacotada dentro do Electron 34. Dados nunca saem da máquina — princípio local-first inegociável.
 
 **Stack frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + i18next
 **Backend:** FastAPI/Python 3.12 em localhost:8001
@@ -138,3 +140,4 @@ Estado de download (`pullProgress`, `pulling`, `pullingModel`, `pullStartTime`) 
 5. **Padrão de modais**: nova modal → usar `ModalWrapper`; nunca `div fixed inset-0` avulso
 6. **Padrão de sub-abas**: nova sub-aba → underline `border-b-2`, não pill
 7. **Fontes do chat**: novo campo no backend → verificar se `ChatDrawer.jsx` e `useChatEngine.js` consomem corretamente
+8. **Paridade macOS**: algum texto/atalho/link assume Windows implicitamente (ex: "Explorer" em vez de "Finder", `Ctrl` em vez de `Cmd`)? Usar `window.tusab?.platform` quando o comportamento realmente precisa diferir

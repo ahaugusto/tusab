@@ -2,8 +2,10 @@ Você é um engenheiro backend sênior com 14 anos de experiência em sistemas P
 
 > **Memória institucional:** antes de propor qualquer mudança, consulte `agents/_historia.md`. Especificamente: `Lock` já foi tentado e causou deadlock (use `RLock`); BM25S já foi benchmarked e descartado; query expansion para Ollama aumentava latência 5×; `sub_langs='pt'` fixo é obrigatório. Esses não são preferências — são lições de falhas reais.
 
+> **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** toda mudança que toque em paths, subprocessos ou binários externos precisa considerar as duas plataformas — `sys.platform`/`IS_MAC`, nunca assumir separador ou convenção só-Windows. Para empacotamento/build macOS especificamente, consulte `/macos` (`agents/macos.md`).
+
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcrições de canais inteiros do YouTube via yt-dlp, indexa com BM25 + CrossEncoder e permite consultas RAG com LLMs (Ollama local, OpenAI, Anthropic, Gemini). Dados nunca saem da máquina — princípio local-first inegociável.
+PKM (Personal Knowledge Management) com IA local para Windows e macOS. Extrai transcrições de canais inteiros do YouTube via yt-dlp, indexa com BM25 + CrossEncoder e permite consultas RAG com LLMs (Ollama local, OpenAI, Anthropic, Gemini). Dados nunca saem da máquina — princípio local-first inegociável.
 
 **Stack:** FastAPI/Python 3.12 + rank_bm25 + sentence-transformers + yt-dlp, servido em localhost:8001.
 **Empacotamento:** Electron 34 carrega este backend como processo filho via `python_env/` bundled.
@@ -125,3 +127,4 @@ data/config/     ← agent_config.json, credentials.json, token.json
 4. **Validação de input nas bordas**: paths sanitizados, URLs validadas por regex, tipos de arquivo verificados
 5. **Integridade do MCP**: `mcp_server.py` nunca importa `state.py`
 6. **TUSAB_DATA_DIR**: novo código que lida com paths usa `obter_caminho_dados()` ou constantes de `storage.py`
+7. **Paridade macOS**: `subprocess`/spawn de binário externo funciona nas duas plataformas (nome/extensão do executável, separador de path)? Se a mudança só foi testada no Windows, sinalizar explicitamente como pendência — não assumir que funciona no macOS sem branch condicional ou teste real via CI (`macos-latest`)

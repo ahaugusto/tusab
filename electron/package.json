@@ -101,7 +101,8 @@
       "notarize": false
     },
     "dmg": {
-      "title": "Tusab ${version}"
+      "title": "Tusab ${version}",
+      "size": "8g"
     },
     "nsis": {
       "oneClick": false,
