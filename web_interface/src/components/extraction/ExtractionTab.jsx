@@ -137,8 +137,8 @@ export default function ExtractionTab({
       <div className={`flex-1 px-4 lg:px-8 pt-5 pb-6 space-y-4 overflow-y-auto custom-scrollbar ${extracaoSubTab !== 'extrair' ? 'hidden' : ''}`}>
 
         {/* Canal + Iniciar */}
-        <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <div className={`px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
+        <div className={`rounded-2xl border ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className={`rounded-t-2xl px-5 py-3 border-b flex items-center gap-2 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
             <Zap size={14} className="text-primary" aria-hidden="true" />
             <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('tabs.extraction')}</span>
           </div>
