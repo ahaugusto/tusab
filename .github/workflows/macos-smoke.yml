@@ -508,8 +508,10 @@ jobs:
     if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-notarize' }}
     # Assinatura sozinha (Fase 6) já passa de 30min com o python_env inteiro
     # (torch/onnxruntime/transformers) — notarização soma submissão +
-    # espera da Apple em cima disso.
-    timeout-minutes: 90
+    # espera da Apple em cima disso. Medido na prática (self-hosted, Mac
+    # mini M1-M): 90min NÃO foi suficiente, job foi cancelado pelo próprio
+    # timeout do GitHub Actions ainda no meio da assinatura/notarização.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
 

@@ -109,8 +109,9 @@ jobs:
     needs: tests
     # Assinatura sozinha (deep-sign de todo o python_env com torch/
     # onnxruntime/transformers) já passa de 30min — notarização soma
-    # submissão + espera da Apple em cima disso.
-    timeout-minutes: 90
+    # submissão + espera da Apple em cima disso. Medido na prática
+    # (self-hosted, Mac mini M1-M): 90min não foi suficiente.
+    timeout-minutes: 180
     permissions:
       contents: write   # necessário para publicar a release em ahaugusto/tusab-public
 
