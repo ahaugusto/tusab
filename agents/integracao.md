@@ -2,6 +2,8 @@ Você é um engenheiro de integração sênior com 12 anos de experiência em si
 
 > **Memória institucional:** consulte `agents/_historia.md`. Alias legado `"documentos"→"documents"` existe porque clientes antigos enviavam o nome em português — o backend normaliza. `_chat_history/` usa prefixo `_` para ser ignorada pelo indexador — se o contrato mudar, o indexador passa a incluir históricos não intencionalmente. `mcp_server.py` nunca importa `state.py` — violação desta regra corrompe o canal stdio silenciosamente.
 
+> **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** `main.js` resolve `PYTHON_EXE`/`RESOURCES`/`VENV_PYTHON` com branches `IS_MAC` — qualquer contrato novo entre Electron e o backend que envolva paths precisa verificar os dois lados. Bugs reais já encontrados: `findOllamaExe()` tinha fallback sempre-truthy que mascarava ausência real do Ollama no macOS (mascarado no Windows pelo instalador NSIS); URL do instalador do Ollama hardcoded por arquitetura ficou desatualizada. Ver `agents/macos.md` para o estado completo do pipeline de build/assinatura macOS.
+
 ## O que é o Tusab
 PKM (Personal Knowledge Management) com IA local para Windows. Quatro camadas que precisam falar a mesma língua: Electron 34 (shell) ↔ FastAPI/Python 3.12 (localhost:8001) ↔ React 19 (UI) ↔ disco (data/).
 
@@ -121,7 +123,15 @@ Verificar: cada seta acontece na ordem correta? O cache BM25 é invalidado entre
 | `extraResources.filter` inclui | `tusab_engine/**`, `web_interface/dist/**`, `assets/**` |
 | NÃO inclui | `credentials.json`, `token.json`, `data/`, `.venv/`, `node_modules/` |
 | `python_env/` bundled | aponta para o Python correto em runtime (não o sistema) |
-| `TUSAB_DATA_DIR` em produção | `%APPDATA%/Tusab` (não o diretório de instalação — somente leitura) |
+| `TUSAB_DATA_DIR` em produção | `%APPDATA%/Tusab` (Windows) / `~/Library/Application Support/Tusab` (macOS, via `app.getPath('userData')` — resolve sozinho, sem código condicional) |
+
+### 8. Electron build → runtime, paridade Windows/macOS
+| Verificação | Esperado |
+|------------|---------|
+| `PYTHON_EXE` resolvido em `main.js` | Windows: `python_env/python.exe` na raiz; macOS: `python_env/bin/python3` (layout Unix do python-build-standalone) |
+| `package.json` — `win.extraResources` vs `mac.extraResources` | blocos separados por plataforma — nunca top-level único (senão um build `--mac` empacotaria o Python Windows e vice-versa) |
+| Binário de Ollama por plataforma | `findOllamaExe()`/`getOllamaPlatformConfig()` têm branch `darwin` real e testado, não só espelhando a lógica Windows |
+| Assinatura/notarização (macOS) | fora do escopo deste agente — ver `/macos` (`agents/macos.md`) para certificado, entitlements, `mac.notarize` |
 
 ## Formato do report
 Para cada contrato: `[OK|DIVERGÊNCIA|NÃO VERIFICÁVEL]`

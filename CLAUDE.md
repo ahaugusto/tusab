@@ -16,6 +16,7 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/seguranca` | Engenheiro de Segurança | path traversal, injeção de comando, secrets, Electron, upload |
 | `/integracao` | Engenheiro de Integração | contrato Electron↔FastAPI↔React↔disco, payload, fluxos ponta a ponta |
 | `/backend` | Engenheiro FastAPI/Python | analisar API, thread safety, atomicidade, BM25, RAG |
+| `/macos` | Engenheiro de Build/Release macOS | code signing, notarização, empacotamento Electron, bugs de CI no runner macOS |
 | `/frontend` | Engenheiro React/Vite | analisar componentes, hooks, estado, i18n, acessibilidade |
 | `/ux` | Designer UX | avaliar fluxo, jornada, fricção, microcopy e interação por perfil |
 | `/ui` | Designer UI | auditar tokens visuais, estados de componentes, hierarquia tipográfica, consistência dark/light |
@@ -69,6 +70,17 @@ cd electron; npm run dev
 - `pip install` vai pro Python do sistema, não `.venv` — sempre prefixar com `.venv\Scripts\python.exe -m pip`
 - `npm run build` via Bash não atualiza dist no Windows — usar PowerShell
 - `TUSAB_DATA_DIR` env var define onde os dados ficam (usado em testes e no Electron packaged)
+
+---
+
+## Paridade Windows/macOS (obrigatória, a partir de 30/jul/2026)
+
+O Tusab suporta Windows e macOS a partir desta data — **toda nova implementação precisa considerar os dois sistemas**, não só Windows. Isso não significa testar fisicamente num Mac a cada mudança (não há Mac disponível — todo teste macOS passa por CI real em `macos-latest`, ver `agents/macos.md`), mas significa:
+
+- Qualquer código que toque em paths, subprocessos, ou binários externos precisa de branch condicional (`IS_MAC`/`process.platform === 'darwin'`/`sys.platform`), nunca assumir convenção só-Windows.
+- Mesmo código-fonte, branches por plataforma — **nunca** arquivos/branches Git separados por sistema.
+- Nenhuma mudança pra macOS pode alterar o comportamento Windows quando a condição de plataforma é falsa, e vice-versa — `pytest` + `smoke.ps1 -Suite full` continuam sendo o gate mínimo pra qualquer PR, independente da plataforma-alvo.
+- Consulte `/macos` (agente especializado, `agents/macos.md`) pra empacotamento, assinatura, notarização e bugs já conhecidos do pipeline macOS — não repropor diagnóstico já descartado (ex: "wrong password" no `.p12` quase sempre é algoritmo incompatível, não senha).
 
 ---
 
