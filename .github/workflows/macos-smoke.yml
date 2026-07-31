@@ -504,7 +504,10 @@ jobs:
     name: "Fase 7: Notarização real"
     runs-on: macos-latest
     if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-notarize' }}
-    timeout-minutes: 30
+    # Assinatura sozinha (Fase 6) já passa de 30min com o python_env inteiro
+    # (torch/onnxruntime/transformers) — notarização soma submissão +
+    # espera da Apple em cima disso.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
 
