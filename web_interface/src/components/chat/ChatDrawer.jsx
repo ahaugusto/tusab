@@ -1042,13 +1042,13 @@ function ChatDrawer({
                             <div className="mt-2 flex items-center gap-1">
                               {feedbackMap[i] ? (
                                 <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                  {feedbackMap[i] === 'up' ? '✓ Salvo na base' : '✓ Descartado'}
+                                  {feedbackMap[i] === 'up' ? t('chat.feedback_saved') : t('chat.feedback_discarded')}
                                 </span>
                               ) : (
                                 <>
-                                  <span className={`text-[10px] mr-1 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>Esta resposta foi útil?</span>
+                                  <span className={`text-[10px] mr-1 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>{t('chat.feedback_prompt')}</span>
                                   <button
-                                    title="Resposta útil — salvar na base"
+                                    title={t('chat.feedback_useful_tooltip')}
                                     onClick={() => {
                                       const pergunta = i > 0 ? chatMessages[i - 1]?.content || '' : '';
                                       setFeedbackMap(prev => ({ ...prev, [i]: 'up' }));
@@ -1058,7 +1058,7 @@ function ChatDrawer({
                                     <ThumbsUp size={11} />
                                   </button>
                                   <button
-                                    title="Resposta não útil — descartar"
+                                    title={t('chat.feedback_not_useful_tooltip')}
                                     onClick={() => {
                                       const pergunta = i > 0 ? chatMessages[i - 1]?.content || '' : '';
                                       setFeedbackMap(prev => ({ ...prev, [i]: 'down' }));
@@ -1085,7 +1085,7 @@ function ChatDrawer({
                           <div className={`mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded-lg border text-[10px] leading-relaxed
                             ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
                             <AlertTriangle size={11} className="shrink-0 mt-0.5" />
-                            <span>Este modelo pode ser pesado demais para o seu hardware. Tente um modelo menor como <strong>Llama 3.2 1B</strong> ou <strong>Llama 3.2 3B</strong> na aba <strong>Agente</strong>.</span>
+                            <span>{t('chat.model_too_heavy_hint')}</span>
                           </div>
                         )}
                         {msg.role === 'error' && msg.erro_provider && (
@@ -1938,13 +1938,13 @@ function ChatDrawer({
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-semibold truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{base.nome}</p>
                       {st === 'indexando' ? (
-                        <p className={`text-[10px] ${darkMode ? 'text-accent' : 'text-cyan-600'}`}>Indexando…</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-accent' : 'text-cyan-600'}`}>{t('chat.base_status_indexing')}</p>
                       ) : st === 'aguardando' ? (
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Na fila…</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('chat.base_status_queued')}</p>
                       ) : st === 'ok' ? (
-                        <p className={`text-[10px] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>✓ Indexado</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{t('chat.base_status_indexed')}</p>
                       ) : st === 'erro' ? (
-                        <p className={`text-[10px] ${darkMode ? 'text-red-400' : 'text-red-600'}`}>Sem conteúdo</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-red-400' : 'text-red-600'}`}>{t('chat.base_status_no_content')}</p>
                       ) : base.indexado ? (
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -1978,7 +1978,7 @@ function ChatDrawer({
                             setTimeout(() => setFilaStatusChat({}), 2000);
                           }}
                           disabled={!!indexandoBase || agentStatus.indexing}
-                          title={base.indexado ? `Reindexar @${base.nome}` : `Indexar @${base.nome}`}
+                          title={base.indexado ? t('chat.reindex_base_tooltip', { nome: base.nome }) : t('chat.index_base_tooltip', { nome: base.nome })}
                           className={`p-1.5 rounded-lg transition-colors disabled:opacity-40
                             ${darkMode ? 'text-slate-500 hover:text-accent hover:bg-accent/10' : 'text-slate-400 hover:text-cyan-600 hover:bg-cyan-50'}`}>
                           {indexandoBase === base.nome
@@ -2020,7 +2020,7 @@ function ChatDrawer({
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <p className={`text-[10px] font-semibold ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
-                          Selecione ao menos uma base para continuar.
+                          {t('chat.select_at_least_one_base')}
                         </p>
                       </div>
                       <button
