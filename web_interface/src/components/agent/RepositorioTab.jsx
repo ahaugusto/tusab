@@ -612,7 +612,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   };
 
   const handleResetTotal = async () => {
-    if (resetConfirm !== 'RESETAR') return;
+    if (resetConfirm !== t('reset.confirm_word')) return;
     setResetando(true);
     await resetTotal().catch(() => {});
     setShowResetTotal(false);
@@ -812,7 +812,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
       {/* Modal — limpar base */}
       {showLimpar && (
-        <ModalWrapper onClose={() => { if (!limpando) { setShowLimpar(false); setLimparBasesSel({}); } }} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar bases">
+        <ModalWrapper onClose={() => { if (!limpando) { setShowLimpar(false); setLimparBasesSel({}); } }} zIndex="z-[9999]" backdrop="bg-black/60" label={t('repo.clear_bases_title')}>
           {(() => {
             const selecionadas = Object.entries(limparBasesSel).filter(([, v]) => v).map(([k]) => k);
             const todasSel = canais.length > 0 && canais.every(c => limparBasesSel[c.nome]);
@@ -1535,10 +1535,10 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
       {/* Modal — criar novo projeto */}
       {showCriarProjetoModal && (
-        <ModalWrapper onClose={() => setShowCriarProjetoModal(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Novo projeto">
+        <ModalWrapper onClose={() => setShowCriarProjetoModal(false)} zIndex="z-[9999]" backdrop="bg-black/60" label={t('repo.new_project')}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             <div>
-              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Novo projeto</h3>
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('repo.new_project')}</h3>
               <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 Dê um nome ao projeto. Depois você poderá adicionar arquivos e textos a ele.
               </p>
@@ -1565,7 +1565,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     setCriandoProj(false);
                   }
                 }}
-                placeholder="Ex: FGV, Marketing Digital, Estudos 2026…"
+                placeholder={t('extraction.project_name_placeholder')}
                 autoFocus
                 maxLength={120}
                 className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
@@ -1575,7 +1575,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <button onClick={() => setShowCriarProjetoModal(false)}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
               <button
                 disabled={!criarProjetoNome.trim() || criandoProj}
@@ -1592,7 +1592,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   setCriandoProj(false);
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-40 bg-primary text-white hover:bg-primary/85 ${btnFocus}`}>
-                {criandoProj ? 'Criando…' : 'Criar projeto'}
+                {criandoProj ? t('repo.creating') : t('repo.create_project_btn')}
               </button>
             </div>
           </div>
@@ -1650,7 +1650,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 type="text"
                 value={resetConfirm}
                 onChange={e => setResetConfirm(e.target.value)}
-                placeholder="RESETAR"
+                placeholder={t('reset.confirm_word')}
                 autoFocus
                 className={`w-full rounded-lg border px-3 py-1.5 text-xs font-mono outline-none focus:border-danger
                   ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-600' : 'bg-white border-slate-300 text-slate-800'}`}
@@ -1662,7 +1662,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                 {t('repo.cancel')}
               </button>
-              <button onClick={handleResetTotal} disabled={resetando || resetConfirm !== 'RESETAR'}
+              <button onClick={handleResetTotal} disabled={resetando || resetConfirm !== t('reset.confirm_word')}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${btnFocus}
                   ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
                 {resetando ? t('repo.resetting') : t('repo.reset_all_btn')}
@@ -1674,7 +1674,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
 
       {/* Modal: Indexar base */}
       {showIndexar && createPortal(
-        <ModalWrapper onClose={() => !indexando && setShowIndexar(false)} zIndex="z-[9999]" backdrop="bg-black/60" label="Indexar base de conhecimento">
+        <ModalWrapper onClose={() => !indexando && setShowIndexar(false)} zIndex="z-[9999]" backdrop="bg-black/60" label={t('repo.indexar_title')}>
           <IndexarModal
             darkMode={darkMode}
             btnFocus={btnFocus}

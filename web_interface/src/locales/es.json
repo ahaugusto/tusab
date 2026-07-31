@@ -1027,5 +1027,6 @@
   "referenciar.select_hint": "Selecciona archivos para usar como contexto",
   "referenciar.use_as_context": "Usar como contexto en el chat",
   "referenciar.search_error": "Error al buscar. Verifica si el backend está en ejecución.",
-  "referenciar.close": "Cerrar"
+  "referenciar.close": "Cerrar",
+  "repo.creating": "Creando…"
 }
