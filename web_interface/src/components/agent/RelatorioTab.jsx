@@ -342,11 +342,11 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
                   <tr className={`border-b ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
                     {[
                       { col: 'Titulo',        label: t('relatorio.col_title'),  cls: '' },
-                      { col: 'Data_Pub',      label: 'Data Publicação',         cls: 'whitespace-nowrap' },
-                      { col: 'Data_Extracao', label: 'Data Extração',           cls: 'whitespace-nowrap' },
+                      { col: 'Data_Pub',      label: t('relatorio.col_date_pub'),      cls: 'whitespace-nowrap' },
+                      { col: 'Data_Extracao', label: t('relatorio.col_date_extracao'), cls: 'whitespace-nowrap' },
                       { col: 'Aba',           label: t('relatorio.col_tab'),    cls: '' },
                       { col: 'Status',        label: t('relatorio.col_status'), cls: '' },
-                      { col: 'Local',         label: 'Arquivo',                 cls: '' },
+                      { col: 'Local',         label: t('relatorio.col_file'),          cls: '' },
                     ].map(({ col, label, cls }) => (
                       <th key={col}
                         onClick={() => handleSort(col)}

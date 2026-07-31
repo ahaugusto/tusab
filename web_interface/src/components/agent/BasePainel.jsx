@@ -7,22 +7,27 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Database, Play, FileText, AlignLeft, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { fetchBaseSummary } from '../../services/api';
 
-function formatDate(ts) {
-  if (!ts) return null;
-  const d = new Date(ts * 1000);
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+function localeFor(lang) {
+  return lang?.startsWith('en') ? 'en-US' : lang?.startsWith('es') ? 'es-ES' : 'pt-BR';
 }
 
-function StatusChip({ indexado, desatualizado, darkMode }) {
+function formatDate(ts, lang) {
+  if (!ts) return null;
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString(localeFor(lang), { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function StatusChip({ indexado, desatualizado, darkMode, t }) {
   if (!indexado) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border
         ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
-        Não indexado
+        {t('chat.not_indexed')}
       </span>
     );
   }
@@ -31,7 +36,7 @@ function StatusChip({ indexado, desatualizado, darkMode }) {
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border
         ${darkMode ? 'bg-amber-500/20 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-600'}`}>
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-        Desatualizado
+        {t('basePainel.status_outdated')}
       </span>
     );
   }
@@ -39,7 +44,7 @@ function StatusChip({ indexado, desatualizado, darkMode }) {
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border
       ${darkMode ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-      Indexado
+      {t('basePainel.status_indexed')}
     </span>
   );
 }
@@ -54,6 +59,7 @@ function StatusChip({ indexado, desatualizado, darkMode }) {
  * @param {boolean}  [props.agentIndexing]      - true enquanto indexação está em progresso
  */
 export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agentIndexing }) {
+  const { t, i18n } = useTranslation();
   const [projetos, setProjetos] = useState([]);
   const [loading,  setLoading]  = useState(true);
 
@@ -75,7 +81,7 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
     return (
       <div className="flex items-center gap-2 py-6 justify-center">
         <Loader2 size={14} className={`animate-spin ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
-        <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Carregando inventário…</span>
+        <span className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('basePainel.loading')}</span>
       </div>
     );
   }
@@ -83,7 +89,7 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
   if (projetos.length === 0) {
     return (
       <div className={`text-center py-8 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-        Nenhuma base encontrada. Extraia um canal ou adicione documentos no Repositório.
+        {t('basePainel.empty')}
       </div>
     );
   }
@@ -92,11 +98,11 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className={`text-[10px] font-bold uppercase tracking-wider ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          O que o Tusab sabe — {projetos.length} {projetos.length === 1 ? 'projeto' : 'projetos'}
+          {t('basePainel.header_count', { count: projetos.length })}
         </p>
         <button
           onClick={carregar}
-          title="Atualizar"
+          title={t('common.refresh')}
           className={`p-1 rounded transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
           <RefreshCw size={11} />
         </button>
@@ -121,7 +127,7 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
                   @{p.nome}
                 </p>
               </div>
-              <StatusChip indexado={p.indexado} desatualizado={desatualizado} darkMode={darkMode} />
+              <StatusChip indexado={p.indexado} desatualizado={desatualizado} darkMode={darkMode} t={t} />
             </div>
 
             {/* Contadores de fontes */}
@@ -130,7 +136,7 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
                 <div className="flex items-center gap-1">
                   <Play size={10} className={darkMode ? 'text-red-400' : 'text-red-500'} />
                   <span className={`text-[10px] font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {p.n_youtube} {p.n_youtube === 1 ? 'vídeo' : 'vídeos'}
+                    {t('basePainel.videos_count', { count: p.n_youtube })}
                   </span>
                 </div>
               )}
@@ -138,7 +144,7 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
                 <div className="flex items-center gap-1">
                   <FileText size={10} className={darkMode ? 'text-blue-400' : 'text-blue-500'} />
                   <span className={`text-[10px] font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {p.n_documents} {p.n_documents === 1 ? 'doc' : 'docs'}
+                    {t('basePainel.docs_count', { count: p.n_documents })}
                   </span>
                 </div>
               )}
@@ -146,14 +152,14 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
                 <div className="flex items-center gap-1">
                   <AlignLeft size={10} className={darkMode ? 'text-emerald-400' : 'text-emerald-500'} />
                   <span className={`text-[10px] font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {p.n_texts} {p.n_texts === 1 ? 'texto' : 'textos'}
+                    {t('basePainel.texts_count', { count: p.n_texts })}
                   </span>
                 </div>
               )}
               {p.n_chunks > 0 && (
                 <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono
                   ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                  {p.n_chunks.toLocaleString('pt-BR')} chunks
+                  {t('basePainel.chunks_suffix', { count: p.n_chunks.toLocaleString(localeFor(i18n.language)) })}
                 </span>
               )}
             </div>
@@ -161,10 +167,10 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
             {/* Datas */}
             <div className={`flex items-center gap-3 text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
               {p.ultima_adicao && (
-                <span>Última adição: {formatDate(p.ultima_adicao)}</span>
+                <span>{t('basePainel.last_added', { date: formatDate(p.ultima_adicao, i18n.language) })}</span>
               )}
               {p.indexed_at && (
-                <span>Indexado: {formatDate(p.indexed_at)}</span>
+                <span>{t('basePainel.indexed_at', { date: formatDate(p.indexed_at, i18n.language) })}</span>
               )}
             </div>
 
@@ -173,10 +179,10 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
               <div className={`flex items-center gap-1.5 flex-wrap text-[9px] px-2 py-1 rounded-lg
                 ${darkMode ? 'bg-primary/8 text-slate-400' : 'bg-violet-50 text-slate-500'}`}>
                 <Zap size={9} className={darkMode ? 'text-primary' : 'text-violet-500'} />
-                <span className="font-semibold">Perfil do corpus:</span>
+                <span className="font-semibold">{t('basePainel.corpus_profile_label')}</span>
                 <span>{p.corpus_profile.tipo_dominante}</span>
                 <span className="opacity-50">·</span>
-                <span>{p.corpus_profile.n_candidatos_bm25} candidatos na Busca Ampla</span>
+                <span>{t('basePainel.corpus_candidates_suffix', { count: p.corpus_profile.n_candidatos_bm25 })}</span>
               </div>
             )}
 
@@ -189,7 +195,7 @@ export function BasePainel({ darkMode, basesDesatualizadas = [], onIndexar, agen
                   disabled:opacity-40 disabled:cursor-not-allowed
                   ${darkMode ? 'bg-accent/20 text-accent hover:bg-accent/30' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}>
                 <Zap size={10} />
-                {agentIndexing ? 'Indexando…' : desatualizado ? 'Atualizar índice' : 'Indexar agora'}
+                {agentIndexing ? t('repo.indexing_short') : desatualizado ? t('basePainel.update_index_btn') : t('basePainel.index_now_btn')}
               </button>
             )}
           </motion.div>
