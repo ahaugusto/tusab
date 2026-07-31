@@ -502,7 +502,9 @@ jobs:
   # sucesso (comportamento padrão do @electron/notarize).
   electron-notarize:
     name: "Fase 7: Notarização real"
-    runs-on: macos-latest
+    # Self-hosted (Scaleway Mac mini) — evita consumir a cota gratuita do
+    # macos-latest hospedado, que já foi motivo de bloqueio nesta sessão.
+    runs-on: [self-hosted, macOS, ARM64]
     if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-notarize' }}
     # Assinatura sozinha (Fase 6) já passa de 30min com o python_env inteiro
     # (torch/onnxruntime/transformers) — notarização soma submissão +
@@ -540,14 +542,16 @@ jobs:
       - name: Preparar API Key da App Store Connect (arquivo .p8)
         run: |
           mkdir -p "$HOME/private_keys"
-          echo "${{ secrets.APPLE_API_KEY }}" > "$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8"
+          KEY_PATH="$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8"
+          echo "${{ secrets.APPLE_API_KEY }}" > "$KEY_PATH"
+          echo "APPLE_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Build Electron assinado + notarizado (--mac)
         working-directory: electron
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_API_KEY: /Users/runner/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          APPLE_API_KEY: ${{ env.APPLE_API_KEY_PATH }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         # mac.notarize é false no package.json (padrão da Fase 6/8, sem
