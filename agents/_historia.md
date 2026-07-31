@@ -685,3 +685,13 @@ Plano completo de 9 fases aprovado e documentado em `C:\Users\augus\.claude\plan
 **Metodologia que se provou valiosa de novo:** isolar cada variável (Fase 6 = só assinar, sem notarizar) antes de avançar pra uma etapa mais cara (Fase 7 = notarização real, depende de serviço externo da Apple, mais lenta) evitou gastar ciclos caros de notarização diagnosticando problemas que eram, na real, da camada de assinatura local — exatamente o motivo dado quando o plano original foi desenhado.
 
 Secrets no GitHub (`ahaugusto/tusab`): `CSC_LINK` (`.p12` em base64), `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (conteúdo do `.p8` da App Store Connect API Key — **atenção**: `@electron/notarize` espera um CAMINHO de arquivo, não o conteúdo direto, então o CI escreve o secret num arquivo antes de usar), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`.
+
+### Graphify (Graphify-Labs/graphify) — ferramenta de upscaling do próprio desenvolvimento, testada e aprovada (30/jul/2026)
+
+**O que é:** skill de CLI (`graphify`) pra Claude Code/Cursor/Codex/Gemini CLI — mapeia um repositório inteiro num grafo de conhecimento navegável. Parsing de código via tree-sitter AST é 100% local e determinístico (sem LLM, `--code-only`); análise semântica de docs/PDF/mídia é opcional e chamaria um backend externo, não usada aqui. Apache 2.0, backed por YC (S26).
+
+**Veredito: útil, não adotado formalmente.** Não é feature de produto — o domínio do Tusab é transcrição/documento narrativo, não código-fonte, e GraphRAG pro conteúdo do usuário já foi avaliado e descartado (corpus atual com baixa densidade relacional, ver entrada anterior). É uma ferramenta de **upscaling do próprio processo de desenvolvimento**: ajuda um agente (ou o próprio Augusto) a navegar o código-fonte do Tusab mais rápido conforme o repositório cresce.
+
+**Testado ao vivo** (`graphify extract . --code-only`, `.venv` fora, instalado via `uv tool install graphifyy`): 1.369 nós, 2.696 arestas, 86 comunidades, extração local em segundos. `graphify god-nodes` apontou corretamente `executar_busca_generica()` (56 conexões — bate com os 24 módulos de fontes públicas que a chamam), `App()`, `salvar_json_atomico()`. `graphify explain "state"` listou corretamente os 6 routers que importam `state.py` — bate exatamente com o que está documentado no `CLAUDE.md`.
+
+**Decisão de escopo:** instalado via `uv tool` (ferramenta do sistema, não dependência do projeto). Output (`graphify-out/`) fica fora do Git deliberadamente — não é artefato de build, é cache de navegação ad hoc, gerado sob demanda quando precisar, não commitado nem versionado.
