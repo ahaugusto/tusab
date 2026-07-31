@@ -85,3 +85,9 @@ sebayt_crash.log
 # --- OS ---
 .DS_Store
 Thumbs.db
+
+# --- Segredos de assinatura/notarização Apple (nunca versionar) ---
+Apple/
+*.p12
+*.p8
+*.cer
