@@ -119,7 +119,8 @@
     "publish": {
       "provider": "github",
       "owner": "ahaugusto",
-      "repo": "tusab-public"
+      "repo": "tusab-public",
+      "releaseType": "release"
     }
   }
 }
