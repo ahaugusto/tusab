@@ -327,6 +327,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     listarProjetos().then(r => setProjetos(r.data?.projetos || [])).catch(() => {});
   }, []);
   const [projetos,       setProjetos]       = React.useState([]);
+  const [buscaBaseNome,  setBuscaBaseNome]  = React.useState('');   // filtra a lista de bases pelo nome
   const [projetoSel,     setProjetoSel]     = React.useState('');   // '' = usa canalAtivo
   const [forceSelecionarProjeto, setForceSelecionarProjeto] = React.useState(false); // volta ao step de seleção mesmo com canalAtivo
   const [showNovoProjeto, setShowNovoProjeto] = React.useState(false);
@@ -337,10 +338,15 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const fileRef  = React.useRef(null);
   const dropRef  = React.useRef(null);
 
-  // Pré-seleciona projeto quando vindo de fora (ex: criação no folder picker)
+  // Pré-seleciona projeto quando vindo de fora (ex: criação no folder picker,
+  // ou botão "Abrir base no Repositório" após busca em fonte pública) — além
+  // de selecionar, filtra a lista de bases pelo nome (efeito de "busca já
+  // feita") e expande o card correspondente.
   React.useEffect(() => {
     if (projetoInicial) {
       setProjetoSel(projetoInicial);
+      setBuscaBaseNome(projetoInicial);
+      setExpandedCanais(prev => ({ ...prev, [projetoInicial]: true }));
       onProjetoInicialHandled?.();
     }
   }, [projetoInicial]);
@@ -676,6 +682,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   };
 
   const canais    = repositorio.canais      || [];
+  const canaisFiltrados = buscaBaseNome.trim()
+    ? canais.filter(c => c.nome.toLowerCase().includes(buscaBaseNome.trim().toLowerCase()))
+    : canais;
   const flatYT    = repositorio.youtube    || [];
   const flatDocs  = repositorio.documentos || [];
   const flatTexts = repositorio.textos     || [];
@@ -795,6 +804,27 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
           </button>
         </div>
       </div>
+
+      {/* Busca por nome da base */}
+      {canais.length > 1 && (
+        <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
+          ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={darkMode ? 'text-slate-500 shrink-0' : 'text-slate-400 shrink-0'}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="text"
+            value={buscaBaseNome}
+            onChange={e => setBuscaBaseNome(e.target.value)}
+            placeholder={t('repo.search_placeholder')}
+            className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`}
+          />
+          {buscaBaseNome && (
+            <button onClick={() => setBuscaBaseNome('')} title={t('repo.search_clear')}
+              className={darkMode ? 'text-slate-500 hover:text-slate-300 shrink-0' : 'text-slate-400 hover:text-slate-600 shrink-0'}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      )}
 
 
       {/* ── Snackbar exportar/importar ── */}
@@ -1164,8 +1194,15 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
 
+      {/* Sem resultados na busca por nome */}
+      {buscaBaseNome.trim() && canaisFiltrados.length === 0 && (
+        <p className={`text-xs text-center py-6 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+          {t('repo.search_no_matches', { query: buscaBaseNome.trim() })}
+        </p>
+      )}
+
       {/* Canal groups */}
-      {canais.map(canal => {
+      {canaisFiltrados.map(canal => {
         const cTotal = canal.youtube.length + canal.documentos.length + canal.textos.length;
         const isOpen = expandedCanais[canal.nome] !== false;
         return (
