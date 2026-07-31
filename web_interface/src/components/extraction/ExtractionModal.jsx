@@ -12,7 +12,7 @@ import { X, Zap, Loader2, Search } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 import CanalUrlSearchInput from './CanalUrlSearchInput';
-import { getCanalInfo, criarProjeto, listarFontes } from '../../services/api';
+import { getCanalInfo, criarProjeto } from '../../services/api';
 
 /**
  * ExtractionModal — always starts with project name.
@@ -20,7 +20,7 @@ import { getCanalInfo, criarProjeto, listarFontes } from '../../services/api';
  * Step 2: Channel URL (skipped when channel already configured and not modoFila) — ou busca em fonte pública (perfil Pesquisador)
  * Step 3: Content types + auto-update — ou quantidade de resultados (fonte pública)
  */
-function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', regras = {}, sourceTypeInicial = '' }) {
+function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNome = '', canalUrlInicial = '', projetos = [], modoFila = false, perfil = '', regras = {}, sourceTypeInicial = '', areasFontes = {}, areaSelecionada = '' }) {
   const { t } = useTranslation();
 
   // Toggle de fonte — gated em regras.fontes_publicas (não em perfil
@@ -38,44 +38,14 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // na fonte certa em vez de forçar escolher de novo aqui dentro.
   const [sourceType, setSourceType] = React.useState(sourceTypeInicial || 'youtube'); // 'youtube' | 'fonte-publica'
 
-  // Fontes públicas disponíveis, agrupadas por área — carregado uma vez do
-  // registro genérico do backend (GET /fontes). Área/fonte só é escolhida de
-  // fato dentro do step 'url'; aqui só guardamos o catálogo + seleção atual.
-  const [areasFontes,      setAreasFontes]      = React.useState({}); // { area_id: {nome, fontes:[FONTE_META,...]} }
-  const [areaSelecionada,  setAreaSelecionada]  = React.useState('');
-  const [fonteSelecionada, setFonteSelecionada] = React.useState('');
-  // 'idle' | 'loading' | 'ok' | 'error' — sem isso, uma falha em GET /fontes
-  // ficava completamente invisível: a seção "Fonte" só renderizava vazia,
-  // sem nenhum sinal do que deu errado nem como tentar de novo.
-  const [fonteCatalogoStatus, setFonteCatalogoStatus] = React.useState('idle');
-  const [fonteCatalogoErro,   setFonteCatalogoErro]   = React.useState('');
-
-  const carregarCatalogoFontes = React.useCallback(() => {
-    setFonteCatalogoStatus('loading');
-    setFonteCatalogoErro('');
-    listarFontes().then(r => {
-      const areas = r.data?.areas || {};
-      setAreasFontes(areas);
-      const primeiraArea = Object.keys(areas)[0];
-      if (primeiraArea) {
-        setAreaSelecionada(primeiraArea);
-        setFonteSelecionada(areas[primeiraArea].fontes[0]?.id || '');
-        setFonteCatalogoStatus('ok');
-      } else {
-        setFonteCatalogoStatus('error');
-        setFonteCatalogoErro(t('extraction.no_areas_error'));
-      }
-    }).catch(err => {
-      console.error('[ExtractionModal] falha ao carregar /fontes:', err);
-      setFonteCatalogoStatus('error');
-      setFonteCatalogoErro(err?.message || t('extraction.unknown_error'));
-    });
-  }, []);
-
+  // areasFontes/areaSelecionada vêm de App.jsx (carregados e escolhidos já na
+  // aba Extração, antes do modal abrir) — aqui só resta escolher a fonte
+  // dentro da área já definida.
+  const [fonteSelecionada, setFonteSelecionada] = React.useState(areasFontes[areaSelecionada]?.fontes[0]?.id || '');
   React.useEffect(() => {
-    if (!podeUsarFontesPublicas) return;
-    carregarCatalogoFontes();
-  }, [podeUsarFontesPublicas, carregarCatalogoFontes]);
+    const fontes = areasFontes[areaSelecionada]?.fontes || [];
+    if (!fontes.some(f => f.id === fonteSelecionada)) setFonteSelecionada(fontes[0]?.id || '');
+  }, [areaSelecionada, areasFontes]);
   const fonteAtual = areasFontes[areaSelecionada]?.fontes.find(f => f.id === fonteSelecionada) || null;
 
   // Step fonte pública: query de busca + quantidade de resultados + filtros
@@ -336,56 +306,10 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
             </div>
           )}
 
-          {/* ── Step busca em fonte pública (área → fonte → tema + filtros) ── */}
+          {/* ── Step busca em fonte pública (fonte → tema + filtros) — a área já
+              foi escolhida na aba Extração, antes de abrir o modal ── */}
           {step === 'url' && sourceType === 'fonte-publica' && (
             <>
-              {fonteCatalogoStatus === 'loading' && (
-                <p className={`text-[11px] mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.loading_areas')}
-                </p>
-              )}
-              {fonteCatalogoStatus === 'error' && (
-                <div className={`mb-4 rounded-lg border px-3 py-2.5 text-[11px] ${darkMode ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                  <p className="font-bold mb-1">{t('extraction.load_error_title')}</p>
-                  <p className="opacity-80 mb-2">{fonteCatalogoErro}</p>
-                  <button onClick={carregarCatalogoFontes} className={`underline font-semibold ${BTN_FOCUS}`}>
-                    {t('extraction.retry')}
-                  </button>
-                </div>
-              )}
-              {Object.keys(areasFontes).length > 1 && (
-                <div className="mb-4">
-                  <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t('extraction.area_label')}
-                  </label>
-                  {Object.keys(areasFontes).length > 4 ? (
-                    <select
-                      value={areaSelecionada}
-                      onChange={e => { setAreaSelecionada(e.target.value); setFonteSelecionada(areasFontes[e.target.value]?.fontes[0]?.id || ''); }}
-                      className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
-                        ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
-                      {Object.entries(areasFontes).map(([areaId, area]) => (
-                        <option key={areaId} value={areaId} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{t(`extraction.area_${areaId}`, area.nome)}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(areasFontes).map(([areaId, area]) => {
-                        const ativo = areaId === areaSelecionada;
-                        return (
-                          <button key={areaId}
-                            onClick={() => { setAreaSelecionada(areaId); setFonteSelecionada(area.fontes[0]?.id || ''); }}
-                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
-                              ${ativo ? 'bg-primary border-primary text-white' : darkMode ? 'bg-white/5 border-white/15 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                            {t(`extraction.area_${areaId}`, area.nome)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className="mb-4">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   {t('extraction.fonte_label')}
