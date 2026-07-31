@@ -540,7 +540,7 @@
   "extraction.source_public": "Base pública",
   "extraction.public_search_title": "Buscar en base pública",
   "extraction.public_search_in": "Buscar en {{nome}}",
-  "extraction.public_search_subtitle": "Elige el área de conocimiento y la fuente en el modal de búsqueda.",
+  "extraction.public_search_subtitle": "Elige un área de conocimiento abajo. Luego seleccionas la base específica (arXiv, Zenodo, CrossRef y otras), escribes un tema y decides cuántos resultados traer — creamos un nuevo proyecto con los documentos encontrados, listo para indexar y conversar en el chat.",
   "extraction.loading_areas": "Cargando áreas de conocimiento...",
   "extraction.load_error_title": "No fue posible cargar las fuentes públicas.",
   "extraction.retry": "Intentar de nuevo",
