@@ -303,8 +303,12 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
             ))}
           </div>
 
-          {/* ── Toggle de fonte — apenas perfil Pesquisador ── */}
-          {podeEscolherFonte && step === 'url' && (
+          {/* ── Toggle de fonte — apenas perfil Pesquisador, e só quando o modal
+              abre "cru" (sem fonte pré-escolhida na tela anterior). Quando
+              sourceTypeInicial vem preenchido, a escolha já foi feita na aba —
+              repetir o toggle aqui era redundante e confuso (mesma estrutura
+              em dois lugares). */}
+          {podeEscolherFonte && step === 'url' && !sourceTypeInicial && (
             <div className={`flex items-center gap-1 mb-4 p-1 rounded-xl border ${darkMode ? 'bg-white/3 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <button
                 onClick={() => setSourceType('youtube')}
