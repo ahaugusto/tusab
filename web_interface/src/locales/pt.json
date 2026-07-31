@@ -37,7 +37,7 @@
   "channel.configuring": "Configurando...",
   "channel.remove": "Remover canal configurado",
   "channel.error_required": "Informe a URL do canal.",
-  "channel.error_invalid": "URL inválida. Use o formato youtube.com/@Canal",
+  "channel.error_invalid": "URL inválida. Use o formato youtube.com/@Canal ou youtube.com/channel/ID",
   "channel.error_server": "Erro ao configurar canal. Servidor offline?",
   "ops.title": "Operações",
   "ops.start": "Iniciar Extração",
