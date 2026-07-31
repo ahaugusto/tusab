@@ -164,10 +164,10 @@ export default function ExtractionTab({
                   aqui, antes de abrir o modal, pro usuário saber o que pode
                   buscar antes mesmo de ver quais bases estão disponíveis ── */
               <div className={`p-4 rounded-xl border ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Search size={20} className="text-primary shrink-0" aria-hidden="true" />
-                    <div>
+                    <div className="min-w-0">
                       <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                         {t('extraction.public_search_title')}
                       </p>
@@ -183,8 +183,8 @@ export default function ExtractionTab({
                     </p>
                   )}
                   {areasFontesStatus === 'ok' && Object.keys(areasFontes).length > 1 && (
-                    <div className="w-full sm:w-64 shrink-0">
-                      <label className={`text-[10px] font-bold block mb-1 sm:text-right ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <div className="w-full sm:w-72 shrink-0">
+                      <label className={`text-[10px] font-bold block mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         {t('extraction.area_label')}
                       </label>
                       {Object.keys(areasFontes).length > 4 ? (
@@ -198,7 +198,7 @@ export default function ExtractionTab({
                           ))}
                         </select>
                       ) : (
-                        <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                        <div className="flex flex-wrap gap-1.5">
                           {Object.entries(areasFontes).map(([areaId, area]) => {
                             const ativo = areaId === areaSelecionada;
                             return (
