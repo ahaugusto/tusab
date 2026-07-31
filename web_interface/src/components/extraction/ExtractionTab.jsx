@@ -44,6 +44,7 @@ export default function ExtractionTab({
   // handlers
   handleConfigurarCanal,
   handleUsarCanalHistorico,
+  onSelectCanal,
   handleStart,
   handlePause,
   handleCancel,
@@ -251,6 +252,7 @@ export default function ExtractionTab({
                     darkMode={darkMode}
                     value={canalInput}
                     onChange={v => { setCanalInput(v); setCanalError(''); }}
+                    onSelectCanal={onSelectCanal}
                     onEnter={handleConfigurarCanal}
                     placeholder={t('channel.placeholder')}
                     inputSize={13}
@@ -321,6 +323,7 @@ export default function ExtractionTab({
                   darkMode={darkMode}
                   value={canalInput}
                   onChange={v => { setCanalInput(v); setCanalError(''); }}
+                  onSelectCanal={onSelectCanal}
                   onEnter={handleConfigurarCanal}
                   placeholder={t('channel.placeholder')}
                   inputSize={14}
