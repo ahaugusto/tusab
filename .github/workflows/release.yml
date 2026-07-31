@@ -13,11 +13,22 @@ jobs:
   # ── 1. Testes antes de qualquer build ────────────────────────────────────────
   tests:
     name: Testes (pytest + vite)
-    runs-on: ubuntu-latest
+    # TEMPORÁRIO: ubuntu-latest bloqueado — GitHub reporta "recent account
+    # payments have failed or your spending limit needs to be increased"
+    # mesmo após o usuário ajustar o spending limit (possível problema de
+    # forma de pagamento separado, ou propagação lenta — ver
+    # agents/_historia.md). Self-hosted não depende de billing do GitHub.
+    # RUNNER_TOOL_CACHE aponta pra dentro de runner.temp (sempre gravável,
+    # independente do usuário do SO) — o padrão do actions/setup-python
+    # tenta /Users/runner/hostedtoolcache, que não existe/não é gravável
+    # pro usuário real deste runner self-hosted (m1).
+    runs-on: [self-hosted, macOS, ARM64]
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/hostedtoolcache
         with:
           python-version: '3.11'
           cache: 'pip'
