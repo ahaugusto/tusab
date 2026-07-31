@@ -311,7 +311,7 @@ def canal_search(q: str):
     if len(q) > 200:
         return {"error": True, "message": "Termo de busca muito longo"}
 
-    canais = buscar_canais_youtube(q, max_resultados=8)
+    canais = buscar_canais_youtube(q, max_resultados=10)
     return {"canais": canais}
 
 

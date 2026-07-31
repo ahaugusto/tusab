@@ -489,7 +489,14 @@ def buscar_canais_youtube(query: str, max_resultados: int = 8) -> list:
              '--print', '%(channel)s|||%(uploader_id)s|||%(channel_follower_count)s|||%(channel_url)s|||%(thumbnails.-1.url)s',
              url]),
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=20
+            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=20,
+            # PYTHONUTF8: no Windows, a saída do processo filho (yt-dlp via
+            # sys.executable -m yt_dlp) é redirecionada por pipe e cai no
+            # codepage padrão do console em vez de UTF-8 — nomes de canal com
+            # acento (ex: "Rádio CBN") viravam bytes inválidos em UTF-8 e o
+            # errors='replace' acima trocava o caractere por "�". Forçar modo
+            # UTF-8 (PEP 540) no processo filho corrige na origem.
+            env={**os.environ, 'PYTHONUTF8': '1'},
         )
     except (subprocess.TimeoutExpired, Exception):
         return []
@@ -561,7 +568,8 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
              '--print', '%(channel)s|||%(uploader_id)s|||%(channel_follower_count)s',
              '--js-runtimes', 'node', canal_url]),
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=30
+            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=30,
+            env={**os.environ, 'PYTHONUTF8': '1'},  # mesmo fix de encoding — ver buscar_canais_youtube()
         )
         for linha in result.stdout.strip().splitlines():
             partes = linha.split('|||')

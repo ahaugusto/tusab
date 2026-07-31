@@ -92,7 +92,7 @@ function CanalUrlSearchInput({ darkMode, value, onChange, onEnter, onSelectCanal
       </div>
 
       {modoBusca && value.trim().length >= 2 && (
-        <div className={`absolute z-20 mt-1 w-full rounded-xl border shadow-xl max-h-56 overflow-y-auto custom-scrollbar
+        <div className={`absolute z-20 mt-1 w-full rounded-xl border shadow-xl max-h-[30rem] overflow-y-auto custom-scrollbar
           ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
           {buscaErro ? (
             <p className="flex items-center gap-1.5 px-3 py-3 text-[11px] text-danger"><AlertTriangle size={11} aria-hidden="true" /> {buscaErro}</p>
