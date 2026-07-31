@@ -546,11 +546,46 @@ jobs:
           echo "${{ secrets.APPLE_API_KEY }}" > "$KEY_PATH"
           echo "APPLE_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+      # Runner self-hosted roda sem sessão GUI (só SSH) — o keychain de login
+      # não pode ser desbloqueado/importado programaticamente nesse contexto
+      # ("SecKeychainItemImport: User interaction is not allowed"), o que faz
+      # o electron-builder cair silenciosamente pra assinatura ad-hoc em vez
+      # de falhar. Fix: keychain efêmero próprio, desbloqueado sem prompt,
+      # com a cadeia de confiança completa da Apple (o cert líder sozinho não
+      # basta — sem a CA intermediária "Developer ID" instalada, o macOS não
+      # confia nele e `security find-identity` retorna 0 identidades válidas
+      # mesmo com o cert já importado). Descoberto e validado por SSH direto
+      # no runner antes de codificar aqui — ver agents/macos.md.
+      - name: Preparar keychain de assinatura (self-hosted, sem sessão GUI)
+        run: |
+          KEYCHAIN_PASS="$(openssl rand -base64 24)"
+          security delete-keychain build.keychain 2>/dev/null || true
+          security create-keychain -p "$KEYCHAIN_PASS" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASS" build.keychain
+          security list-keychains -d user -s build.keychain login.keychain-db
+
+          echo "${{ secrets.CSC_LINK }}" | base64 --decode > /tmp/cert.p12
+          security import /tmp/cert.p12 -k build.keychain -P "${{ secrets.CSC_KEY_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f /tmp/cert.p12
+
+          curl -sL -o /tmp/DeveloperIDG2CA.cer "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer"
+          curl -sL -o /tmp/AppleRootCA.cer "https://www.apple.com/appleca/AppleIncRootCertificate.cer"
+          security import /tmp/DeveloperIDG2CA.cer -k build.keychain -T /usr/bin/codesign -T /usr/bin/security
+          security import /tmp/AppleRootCA.cer -k build.keychain -T /usr/bin/codesign -T /usr/bin/security
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" build.keychain
+          echo "Identidades válidas após montar a cadeia de confiança:"
+          security find-identity -v -p codesigning build.keychain
+
       - name: Build Electron assinado + notarizado (--mac)
         working-directory: electron
         env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # CSC_LINK/CSC_KEY_PASSWORD NÃO são passados aqui de propósito — o
+          # certificado já está no keychain (passo anterior); passar de novo
+          # faz o electron-builder tentar reimportar sozinho e reproduzir o
+          # mesmo erro de sessão. CSC_IDENTITY_AUTO_DISCOVERY (default true)
+          # encontra a identidade já presente no keychain search list.
           APPLE_API_KEY: ${{ env.APPLE_API_KEY_PATH }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -606,6 +641,12 @@ jobs:
       - name: Encerrar o app
         if: always()
         run: kill "$APP_PID" 2>/dev/null || true
+
+      - name: Remover keychain efêmero de assinatura
+        if: always()
+        run: |
+          security list-keychains -d user -s login.keychain-db
+          security delete-keychain build.keychain 2>/dev/null || true
 
       - name: Publicar .dmg/.zip notarizados como artifacts
         if: always()

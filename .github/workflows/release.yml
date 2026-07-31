@@ -103,7 +103,9 @@ jobs:
   # ── 3. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
   build-macos:
     name: Build macOS (.dmg + .zip)
-    runs-on: macos-latest
+    # Self-hosted (Scaleway Mac mini) — evita consumir a cota gratuita do
+    # macos-latest hospedado (ver macos-smoke.yml, job electron-notarize).
+    runs-on: [self-hosted, macOS, ARM64]
     needs: tests
     # Assinatura sozinha (deep-sign de todo o python_env com torch/
     # onnxruntime/transformers) já passa de 30min — notarização soma
@@ -161,18 +163,44 @@ jobs:
       - name: Preparar API Key da App Store Connect (arquivo .p8)
         run: |
           mkdir -p "$HOME/private_keys"
-          echo "${{ secrets.APPLE_API_KEY }}" > "$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8"
+          KEY_PATH="$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8"
+          echo "${{ secrets.APPLE_API_KEY }}" > "$KEY_PATH"
+          echo "APPLE_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
-      # electron-builder assina (CSC_LINK/CSC_KEY_PASSWORD), notariza e
-      # grampeia (staple) o ticket automaticamente com base no mac.notarize
-      # do package.json + os 3 env vars da API Key, depois publica na release.
+      # Runner self-hosted roda sem sessão GUI (só SSH) — o keychain de login
+      # não pode ser desbloqueado/importado programaticamente nesse contexto.
+      # Mesma causa raiz e fix aplicados em macos-smoke.yml (job
+      # electron-notarize) — ver comentário lá e agents/macos.md.
+      - name: Preparar keychain de assinatura (self-hosted, sem sessão GUI)
+        run: |
+          KEYCHAIN_PASS="$(openssl rand -base64 24)"
+          security delete-keychain build.keychain 2>/dev/null || true
+          security create-keychain -p "$KEYCHAIN_PASS" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASS" build.keychain
+          security list-keychains -d user -s build.keychain login.keychain-db
+
+          echo "${{ secrets.CSC_LINK }}" | base64 --decode > /tmp/cert.p12
+          security import /tmp/cert.p12 -k build.keychain -P "${{ secrets.CSC_KEY_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f /tmp/cert.p12
+
+          curl -sL -o /tmp/DeveloperIDG2CA.cer "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer"
+          curl -sL -o /tmp/AppleRootCA.cer "https://www.apple.com/appleca/AppleIncRootCertificate.cer"
+          security import /tmp/DeveloperIDG2CA.cer -k build.keychain -T /usr/bin/codesign -T /usr/bin/security
+          security import /tmp/AppleRootCA.cer -k build.keychain -T /usr/bin/codesign -T /usr/bin/security
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+      # electron-builder notariza e grampeia (staple) o ticket automaticamente
+      # com base no mac.notarize do package.json + os 3 env vars da API Key,
+      # depois publica na release. CSC_LINK/CSC_KEY_PASSWORD não são passados
+      # aqui — o certificado já está no keychain (passo anterior).
       - name: Build, assinar, notarizar e publicar (.dmg + .zip)
         working-directory: electron
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_API_KEY: /Users/runner/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          APPLE_API_KEY: ${{ env.APPLE_API_KEY_PATH }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         # ulimit padrão do runner (256) é baixo demais pra assinar cada um dos
@@ -183,3 +211,9 @@ jobs:
           sudo sysctl -w kern.maxfilesperproc=200000 kern.maxfiles=300000
           ulimit -n 100000
           npm run build:mac:publish -- -c.mac.notarize=true
+
+      - name: Remover keychain efêmero de assinatura
+        if: always()
+        run: |
+          security list-keychains -d user -s login.keychain-db
+          security delete-keychain build.keychain 2>/dev/null || true
