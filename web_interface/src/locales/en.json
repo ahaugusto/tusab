@@ -540,7 +540,7 @@
   "extraction.source_public": "Public base",
   "extraction.public_search_title": "Search public base",
   "extraction.public_search_in": "Search in {{nome}}",
-  "extraction.public_search_subtitle": "Choose the knowledge area and source in the search modal.",
+  "extraction.public_search_subtitle": "Pick a knowledge area below. Next you'll choose the specific source (arXiv, Zenodo, CrossRef, and others), type a topic, and decide how many results to bring in — we'll create a new project with the documents found, ready to index and chat with.",
   "extraction.loading_areas": "Loading knowledge areas...",
   "extraction.load_error_title": "Couldn't load public sources.",
   "extraction.retry": "Try again",
