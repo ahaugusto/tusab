@@ -1119,5 +1119,8 @@
   "repo.hint_textos_title": "Textos",
   "repo.hint_textos_desc": "Pega cualquier texto directamente",
   "repo.hint_share_title": "Compartir",
-  "repo.hint_share_desc": "Exporta e importa bases"
+  "repo.hint_share_desc": "Exporta e importa bases",
+  "repo.search_placeholder": "Buscar una base por nombre...",
+  "repo.search_no_matches": "Ninguna base encontrada para \"{{query}}\".",
+  "repo.search_clear": "Limpiar búsqueda"
 }
