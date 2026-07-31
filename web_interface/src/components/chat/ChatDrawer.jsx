@@ -16,6 +16,10 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
 
+function localeFor(lang) {
+  return lang?.startsWith('en') ? 'en-US' : lang?.startsWith('es') ? 'es-ES' : 'pt-BR';
+}
+
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 export const LOADING_PHRASES = [
   // ── Funcionais — o que está acontecendo agora ────────────────────────────
@@ -232,7 +236,7 @@ function ChatDrawer({
   chatQueue = [],
   indexingDoneCount = 0,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showRepoModal,     setShowRepoModal]     = useState(false);
   const [showIndexModal,    setShowIndexModal]    = useState(false);
   const [indexSel,          setIndexSel]          = useState(null);
@@ -1515,9 +1519,9 @@ function ChatDrawer({
               ${showHistQuick
                 ? darkMode ? 'text-primary bg-primary/10' : 'text-violet-700 bg-violet-50'
                 : darkMode ? 'text-slate-400 hover:text-white hover:bg-white/8' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-            aria-label="Histórico de conversas">
+            aria-label={t('chat.history_btn_aria')}>
             <History size={12} />
-            <span>Histórico</span>
+            <span>{t('chat.history_btn')}</span>
             {chatHistory?.recent?.length > 0 && (
               <span className={`text-[9px] font-bold px-1 rounded-full ${darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-600'}`}>
                 {chatHistory.recent.length}
@@ -1535,7 +1539,7 @@ function ChatDrawer({
               {/* Header com abas */}
               <div className={`px-3 pt-2.5 pb-0 border-b ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <p className={`text-[11px] font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Histórico de conversas</p>
+                  <p className={`text-[11px] font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.history_title')}</p>
                   <button onClick={() => setShowHistQuick(false)}
                     className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
                     <X size={12} />
@@ -1543,8 +1547,8 @@ function ChatDrawer({
                 </div>
                 <div className="flex gap-1 pb-0">
                   {[
-                    { id: 'recentes', label: 'Recentes' },
-                    { id: 'salvos',   label: 'Salvos no disco' },
+                    { id: 'recentes', label: t('chat.history_tab_recent') },
+                    { id: 'salvos',   label: t('chat.history_tab_saved') },
                   ].map(tab => (
                     <button key={tab.id}
                       onClick={() => {
@@ -1575,7 +1579,7 @@ function ChatDrawer({
                 <div className="overflow-y-auto flex-1">
                   {!chatHistory?.recent?.length ? (
                     <p className={`text-[11px] text-center py-6 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                      Nenhuma conversa recente
+                      {t('chat.history_no_recent')}
                     </p>
                   ) : (
                     <div className="p-2 space-y-1">
@@ -1596,7 +1600,7 @@ function ChatDrawer({
                                   <span className={`text-[9px] font-bold px-1 rounded ${darkMode ? 'text-primary/70' : 'text-violet-500'}`}>@{conv.canalNome}</span>
                                 )}
                                 <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                                  {conv.messages?.length || 0} msg · {new Date(conv.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                                  {t('chat.history_msg_count', { count: conv.messages?.length || 0 })} · {new Date(conv.updatedAt).toLocaleDateString(localeFor(i18n.language), { day: '2-digit', month: 'short' })}
                                 </span>
                               </div>
                             </div>
@@ -1615,15 +1619,15 @@ function ChatDrawer({
                   {histSalvosLoading ? (
                     <div className="flex items-center justify-center py-6 gap-2">
                       <Loader2 size={14} className="animate-spin text-primary" />
-                      <span className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Carregando…</span>
+                      <span className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('chat.loading')}</span>
                     </div>
                   ) : !histSalvos.length ? (
                     <div className="px-4 py-6 text-center">
                       <p className={`text-[11px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Nenhum histórico salvo em disco.
+                        {t('chat.history_no_saved')}
                       </p>
                       <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>
-                        Históricos são salvos automaticamente ao iniciar uma nova conversa.
+                        {t('chat.history_no_saved_hint')}
                       </p>
                     </div>
                   ) : (
@@ -1637,11 +1641,11 @@ function ChatDrawer({
                               <p className={`text-[11px] font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{h.titulo}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                                  {h.n_pares} par{h.n_pares !== 1 ? 'es' : ''} P+R · {h.data}
+                                  {t('chat.history_pairs_count', { count: h.n_pares })} · {h.data}
                                 </span>
                                 {h.indexado && (
                                   <span className={`text-[9px] font-bold px-1 rounded-full ${darkMode ? 'bg-secondary/15 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
-                                    no corpus
+                                    {t('chat.history_in_corpus_badge')}
                                   </span>
                                 )}
                               </div>
@@ -1667,8 +1671,8 @@ function ChatDrawer({
                                 ${darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/25' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}
                                 disabled:opacity-50 disabled:cursor-not-allowed`}>
                               {injetando === h.id
-                                ? <><Loader2 size={10} className="animate-spin" /> Injetando…</>
-                                : <><Database size={10} /> Adicionar ao corpus</>}
+                                ? <><Loader2 size={10} className="animate-spin" /> {t('chat.history_injecting')}</>
+                                : <><Database size={10} /> {t('chat.history_add_to_corpus')}</>}
                             </button>
                           )}
                         </div>
@@ -1944,13 +1948,14 @@ function ChatDrawer({
                       ) : base.indexado ? (
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'}`}>
-                            {base.chunks} chunks
+                            {t('chat.chunks_count', { count: base.chunks })}
                           </span>
                           {base.indexed_at && (
                             <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                               {(() => {
                                 const d = new Date(base.indexed_at * 1000);
-                                return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                                const loc = localeFor(i18n.language);
+                                return d.toLocaleDateString(loc, { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
                               })()}
                             </span>
                           )}
@@ -2166,10 +2171,10 @@ function ChatDrawer({
               </div>
               <div>
                 <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  Trocar base de conhecimento
+                  {t('chat.switch_base_modal_title')}
                 </p>
                 <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Esta conversa será salva no histórico
+                  {t('chat.switch_base_modal_desc')}
                 </p>
               </div>
             </div>
@@ -2177,7 +2182,7 @@ function ChatDrawer({
             {/* Info das bases */}
             <div className={`rounded-xl border p-3 space-y-2 text-[11px] ${darkMode ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-100'}`}>
               <div className="flex items-center justify-between">
-                <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Base atual</span>
+                <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>{t('chat.switch_base_current_label')}</span>
                 <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   @{projetoAtivo}{projetosExtras?.length > 0 ? ` +${projetosExtras.length}` : ''}
                 </span>
@@ -2186,7 +2191,7 @@ function ChatDrawer({
                 <>
                   <div className={`border-t ${darkMode ? 'border-white/8' : 'border-slate-200'}`} />
                   <div className="flex items-center justify-between">
-                    <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Nova base</span>
+                    <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>{t('chat.switch_base_new_label')}</span>
                     <span className="font-semibold text-primary">@{trocaBaseAlvoRef.current}</span>
                   </div>
                 </>
@@ -2197,7 +2202,7 @@ function ChatDrawer({
             {!trocaBaseAlvoRef.current && projetosIndexados.length > 0 && (
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Escolha a nova base
+                  {t('chat.switch_base_choose_label')}
                 </p>
                 {projetosIndexados.filter(c => c.nome !== projetoAtivo).map(c => (
                   <button
@@ -2212,7 +2217,7 @@ function ChatDrawer({
                       ${darkMode ? 'bg-white/5 border-white/10 hover:bg-primary/15 hover:border-primary/30 text-white' : 'bg-slate-50 border-slate-200 hover:bg-violet-50 hover:border-violet-200 text-slate-800'}`}>
                     <Database size={12} className="text-primary shrink-0" />
                     <span className="font-semibold">@{c.nome}</span>
-                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{c.chunks} chunks</span>
+                    <span className={`ml-auto text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('chat.chunks_count', { count: c.chunks })}</span>
                   </button>
                 ))}
               </div>
@@ -2231,14 +2236,14 @@ function ChatDrawer({
                     trocaBaseAlvoRef.current = null;
                   }}
                   className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
-                  Iniciar nova conversa com @{trocaBaseAlvoRef.current}
+                  {t('chat.switch_base_start_new', { base: trocaBaseAlvoRef.current })}
                 </button>
               )}
               <button
                 onClick={() => { setShowTrocarBaseModal(false); trocaBaseAlvoRef.current = null; }}
                 className={`w-full py-2 rounded-xl text-xs font-medium transition-colors
                   ${darkMode ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
             </div>
           </motion.div>
@@ -2381,7 +2386,7 @@ function ChatDrawer({
                       try {
                         const r = await lerArquivo(`${projeto_prefixo}/textos/${h.nome_txt}`);
                         setHistSelecionado({ titulo: h.titulo, conteudo: r.data.conteudo || '' });
-                      } catch { setHistSelecionado({ titulo: h.titulo, conteudo: '(Erro ao carregar conversa)' }); }
+                      } catch { setHistSelecionado({ titulo: h.titulo, conteudo: t('chat.history_load_error') }); }
                       finally { setHistLoading(false); }
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99]

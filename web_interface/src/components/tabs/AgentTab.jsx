@@ -11,9 +11,11 @@ import EstudoTab from '../agent/EstudoTab';
 import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig, gerarEstudo, exportFlashcardsAnki, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
 
-const SUB_TABS = [
-  { id: 'configuracoes', label: 'Configurações', icon: Settings },
-];
+function useSubTabs(t) {
+  return [
+    { id: 'configuracoes', label: t('agent.subtab_settings'), icon: Settings },
+  ];
+}
 
 export default function AgentTab({
   darkMode,
@@ -46,6 +48,7 @@ export default function AgentTab({
   initialSubTab,
 }) {
   const { t } = useTranslation();
+  const SUB_TABS = useSubTabs(t);
   const [subTab, setSubTab]       = useState(initialSubTab ?? 'configuracoes');
 
   useEffect(() => {
@@ -107,17 +110,17 @@ export default function AgentTab({
   const handleBaixarModelo = useCallback(async (id) => {
     setPullingModel(id);
     setPullStartTime(Date.now());
-    setPullProgress({ status: 'pulling', pct: 0, message: 'Iniciando download...', model: id });
+    setPullProgress({ status: 'pulling', pct: 0, message: t('agent.pull_starting'), model: id });
     const status = await fetchOllamaStatus().catch(() => null);
     if (!status?.data?.running) {
-      setPullProgress({ status: 'error', pct: 0, message: 'Ollama não está rodando.', model: id });
+      setPullProgress({ status: 'error', pct: 0, message: t('agent.pull_ollama_not_running'), model: id });
       setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 5000);
       return;
     }
     try {
       await pullOllamaModel(id);
     } catch {
-      setPullProgress({ status: 'error', pct: 0, message: 'Erro ao iniciar download.', model: id });
+      setPullProgress({ status: 'error', pct: 0, message: t('agent.pull_start_error'), model: id });
       setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 3000);
       return;
     }
@@ -191,16 +194,16 @@ export default function AgentTab({
             className={`rounded-2xl border p-4 flex gap-3 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
             <Sparkles size={16} className="text-primary shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Configure o Agente em 3 passos</p>
+              <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.hint_title')}</p>
               <ol className={`text-[11px] space-y-0.5 list-none ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                <li>1. Em <strong>Configurações</strong>: escolha o provedor de IA</li>
-                <li>2. Em <strong>Ferramentas</strong>: clique em <strong>Indexar Agora</strong></li>
-                <li>3. Use o chat para perguntar sobre o canal</li>
+                <li>1. {t('agent.hint_step1')}</li>
+                <li>2. {t('agent.hint_step2')}</li>
+                <li>3. {t('agent.hint_step3')}</li>
               </ol>
             </div>
             <button onClick={() => setShowAgentHint(false)}
               className={`shrink-0 p-1 rounded-md transition-colors ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'} ${BTN_FOCUS}`}
-              aria-label="Fechar dica">
+              aria-label={t('agent.hint_close_aria')}>
               <X size={13} />
             </button>
           </motion.div>
@@ -320,8 +323,8 @@ export default function AgentTab({
                       {/* External provider toggle */}
                       <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                         <div>
-                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Usar minha chave de API</p>
-                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>Gemini, OpenAI, Claude ou Groq</p>
+                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('agent.external_toggle_title')}</p>
+                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('agent.external_toggle_desc')}</p>
                         </div>
                         <button
                           role="switch" aria-checked={useExternalProvider}
@@ -350,10 +353,10 @@ export default function AgentTab({
                             className="space-y-3">
                             <div className="grid grid-cols-2 gap-2">
                               {[
-                                { id: 'gemini',    label: 'Google Gemini'    },
-                                { id: 'openai',    label: 'OpenAI'           },
-                                { id: 'anthropic', label: 'Anthropic Claude' },
-                                { id: 'groq',      label: 'Groq (gratuito)'  },
+                                { id: 'gemini',    label: t('agent.provider_gemini')    },
+                                { id: 'openai',    label: t('agent.provider_openai')    },
+                                { id: 'anthropic', label: t('agent.provider_anthropic') },
+                                { id: 'groq',      label: t('agent.provider_groq')      },
                               ].map(({ id, label }) => (
                                 <button key={id} onClick={() => { setAgentProvider(id); setTestKeyResult(null); setKeyTested(false); }}
                                   className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${BTN_FOCUS}
@@ -373,7 +376,7 @@ export default function AgentTab({
                             </div>
                             <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border border-amber-500/20 text-amber-300/70' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
                               <Info size={11} className="shrink-0 mt-0.5" />
-                              <span>Ao usar este provedor, mensagens e trechos da sua base são enviados para servidores externos fora do Brasil (LGPD Art. 33).</span>
+                              <span>{t('agent.external_lgpd_warning')}</span>
                             </div>
 
                             {/* Key input */}
@@ -401,10 +404,10 @@ export default function AgentTab({
                                     ? 'opacity-40 ' + (darkMode ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200')
                                     : darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 border border-violet-200'}`}>
                               {testingKey
-                                ? <><Loader2 size={12} className="animate-spin" /> Testando…</>
+                                ? <><Loader2 size={12} className="animate-spin" /> {t('agent.testing')}</>
                                 : keyTested
-                                  ? <><CheckCircle2 size={12} /> Chave verificada</>
-                                  : <><Zap size={12} /> Testar chave</>}
+                                  ? <><CheckCircle2 size={12} /> {t('agent.key_verified')}</>
+                                  : <><Zap size={12} /> {t('agent.test_key')}</>}
                             </button>
 
                             {/* Feedback */}
@@ -420,7 +423,7 @@ export default function AgentTab({
                             )}
                             {agentApiKey.trim() && !keyTested && !testKeyResult && (
                               <p className={`text-[10px] flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                <Info size={10} /> Teste a chave antes de salvar
+                                <Info size={10} /> {t('agent.test_before_save_hint')}
                               </p>
                             )}
 
@@ -428,11 +431,11 @@ export default function AgentTab({
                             <div className="flex gap-2">
                               <button onClick={handleRemoveApiKey}
                                 className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
-                                Limpar
+                                {t('agent.clear_key')}
                               </button>
                               <button onClick={handleSaveAgentConfig}
                                 disabled={savingConfig || !keyTested}
-                                title={!keyTested ? 'Teste a chave primeiro' : undefined}
+                                title={!keyTested ? t('agent.test_key_first') : undefined}
                                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                                   ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
                                 {savingConfig ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
@@ -586,7 +589,7 @@ export default function AgentTab({
                                     ? 'opacity-40 ' + (darkMode ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200')
                                     : darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 border border-violet-200'}`}>
                               {testingKey
-                                ? <><Loader2 size={12} className="animate-spin" /> Testando…</>
+                                ? <><Loader2 size={12} className="animate-spin" /> {t('agent.testing')}</>
                                 : keyTested
                                   ? <><CheckCircle2 size={12} /> {t('agent.custom_verified')}</>
                                   : <><Zap size={12} /> {t('agent.custom_test')}</>}
@@ -606,7 +609,7 @@ export default function AgentTab({
                             <div className="flex gap-2">
                               <button onClick={handleRemoveApiKey}
                                 className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
-                                Limpar
+                                {t('agent.clear_key')}
                               </button>
                               <button onClick={handleSaveAgentConfig}
                                 disabled={savingConfig || !keyTested}
@@ -645,7 +648,7 @@ export default function AgentTab({
               </div>
               <div className="p-4 space-y-2">
                 <p className={`text-[11px] mb-3 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-                  Define como o assistente comunica as respostas — sem alterar o que ele busca.
+                  {t('agent.persona_subtitle')}
                 </p>
                 {[
                   { id: '',             emoji: '⚪', label: t('persona.default'),      desc: t('persona.default_desc')      },
