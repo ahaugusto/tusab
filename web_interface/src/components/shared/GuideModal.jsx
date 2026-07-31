@@ -13,30 +13,32 @@ import ModalWrapper from './ModalWrapper';
 
 // ─── Atalhos ─────────────────────────────────────────────────────────────────
 
-const SHORTCUTS = [
-  {
-    group: 'Chat',
-    items: [
-      { keys: ['Shift', 'C'],   desc: 'Abrir chat'                      },
-      { keys: ['Shift', '<'],   desc: 'Expandir chat (tela cheia)'       },
-      { keys: ['Shift', '>'],   desc: 'Recolher chat (modo drawer)'      },
-      { keys: ['Esc'],          desc: 'Recolher se expandido, senão fechar' },
-    ],
-  },
-  {
-    group: 'Navegação',
-    items: [
-      { keys: ['Shift', 'E'],   desc: 'Aba Extração'         },
-      { keys: ['Shift', 'R'],   desc: 'Sub-aba Relatório'    },
-      { keys: ['Shift', 'B'],   desc: 'Aba Repositório'      },
-      { keys: ['Shift', 'H'],   desc: 'Aba Histórico'        },
-      { keys: ['Shift', 'V'],   desc: 'Aba Visão Geral'      },
-      { keys: ['Shift', 'M'],   desc: 'Aba Monitor'          },
-      { keys: ['Shift', 'I'],   desc: 'Aba Agente'           },
-      { keys: ['Shift', 'A'],   desc: 'Aba Admin'            },
-    ],
-  },
-];
+function getShortcuts(t) {
+  return [
+    {
+      group: t('guide.group_chat'),
+      items: [
+        { keys: ['Shift', 'C'],   desc: t('guide.shortcut_chat_open')     },
+        { keys: ['Shift', '<'],   desc: t('guide.shortcut_chat_expand')   },
+        { keys: ['Shift', '>'],   desc: t('guide.shortcut_chat_collapse') },
+        { keys: ['Esc'],          desc: t('guide.shortcut_chat_esc')      },
+      ],
+    },
+    {
+      group: t('guide.group_nav'),
+      items: [
+        { keys: ['Shift', 'E'],   desc: t('guide.shortcut_tab_extraction') },
+        { keys: ['Shift', 'R'],   desc: t('guide.shortcut_tab_report')     },
+        { keys: ['Shift', 'B'],   desc: t('guide.shortcut_tab_repo')       },
+        { keys: ['Shift', 'H'],   desc: t('guide.shortcut_tab_history')    },
+        { keys: ['Shift', 'V'],   desc: t('guide.shortcut_tab_overview')   },
+        { keys: ['Shift', 'M'],   desc: t('guide.shortcut_tab_monitor')    },
+        { keys: ['Shift', 'I'],   desc: t('guide.shortcut_tab_agent')      },
+        { keys: ['Shift', 'A'],   desc: t('guide.shortcut_tab_admin')      },
+      ],
+    },
+  ];
+}
 
 function Kbd({ children, darkMode }) {
   return (
@@ -51,6 +53,7 @@ function Kbd({ children, darkMode }) {
 
 function GuideModal({ onClose, darkMode }) {
   const { t } = useTranslation();
+  const SHORTCUTS = getShortcuts(t);
   const [aba, setAba] = useState('guia'); // 'guia' | 'atalhos'
 
   const steps = [
@@ -104,11 +107,11 @@ function GuideModal({ onClose, darkMode }) {
         <div className={`flex items-center gap-1 mb-4 border-b ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
           <button className={tabCls('guia')} onClick={() => setAba('guia')}>
             <BookOpen size={12} />
-            Como usar
+            {t('guide.tab_howto')}
           </button>
           <button className={tabCls('atalhos')} onClick={() => setAba('atalhos')}>
             <Keyboard size={12} />
-            Atalhos de teclado
+            {t('guide.tab_shortcuts')}
           </button>
         </div>
 
@@ -128,7 +131,7 @@ function GuideModal({ onClose, darkMode }) {
         {aba === 'atalhos' && (
           <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-5">
             <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              Atalhos funcionam quando o foco não está em uma caixa de texto.
+              {t('guide.shortcuts_hint')}
             </p>
             {SHORTCUTS.map(({ group, items }) => (
               <div key={group}>
