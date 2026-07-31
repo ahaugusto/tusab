@@ -36,7 +36,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarFonte, statusFonte,
+  buscarFonte, statusFonte, listarFontes,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -172,6 +172,13 @@ function App() {
   // Fonte escolhida no seletor da tela principal da Extração (perfil Pesquisador)
   // — repassada ao modal pra abrir direto na busca certa, sem escolher de novo.
   const [fontePreSelecionada, setFontePreSelecionada] = useState('youtube');
+  // Catálogo de fontes públicas por área de conhecimento — carregado uma vez
+  // aqui (não mais dentro do modal) pra área poder ser escolhida já na aba
+  // Extração, antes mesmo de abrir o modal de busca.
+  const [areasFontes,        setAreasFontes]        = useState({}); // { area_id: {nome, fontes:[FONTE_META,...]} }
+  const [areaSelecionada,    setAreaSelecionada]    = useState('');
+  const [areasFontesStatus,  setAreasFontesStatus]  = useState('idle'); // 'idle' | 'loading' | 'ok' | 'error'
+  const [areasFontesErro,    setAreasFontesErro]    = useState('');
   const [projetos,             setProjetos]             = useState([]);
   const [extractionQueue,      setExtractionQueue]      = useState([]);
   const [showQueueModal,       setShowQueueModal]       = useState(false);
@@ -318,6 +325,35 @@ function App() {
 
   // Mantém chatOpenRef sincronizado para closures async no useChatEngine
   useEffect(() => { chatOpenRef.current = chatOpen; }, [chatOpen]);
+
+  /** Carrega o catálogo de fontes públicas (áreas de conhecimento) uma vez, assim
+   *  que o perfil ativo permite fontes públicas — não espera o modal abrir, pra a
+   *  área já poder ser escolhida na tela principal da aba Extração. */
+  const carregarCatalogoFontes = useCallback(() => {
+    setAreasFontesStatus('loading');
+    setAreasFontesErro('');
+    listarFontes().then(r => {
+      const areas = r.data?.areas || {};
+      setAreasFontes(areas);
+      const primeiraArea = Object.keys(areas)[0];
+      if (primeiraArea) {
+        setAreaSelecionada(prev => (prev && areas[prev]) ? prev : primeiraArea);
+        setAreasFontesStatus('ok');
+      } else {
+        setAreasFontesStatus('error');
+        setAreasFontesErro(t('extraction.no_areas_error'));
+      }
+    }).catch(err => {
+      console.error('[App] falha ao carregar /fontes:', err);
+      setAreasFontesStatus('error');
+      setAreasFontesErro(err?.message || t('extraction.unknown_error'));
+    });
+  }, [t]);
+
+  useEffect(() => {
+    if (!regras.fontes_publicas || areasFontesStatus !== 'idle') return;
+    carregarCatalogoFontes();
+  }, [regras.fontes_publicas, areasFontesStatus, carregarCatalogoFontes]);
 
   /** When profile disables busca ampla, always revert to restricted */
   useEffect(() => {
@@ -1342,7 +1378,7 @@ function App() {
 
       <AnimatePresence>
         {showExtractionModal && (
-          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmFonte={handleStartConfirmFonte} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning ? (canalInput || (canalConfigurado ? status.canal_url : '') || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} regras={regras} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} />
+          <ExtractionModal key="extraction-modal" onClose={() => setShowExtractionModal(false)} onConfirm={handleStartConfirm} onConfirmFonte={handleStartConfirmFonte} darkMode={darkMode} canalNome={canalConfigurado} canalUrlInicial={!isRunning ? (canalInput || (canalConfigurado ? status.canal_url : '') || '') : ''} projetos={projetos} modoFila={isRunning} perfil={perfil} regras={regras} sourceTypeInicial={isRunning ? 'youtube' : fontePreSelecionada} areasFontes={areasFontes} areaSelecionada={areaSelecionada} />
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -1671,6 +1707,12 @@ function App() {
                 }}
                 fontePreSelecionada={fontePreSelecionada}
                 setFontePreSelecionada={setFontePreSelecionada}
+                areasFontes={areasFontes}
+                areaSelecionada={areaSelecionada}
+                setAreaSelecionada={setAreaSelecionada}
+                areasFontesStatus={areasFontesStatus}
+                areasFontesErro={areasFontesErro}
+                onRetryFontes={carregarCatalogoFontes}
               />
             )}
 {/* ── TAB: HISTÓRICO ── */}
