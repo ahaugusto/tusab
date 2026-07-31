@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import OllamaSetup from '../agent/OllamaSetup';
 import EstudoTab from '../agent/EstudoTab';
+import PersonaCustomModal from '../shared/PersonaCustomModal';
 import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig, gerarEstudo, exportFlashcardsAnki, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
 
@@ -39,8 +40,10 @@ export default function AgentTab({
   ollamaModel,
   configOpen,          setConfigOpen,
   persona,
+  personaCustom,
   handleOllamaModelChange,
   handlePersonaChange,
+  handlePersonaCustomSave,
   handleSaveAgentConfig,
   handleRemoveApiKey,
   handleTestKey,
@@ -55,6 +58,7 @@ export default function AgentTab({
     if (initialSubTab) setSubTab(initialSubTab);
   }, [initialSubTab]);
   const [estudoOpen, setEstudoOpen] = useState(true);
+  const [showPersonaCustomModal, setShowPersonaCustomModal] = useState(false);
   const [comandoCopiado, setComandoCopiado] = useState(false);
   const copiarComandoInstalacao = () => {
     navigator.clipboard?.writeText('npm install -g 9router').then(() => {
@@ -657,8 +661,11 @@ export default function AgentTab({
                   { id: 'didatico',     emoji: '📚', label: t('persona.didatico'),     desc: t('persona.didatico_desc')     },
                   { id: 'descontraido', emoji: '😊', label: t('persona.descontraido'), desc: t('persona.descontraido_desc') },
                   { id: 'socratico',    emoji: '🤔', label: t('persona.socratico'),    desc: t('persona.socratico_desc')    },
+                  { id: 'custom',       emoji: '✨', label: t('persona.custom'),
+                    desc: persona === 'custom' && personaCustom ? personaCustom : t('persona.custom_desc') },
                 ].map(p => (
-                  <button key={p.id} onClick={() => handlePersonaChange(p.id)}
+                  <button key={p.id}
+                    onClick={() => p.id === 'custom' ? setShowPersonaCustomModal(true) : handlePersonaChange(p.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${BTN_FOCUS}
                       ${persona === p.id
                         ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
@@ -670,12 +677,20 @@ export default function AgentTab({
                     <span className="text-base leading-none shrink-0" aria-hidden="true">{p.emoji}</span>
                     <div className="min-w-0">
                       <p className={`text-xs font-semibold ${persona === p.id ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{p.label}</p>
-                      <p className={`text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{p.desc}</p>
+                      <p className={`text-[10px] truncate ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{p.desc}</p>
                     </div>
                   </button>
                 ))}
               </div>
             </section>
+
+            <PersonaCustomModal
+              open={showPersonaCustomModal}
+              darkMode={darkMode}
+              valorInicial={personaCustom}
+              onSave={handlePersonaCustomSave}
+              onClose={() => setShowPersonaCustomModal(false)}
+            />
           </motion.div>
         )}
       </AnimatePresence>
