@@ -1,5 +1,6 @@
 // Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square } from 'lucide-react';
 import { ttsStatus, ttsSintetizar } from '../../services/api';
@@ -24,6 +25,7 @@ export default function EstudoTab({
   onResetar,
   onExportarAnki,
 }) {
+  const { t } = useTranslation();
   // Estado efêmero de navegação — pode resetar sem perder o resultado
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped,    setFlipped]    = useState(false);
@@ -62,7 +64,7 @@ export default function EstudoTab({
       await audio.play();
       setTtsTocando(true);
     } catch {
-      setTtsErro('Não foi possível gerar o áudio. Tente novamente.');
+      setTtsErro(t('estudo.tts_error'));
     } finally {
       setTtsCarregando(false);
     }
@@ -107,10 +109,10 @@ export default function EstudoTab({
         <AlertCircle size={24} color={darkMode ? '#fbbf24' : '#d97706'} />
         <div>
           <p style={{ fontSize: '13px', fontWeight: 700, color: darkMode ? '#fbbf24' : '#92400e', marginBottom: '4px' }}>
-            Nenhum projeto indexado
+            {t('estudo.empty_title')}
           </p>
           <p style={{ fontSize: '11px', color: darkMode ? '#fcd34d' : '#b45309' }}>
-            Vá para o Repositório, selecione um projeto e clique em <strong>Indexar base</strong> antes de usar o Modo Estudo.
+            {t('estudo.empty_desc')}
           </p>
         </div>
       </div>
@@ -132,7 +134,7 @@ export default function EstudoTab({
         <div>
           <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: '0.05em', color: textSecond, marginBottom: '8px' }}>
-            Projeto
+            {t('estudo.label_project')}
           </p>
           <div style={{ position: 'relative' }}>
             <select
@@ -146,10 +148,10 @@ export default function EstudoTab({
                 color: projeto ? (darkMode ? '#a78bfa' : '#7c3aed') : textSecond,
                 cursor: 'pointer', outline: 'none',
               }}>
-              <option value="" style={{ background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#fff' : '#1e293b' }}>— selecione um projeto —</option>
+              <option value="" style={{ background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#fff' : '#1e293b' }}>{t('estudo.select_project_placeholder')}</option>
               {projetosIndexados.map(p => (
                 <option key={p.nome} value={p.nome} style={{ background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#fff' : '#1e293b' }}>
-                  {p.nome} ({p.chunks} chunks)
+                  {t('estudo.project_chunks_suffix', { name: p.nome, count: p.chunks })}
                 </option>
               ))}
             </select>
@@ -164,13 +166,13 @@ export default function EstudoTab({
         <div>
           <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: '0.05em', color: textSecond, marginBottom: '8px' }}>
-            Tipo de material
+            {t('estudo.label_type')}
           </p>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {[
-              { id: 'flashcards', label: 'Flashcards' },
-              { id: 'resumo',     label: 'Resumo'     },
-              { id: 'ambos',      label: 'Ambos'      },
+              { id: 'flashcards', label: t('estudo.type_flashcards') },
+              { id: 'resumo',     label: t('estudo.type_resumo')     },
+              { id: 'ambos',      label: t('estudo.type_ambos')      },
             ].map(({ id, label }) => (
               <button key={id} onClick={() => setTipo(id)} style={{
                 ...btnBase, padding: '6px 14px',
@@ -189,7 +191,7 @@ export default function EstudoTab({
           <div>
             <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.05em', color: textSecond, marginBottom: '8px' }}>
-              Quantidade de cards: <span style={{ color: darkMode ? '#a78bfa' : '#7c3aed' }}>{nCards}</span>
+              {t('estudo.label_qty')} <span style={{ color: darkMode ? '#a78bfa' : '#7c3aed' }}>{nCards}</span>
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               {[5, 10, 15, 20].map(n => (
@@ -219,8 +221,8 @@ export default function EstudoTab({
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
           }}>
             {gerando
-              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Gerando…</>
-              : <><BookOpen size={14} /> Gerar</>}
+              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {t('estudo.generating')}</>
+              : <><BookOpen size={14} /> {t('estudo.generate_btn')}</>}
           </button>
 
           {(flashcards?.length > 0 || resumo) && (
@@ -228,7 +230,7 @@ export default function EstudoTab({
               ...btnBase, padding: '10px 12px',
               background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
               color: textSecond, border: `1px solid ${borderColor}`,
-            }} title="Limpar resultado">
+            }} title={t('estudo.clear_result_title')}>
               <RotateCcw size={14} />
             </button>
           )}
@@ -253,20 +255,20 @@ export default function EstudoTab({
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>Flashcards</p>
+              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>{t('estudo.section_flashcards')}</p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', color: textSecond }}>{currentIdx + 1} / {flashcards.length}</span>
               <span style={{
                 fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
                 background: darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5',
                 color: darkMode ? '#34d399' : '#065f46',
-              }}>{revisados.size} sabidos</span>
+              }}>{t('estudo.known_count', { count: revisados.size })}</span>
               <button onClick={onExportarAnki} style={{
                 ...btnBase, padding: '5px 10px',
                 background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
                 color: textSecond, border: `1px solid ${borderColor}`,
                 display: 'flex', alignItems: 'center', gap: '4px',
-              }} title="Exportar para Anki (.csv)">
+              }} title={t('estudo.export_anki_title')}>
                 <Download size={12} /> Anki
               </button>
             </div>
@@ -289,11 +291,11 @@ export default function EstudoTab({
                   padding: '20px', gap: '8px', textAlign: 'center',
                 }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.06em', color: darkMode ? '#a78bfa' : '#7c3aed' }}>Pergunta</span>
+                    letterSpacing: '0.06em', color: darkMode ? '#a78bfa' : '#7c3aed' }}>{t('estudo.card_question_label')}</span>
                   <p style={{ fontSize: '14px', fontWeight: 600, color: textPrimary, lineHeight: 1.5, margin: 0 }}>
                     {card.pergunta}
                   </p>
-                  <span style={{ fontSize: '10px', color: textSecond, marginTop: '4px' }}>Clique para revelar</span>
+                  <span style={{ fontSize: '10px', color: textSecond, marginTop: '4px' }}>{t('estudo.click_to_reveal')}</span>
                 </div>
 
                 <div style={{
@@ -306,7 +308,7 @@ export default function EstudoTab({
                   padding: '20px', gap: '8px', textAlign: 'center',
                 }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.06em', color: darkMode ? '#34d399' : '#059669' }}>Resposta</span>
+                    letterSpacing: '0.06em', color: darkMode ? '#34d399' : '#059669' }}>{t('estudo.card_answer_label')}</span>
                   <p style={{ fontSize: '14px', color: textPrimary, lineHeight: 1.5, margin: 0 }}>{card.resposta}</p>
                 </div>
               </div>
@@ -320,7 +322,7 @@ export default function EstudoTab({
               color: textSecond, border: `1px solid ${borderColor}`,
               opacity: currentIdx === 0 ? 0.4 : 1,
               cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
-            }}>← Anterior</button>
+            }}>{t('estudo.prev_btn')}</button>
 
             {flipped && (
               <>
@@ -329,13 +331,13 @@ export default function EstudoTab({
                   background: darkMode ? 'rgba(248,113,113,0.15)' : '#fef2f2',
                   color: darkMode ? '#f87171' : '#dc2626',
                   border: `1px solid ${darkMode ? 'rgba(248,113,113,0.30)' : '#fca5a5'}`,
-                }}>Não sei</button>
+                }}>{t('estudo.dont_know_btn')}</button>
                 <button onClick={() => handleRevisar(true)} style={{
                   ...btnBase, flex: 1, padding: '8px 0',
                   background: darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5',
                   color: darkMode ? '#34d399' : '#065f46',
                   border: `1px solid ${darkMode ? 'rgba(52,211,153,0.30)' : '#6ee7b7'}`,
-                }}>Sei!</button>
+                }}>{t('estudo.know_btn')}</button>
               </>
             )}
 
@@ -345,7 +347,7 @@ export default function EstudoTab({
               color: textSecond, border: `1px solid ${borderColor}`,
               opacity: currentIdx === flashcards.length - 1 ? 0.4 : 1,
               cursor: currentIdx === flashcards.length - 1 ? 'not-allowed' : 'pointer',
-            }}>Próximo →</button>
+            }}>{t('estudo.next_btn')}</button>
           </div>
 
           <div style={{ height: '4px', background: darkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
@@ -365,12 +367,12 @@ export default function EstudoTab({
         <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>Resumo Estruturado</p>
+              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>{t('estudo.section_resumo')}</p>
             {ttsDisponivel && (
               <button
                 onClick={handleOuvirResumo}
                 disabled={ttsCarregando}
-                title="Ouça em voz alta — síntese local via Pocket TTS"
+                title={t('estudo.tts_button_title')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
                   fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
@@ -383,7 +385,7 @@ export default function EstudoTab({
                   : ttsTocando
                   ? <Square size={12} aria-hidden="true" />
                   : <Volume2 size={12} aria-hidden="true" />}
-                {ttsCarregando ? 'Gerando…' : ttsTocando ? 'Parar' : 'Ouvir resumo'}
+                {ttsCarregando ? t('estudo.tts_generating') : ttsTocando ? t('estudo.tts_stop') : t('estudo.tts_listen')}
               </button>
             )}
           </div>
