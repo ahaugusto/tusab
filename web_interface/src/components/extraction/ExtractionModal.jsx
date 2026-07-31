@@ -249,7 +249,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     : sourceType === 'fonte-publica' ? t('extraction.fonte_results_title') : t('ops.types_modal_title');
 
   const stepSub = step === 'url'
-    ? (sourceType === 'fonte-publica' ? (areasFontes[areaSelecionada]?.nome || '') : t('extraction.enter_channel_url_subtitle'))
+    ? (sourceType === 'fonte-publica' ? (areaSelecionada ? t(`extraction.area_${areaSelecionada}`, areasFontes[areaSelecionada]?.nome || '') : '') : t('extraction.enter_channel_url_subtitle'))
     : step === 'projeto'
     ? t('extraction.project_name_subtitle')
     : sourceType === 'fonte-publica' ? t('extraction.results_how_many', { nome: fonteAtual?.nome || t('extraction.fonte_label') }) : t('ops.types_modal_subtitle');
@@ -352,7 +352,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                       className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
                         ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
                       {Object.entries(areasFontes).map(([areaId, area]) => (
-                        <option key={areaId} value={areaId} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{area.nome}</option>
+                        <option key={areaId} value={areaId} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{t(`extraction.area_${areaId}`, area.nome)}</option>
                       ))}
                     </select>
                   ) : (
@@ -364,7 +364,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                             onClick={() => { setAreaSelecionada(areaId); setFonteSelecionada(area.fontes[0]?.id || ''); }}
                             className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${BTN_FOCUS}
                               ${ativo ? 'bg-primary border-primary text-white' : darkMode ? 'bg-white/5 border-white/15 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                            {area.nome}
+                            {t(`extraction.area_${areaId}`, area.nome)}
                           </button>
                         );
                       })}
