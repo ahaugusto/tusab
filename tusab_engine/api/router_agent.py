@@ -99,7 +99,7 @@ def _run_indexacao(projeto_nome: str, projeto_prefixo: str):
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
-_PERSONAS_VALIDAS = {'', 'objetivo', 'tecnico', 'didatico', 'descontraido', 'socratico'}
+_PERSONAS_VALIDAS = {'', 'objetivo', 'tecnico', 'didatico', 'descontraido', 'socratico', 'custom'}
 
 # Ranges sem uso legítimo pra um endpoint de LLM — bloqueados independente de a
 # URL ser "local" ou não. 169.254.0.0/16 é o range de metadata cloud
@@ -130,6 +130,7 @@ class AgentConfigRequest(BaseModel):
     custom_base_url: str  = Field(default="", max_length=200)
     custom_model:    str  = Field(default="", max_length=120)
     persona:         str  = Field(default="", max_length=30)
+    persona_custom:  str  = Field(default="", max_length=300)
     idioma:          str  = Field(default="pt", max_length=10)
 
 class AgentChatRequest(BaseModel):
@@ -668,6 +669,7 @@ def get_agent_config():
         "custom_base_url": config.get("custom_base_url", ""),
         "custom_model":    config.get("custom_model", ""),
         "persona":      config.get("persona", ""),
+        "persona_custom": config.get("persona_custom", ""),
         "query_expansion": config.get("query_expansion", False),
     }
 
@@ -705,6 +707,12 @@ def agent_config(req: AgentConfigRequest):
             config["custom_model"] = req.custom_model
     if req.persona in _PERSONAS_VALIDAS:
         config["persona"] = req.persona
+        # Texto livre do tom customizado — só persistido quando a persona
+        # ativa é 'custom' e veio algo pra salvar (evita apagar um texto já
+        # salvo em saves parciais, ex.: troca de idioma, que não reenviam o
+        # campo).
+        if req.persona == "custom" and req.persona_custom.strip():
+            config["persona_custom"] = req.persona_custom.strip()
     if req.idioma in ("pt", "en", "es"):
         config["idioma"] = req.idioma
     agent_tusab.salvar_config(config)

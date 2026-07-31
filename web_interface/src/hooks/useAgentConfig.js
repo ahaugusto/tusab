@@ -76,6 +76,7 @@ export function useAgentConfig({ activeTab, showError }) {
   const [configOpen,           setConfigOpen]           = useState(true);
   const [queryExpansion,       setQueryExpansion]       = useState(false);
   const [persona,              setPersona]              = useState('');
+  const [personaCustom,        setPersonaCustom]        = useState('');
   const [canalMeta,            setCanalMeta]            = useState(null);
 
   // ─── Aprofundar base ─────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ export function useAgentConfig({ activeTab, showError }) {
       if (r.data.ollama_model) setOllamaModel(r.data.ollama_model);
       if (r.data.query_expansion !== undefined) setQueryExpansion(!!r.data.query_expansion);
       if (r.data.persona !== undefined) setPersona(r.data.persona || '');
+      if (r.data.persona_custom !== undefined) setPersonaCustom(r.data.persona_custom || '');
       if (r.data.provider === 'custom') {
         setUseCustomEndpoint(true);
         setUseExternalProvider(false);
@@ -246,6 +248,17 @@ export function useAgentConfig({ activeTab, showError }) {
       .catch(() => {});
   };
 
+  /** Saves the free-text custom tone (from the "Custom" persona modal) and
+   *  activates it as the current persona. */
+  const handlePersonaCustomSave = async (texto) => {
+    const limpo = texto.trim().slice(0, 300);
+    setPersona('custom');
+    setPersonaCustom(limpo);
+    const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
+    await saveAgentConfig({ provider, api_key: '__keep__', persona: 'custom', persona_custom: limpo, idioma: i18n.language })
+      .catch(() => {});
+  };
+
   /** Clears external API key or endpoint customizado, resets provider to Ollama */
   const handleRemoveApiKey = async () => {
     const providerAtual = useCustomEndpoint ? 'custom' : agentProvider;
@@ -381,12 +394,14 @@ export function useAgentConfig({ activeTab, showError }) {
     configOpen,           setConfigOpen,
     queryExpansion,       setQueryExpansion,
     persona,              setPersona,
+    personaCustom,        setPersonaCustom,
     canalMeta,            setCanalMeta,
     aprofundarOpen,       aprofundarPendente,
     aprofundarRodando,    aprofundarProgresso,
     // handlers
     handleOllamaModelChange,
     handlePersonaChange,
+    handlePersonaCustomSave,
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleAprofundarConfirm,

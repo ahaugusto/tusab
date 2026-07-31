@@ -165,16 +165,14 @@ export default function ExtractionTab({
                   buscar antes mesmo de ver quais bases estão disponíveis ── */
               <div className={`p-4 rounded-xl border ${darkMode ? 'bg-primary/8 border-primary/20' : 'bg-violet-50 border-violet-200'}`}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-start">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Search size={20} className="text-primary shrink-0" aria-hidden="true" />
-                    <div className="min-w-0">
-                      <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                        {t('extraction.public_search_title')}
-                      </p>
-                      <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {t('extraction.public_search_subtitle')}
-                      </p>
-                    </div>
+                  <div className="flex flex-col items-center text-center min-w-0">
+                    <Search size={20} className="text-primary shrink-0 mb-1.5" aria-hidden="true" />
+                    <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                      {t('extraction.public_search_title')}
+                    </p>
+                    <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {t('extraction.public_search_subtitle')}
+                    </p>
                   </div>
 
                   <div className="min-w-0">

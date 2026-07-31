@@ -281,9 +281,11 @@ function App() {
     configOpen,           setConfigOpen,
     queryExpansion,       setQueryExpansion,
     persona,              setPersona,
+    personaCustom,        setPersonaCustom,
     canalMeta,            setCanalMeta,
     handleOllamaModelChange,
     handlePersonaChange,
+    handlePersonaCustomSave,
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleTestKey,
@@ -1963,8 +1965,10 @@ function App() {
                 configOpen={configOpen}
                 setConfigOpen={setConfigOpen}
                 persona={persona}
+                personaCustom={personaCustom}
                 handleOllamaModelChange={handleOllamaModelChange}
                 handlePersonaChange={handlePersonaChange}
+                handlePersonaCustomSave={handlePersonaCustomSave}
                 handleSaveAgentConfig={handleSaveAgentConfig}
                 handleRemoveApiKey={handleRemoveApiKey}
                 handleTestKey={handleTestKey}
