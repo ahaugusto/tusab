@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, X, Check, ChevronDown, ChevronRight, Database, Zap, Loader2, CheckSquare, Square } from 'lucide-react';
 import { buscarTrechos } from '../../services/api';
 
@@ -36,6 +37,7 @@ export default function ReferenciarModal({
   onInjetar,              // ({ arquivos: [{canal, arquivo, titulo, trechos}] }) => void
   onFechar,
 }) {
+  const { t } = useTranslation();
   const [query,          setQuery]          = useState(queryInicial);
   const [buscando,       setBuscando]       = useState(false);
   const [trechos,        setTrechos]        = useState([]);
@@ -76,7 +78,7 @@ export default function ReferenciarModal({
         setExpandidos({ [primeiroCanal]: true });
       }
     } catch {
-      setErro('Erro ao buscar. Verifique se o backend está rodando.');
+      setErro(t('referenciar.search_error'));
       setTrechos([]);
     } finally {
       setBuscando(false);
@@ -161,7 +163,7 @@ export default function ReferenciarModal({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Search size={16} className={dm ? 'text-accent' : 'text-violet-600'} />
-            <h2 className="text-sm font-bold">Referenciar no chat</h2>
+            <h2 className="text-sm font-bold">{t('referenciar.title')}</h2>
           </div>
           <button onClick={onFechar}
             className={`p-1.5 rounded-lg transition-colors ${dm ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}>
@@ -177,7 +179,7 @@ export default function ReferenciarModal({
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Buscar por título, termo ou trecho..."
+            placeholder={t('referenciar.search_placeholder')}
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
           />
           {buscando
@@ -214,8 +216,8 @@ export default function ReferenciarModal({
                     ${dm ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
                   <Database size={10} />
                   {basesSelecionadas.length === nBasesTotal
-                    ? `Todas as bases (${nBasesTotal})`
-                    : `${basesSelecionadas.length} de ${nBasesTotal} bases`}
+                    ? t('referenciar.all_bases', { count: nBasesTotal })
+                    : t('referenciar.bases_of', { selected: basesSelecionadas.length, total: nBasesTotal })}
                   <ChevronDown size={10} className={`transition-transform ${mostrarBases ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -241,7 +243,7 @@ export default function ReferenciarModal({
                     <button onClick={() => setMostrarBases(false)}
                       className={`w-full text-center text-[11px] py-2 font-medium transition-colors
                         ${dm ? 'text-accent hover:bg-white/5' : 'text-violet-600 hover:bg-violet-50'}`}>
-                      Fechar
+                      {t('referenciar.close')}
                     </button>
                   </div>
                 )}
@@ -270,7 +272,7 @@ export default function ReferenciarModal({
                 : dm ? 'bg-white/5 border-white/10 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'
               }`}>
             <Zap size={10} />
-            Busca ampla
+            {t('chat.broad_title')}
           </button>
         </div>
       </div>
@@ -283,12 +285,12 @@ export default function ReferenciarModal({
         )}
         {!buscando && !erro && query.trim() && trechos.length === 0 && (
           <p className={`text-xs text-center py-8 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            Nenhum resultado para <strong>"{query}"</strong> nas bases selecionadas.
+            {t('referenciar.no_results', { query })}
           </p>
         )}
         {!query.trim() && (
           <p className={`text-xs text-center py-8 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            Digite um termo, título ou trecho para buscar nas suas bases.
+            {t('referenciar.empty_hint')}
           </p>
         )}
 
@@ -307,7 +309,7 @@ export default function ReferenciarModal({
                   <Database size={12} className={dm ? 'text-accent' : 'text-violet-500'} />
                   <span className="text-xs font-semibold">{canal}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${dm ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
-                    {nArqsCanal} arquivo{nArqsCanal !== 1 ? 's' : ''}
+                    {t('referenciar.file_count', { count: nArqsCanal })}
                   </span>
                 </button>
                 {/* Selecionar/desselecionar todos do canal */}
@@ -318,7 +320,7 @@ export default function ReferenciarModal({
                       ? dm ? 'text-accent hover:text-accent/70' : 'text-violet-600 hover:text-violet-800'
                       : dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                   {todosOn ? <CheckSquare size={12} /> : algumOn ? <CheckSquare size={12} className="opacity-50" /> : <Square size={12} />}
-                  {todosOn ? 'Desmarcar todos' : 'Marcar todos'}
+                  {todosOn ? t('referenciar.deselect_all') : t('referenciar.select_all')}
                 </button>
               </div>
 
@@ -377,12 +379,12 @@ export default function ReferenciarModal({
                             {/* Info: quantos trechos encontrados nesse arquivo */}
                             <div className="mt-1.5 flex items-center gap-2">
                               <span className={`text-[10px] ${dm ? 'text-slate-600' : 'text-slate-400'}`}>
-                                {items.length} trecho{items.length !== 1 ? 's' : ''} encontrado{items.length !== 1 ? 's' : ''}
+                                {t('referenciar.snippet_count', { count: items.length })}
                               </span>
-                              {items.some(t => t.fts_match) && (
+                              {items.some(it => it.fts_match) && (
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium
                                   ${dm ? 'bg-yellow-500/15 text-yellow-400' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
-                                  match exato
+                                  {t('referenciar.exact_match')}
                                 </span>
                               )}
                               {/* Toggle para ver os trechos individuais */}
@@ -390,7 +392,7 @@ export default function ReferenciarModal({
                                 onClick={e => { e.stopPropagation(); toggleExpandArq(key); }}
                                 className={`text-[10px] underline underline-offset-2 transition-colors
                                   ${dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
-                                {expandArq ? 'Ocultar trechos' : 'Ver trechos'}
+                                {expandArq ? t('referenciar.hide_snippets') : t('referenciar.show_snippets')}
                               </button>
                             </div>
                           </div>
@@ -430,19 +432,19 @@ export default function ReferenciarModal({
         {/* Info sobre o que acontece ao confirmar */}
         {nArquivosSel > 0 && (
           <p className={`text-[11px] mb-3 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            <strong className={dm ? 'text-slate-300' : 'text-slate-600'}>{nArquivosSel} arquivo{nArquivosSel !== 1 ? 's' : ''}</strong> selecionado{nArquivosSel !== 1 ? 's' : ''} — o conteúdo será indexado como contexto no chat.
-            {nArquivosSel > 1 && <span className={`ml-1 ${dm ? 'text-accent' : 'text-violet-600'}`}>Conectando {new Set(Object.entries(arquivosSel).filter(([,v]) => v).map(([k]) => k.split('::')[0])).size} base{new Set(Object.entries(arquivosSel).filter(([,v]) => v).map(([k]) => k.split('::')[0])).size !== 1 ? 's' : ''}.</span>}
+            {t('referenciar.selected_summary', { count: nArquivosSel })}
+            {nArquivosSel > 1 && <span className={`ml-1 ${dm ? 'text-accent' : 'text-violet-600'}`}>{t('referenciar.connecting_bases', { count: new Set(Object.entries(arquivosSel).filter(([,v]) => v).map(([k]) => k.split('::')[0])).size })}</span>}
           </p>
         )}
         <div className="flex items-center justify-between gap-3">
           <p className={`text-[11px] ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            {nArquivosSel === 0 && 'Selecione arquivos para usar como contexto'}
+            {nArquivosSel === 0 && t('referenciar.select_hint')}
           </p>
           <div className="flex gap-2">
             <button onClick={onFechar}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
                 ${dm ? 'text-slate-400 hover:text-slate-200 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`}>
-              Cancelar
+              {t('repo.cancel')}
             </button>
             <button
               onClick={handleInjetar}
@@ -452,7 +454,7 @@ export default function ReferenciarModal({
                   ? dm ? 'bg-accent text-white hover:bg-accent/80' : 'bg-violet-600 text-white hover:bg-violet-700'
                   : dm ? 'bg-white/8 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}>
-              Usar como contexto no chat
+              {t('referenciar.use_as_context')}
             </button>
           </div>
         </div>
