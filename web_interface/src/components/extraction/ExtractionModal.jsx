@@ -117,7 +117,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const [projetoExistenteSelecionado, setProjetoExistenteSelecionado] = React.useState(false);
 
   // Step URL: channel URL
-  const [canalUrl, setCanalUrl] = React.useState('');
+  const [canalUrl, setCanalUrl] = React.useState(canalUrlInicial);
 
   // Mapa de cobertura pré-extração
   const [canalInfo,        setCanalInfo]        = React.useState(null);
