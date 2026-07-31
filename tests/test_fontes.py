@@ -21,7 +21,7 @@ def test_listar_fontes_agrupa_por_area():
     areas = fontes_registry.listar_fontes()
     assert "geral" in areas
     ids = {f["id"] for f in areas["geral"]["fontes"]}
-    assert ids == {"arxiv", "openalex", "datacite", "doaj", "zenodo"}
+    assert ids == {"arxiv", "openalex", "datacite", "doaj", "zenodo", "crossref", "data_europa_eu", "data_gov_uk", "open_library"}
     assert "europepmc" in {f["id"] for f in areas["saude"]["fontes"]}
 
 

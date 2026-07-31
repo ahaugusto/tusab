@@ -25,13 +25,15 @@ futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de
 
 from . import (
     art_institute_chicago, arxiv_adapter, bcb, camara, cern_opendata,
-    clinicaltrials, datacite, doaj, europepmc, github, nasa_cmr, openalex,
+    clinicaltrials, crossref, data_europa_eu, data_gov_uk, datacite, doaj,
+    europepmc, github, hacker_news, nasa_cmr, open_library, openalex,
     pubmed, senado_leis, stackexchange, the_met, uniprot, wikipedia, zenodo,
 )
 
 _MODULOS = [
     arxiv_adapter, openalex, datacite, doaj, zenodo,
-    github, stackexchange,
+    crossref, data_europa_eu, data_gov_uk, open_library,
+    github, stackexchange, hacker_news,
     bcb,
     camara, senado_leis,
     pubmed, clinicaltrials, uniprot, europepmc,
