@@ -62,12 +62,12 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
         setFonteCatalogoStatus('ok');
       } else {
         setFonteCatalogoStatus('error');
-        setFonteCatalogoErro('O servidor respondeu sem nenhuma área de conhecimento cadastrada.');
+        setFonteCatalogoErro(t('extraction.no_areas_error'));
       }
     }).catch(err => {
       console.error('[ExtractionModal] falha ao carregar /fontes:', err);
       setFonteCatalogoStatus('error');
-      setFonteCatalogoErro(err?.message || 'Erro desconhecido');
+      setFonteCatalogoErro(err?.message || t('extraction.unknown_error'));
     });
   }, []);
 
@@ -243,16 +243,16 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const totalStepsVisual = pulaStepUrl ? 2 : 3;
 
   const stepLabel = step === 'url'
-    ? (sourceType === 'fonte-publica' ? (fonteAtual ? `Buscar em ${fonteAtual.nome}` : 'Buscar em base pública') : 'Canal do YouTube')
+    ? (sourceType === 'fonte-publica' ? (fonteAtual ? t('extraction.public_search_in', { nome: fonteAtual.nome }) : t('extraction.public_search_title')) : t('extraction.youtube_channel_title'))
     : step === 'projeto'
-    ? 'Nome do projeto'
-    : sourceType === 'fonte-publica' ? 'Quantidade de resultados' : t('ops.types_modal_title');
+    ? t('extraction.project_name_label')
+    : sourceType === 'fonte-publica' ? t('extraction.fonte_results_title') : t('ops.types_modal_title');
 
   const stepSub = step === 'url'
-    ? (sourceType === 'fonte-publica' ? (areasFontes[areaSelecionada]?.nome || '') : 'Informe a URL do canal que deseja adicionar à fila.')
+    ? (sourceType === 'fonte-publica' ? (areasFontes[areaSelecionada]?.nome || '') : t('extraction.enter_channel_url_subtitle'))
     : step === 'projeto'
-    ? 'Dê um nome ao projeto. Pode ser o canal ou algo mais amplo.'
-    : sourceType === 'fonte-publica' ? `Quantos resultados baixar e indexar de ${fonteAtual?.nome || 'fonte'}?` : t('ops.types_modal_subtitle');
+    ? t('extraction.project_name_subtitle')
+    : sourceType === 'fonte-publica' ? t('extraction.results_how_many', { nome: fonteAtual?.nome || t('extraction.fonte_label') }) : t('ops.types_modal_subtitle');
 
   const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado || sourceType === 'fonte-publica') : step === 'fontes';
   const podeAvancarUrl = sourceType === 'fonte-publica' ? podeAvancarFonteQuery : canalUrl.trim().length > 0;
@@ -288,7 +288,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
           </div>
           <button onClick={onClose}
             className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'} ${BTN_FOCUS}`}
-            aria-label="Fechar">
+            aria-label={t('extraction.close_aria')}>
             <X size={16} />
           </button>
         </div>
@@ -317,7 +317,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                   onClick={() => setSourceType('fonte-publica')}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
                     ${sourceType === 'fonte-publica' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <Search size={12} aria-hidden="true" /> Base pública
+                  <Search size={12} aria-hidden="true" /> {t('extraction.source_public')}
                 </button>
               )}
             </div>
@@ -328,22 +328,22 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
             <>
               {fonteCatalogoStatus === 'loading' && (
                 <p className={`text-[11px] mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Carregando áreas de conhecimento...
+                  {t('extraction.loading_areas')}
                 </p>
               )}
               {fonteCatalogoStatus === 'error' && (
                 <div className={`mb-4 rounded-lg border px-3 py-2.5 text-[11px] ${darkMode ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                  <p className="font-bold mb-1">Não foi possível carregar as fontes públicas.</p>
+                  <p className="font-bold mb-1">{t('extraction.load_error_title')}</p>
                   <p className="opacity-80 mb-2">{fonteCatalogoErro}</p>
                   <button onClick={carregarCatalogoFontes} className={`underline font-semibold ${BTN_FOCUS}`}>
-                    Tentar novamente
+                    {t('extraction.retry')}
                   </button>
                 </div>
               )}
               {Object.keys(areasFontes).length > 1 && (
                 <div className="mb-4">
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Área de conhecimento
+                    {t('extraction.area_label')}
                   </label>
                   {Object.keys(areasFontes).length > 4 ? (
                     <select
@@ -375,7 +375,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
 
               <div className="mb-4">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Fonte
+                  {t('extraction.fonte_label')}
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {(areasFontes[areaSelecionada]?.fontes || []).map(f => {
@@ -396,14 +396,14 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
 
               <div className="mb-4">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Tema ou palavras-chave
+                  {t('extraction.fonte_query_label')}
                 </label>
                 <input
                   type="text"
                   value={fonteQuery}
                   onChange={e => setFonteQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && podeAvancarFonteQuery) avancar(); }}
-                  placeholder="Ex: transformer attention mechanism"
+                  placeholder={t('extraction.fonte_query_placeholder')}
                   autoFocus
                   maxLength={300}
                   className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
@@ -413,13 +413,13 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               {fonteAtual?.suporta_autor && (
                 <div className="mb-4">
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Filtrar por autor (opcional)
+                    {t('extraction.fonte_autor_label')}
                   </label>
                   <input
                     type="text"
                     value={fonteAutor}
                     onChange={e => setFonteAutor(e.target.value)}
-                    placeholder="Ex: Ashish Vaswani"
+                    placeholder={t('extraction.fonte_autor_placeholder')}
                     className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                   />
                 </div>
@@ -428,7 +428,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               {fonteAtual?.suporta_data && (
                 <div className="mb-4">
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Filtrar por data (opcional)
+                    {t('extraction.date_filter_label')}
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -439,7 +439,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                       style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                       className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
                     />
-                    <span className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>até</span>
+                    <span className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.fonte_date_to')}</span>
                     <input
                       type="date"
                       value={fonteDataFim}
@@ -456,7 +456,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 onClick={avancar}
                 disabled={!podeAvancarFonteQuery}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
-                Próximo
+                {t('extraction.next')}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
             </>
@@ -467,7 +467,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
             <>
               <div className="mb-5">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  URL do canal
+                  {t('extraction.channel_url_label')}
                 </label>
                 <input
                   type="url"
@@ -483,21 +483,21 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               {canalInfoLoading && (
                 <div className={`flex items-center gap-2 py-2 text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   <Loader2 size={12} className="animate-spin" aria-hidden="true" />
-                  Verificando canal…
+                  {t('extraction.checking_channel')}
                 </div>
               )}
               {canalInfo && !canalInfo.error && (
                 <div className={`rounded-xl border p-3 mb-4 space-y-2 ${darkMode ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200'}`}>
                   <p className={`text-[10px] font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Visão geral do canal
+                    {t('extraction.channel_overview')}
                   </p>
                   <p className={`text-[11px] ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    <strong>{canalInfo.total_videos}</strong> vídeos encontrados
+                    <strong>{t('extraction.videos_found', { count: canalInfo.total_videos })}</strong>
                     {canalInfo.views_total > 0 && <> · <strong>{(canalInfo.views_total / 1e6).toFixed(1)}M</strong> views</>}
                   </p>
                   {canalInfo.topicos?.length > 0 && (
                     <div>
-                      <p className={`text-[10px] mb-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Tópicos mais frequentes:</p>
+                      <p className={`text-[10px] mb-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.top_topics')}</p>
                       <div className="flex flex-wrap gap-1">
                         {canalInfo.topicos.slice(0, 12).map(t => (
                           <span key={t.termo}
@@ -515,7 +515,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 onClick={avancar}
                 disabled={!podeAvancarUrl}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
-                Próximo
+                {t('extraction.next')}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
             </>
@@ -527,7 +527,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               <div className="mb-4 space-y-3">
                 <div>
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Nome do projeto <span className="text-red-500" aria-label="obrigatório">*</span>
+                    {t('extraction.project_name_label')} <span className="text-red-500" aria-label={t('extraction.required_field')}>*</span>
                   </label>
                   {projetoExistenteSelecionado ? (
                     /* Projeto existente selecionado — mostra card de confirmação */
@@ -539,7 +539,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                       <button
                         onClick={() => { setProjetoExistenteSelecionado(false); setProjetoNome(''); setNomeEditadoManual(false); }}
                         className={`text-[10px] font-semibold shrink-0 transition-colors ${darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-600'} ${BTN_FOCUS}`}>
-                        Trocar
+                        {t('extraction.switch_project')}
                       </button>
                     </div>
                   ) : (
@@ -549,18 +549,18 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                         value={projetoNome}
                         onChange={e => { setProjetoNome(e.target.value); setNomeEditadoManual(true); setProjetoExistenteSelecionado(false); }}
                         onKeyDown={e => { if (e.key === 'Enter' && podeAvancarProjeto) avancar(); }}
-                        placeholder="Ex: FGV, Marketing Digital, Estudos 2026…"
+                        placeholder={t('extraction.project_name_placeholder')}
                         autoFocus
                         maxLength={120}
                         className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                       />
                       {modoFila && projetoNome.trim() && !nomeEditadoManual && (
                         <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                          Sugerido pela URL — edite à vontade
+                          {t('extraction.project_name_suggested')}
                         </p>
                       )}
                       {!projetoNome.trim() && (
-                        <p className="text-[10px] text-red-500 mt-1 px-1">Campo obrigatório</p>
+                        <p className="text-[10px] text-red-500 mt-1 px-1">{t('extraction.required_field')}</p>
                       )}
                     </>
                   )}
@@ -569,26 +569,25 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 {/* Alerta: canal já extraído anteriormente */}
                 {projetoComCanalExistente && (
                   <div className={`rounded-xl p-3 border text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                    <p className="font-bold mb-0.5">⚠️ Canal já extraído</p>
+                    <p className="font-bold mb-0.5">{t('extraction.channel_already_extracted_title')}</p>
                     <p>
-                      <strong>@{canalHandle}</strong> já está no projeto <strong>{projetoComCanalExistente.nome}</strong>.
-                      Você pode adicionar ao mesmo projeto (vídeos novos serão extraídos) ou criar um projeto com outro nome.
+                      {t('extraction.channel_already_extracted_body', { handle: canalHandle, projeto: projetoComCanalExistente.nome })}
                     </p>
                   </div>
                 )}
 
                 {/* Hint sobre estrutura de pastas — oculto quando projeto existente selecionado */}
                 {!projetoExistenteSelecionado && <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                  <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Estrutura de pastas</p>
-                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || 'Projeto'}</span> → {sourceType === 'fonte-publica' ? `documents → ${fonteAtual?.nome || 'Fonte'}` : 'youtube → Canal'}</p>
-                  <p className="opacity-70">O projeto agrupa canais e documentos. Um projeto pode conter vários canais.</p>
+                  <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('extraction.folder_structure_title')}</p>
+                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || t('header.channel')}</span> → {sourceType === 'fonte-publica' ? `documents → ${fonteAtual?.nome || t('extraction.fonte_label')}` : `youtube → ${t('extraction.youtube_channel_title')}`}</p>
+                  <p className="opacity-70">{t('extraction.folder_structure_hint')}</p>
                 </div>}
 
                 {/* Projetos existentes: chips (≤4) ou select (>4) */}
                 {projetos.length > 0 && (
                   <div>
                     <p className={`text-[10px] font-bold mb-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Ou adicionar a um projeto existente:
+                      {t('extraction.add_to_existing_project')}
                     </p>
                     {usarSelect ? (
                       <select
@@ -596,7 +595,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                         onChange={e => { if (e.target.value) { setProjetoNome(e.target.value); setNomeEditadoManual(true); setProjetoExistenteSelecionado(true); } }}
                         className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${BTN_FOCUS}
                           ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
-                        <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>— selecione um projeto —</option>
+                        <option value="" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{t('extraction.select_project_placeholder')}</option>
                         {projetos.map(p => (
                           <option key={p.nome} value={p.nome} className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>{p.nome}</option>
                         ))}
@@ -631,14 +630,14 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                   <button onClick={voltar}
                     className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
                       ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                    Voltar
+                    {t('extraction.back')}
                   </button>
                 )}
                 <button
                   onClick={avancar}
                   disabled={!podeAvancarProjeto}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
-                  Próximo
+                  {t('extraction.next')}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
               </div>
@@ -650,7 +649,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
             <>
               <div className="mb-5">
                 <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Número de resultados (máx. 50)
+                  {t('extraction.results_count_label')}
                 </label>
                 <input
                   type="number"
@@ -661,7 +660,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                   className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
                 />
                 <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Cada resultado é baixado e convertido em texto pesquisável. Buscas maiores levam mais tempo.
+                  {t('extraction.results_count_hint')}
                 </p>
               </div>
 
@@ -672,13 +671,13 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 <button onClick={voltar} disabled={criandoProjetoBusca}
                   className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors disabled:opacity-40 ${BTN_FOCUS}
                     ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                  Voltar
+                  {t('extraction.back')}
                 </button>
                 <button
                   onClick={handleConfirmFontePublica} disabled={criandoProjetoBusca}
                   className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                   {criandoProjetoBusca ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Search size={15} aria-hidden="true" />}
-                  Buscar e indexar
+                  {t('extraction.fonte_start_confirm')}
                 </button>
               </div>
             </>
@@ -732,10 +731,10 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-[11px] font-bold ${autoUpdate ? 'text-cyan-600' : darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                      Auto-Update — novos vídeos automaticamente
+                      {t('extraction.autoupdate_title')}
                     </p>
                     <p className={`text-[10px] mt-0.5 leading-snug ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Verifica e indexa novos vídeos na frequência escolhida
+                      {t('extraction.autoupdate_subtitle')}
                     </p>
                   </div>
                   <span className="text-base shrink-0" aria-hidden="true">🌐</span>
@@ -744,13 +743,13 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 {autoUpdate && (
                   <div className={`px-3 pb-3 pt-2 border-t space-y-3 ${darkMode ? 'border-white/8' : 'border-slate-200'}`}>
                     <div>
-                      <p className={`text-[10px] font-bold mb-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Periodicidade da verificação</p>
+                      <p className={`text-[10px] font-bold mb-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('extraction.autoupdate_frequency_label')}</p>
                       <div className="flex gap-1.5">
                         {[
-                          { id: 'ao_abrir', label: 'Ao abrir' },
-                          { id: 'diario',   label: 'Diária'   },
-                          { id: 'semanal',  label: 'Semanal'  },
-                          { id: 'mensal',   label: 'Mensal'   },
+                          { id: 'ao_abrir', label: t('extraction.freq_on_open') },
+                          { id: 'diario',   label: t('extraction.freq_daily')   },
+                          { id: 'semanal',  label: t('extraction.freq_weekly')  },
+                          { id: 'mensal',   label: t('extraction.freq_monthly') },
                         ].map(f => (
                           <button key={f.id} onClick={() => setAutoUpdateFreq(f.id)}
                             className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${BTN_FOCUS}
@@ -776,13 +775,13 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                         )}
                       </div>
                       <p className={`text-[10px] leading-relaxed ${autoUpdateConsent ? darkMode ? 'text-cyan-300' : 'text-cyan-700' : darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                        Entendo que o Tusab vai se conectar à internet <strong>apenas para verificar se há vídeos novos</strong>. Nenhum dado pessoal é transmitido. As transcrições continuam sendo processadas localmente.
+                        {t('extraction.autoupdate_consent')}
                       </p>
                     </button>
 
                     {!autoUpdateConsent && (
                       <p className={`text-[10px] text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        Marque o consentimento acima para ativar a busca automática.
+                        {t('extraction.autoupdate_consent_hint')}
                       </p>
                     )}
                   </div>
@@ -794,7 +793,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 <button onClick={voltar}
                   className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
                     ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                  Voltar
+                  {t('extraction.back')}
                 </button>
                 <button
                   onClick={handleConfirm}

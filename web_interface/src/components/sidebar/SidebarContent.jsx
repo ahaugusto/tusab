@@ -251,7 +251,7 @@ function SidebarContent({
       <div className="flex justify-center -mt-6 -mb-6">
         <button
           onClick={() => setShowHome(true)}
-          aria-label="Voltar à tela inicial"
+          aria-label={t('nav.home')}
           className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
           <img
             src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}

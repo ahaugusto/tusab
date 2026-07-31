@@ -336,8 +336,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
               </select>
             </div>
             <button onClick={onToggleTheme}
-              aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              title={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              aria-label={t(darkMode ? 'footer.light' : 'footer.dark')}
+              title={t(darkMode ? 'footer.light' : 'footer.dark')}
               className={`p-2 rounded-lg border transition-colors ${darkMode ? 'bg-white/10 border-white/20 text-slate-400 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
               {darkMode
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>

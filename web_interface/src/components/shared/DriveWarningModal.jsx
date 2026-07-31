@@ -6,6 +6,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, FolderOpen, FolderX, ArrowRight, X } from 'lucide-react';
 import ModalWrapper from './ModalWrapper';
@@ -35,6 +36,7 @@ export function useDriveWarning() {
  * @returns {JSX.Element}
  */
 function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
+  const { t } = useTranslation();
   const base = darkMode
     ? 'bg-slate-900 border-white/10 text-white'
     : 'bg-white border-slate-200 text-slate-900';
@@ -42,7 +44,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
   return (
     <AnimatePresence>
       {open && (
-        <ModalWrapper onClose={onCancel} zIndex="z-50" backdrop="bg-black/50 backdrop-blur-sm" label="Aviso de segurança">
+        <ModalWrapper onClose={onCancel} zIndex="z-50" backdrop="bg-black/50 backdrop-blur-sm" label={t('drive_warning.aria_label')}>
 
           {/* Panel */}
           <motion.div
@@ -65,18 +67,16 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
                 <ShieldAlert size={20} className="text-amber-500" />
               </div>
               <div>
-                <h2 className="font-bold text-base">Aviso de segurança</h2>
+                <h2 className="font-bold text-base">{t('drive_warning.title')}</h2>
                 <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Leia antes de conectar o Google Drive
+                  {t('drive_warning.subtitle')}
                 </p>
               </div>
             </div>
 
             {/* Body */}
             <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              A pasta de dados do Tusab contém arquivos sensíveis.
-              Se você sincronizar a pasta errada com o Drive, suas
-              chaves de API podem ser expostas.
+              {t('drive_warning.body')}
             </p>
 
             {/* Folder info */}
@@ -84,26 +84,24 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
               <div className={`flex items-start gap-3 rounded-xl p-3 ${darkMode ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'}`}>
                 <FolderOpen size={15} className="text-emerald-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-emerald-600">Seguro para sincronizar</p>
+                  <p className="text-xs font-semibold text-emerald-600">{t('drive_warning.safe_title')}</p>
                   <p className={`text-xs mt-0.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>data/neural/</p>
-                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Transcrições, documentos e textos extraídos — sem dados sensíveis</p>
+                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('drive_warning.safe_desc')}</p>
                 </div>
               </div>
 
               <div className={`flex items-start gap-3 rounded-xl p-3 ${darkMode ? 'bg-red-500/10 border border-red-500/20' : 'bg-red-50 border border-red-200'}`}>
                 <FolderX size={15} className="text-red-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-red-600">Não sincronize</p>
+                  <p className="text-xs font-semibold text-red-600">{t('drive_warning.unsafe_title')}</p>
                   <p className={`text-xs mt-0.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>data/config/</p>
-                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Contém suas chaves de API e credenciais do Google em texto simples</p>
+                  <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('drive_warning.unsafe_desc')}</p>
                 </div>
               </div>
             </div>
 
             <p className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              O Tusab usa o Drive apenas para salvar a pasta{' '}
-              <span className="font-mono">data/neural/</span>.
-              Este aviso é exibido uma única vez.
+              {t('drive_warning.footer_note', { path: 'data/neural/' })}
             </p>
 
             {/* Actions */}
@@ -111,12 +109,12 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
               <button
                 onClick={onCancel}
                 className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${darkMode ? 'border-white/10 text-slate-400 hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                Cancelar
+                {t('repo.cancel')}
               </button>
               <button
                 onClick={onConfirm}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors">
-                Entendi, continuar <ArrowRight size={12} />
+                {t('drive_warning.confirm')} <ArrowRight size={12} />
               </button>
             </div>
 

@@ -1674,9 +1674,9 @@ function App() {
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6 pt-5 space-y-4 custom-scrollbar">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Histórico de conversas</h2>
+                    <h2 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.history_title')}</h2>
                     <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Salvo automaticamente · máx. 100 conversas · JSON exportável
+                      {t('historico.tab_subtitle')}
                     </p>
                   </div>
                 </div>

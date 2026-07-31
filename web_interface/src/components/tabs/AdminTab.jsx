@@ -70,7 +70,7 @@ export default function AdminTab({
 
   const handleCheckUpdate = useCallback(async () => {
     if (!window.tusab?.checkForUpdates) {
-      emitCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
+      emitCheckResult({ tone: 'warn', text: t('admin.update_check_unavailable') });
       return;
     }
     setCheckingUpdate(true);
@@ -78,16 +78,16 @@ export default function AdminTab({
     try {
       const res = await window.tusab.checkForUpdates();
       if (res?.status === 'update-available') {
-        emitCheckResult({ tone: 'info', text: `Nova versão ${res.version} encontrada — baixando em segundo plano. O botão "Instalar e reiniciar" aparecerá quando o download terminar.` });
+        emitCheckResult({ tone: 'info', text: t('admin.update_check_found', { version: res.version }) });
       } else if (res?.status === 'up-to-date') {
-        emitCheckResult({ tone: 'ok', text: `Você está na versão mais recente${res.current ? ` (v${res.current})` : ''}.` });
+        emitCheckResult({ tone: 'ok', text: t('admin.update_check_uptodate', { versionSuffix: res.current ? ` (v${res.current})` : '' }) });
       } else if (res?.status === 'dev') {
-        emitCheckResult({ tone: 'warn', text: 'Verificação disponível apenas no app instalado.' });
+        emitCheckResult({ tone: 'warn', text: t('admin.update_check_unavailable') });
       } else {
-        emitCheckResult({ tone: 'warn', text: `Não foi possível verificar: ${res?.message || 'erro desconhecido'}.` });
+        emitCheckResult({ tone: 'warn', text: t('admin.update_check_error', { message: res?.message || t('admin.update_check_error_unknown') }) });
       }
     } catch (e) {
-      emitCheckResult({ tone: 'warn', text: 'Não foi possível verificar. Confira sua conexão e tente novamente.' });
+      emitCheckResult({ tone: 'warn', text: t('admin.update_check_error_network') });
     } finally {
       setCheckingUpdate(false);
     }
@@ -102,7 +102,7 @@ export default function AdminTab({
           <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-warning/15' : 'border-b border-amber-100'}`}>
             <span className="text-warning text-sm">⬆</span>
             <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-              Atualização disponível
+              {t('admin.update_available_title')}
             </h3>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-warning/20 text-warning' : 'bg-amber-200 text-amber-800'}`}>
               v{appUpdateInfo.version}
@@ -111,14 +111,14 @@ export default function AdminTab({
           <div className="p-5 space-y-3">
             <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
               {appUpdateInfo.downloaded
-                ? `O Tusab ${appUpdateInfo.version} foi baixado e está pronto para instalar. Feche o app para aplicar a atualização automaticamente.`
-                : `Uma nova versão do Tusab (${appUpdateInfo.version}) está sendo baixada em segundo plano. A atualização será aplicada ao fechar o app.`}
+                ? t('admin.update_downloaded_desc', { version: appUpdateInfo.version })
+                : t('admin.update_downloading_desc', { version: appUpdateInfo.version })}
             </p>
             {appUpdateInfo.downloaded && onInstallUpdate && (
               <button
                 onClick={onInstallUpdate}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-warning text-white hover:bg-warning/90 transition-colors">
-                ⬆ Instalar e reiniciar agora
+                {t('admin.update_install_restart_btn')}
               </button>
             )}
           </div>
@@ -129,7 +129,7 @@ export default function AdminTab({
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <RefreshCw size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
-          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Atualização do app</h3>
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('admin.update_section_title')}</h3>
           {appVersion && (
             <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${darkMode ? 'bg-white/8 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
               v{appVersion}
@@ -138,7 +138,7 @@ export default function AdminTab({
         </div>
         <div className="p-5 space-y-3">
           <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-            O Tusab verifica atualizações automaticamente ao abrir. Use o botão para forçar uma verificação agora — se houver versão nova, o download começa em segundo plano.
+            {t('admin.update_manual_desc')}
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -147,7 +147,7 @@ export default function AdminTab({
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${BTN_FOCUS}
                 ${darkMode ? 'bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25' : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100'}`}>
               <RefreshCw size={12} className={checkingUpdate ? 'animate-spin' : ''} />
-              {checkingUpdate ? 'Verificando…' : 'Verificar atualização'}
+              {checkingUpdate ? t('admin.update_checking_btn') : t('admin.update_check_btn')}
             </button>
             {checkResult && (
               <p role="status" className={`text-[11px] font-medium
@@ -165,21 +165,21 @@ export default function AdminTab({
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={analyticsEnabled ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria</h3>
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('admin.telemetry_section_title')}</h3>
           {analyticsEnabled && (
             <span className="flex items-center gap-1 text-[10px] font-bold text-secondary">
-              <CheckCircle2 size={11} /> Ativa
+              <CheckCircle2 size={11} /> {t('admin.telemetry_active_badge')}
             </span>
           )}
         </div>
         <div className="p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>Telemetria anônima</p>
+              <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('admin.telemetry_toggle_title')}</p>
               <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                Registra eventos de uso — quais abas foram abertas, extrações iniciadas, indexações e perguntas no chat.
-                <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> Nenhum conteúdo pessoal é coletado</strong>: sem texto de mensagens, nomes de arquivos, URLs de canais ou chaves de API.
-                Os dados são enviados ao <strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> (servidores na UE/EUA) e usados exclusivamente para melhorar o produto.
+                {t('admin.telemetry_desc_p1')}
+                <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> {t('admin.telemetry_desc_strong')}</strong>{t('admin.telemetry_desc_p2')}
+                {' '}<strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> {t('admin.telemetry_desc_p3')}
               </p>
             </div>
             <button
@@ -206,17 +206,17 @@ export default function AdminTab({
         <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
             <Trash2 size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
-            <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Limpeza de bases</h3>
+            <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('admin.reset_section_title')}</h3>
           </div>
           <div className="p-5 space-y-3">
             <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Remove permanentemente todos os dados extraídos, índices de busca e configurações do sistema. Esta ação não pode ser desfeita.
+              {t('admin.reset_desc')}
             </p>
             <button
               onClick={onResetClick}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${BTN_FOCUS}
                 ${darkMode ? 'border-danger/30 text-danger hover:bg-danger/10' : 'border-red-200 text-red-600 hover:bg-red-50'}`}>
-              <Trash2 size={13} /> Limpar toda a base de conhecimento
+              <Trash2 size={13} /> {t('admin.reset_btn')}
             </button>
           </div>
         </section>
@@ -290,11 +290,11 @@ export default function AdminTab({
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <Plug size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
-          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>MCP Server</h3>
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('admin.mcp_section_title')}</h3>
         </div>
         <div className="p-5 space-y-3">
           <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            O Tusab expõe sua base de conhecimento como um servidor MCP (Model Context Protocol) local — qualquer agente de IA compatível (Claude Code, Cursor, e outros) pode consultar suas fontes indexadas diretamente, sem sair da ferramenta que você já usa.
+            {t('admin.mcp_desc')}
           </p>
           <button
             onClick={handleCopyMcpConfig}
@@ -303,10 +303,10 @@ export default function AdminTab({
                 ? darkMode ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-emerald-200 text-emerald-700 bg-emerald-50'
                 : darkMode ? 'border-primary/30 text-primary hover:bg-primary/10' : 'border-violet-200 text-violet-700 hover:bg-violet-50'}`}>
             {mcpCopied ? <Check size={13} /> : <Copy size={13} />}
-            {mcpCopied ? 'Config copiada!' : 'Copiar configuração MCP'}
+            {mcpCopied ? t('admin.mcp_copied_btn') : t('admin.mcp_copy_btn')}
           </button>
           <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-            Cole o conteúdo copiado no arquivo de configuração MCP do seu editor (ex: <code className={darkMode ? 'text-slate-500' : 'text-slate-500'}>.cursor/mcp.json</code>). Veja o passo a passo completo no Help.
+            {t('admin.mcp_paste_hint_p1')} <code className={darkMode ? 'text-slate-500' : 'text-slate-500'}>.cursor/mcp.json</code>{t('admin.mcp_paste_hint_p2')}
           </p>
         </div>
       </section>
@@ -315,11 +315,11 @@ export default function AdminTab({
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <Mail size={14} className={darkMode ? 'text-slate-400' : 'text-slate-500'} aria-hidden="true" />
-          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>Suporte</h3>
+          <h3 className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('admin.support_section_title')}</h3>
         </div>
         <div className="p-5 space-y-3">
           <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Encontrou um problema ou tem uma sugestão? Entre em contato com a equipe do Tusab.
+            {t('admin.support_desc')}
           </p>
           <a
             href={`mailto:${__SUPPORT_EMAIL__}`}
