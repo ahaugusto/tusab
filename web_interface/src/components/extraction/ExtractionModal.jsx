@@ -105,9 +105,17 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const totalSteps = 3;
 
   // Step interno: 'url' | 'projeto' | 'fontes'
-  // Perfil Pesquisador sempre passa por 'url' primeiro — mesmo com canal já
-  // configurado — para poder ver e escolher o toggle YouTube/arXiv.
-  const stepInicial = modoFila ? 'url' : (canalJaConfigurado && !podeEscolherFonte) ? 'projeto' : 'url';
+  // Perfil Pesquisador só é forçado a passar por 'url' quando o toggle
+  // YouTube/Base pública realmente vai aparecer ali (sourceTypeInicial vazio,
+  // ou seja, o modal abriu "cru"). Quando a fonte já veio pré-escolhida da
+  // aba (sourceTypeInicial preenchido) e o canal já está confirmado, pular
+  // direto pra 'projeto' como qualquer outro perfil — repetir a verificação
+  // do canal aqui não tem mais função, já que o toggle está escondido.
+  const stepInicial = modoFila
+    ? 'url'
+    : (canalJaConfigurado && (!podeEscolherFonte || sourceTypeInicial))
+      ? 'projeto'
+      : 'url';
   const [step, setStep] = React.useState(stepInicial);
 
   // modoFila: começa vazio — nome vem do handle da URL inserida
