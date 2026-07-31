@@ -13,13 +13,7 @@ jobs:
   # ── 1. Testes antes de qualquer build ────────────────────────────────────────
   tests:
     name: Testes (pytest + vite)
-    # TEMPORÁRIO: ubuntu-latest bloqueado pela cota gratuita do GitHub
-    # Actions (spending limit $0, ver agents/_historia.md). Usando o
-    # self-hosted (Mac mini já alugado) só pra destravar a release de
-    # hoje — reverter pra ubuntu-latest assim que o limite de gastos for
-    # ajustado nas configurações de billing da conta, já que esse job é
-    # leve e não deveria depender do Mac mini pago por hora.
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
