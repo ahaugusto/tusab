@@ -1,13 +1,15 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 
 export default function CancelQueueModal({ open, darkMode, extractionQueue, onKeepQueue, onClearQueue, onCancel }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {open && (
-        <ModalWrapper key="cancel-queue-modal" onClose={onCancel} zIndex="z-50" backdrop="bg-black/60 backdrop-blur-sm" label="Cancelar extração">
+        <ModalWrapper key="cancel-queue-modal" onClose={onCancel} zIndex="z-50" backdrop="bg-black/60 backdrop-blur-sm" label={t('cancel_queue.title')}>
           <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
             className={`rounded-2xl border p-6 max-w-sm w-full shadow-2xl ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
             {/* Header */}
@@ -18,15 +20,15 @@ export default function CancelQueueModal({ open, darkMode, extractionQueue, onKe
                 </svg>
               </div>
               <div>
-                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Cancelar extração</h3>
+                <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('cancel_queue.title')}</h3>
                 <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {extractionQueue.length} canal{extractionQueue.length !== 1 ? 'is' : ''} na fila
+                  {t('cancel_queue.subtitle', { count: extractionQueue.length })}
                 </p>
               </div>
             </div>
 
             <p className={`text-xs mb-5 leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              O que deve acontecer com os canais que ainda estão na fila de extração?
+              {t('cancel_queue.question')}
             </p>
 
             <div className="space-y-2 mb-5">
@@ -35,9 +37,9 @@ export default function CancelQueueModal({ open, darkMode, extractionQueue, onKe
                   ${darkMode ? 'border-primary/30 bg-primary/10 hover:bg-primary/15 text-white' : 'border-violet-200 bg-violet-50 hover:bg-violet-100 text-slate-800'}`}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary mt-0.5 shrink-0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 <div>
-                  <p className="text-xs font-bold">Cancelar e continuar fila</p>
+                  <p className="text-xs font-bold">{t('cancel_queue.btn_keep')}</p>
                   <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Para este canal e inicia o próximo automaticamente
+                    {t('cancel_queue.btn_keep_desc')}
                   </p>
                 </div>
               </button>
@@ -47,9 +49,9 @@ export default function CancelQueueModal({ open, darkMode, extractionQueue, onKe
                   ${darkMode ? 'border-danger/30 bg-danger/10 hover:bg-danger/15 text-white' : 'border-red-200 bg-red-50 hover:bg-red-100 text-slate-800'}`}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger mt-0.5 shrink-0"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 <div>
-                  <p className="text-xs font-bold">Cancelar e limpar fila</p>
+                  <p className="text-xs font-bold">{t('cancel_queue.btn_clear')}</p>
                   <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Para este canal e descarta todos os {extractionQueue.length} da fila
+                    {t('cancel_queue.btn_clear_desc')}
                   </p>
                 </div>
               </button>
@@ -58,7 +60,7 @@ export default function CancelQueueModal({ open, darkMode, extractionQueue, onKe
             <button onClick={onCancel}
               className={`w-full py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
                 ${darkMode ? 'bg-white/6 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-              Voltar — não cancelar
+              {t('cancel_queue.btn_back')}
             </button>
             </motion.div>
         </ModalWrapper>
