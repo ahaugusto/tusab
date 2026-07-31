@@ -105,7 +105,10 @@ jobs:
     name: Build macOS (.dmg + .zip)
     runs-on: macos-latest
     needs: tests
-    timeout-minutes: 40
+    # Assinatura sozinha (deep-sign de todo o python_env com torch/
+    # onnxruntime/transformers) já passa de 30min — notarização soma
+    # submissão + espera da Apple em cima disso.
+    timeout-minutes: 90
     permissions:
       contents: write   # necessário para publicar a release em ahaugusto/tusab-public
 
