@@ -217,6 +217,12 @@ function App() {
   // ─── Canal state ───────────────────────────────────────────────────────────
   const [canalInput,       setCanalInput]       = useState('');
   const [canalConfigurado, setCanalConfigurado] = useState(() => localStorage.getItem('tusab_canal_configurado') || '');
+  // Nome real do canal quando escolhido via busca por nome (CanalUrlSearchInput)
+  // — o backend só consegue derivar canal_nome a partir da URL (regex de
+  // @handle, ou o ID cru pra URLs /channel/UC...); pra canais sem handle
+  // público, isso mostraria o ID em vez do nome. { url, nome } comparado por
+  // igualdade de URL pra não vazar pra uma URL diferente digitada depois.
+  const [canalNomeConhecido, setCanalNomeConhecido] = useState(null);
   // Estado do chat: independente do canal de extração
   const [projetoChat,      setProjetoChat]      = useState(() => localStorage.getItem('tusab_canal_chat') || '');
   const [canalError,       setCanalError]       = useState('');
@@ -798,7 +804,12 @@ function App() {
     try {
       const res = await setChannel(canalInput.trim());
       if (res.data.error) { setCanalError(res.data.message); }
-      else { canalRemovidoRef.current = false; canalConfiguradoNaSessaoRef.current = true; setCanalConfigurado(res.data.canal_nome || canalInput); setCanalInput(''); }
+      else {
+        canalRemovidoRef.current = false; canalConfiguradoNaSessaoRef.current = true;
+        const nomeConhecido = (canalNomeConhecido && canalNomeConhecido.url === canalInput.trim()) ? canalNomeConhecido.nome : null;
+        setCanalConfigurado(nomeConhecido || res.data.canal_nome || canalInput);
+        setCanalInput('');
+      }
     } catch (err) { setCanalError(extrairMensagemErro(err)); }
     Analytics.canalConfigurado();
     setConfigurando(false);
@@ -1684,6 +1695,7 @@ function App() {
                 extracaoSubTab={extracaoSubTab}
                 setExtracaoSubTab={setExtracaoSubTab}
                 handleConfigurarCanal={handleConfigurarCanal}
+                onSelectCanal={canal => setCanalNomeConhecido({ url: canal.url, nome: canal.nome })}
                 handleUsarCanalHistorico={handleUsarCanalHistorico}
                 handleStart={handleStart}
                 handlePause={handlePause}
