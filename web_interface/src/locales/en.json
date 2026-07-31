@@ -1027,5 +1027,6 @@
   "referenciar.select_hint": "Select files to use as context",
   "referenciar.use_as_context": "Use as chat context",
   "referenciar.search_error": "Search error. Check if the backend is running.",
-  "referenciar.close": "Close"
+  "referenciar.close": "Close",
+  "repo.creating": "Creating…"
 }
