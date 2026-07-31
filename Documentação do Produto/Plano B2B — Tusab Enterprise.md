@@ -64,6 +64,7 @@ Em jul/2026 descobrimos que a stack semântica (torch + sentence-transformers + 
 2. **Bases por departamento** — estrutura `data/neural/{projeto}` já suporta; falta UI de organização e permissões
 3. **Deploy para TI** — NSIS silent install (`/S`), configuração pré-provisionada (provider, idioma, telemetria off por padrão em ambiente corporativo)
 4. **Versionamento LTS** — instituição atualiza menos; manter branch estável com backports de segurança
+5. **Fontes customizadas (proposta, 30/jul/2026)** — cliente conecta o próprio sistema (CRM, ERP, base de conhecimento interna) como fonte pesquisável, ao lado das fontes públicas curadas e do conteúdo já indexado. Mesmo padrão técnico do endpoint customizado de LLM (usuário informa URL, Tusab passa a falar com ela), mas sem protocolo universal pra dados — precisa de um passo de mapeamento de campos (título/texto/URL na resposta JSON), resolvido via formulário manual ou inferência assistida por LLM. Reforça o argumento comercial local-first: "conecte o sistema da empresa sem o dado sair da rede", algo que concorrente cloud (NotebookLM Enterprise) não consegue prometer. Não implementado — depende de resolver autenticação/armazenamento de credencial (mesmo cuidado de `safeStorage` já usado pra chave de LLM) e de definir quem na empresa cliente pode configurar uma fonte (admin, não self-service pra qualquer usuário).
 
 ## Fase 3 — Escalabilidade comercial
 
@@ -81,3 +82,4 @@ Em jul/2026 descobrimos que a stack semântica (torch + sentence-transformers + 
 | Valor semântico não validado | Fase 0 obrigatória antes de proposta comercial |
 | B2B exige o que não existe (admin, multiusuário, SSO) | Começar por licença por estação; prometer só o que está no instalador |
 | Distração do B2C (motor de aquisição) | Gatilho por lead: nada da Fase 1 começa sem interessado concreto |
+| Fonte customizada aponta pra dentro da rede do cliente — SSRF real, não hipotético | Mesma mitigação já avaliada pro endpoint de LLM customizado, mais governança: configuração restrita a admin, nunca self-service |
