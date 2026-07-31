@@ -856,10 +856,15 @@ function App() {
 
   /** Opens the extraction-type modal, or shows canal error if none configured.
    *  Perfis com fontes públicas (Pesquisador) não precisam de canal do YouTube —
-   *  a fonte é escolhida dentro do próprio modal. */
+   *  a fonte é escolhida dentro do próprio modal.
+   *  "Confirmar Canal" não é mais pré-requisito pra abrir o modal — uma URL
+   *  digitada (mesmo sem confirmar) já basta; a verificação real acontece
+   *  dentro do modal (step 'url'), e o usuário pode voltar e corrigir se
+   *  não for o canal certo. O botão Confirmar continua existindo pra quem
+   *  quer registrar o canal na aba sem necessariamente extrair agora. */
   const exigeCanalPrevio = !regras.fontes_publicas;
   const handleStart = () => {
-    if (!canalConfigurado && !isRunning && exigeCanalPrevio) { setCanalError(t('channel.error_required')); return; }
+    if (!canalConfigurado && !canalInput.trim() && !isRunning && exigeCanalPrevio) { setCanalError(t('channel.error_required')); return; }
     listarProjetos().then(r => setProjetos(r.data.projetos || [])).catch(() => {});
     setShowExtractionModal(true);
   };
