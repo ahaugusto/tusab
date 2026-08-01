@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, HelpCircle, Trash2, Pencil, X } from 'lucide-react';
 import { ttsStatus, ttsSintetizar, listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo } from '../../services/api';
 import EstudoArtefatoModal from './EstudoArtefatoModal';
+import PostIt from '../shared/PostIt';
 
 /**
  * EstudoTab — componente controlado: todo estado persistente vive no AgentTab pai.
@@ -24,6 +25,7 @@ export default function EstudoTab({
   resumo,
   quiz,
   topicos,
+  postits,
   revisados,      setRevisados,
   onGerar,
   onResetar,
@@ -266,6 +268,7 @@ export default function EstudoTab({
               { id: 'resumo',     label: t('estudo.type_resumo')     },
               { id: 'quiz',       label: t('estudo.type_quiz')       },
               { id: 'topicos',    label: t('estudo.type_topicos')    },
+              { id: 'postits',    label: t('estudo.type_postits')    },
             ].map(({ id, label }) => {
               const ativo = tipo.includes(id);
               return (
@@ -357,7 +360,7 @@ export default function EstudoTab({
               : <><BookOpen size={14} /> {t('estudo.generate_btn')}</>}
           </button>
 
-          {(flashcards?.length > 0 || resumo || quiz?.length > 0 || topicos?.length > 0) && (
+          {(flashcards?.length > 0 || resumo || quiz?.length > 0 || topicos?.length > 0 || postits?.length > 0) && (
             <button onClick={handleResetarLocal} style={{
               ...btnBase, padding: '10px 12px',
               background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
@@ -649,6 +652,17 @@ export default function EstudoTab({
               width: `${((quizIdx + 1) / quiz.length) * 100}%`,
               transition: 'width 0.3s ease',
             }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Post-its ─────────────────────────────────────────────────────────── */}
+      {postits?.length > 0 && (
+        <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '20px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: textSecond, marginBottom: '14px' }}>{t('estudo.section_postits')}</p>
+          <div className="columns-2 md:columns-3">
+            {postits.map((texto, i) => <PostIt key={i} texto={texto} index={i} darkMode={darkMode} />)}
           </div>
         </div>
       )}
