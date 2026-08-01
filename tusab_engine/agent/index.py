@@ -27,9 +27,15 @@ from tusab_engine.agent.config import carregar_config, salvar_config
 # ── Helpers de path ───────────────────────────────────────────────────────────
 
 def _get_canal_doc_dirs(prefixo: str) -> list:
-    """Retorna dirs de documentos/textos do canal + legado."""
+    """Retorna dirs de documentos/textos/estudo do canal + legado.
+
+    'estudo' guarda resumo/flashcards/quiz gerados pelo Modo Estudo
+    (tusab_engine/api/router_estudo.py) — inclui-los aqui é o que faz esse
+    conteúdo virar pesquisável (BM25 + MCP, que consulta o mesmo índice)
+    no próximo reindex, sem precisar de mecanismo próprio.
+    """
     dirs = []
-    for sub in ['documents', 'texts']:
+    for sub in ['documents', 'texts', 'estudo']:
         dirs.append(os.path.join(NEURAL_DIR, prefixo, sub))
     dirs += [DOC_DIR, TEXT_DIR]
     return dirs
@@ -369,7 +375,8 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
     for source_dir in _get_canal_doc_dirs(projeto_prefixo):
         if not os.path.exists(source_dir):
             continue
-        aba_label  = 'texto' if os.path.basename(source_dir) == 'texts' else 'documento'
+        _base_dir  = os.path.basename(source_dir)
+        aba_label  = 'texto' if _base_dir == 'texts' else 'estudo' if _base_dir == 'estudo' else 'documento'
         canal_dir  = os.path.basename(os.path.dirname(source_dir))
         for fname in sorted(os.listdir(source_dir)):
             if not fname.endswith('.txt') or fname.startswith('_'):

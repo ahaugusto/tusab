@@ -20,8 +20,9 @@ router = APIRouter()
 
 class StudyRequest(BaseModel):
     projeto_nome: str = Field(default="", max_length=120)
-    tipo:         str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos
+    tipo:         str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos | quiz
     n_cards:      int = Field(default=10, ge=1, le=30)
+    tema:         str = Field(default="", max_length=200)  # opcional — escopa a geração a um tema/tópico
 
     # campo legado — normalizado via model_validator:
     canal_nome: str = Field(default="", max_length=120)
@@ -35,6 +36,12 @@ class StudyRequest(BaseModel):
 
 class TTSRequest(BaseModel):
     texto: str = Field(min_length=1, max_length=10000)
+
+
+class RenomearArtefatoRequest(BaseModel):
+    projeto_nome: str = Field(max_length=120)
+    artefato_id:  str = Field(max_length=60)
+    titulo:       str = Field(min_length=1, max_length=150)
 
 
 def _chamar_llm_estudo(prompt: str) -> str:
@@ -190,6 +197,131 @@ def _validar_quiz(data: list) -> list:
     return resultado
 
 
+def _filtrar_chunks_por_tema(chunks: list, tema: str, n: int) -> list:
+    """Seleciona os n chunks mais relevantes pro tema (BM25); sem tema, amostra aleatória.
+
+    Sem isso, gerar flashcards/resumo/quiz de um projeto inteiro dá material
+    genérico demais quando o usuário quer estudar um recorte específico (ex:
+    "capitalismo" dentro de um projeto bem mais amplo). Fallback pra amostra
+    aleatória se o tema não bater com nada — nunca retorna vazio se há chunks.
+    """
+    if not tema or not tema.strip():
+        return random.sample(chunks, min(n, len(chunks)))
+    try:
+        from rank_bm25 import BM25Okapi
+        corpus = [str(c.get('texto_original') or c.get('texto') or '').lower().split() for c in chunks]
+        bm25 = BM25Okapi(corpus)
+        scores = bm25.get_scores(tema.lower().split())
+        ranqueados = sorted(range(len(chunks)), key=lambda i: scores[i], reverse=True)
+        top = [i for i in ranqueados if scores[i] > 0][:n]
+        if not top:
+            return random.sample(chunks, min(n, len(chunks)))
+        return [chunks[i] for i in top]
+    except Exception:
+        return random.sample(chunks, min(n, len(chunks)))
+
+
+def _manifest_estudo_path(canal_prefixo: str) -> str:
+    return os.path.join(NEURAL_DIR, canal_prefixo, "estudo", "_manifest.json")
+
+
+def _ler_manifest_estudo(canal_prefixo: str) -> list:
+    path = _manifest_estudo_path(canal_prefixo)
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _formatar_texto_indexavel(tipo: str, dados) -> str:
+    """Achata o conteúdo estruturado (flashcards/quiz/resumo) num texto corrido pro BM25."""
+    if tipo == "flashcards":
+        return "\n\n".join(f"P: {c['pergunta']}\nR: {c['resposta']}" for c in dados)
+    if tipo == "quiz":
+        partes = []
+        for q in dados:
+            alts = "\n".join(f"  {chr(65+i)}) {a}" for i, a in enumerate(q["alternativas"]))
+            certa = chr(65 + q["correta"])
+            partes.append(f"Pergunta: {q['pergunta']}\n{alts}\nCorreta: {certa}\nExplicação: {q.get('explicacao', '')}")
+        return "\n\n".join(partes)
+    return str(dados)  # resumo já é texto
+
+
+def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, tema: str, dados) -> dict | None:
+    """Salva um artefato do Modo Estudo em neural/{prefixo}/estudo/ e registra no manifest.
+
+    Grava DOIS arquivos por artefato:
+    - `.txt` achatado (TITULO:/DATA: no cabeçalho, igual ao parser de indexação
+      já espera) — é o que vira pesquisável via BM25/MCP no próximo reindex.
+    - `.json` com os dados estruturados originais (array de flashcards/quiz, ou
+      string do resumo) — é o que a UI usa pra reconstruir o mesmo componente
+      rico (flip de carta, múltipla escolha) ao reabrir um card antigo do
+      kanban, em vez de re-parsear o `.txt` de volta pra estrutura.
+
+    AVISO no cabeçalho do `.txt` deixa explícito que é conteúdo derivado por
+    IA, não fonte primária — mitiga o risco de uma imprecisão do resumo ser
+    citada pelo chat como se fosse fato do material original.
+
+    Falha ao persistir nunca deve quebrar a geração em si — o usuário já viu
+    o resultado na tela mesmo que o arquivo não grave (retorna None nesse caso,
+    card simplesmente não aparece no kanban).
+    """
+    if not dados:
+        return None
+    try:
+        estudo_dir = os.path.join(NEURAL_DIR, canal_prefixo, "estudo")
+        os.makedirs(estudo_dir, exist_ok=True)
+
+        agora = time.strftime("%d/%m/%Y %H:%M")
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        artefato_id = f"{ts}_{tipo}"
+
+        rotulos = {"resumo": "Resumo", "flashcards": "Flashcards", "quiz": "Quiz"}
+        rotulo = rotulos.get(tipo, tipo.title())
+        titulo = f"{rotulo} — {tema.strip() or projeto_nome} ({agora})"
+
+        texto_achatado = _formatar_texto_indexavel(tipo, dados).strip()
+        if not texto_achatado:
+            return None
+
+        nome_base = f"estudo_{tipo}_{ts}"
+        arquivo_txt = f"{nome_base}.txt"
+        arquivo_json = f"{nome_base}.json"
+
+        conteudo_txt = (
+            f"TITULO: {titulo}\n"
+            f"DATA: {agora}\n"
+            "AVISO: Conteúdo gerado por IA via Modo Estudo — derivado do material "
+            "original, não é fonte primária.\n\n"
+            f"{texto_achatado}\n"
+        )
+        with open(os.path.join(estudo_dir, arquivo_txt), "w", encoding="utf-8") as f:
+            f.write(conteudo_txt)
+
+        salvar_json_atomico(dados, os.path.join(estudo_dir, arquivo_json), indent=2)
+
+        entrada = {
+            "id": artefato_id,
+            "tipo": tipo,
+            "titulo": titulo,
+            "criado_em": agora,
+            "projeto": projeto_nome,
+            "tema": tema.strip(),
+            "arquivo_txt": arquivo_txt,
+            "arquivo_json": arquivo_json,
+        }
+        manifest = _ler_manifest_estudo(canal_prefixo)
+        manifest.insert(0, entrada)  # mais recente primeiro
+        salvar_json_atomico(manifest, _manifest_estudo_path(canal_prefixo), indent=2)
+        return entrada
+    except Exception:
+        return None
+
+
 @router.post("/agent/study")
 def agent_study(req: StudyRequest):
     """Gera flashcards e/ou resumo estruturado a partir do índice BM25 do projeto."""
@@ -215,13 +347,14 @@ def agent_study(req: StudyRequest):
     if not chunks:
         return {"error": True, "message": "Índice vazio. Adicione conteúdo e indexe novamente."}
 
-    # Amostra distribuída: sorteia aleatoriamente de todo o índice (não só do início).
-    # Flashcards precisam de mais diversidade; resumo precisa de menos tokens no prompt.
+    # Amostra distribuída: por tema via BM25 se informado, senão aleatória de
+    # todo o índice. Flashcards precisam de mais diversidade; resumo precisa
+    # de menos tokens no prompt.
     n_amostras = min(req.n_cards * 3, 60, len(chunks))
-    amostra = random.sample(chunks, n_amostras)
+    amostra = _filtrar_chunks_por_tema(chunks, req.tema, n_amostras)
     # Amostra menor dedicada ao resumo — reduz contexto enviado ao LLM (~18k→4k chars)
     n_resumo = min(15, len(chunks))
-    amostra_resumo = random.sample(chunks, n_resumo)
+    amostra_resumo = _filtrar_chunks_por_tema(chunks, req.tema, n_resumo)
 
     mgmt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "management")
     os.makedirs(mgmt_dir, exist_ok=True)
@@ -229,6 +362,7 @@ def agent_study(req: StudyRequest):
     flashcards_resultado = []
     resumo_resultado = ""
     quiz_resultado = []
+    artefatos_criados = []
 
     if req.tipo == "quiz":
         trechos_quiz = "\n\n".join(
@@ -262,6 +396,9 @@ def agent_study(req: StudyRequest):
                 "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "quiz": quiz_resultado,
             }, qz_path, indent=2)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "quiz", req.tema, quiz_resultado)
+            if artefato:
+                artefatos_criados.append(artefato)
         except Exception as e:
             return {"error": True, "message": f"Erro ao gerar quiz: {e}"}
 
@@ -298,6 +435,9 @@ def agent_study(req: StudyRequest):
                 "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "flashcards": flashcards_resultado,
             }, fc_path, indent=2)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "flashcards", req.tema, flashcards_resultado)
+            if artefato:
+                artefatos_criados.append(artefato)
         except Exception as e:
             return {"error": True, "message": f"Erro ao gerar flashcards: {e}"}
 
@@ -321,6 +461,9 @@ def agent_study(req: StudyRequest):
             rs_path = os.path.join(mgmt_dir, "resumo_estudo.md")
             with open(rs_path, "w", encoding="utf-8") as f:
                 f.write(resumo_resultado)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "resumo", req.tema, resumo_resultado)
+            if artefato:
+                artefatos_criados.append(artefato)
         except Exception as e:
             return {"error": True, "message": f"Erro ao gerar resumo: {e}"}
 
@@ -330,6 +473,7 @@ def agent_study(req: StudyRequest):
         "resumo": resumo_resultado,
         "quiz": quiz_resultado,
         "total": len(flashcards_resultado) or len(quiz_resultado),
+        "artefatos": artefatos_criados,
     }
 
 
@@ -362,6 +506,83 @@ def agent_study_get(projeto_nome: str):
             pass
 
     return {"flashcards": flashcards, "resumo": resumo, "total": len(flashcards)}
+
+
+@router.get("/agent/study/artefatos/{projeto_nome}")
+def agent_study_artefatos(projeto_nome: str):
+    """Lista os artefatos de estudo persistidos (resumo/flashcards/quiz) — alimenta o kanban."""
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"artefatos": []}
+    return {"artefatos": _ler_manifest_estudo(canal_prefixo)}
+
+
+@router.get("/agent/study/artefato/{projeto_nome}/{artefato_id}")
+def agent_study_artefato_conteudo(projeto_nome: str, artefato_id: str):
+    """Retorna o conteúdo estruturado de um artefato — usado pra abrir o card no modal ampla.
+
+    Lê do `.json` estruturado (não do `.txt` achatado indexável) pra
+    reconstruir o mesmo componente rico (flip de flashcard, múltipla escolha
+    de quiz) que a tela de geração já mostra.
+    """
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+    manifest = _ler_manifest_estudo(canal_prefixo)
+    entrada = next((e for e in manifest if e.get("id") == artefato_id), None)
+    if not entrada:
+        return {"error": True, "message": "Artefato não encontrado."}
+    caminho_json = os.path.join(NEURAL_DIR, canal_prefixo, "estudo", entrada["arquivo_json"])
+    try:
+        with open(caminho_json, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao carregar artefato: {e}"}
+    return {"ok": True, "artefato": entrada, "dados": dados}
+
+
+@router.post("/agent/study/artefato/renomear")
+def agent_study_artefato_renomear(req: RenomearArtefatoRequest):
+    """Renomeia o título editável de um card do kanban de estudo."""
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+    manifest = _ler_manifest_estudo(canal_prefixo)
+    entrada = next((e for e in manifest if e.get("id") == req.artefato_id), None)
+    if not entrada:
+        return {"error": True, "message": "Artefato não encontrado."}
+    entrada["titulo"] = req.titulo.strip()
+    salvar_json_atomico(manifest, _manifest_estudo_path(canal_prefixo), indent=2)
+    return {"ok": True, "artefato": entrada}
+
+
+@router.delete("/agent/study/artefato/{projeto_nome}/{artefato_id}")
+def agent_study_artefato_deletar(projeto_nome: str, artefato_id: str):
+    """Remove um card do kanban de estudo — arquivos em disco + entrada no manifest.
+
+    Nomes de arquivo vêm sempre do próprio manifest (gerados server-side em
+    `_salvar_estudo_indexavel`, nunca do cliente) — sem risco de path
+    traversal via artefato_id ou projeto_nome.
+    """
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+    manifest = _ler_manifest_estudo(canal_prefixo)
+    entrada = next((e for e in manifest if e.get("id") == artefato_id), None)
+    if not entrada:
+        return {"error": True, "message": "Artefato não encontrado."}
+    estudo_dir = os.path.join(NEURAL_DIR, canal_prefixo, "estudo")
+    for chave in ("arquivo_txt", "arquivo_json"):
+        nome = entrada.get(chave, "")
+        caminho = os.path.join(estudo_dir, nome) if nome else ""
+        if caminho and os.path.exists(caminho):
+            try:
+                os.remove(caminho)
+            except Exception:
+                pass
+    manifest = [e for e in manifest if e.get("id") != artefato_id]
+    salvar_json_atomico(manifest, _manifest_estudo_path(canal_prefixo), indent=2)
+    return {"ok": True}
 
 
 @router.get("/agent/study/topicos/{projeto_nome}")
