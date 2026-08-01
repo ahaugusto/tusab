@@ -307,6 +307,7 @@ function App() {
   const [estudoErro,       setEstudoErro]       = useState('');
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
   const [estudoResumo,     setEstudoResumo]     = useState('');
+  const [estudoQuiz,       setEstudoQuiz]       = useState([]);
   const [estudoRevisados,  setEstudoRevisados]  = useState(new Set());
 
   const handleEstudoGerar = useCallback(async () => {
@@ -315,6 +316,7 @@ function App() {
     setEstudoErro('');
     setEstudoFlashcards([]);
     setEstudoResumo('');
+    setEstudoQuiz([]);
     setEstudoRevisados(new Set());
     try {
       const res = await gerarEstudo({ projeto_nome: estudoProjeto, tipo: estudoTipo, n_cards: estudoNCards });
@@ -322,6 +324,7 @@ function App() {
       if (data.error) { setEstudoErro(data.message || 'Erro ao gerar conteúdo de estudo.'); return; }
       if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
       if (data.resumo) setEstudoResumo(data.resumo);
+      if (data.quiz?.length) setEstudoQuiz(data.quiz);
     } catch (e) {
       setEstudoErro(e?.response?.data?.message || e?.message || 'Erro de conexão com o backend.');
     } finally {
@@ -332,6 +335,7 @@ function App() {
   const handleEstudoResetar = useCallback(() => {
     setEstudoFlashcards([]);
     setEstudoResumo('');
+    setEstudoQuiz([]);
     setEstudoRevisados(new Set());
     setEstudoErro('');
   }, []);
@@ -1998,6 +2002,7 @@ function App() {
                   erro={estudoErro}
                   flashcards={estudoFlashcards}
                   resumo={estudoResumo}
+                  quiz={estudoQuiz}
                   revisados={estudoRevisados}       setRevisados={setEstudoRevisados}
                   onGerar={handleEstudoGerar}
                   onResetar={handleEstudoResetar}

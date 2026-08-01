@@ -133,11 +133,68 @@ def _validar_cards(data: list) -> list:
     return resultado
 
 
+def _parsear_quiz_json(texto: str) -> list:
+    """Extrai perguntas de múltipla escolha de uma resposta LLM.
+
+    Só duas estratégias (não três como _parsear_flashcards_json): múltipla
+    escolha não tem um formato textual natural tipo "Q:/A:" pra usar de
+    fallback — se o LLM não devolver JSON válido, melhor descartar e
+    reportar erro do que inventar um parser textual frágil pra um formato
+    que não existe organicamente.
+    """
+    texto = texto.strip()
+    try:
+        data = json.loads(texto)
+        if isinstance(data, list):
+            return _validar_quiz(data)
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    match = re.search(r'\[\s*\{.*?\}\s*\]', texto, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group())
+            if isinstance(data, list):
+                return _validar_quiz(data)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    return []
+
+
+def _validar_quiz(data: list) -> list:
+    """Filtra e normaliza perguntas de múltipla escolha — descarta itens malformados."""
+    resultado = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        pergunta = str(item.get("pergunta") or item.get("question") or "").strip()
+        alternativas = item.get("alternativas") or item.get("options") or []
+        correta = item.get("correta", item.get("correct"))
+        explicacao = str(item.get("explicacao") or item.get("explanation") or "").strip()
+        if not pergunta or not isinstance(alternativas, list) or len(alternativas) < 2:
+            continue
+        alternativas = [str(a).strip() for a in alternativas if str(a).strip()]
+        try:
+            correta = int(correta)
+        except (TypeError, ValueError):
+            continue
+        if not (0 <= correta < len(alternativas)):
+            continue
+        resultado.append({
+            "pergunta": pergunta,
+            "alternativas": alternativas,
+            "correta": correta,
+            "explicacao": explicacao,
+        })
+    return resultado
+
+
 @router.post("/agent/study")
 def agent_study(req: StudyRequest):
     """Gera flashcards e/ou resumo estruturado a partir do índice BM25 do projeto."""
-    if req.tipo not in ("flashcards", "resumo", "ambos"):
-        return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo ou ambos."}
+    if req.tipo not in ("flashcards", "resumo", "ambos", "quiz"):
+        return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo, quiz ou ambos."}
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     if not canal_prefixo:
@@ -171,6 +228,42 @@ def agent_study(req: StudyRequest):
 
     flashcards_resultado = []
     resumo_resultado = ""
+    quiz_resultado = []
+
+    if req.tipo == "quiz":
+        trechos_quiz = "\n\n".join(
+            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:300]}"
+            for c in amostra
+        )
+        prompt_qz = (
+            f"Você é um tutor especializado. Com base nos trechos abaixo de \"{req.projeto_nome}\", "
+            f"gere exatamente {req.n_cards} perguntas de múltipla escolha.\n\n"
+            "RESPONDA APENAS com um array JSON válido. Nenhum texto antes ou depois.\n"
+            "Formato:\n"
+            '[\n'
+            '  {"pergunta": "texto da pergunta", "alternativas": ["A", "B", "C", "D"], "correta": 0, "explicacao": "por que essa é a certa"},\n'
+            '  ...\n'
+            ']\n\n'
+            "Regras:\n"
+            f"- Exatamente {req.n_cards} objetos no array\n"
+            "- Exatamente 4 alternativas por pergunta, plausíveis mas só uma correta\n"
+            "- \"correta\" é o índice (0-3) da alternativa certa no array \"alternativas\"\n"
+            "- Cubra conceitos variados dos trechos fornecidos\n\n"
+            f"TRECHOS:\n{trechos_quiz}"
+        )
+        try:
+            resposta_qz = _chamar_llm_estudo(prompt_qz)
+            quiz_resultado = _parsear_quiz_json(resposta_qz)
+            if not quiz_resultado:
+                return {"error": True, "message": "O modelo não retornou o quiz no formato esperado. Tente novamente."}
+            qz_path = os.path.join(mgmt_dir, "quiz.json")
+            salvar_json_atomico({
+                "canal": req.projeto_nome,
+                "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "quiz": quiz_resultado,
+            }, qz_path, indent=2)
+        except Exception as e:
+            return {"error": True, "message": f"Erro ao gerar quiz: {e}"}
 
     if req.tipo in ("flashcards", "ambos"):
         trechos = "\n\n".join(
@@ -235,7 +328,8 @@ def agent_study(req: StudyRequest):
         "ok": True,
         "flashcards": flashcards_resultado,
         "resumo": resumo_resultado,
-        "total": len(flashcards_resultado),
+        "quiz": quiz_resultado,
+        "total": len(flashcards_resultado) or len(quiz_resultado),
     }
 
 
