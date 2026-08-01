@@ -21,6 +21,7 @@ export default function EstudoTab({
   flashcards,
   resumo,
   quiz,
+  topicos,
   revisados,      setRevisados,
   onGerar,
   onResetar,
@@ -191,23 +192,28 @@ export default function EstudoTab({
             {[
               { id: 'flashcards', label: t('estudo.type_flashcards') },
               { id: 'resumo',     label: t('estudo.type_resumo')     },
-              { id: 'ambos',      label: t('estudo.type_ambos')      },
               { id: 'quiz',       label: t('estudo.type_quiz')       },
-            ].map(({ id, label }) => (
-              <button key={id} onClick={() => setTipo(id)} style={{
-                ...btnBase, padding: '6px 14px',
-                background: tipo === id
-                  ? (darkMode ? 'rgba(139,92,246,0.20)' : 'rgba(139,92,246,0.12)')
-                  : (darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
-                color: tipo === id ? (darkMode ? '#a78bfa' : '#7c3aed') : textSecond,
-                border: tipo === id ? '1px solid rgba(139,92,246,0.40)' : `1px solid ${borderColor}`,
-              }}>{label}</button>
-            ))}
+              { id: 'topicos',    label: t('estudo.type_topicos')    },
+            ].map(({ id, label }) => {
+              const ativo = tipo.includes(id);
+              return (
+                <button key={id}
+                  onClick={() => setTipo(prev => ativo ? prev.filter(t => t !== id) : [...prev, id])}
+                  style={{
+                    ...btnBase, padding: '6px 14px',
+                    background: ativo
+                      ? (darkMode ? 'rgba(139,92,246,0.20)' : 'rgba(139,92,246,0.12)')
+                      : (darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+                    color: ativo ? (darkMode ? '#a78bfa' : '#7c3aed') : textSecond,
+                    border: ativo ? '1px solid rgba(139,92,246,0.40)' : `1px solid ${borderColor}`,
+                  }}>{label}</button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Quantidade */}
-        {tipo !== 'resumo' && (
+        {/* Quantidade — some se só "resumo" estiver selecionado (não usa contagem) */}
+        {tipo.some(t => t !== 'resumo') && (
           <div>
             <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.05em', color: textSecond, marginBottom: '8px' }}>
@@ -230,14 +236,14 @@ export default function EstudoTab({
 
         {/* Botão Gerar */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={onGerar} disabled={gerando || !projeto} style={{
+          <button onClick={onGerar} disabled={gerando || !projeto || !tipo.length} style={{
             ...btnBase, flex: 1, padding: '10px 0', fontSize: '13px',
-            background: gerando || !projeto
+            background: gerando || !projeto || !tipo.length
               ? (darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9')
               : (darkMode ? 'rgba(139,92,246,0.25)' : 'rgba(139,92,246,0.15)'),
-            color: gerando || !projeto ? textSecond : (darkMode ? '#a78bfa' : '#7c3aed'),
-            cursor: gerando || !projeto ? 'not-allowed' : 'pointer',
-            opacity: !projeto ? 0.5 : 1,
+            color: gerando || !projeto || !tipo.length ? textSecond : (darkMode ? '#a78bfa' : '#7c3aed'),
+            cursor: gerando || !projeto || !tipo.length ? 'not-allowed' : 'pointer',
+            opacity: !projeto || !tipo.length ? 0.5 : 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
           }}>
             {gerando
@@ -245,7 +251,7 @@ export default function EstudoTab({
               : <><BookOpen size={14} /> {t('estudo.generate_btn')}</>}
           </button>
 
-          {(flashcards?.length > 0 || resumo || quiz?.length > 0) && (
+          {(flashcards?.length > 0 || resumo || quiz?.length > 0 || topicos?.length > 0) && (
             <button onClick={handleResetarLocal} style={{
               ...btnBase, padding: '10px 12px',
               background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
@@ -469,6 +475,36 @@ export default function EstudoTab({
               width: `${((quizIdx + 1) / quiz.length) * 100}%`,
               transition: 'width 0.3s ease',
             }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Lista de Tópicos / Nuvem de Palavras ────────────────────────────────
+          Sem lib externa — font-size escalado linearmente pelo score normalizado
+          entre o menor e o maior da lista (backend já ordena por score desc). */}
+      {topicos?.length > 0 && (
+        <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '20px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: textSecond, marginBottom: '14px' }}>{t('estudo.section_topicos')}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'baseline', justifyContent: 'center' }}>
+            {(() => {
+              const scores = topicos.map(x => x.score);
+              const max = Math.max(...scores), min = Math.min(...scores);
+              const cores = darkMode
+                ? ['#a78bfa', '#34d399', '#60a5fa', '#f472b6', '#fbbf24']
+                : ['#7c3aed', '#059669', '#2563eb', '#db2777', '#d97706'];
+              return topicos.map((tp, i) => {
+                const norm = max > min ? (tp.score - min) / (max - min) : 1;
+                const fontSize = 12 + norm * 18; // 12px..30px
+                return (
+                  <span key={tp.termo}
+                    title={t('estudo.topico_ocorrencias', { count: tp.ocorrencias })}
+                    style={{ fontSize: `${fontSize}px`, fontWeight: 700, color: cores[i % cores.length], lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+                    {tp.termo}
+                  </span>
+                );
+              });
+            })()}
           </div>
         </div>
       )}

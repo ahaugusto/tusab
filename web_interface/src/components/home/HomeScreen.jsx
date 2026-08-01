@@ -9,7 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import CircuitBackground from './CircuitBackground';
 
-function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onNavigatePesquisaAcademica, onAddFiles, onToggleTheme, onChangeLang, onImportBase, regras }) {
+function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onNavigatePesquisaAcademica, onAddFiles, onToggleTheme, onChangeLang, onImportBase, onOpenChatExpandido, regras }) {
   const { t, i18n: homeI18n } = useTranslation();
   const currentLang = homeI18n.language.startsWith('pt') ? 'pt' : homeI18n.language.startsWith('en') ? 'en' : 'es';
 
@@ -171,6 +171,20 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
   // ── Utility cards (below) ─────────────────────────────────────────────────
   const allUtilityCards = [
     {
+      id:     'chat-direto',
+      icon:   '💬',
+      title:  t('home.card_chat_title'),
+      desc:   agentReady && indexed
+        ? t('home.card_chat_ready')
+        : agentReady
+          ? t('home.card_chat_index_first')
+          : t('home.card_chat_desc'),
+      badge:  null,
+      color:  agentReady && indexed ? 'secondary' : 'primary',
+      action: onOpenChatExpandido,
+      perfis: ['estudante', 'professor', 'pesquisador', 'profissional'],
+    },
+    {
       id:     'repositorio',
       icon:   '📚',
       title:  t('home.card_repo_title'),
@@ -291,7 +305,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
               {utilityCards.map(card => (
                 <button
                   key={card.id}
-                  onClick={() => onNavigate(card.id)}
+                  onClick={() => (card.action ? card.action() : onNavigate(card.id))}
                   className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus}
                     ${card.alert
                       ? darkMode ? 'bg-[#0C1122]/95 border-amber-500/40 hover:bg-[#0E1428]/95 hover:border-amber-500/60' : 'bg-white border-amber-200 hover:border-amber-300 shadow-sm'

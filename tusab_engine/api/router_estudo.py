@@ -364,6 +364,68 @@ def agent_study_get(projeto_nome: str):
     return {"flashcards": flashcards, "resumo": resumo, "total": len(flashcards)}
 
 
+@router.get("/agent/study/topicos/{projeto_nome}")
+def agent_study_topicos(projeto_nome: str, limit: int = 40):
+    """Lista de tópicos/palavras-chave do projeto, pra nuvem de palavras.
+
+    Reaproveita o KeyBERT já usado na indexação (agent/index.py), mas
+    mantém o score desta vez — na indexação normal ele é descartado (só o
+    texto entra no corpus BM25). Extração sob demanda, sem cache: KeyBERT
+    já não cacheia na indexação também, mesma decisão de simplicidade.
+    """
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+
+    from tusab_engine.agent.index import _index_path, _get_keybert
+
+    idx_path = _index_path(canal_prefixo)
+    if not os.path.exists(idx_path):
+        return {"error": True, "message": f"Índice não encontrado para '{projeto_nome}'. Indexe a base primeiro."}
+
+    try:
+        with open(idx_path, "r", encoding="utf-8") as f:
+            idx_data = json.load(f)
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao carregar índice: {e}"}
+
+    chunks = idx_data.get("chunks", [])
+    if not chunks:
+        return {"error": True, "message": "Índice vazio. Adicione conteúdo e indexe novamente."}
+
+    kw_model = _get_keybert()
+    if kw_model is None:
+        return {"error": True, "message": "Extração de tópicos indisponível nesta instalação (stack semântica ausente)."}
+
+    n_amostras = min(30, len(chunks))
+    amostra = random.sample(chunks, n_amostras)
+
+    # Agrega por termo (case-insensitive) entre chunks: mantém o score
+    # máximo observado e conta em quantos chunks distintos o termo apareceu.
+    agregados = {}
+    for c in amostra:
+        texto = str(c.get("texto_original") or c.get("texto") or "")[:3000]
+        if not texto.strip():
+            continue
+        try:
+            keyphrases = kw_model.extract_keywords(
+                texto, keyphrase_ngram_range=(1, 2), stop_words=None,
+                top_n=8, use_mmr=True, diversity=0.5,
+            )
+        except Exception:
+            continue
+        for kp, score in keyphrases:
+            chave = kp.lower().strip()
+            if not chave:
+                continue
+            atual = agregados.setdefault(chave, {"termo": kp, "score": 0.0, "ocorrencias": 0})
+            atual["score"] = max(atual["score"], float(score))
+            atual["ocorrencias"] += 1
+
+    topicos = sorted(agregados.values(), key=lambda x: x["score"], reverse=True)[:limit]
+    return {"ok": True, "topicos": topicos, "chunks_amostrados": n_amostras}
+
+
 @router.get("/agent/tts/status")
 def agent_tts_status():
     """Verifica se o TTS local está disponível nesta instalação (build Beta/Enterprise).
