@@ -703,7 +703,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     { key: 'orp-textos',     label: t('repo.orphan_texts'),     emoji: '📝', items: orphanTexts, tipo: 'texts' },
   ].filter(g => g.items.length > 0);
 
-  const allAccordionKeys = [...canais.map(c => c.nome), ...orphanGroups.map(g => g.key)];
+  // Projetos criados mas sem conteúdo ainda (ver bloco "Projetos vazios"
+  // mais abaixo) também são accordions — precisam entrar aqui, senão
+  // "Expandir/Recolher tudo" simplesmente os ignora.
+  const nomesComConteudo = new Set(canais.map(c => c.nome));
+  const nomesVazios = projetos
+    .map(p => (typeof p === 'string' ? p : p.nome))
+    .filter(nome => !nomesComConteudo.has(nome));
+  const allAccordionKeys = [...canais.map(c => c.nome), ...nomesVazios, ...orphanGroups.map(g => g.key)];
   const anyExpanded = allAccordionKeys.some(k => expandedCanais[k] !== false);
   const collapseAll = () => {
     const collapsed = {};
