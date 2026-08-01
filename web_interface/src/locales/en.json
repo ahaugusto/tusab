@@ -1065,6 +1065,8 @@
   "estudo.type_resumo": "Summary",
   "estudo.type_quiz": "Quiz",
   "estudo.type_topicos": "Topics",
+  "estudo.type_postits": "Sticky notes",
+  "estudo.section_postits": "Study sticky notes",
   "estudo.label_tema": "Theme (optional)",
   "estudo.tema_placeholder": "e.g.: capitalism, photosynthesis...",
   "estudo.tema_hint": "Scopes generation to a slice of the project instead of all its content — click a topic below to use it as the theme.",

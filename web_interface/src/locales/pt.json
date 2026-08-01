@@ -1065,6 +1065,8 @@
   "estudo.type_resumo": "Resumo",
   "estudo.type_quiz": "Quiz",
   "estudo.type_topicos": "Tópicos",
+  "estudo.type_postits": "Post-its",
+  "estudo.section_postits": "Post-its de Estudo",
   "estudo.label_tema": "Tema (opcional)",
   "estudo.tema_placeholder": "ex: capitalismo, fotossíntese...",
   "estudo.tema_hint": "Escopa a geração a um recorte do projeto em vez do conteúdo todo — clique em um tópico abaixo pra usar como tema.",
