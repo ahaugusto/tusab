@@ -38,7 +38,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki,
+  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki, buscarTopicos,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -301,41 +301,65 @@ function App() {
   // ─── Estado persistente do Modo Estudo (aba "Estudo") ──────────────────────
   const projetosIndexados = agentStatus?.canais_indexados || [];
   const [estudoProjeto,    setEstudoProjeto]    = useState('');
-  const [estudoTipo,       setEstudoTipo]       = useState('flashcards');
+  const [estudoTipos,      setEstudoTipos]      = useState(['flashcards']); // multi-select: gera cada tipo selecionado em paralelo
   const [estudoNCards,     setEstudoNCards]     = useState(10);
   const [estudoGerando,    setEstudoGerando]    = useState(false);
   const [estudoErro,       setEstudoErro]       = useState('');
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
   const [estudoResumo,     setEstudoResumo]     = useState('');
   const [estudoQuiz,       setEstudoQuiz]       = useState([]);
+  const [estudoTopicos,    setEstudoTopicos]    = useState([]);
   const [estudoRevisados,  setEstudoRevisados]  = useState(new Set());
 
   const handleEstudoGerar = useCallback(async () => {
     if (!estudoProjeto) { setEstudoErro('Selecione um projeto indexado antes de gerar.'); return; }
+    if (!estudoTipos.length) { setEstudoErro('Selecione ao menos um tipo antes de gerar.'); return; }
     setEstudoGerando(true);
     setEstudoErro('');
     setEstudoFlashcards([]);
     setEstudoResumo('');
     setEstudoQuiz([]);
+    setEstudoTopicos([]);
     setEstudoRevisados(new Set());
     try {
-      const res = await gerarEstudo({ projeto_nome: estudoProjeto, tipo: estudoTipo, n_cards: estudoNCards });
-      const data = res.data;
-      if (data.error) { setEstudoErro(data.message || 'Erro ao gerar conteúdo de estudo.'); return; }
-      if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
-      if (data.resumo) setEstudoResumo(data.resumo);
-      if (data.quiz?.length) setEstudoQuiz(data.quiz);
+      // Cada tipo selecionado dispara sua própria chamada, em paralelo — não
+      // existe mais um "ambos" combinado: se o usuário quer flashcards e
+      // quiz ao mesmo tempo, ele simplesmente seleciona os dois botões.
+      // Tópicos usa endpoint próprio (extração local via KeyBERT, sem LLM).
+      const chamadas = estudoTipos.map(t =>
+        t === 'topicos'
+          ? buscarTopicos(estudoProjeto, estudoNCards * 2).then(r => ({ tipo: t, data: r.data }))
+          : gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards }).then(r => ({ tipo: t, data: r.data }))
+      );
+      const resultados = await Promise.allSettled(chamadas);
+      const erros = [];
+      for (const r of resultados) {
+        if (r.status === 'rejected') {
+          erros.push(r.reason?.response?.data?.message || r.reason?.message || 'Erro de conexão com o backend.');
+          continue;
+        }
+        const { tipo: t, data } = r.value;
+        if (data.error) { erros.push(data.message || `Erro ao gerar ${t}.`); continue; }
+        if (t === 'topicos') setEstudoTopicos(data.topicos || []);
+        else {
+          if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
+          if (data.resumo) setEstudoResumo(data.resumo);
+          if (data.quiz?.length) setEstudoQuiz(data.quiz);
+        }
+      }
+      if (erros.length) setEstudoErro(erros.join(' '));
     } catch (e) {
       setEstudoErro(e?.response?.data?.message || e?.message || 'Erro de conexão com o backend.');
     } finally {
       setEstudoGerando(false);
     }
-  }, [estudoProjeto, estudoTipo, estudoNCards]);
+  }, [estudoProjeto, estudoTipos, estudoNCards]);
 
   const handleEstudoResetar = useCallback(() => {
     setEstudoFlashcards([]);
     setEstudoResumo('');
     setEstudoQuiz([]);
+    setEstudoTopicos([]);
     setEstudoRevisados(new Set());
     setEstudoErro('');
   }, []);
@@ -1655,6 +1679,7 @@ function App() {
               onNavigatePesquisaAcademica={() => { setFontePreSelecionada('fonte-publica'); setActiveTab('extracao'); setShowHome(false); }}
               onAddFiles={() => { setActiveTab('repositorio'); setShowHome(false); setRepoAddOpen(true); }}
               onImportBase={() => { setActiveTab('repositorio'); setShowHome(false); setRepoImportOpen(true); }}
+              onOpenChatExpandido={() => { setShowHome(false); handleOpenChat(); setChatExpandido(true); }}
               onToggleTheme={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }}
               onChangeLang={changeLang}
             />
@@ -1996,13 +2021,14 @@ function App() {
                   darkMode={darkMode}
                   projetosIndexados={projetosIndexados}
                   projeto={estudoProjeto}           setProjeto={setEstudoProjeto}
-                  tipo={estudoTipo}                 setTipo={setEstudoTipo}
+                  tipo={estudoTipos}                setTipo={setEstudoTipos}
                   nCards={estudoNCards}             setNCards={setEstudoNCards}
                   gerando={estudoGerando}
                   erro={estudoErro}
                   flashcards={estudoFlashcards}
                   resumo={estudoResumo}
                   quiz={estudoQuiz}
+                  topicos={estudoTopicos}
                   revisados={estudoRevisados}       setRevisados={setEstudoRevisados}
                   onGerar={handleEstudoGerar}
                   onResetar={handleEstudoResetar}
