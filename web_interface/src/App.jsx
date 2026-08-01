@@ -311,7 +311,6 @@ function App() {
   const [estudoQuiz,       setEstudoQuiz]       = useState([]);
   const [estudoTopicos,    setEstudoTopicos]    = useState([]);
   const [estudoPostits,    setEstudoPostits]    = useState([]);
-  const [estudoRevisados,  setEstudoRevisados]  = useState(new Set());
 
   const handleEstudoGerar = useCallback(async () => {
     if (!estudoProjeto) { setEstudoErro('Selecione um projeto indexado antes de gerar.'); return; }
@@ -323,7 +322,6 @@ function App() {
     setEstudoQuiz([]);
     setEstudoTopicos([]);
     setEstudoPostits([]);
-    setEstudoRevisados(new Set());
     try {
       // Cada tipo selecionado dispara sua própria chamada, em paralelo — não
       // existe mais um "ambos" combinado: se o usuário quer flashcards e
@@ -365,7 +363,6 @@ function App() {
     setEstudoQuiz([]);
     setEstudoTopicos([]);
     setEstudoPostits([]);
-    setEstudoRevisados(new Set());
     setEstudoErro('');
   }, []);
 
@@ -2036,7 +2033,6 @@ function App() {
                   quiz={estudoQuiz}
                   topicos={estudoTopicos}
                   postits={estudoPostits}
-                  revisados={estudoRevisados}       setRevisados={setEstudoRevisados}
                   onGerar={handleEstudoGerar}
                   onResetar={handleEstudoResetar}
                   onExportarAnki={handleEstudoExportarAnki}
