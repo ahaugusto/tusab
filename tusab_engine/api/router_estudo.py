@@ -197,6 +197,53 @@ def _validar_quiz(data: list) -> list:
     return resultado
 
 
+def _parsear_postits_json(texto: str) -> list:
+    """Extrai pontos-chave curtos (post-its) de uma resposta LLM.
+
+    Três estratégias em cascata, igual a _parsear_flashcards_json: JSON direto
+    → bloco [...] no meio do texto → fallback textual (linhas com marcador
+    -/•/número, já que post-it é texto livre curto e tem formato natural
+    pra isso, ao contrário de múltipla escolha).
+    """
+    texto = texto.strip()
+
+    def _normalizar(data) -> list:
+        itens = []
+        for x in data:
+            if isinstance(x, str):
+                s = x.strip()
+            elif isinstance(x, dict):
+                s = str(x.get("texto") or x.get("text") or "").strip()
+            else:
+                continue
+            if s:
+                itens.append(s)
+        return itens
+
+    try:
+        data = json.loads(texto)
+        if isinstance(data, list):
+            itens = _normalizar(data)
+            if itens:
+                return itens
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    match = re.search(r'\[\s*(?:"|\{).*?\]', texto, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group())
+            if isinstance(data, list):
+                itens = _normalizar(data)
+                if itens:
+                    return itens
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    linhas = re.findall(r'^\s*(?:[-•*]|\d+[.)])\s*(.+)$', texto, re.MULTILINE)
+    return [l.strip() for l in linhas if l.strip()]
+
+
 def _filtrar_chunks_por_tema(chunks: list, tema: str, n: int) -> list:
     """Seleciona os n chunks mais relevantes pro tema (BM25); sem tema, amostra aleatória.
 
@@ -248,6 +295,8 @@ def _formatar_texto_indexavel(tipo: str, dados) -> str:
             certa = chr(65 + q["correta"])
             partes.append(f"Pergunta: {q['pergunta']}\n{alts}\nCorreta: {certa}\nExplicação: {q.get('explicacao', '')}")
         return "\n\n".join(partes)
+    if tipo == "postits":
+        return "\n".join(f"- {p}" for p in dados)
     return str(dados)  # resumo já é texto
 
 
@@ -280,7 +329,7 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
         ts = time.strftime("%Y%m%d_%H%M%S")
         artefato_id = f"{ts}_{tipo}"
 
-        rotulos = {"resumo": "Resumo", "flashcards": "Flashcards", "quiz": "Quiz"}
+        rotulos = {"resumo": "Resumo", "flashcards": "Flashcards", "quiz": "Quiz", "postits": "Post-its"}
         rotulo = rotulos.get(tipo, tipo.title())
         titulo = f"{rotulo} — {tema.strip() or projeto_nome} ({agora})"
 
@@ -325,8 +374,8 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
 @router.post("/agent/study")
 def agent_study(req: StudyRequest):
     """Gera flashcards e/ou resumo estruturado a partir do índice BM25 do projeto."""
-    if req.tipo not in ("flashcards", "resumo", "ambos", "quiz"):
-        return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo, quiz ou ambos."}
+    if req.tipo not in ("flashcards", "resumo", "ambos", "quiz", "postits"):
+        return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo, quiz, postits ou ambos."}
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     if not canal_prefixo:
@@ -362,7 +411,41 @@ def agent_study(req: StudyRequest):
     flashcards_resultado = []
     resumo_resultado = ""
     quiz_resultado = []
+    postits_resultado = []
     artefatos_criados = []
+
+    if req.tipo == "postits":
+        trechos_pi = "\n\n".join(
+            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:300]}"
+            for c in amostra
+        )
+        prompt_pi = (
+            f"Você é um tutor especializado. Com base nos trechos abaixo de \"{req.projeto_nome}\", "
+            f"extraia exatamente {req.n_cards} pontos-chave curtos, no estilo de notas adesivas (post-its) de estudo.\n\n"
+            "RESPONDA APENAS com um array JSON de strings. Nenhum texto antes ou depois.\n"
+            'Formato: ["ponto-chave 1", "ponto-chave 2", ...]\n\n'
+            "Regras:\n"
+            f"- Exatamente {req.n_cards} strings no array\n"
+            "- Cada string é 1 frase curta e direta (máximo ~20 palavras), sem numeração\n"
+            "- Cubra conceitos variados e específicos dos trechos, sem repetir ideias\n\n"
+            f"TRECHOS:\n{trechos_pi}"
+        )
+        try:
+            resposta_pi = _chamar_llm_estudo(prompt_pi)
+            postits_resultado = _parsear_postits_json(resposta_pi)
+            if not postits_resultado:
+                return {"error": True, "message": "O modelo não retornou os post-its no formato esperado. Tente novamente."}
+            pi_path = os.path.join(mgmt_dir, "postits.json")
+            salvar_json_atomico({
+                "canal": req.projeto_nome,
+                "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "postits": postits_resultado,
+            }, pi_path, indent=2)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "postits", req.tema, postits_resultado)
+            if artefato:
+                artefatos_criados.append(artefato)
+        except Exception as e:
+            return {"error": True, "message": f"Erro ao gerar post-its: {e}"}
 
     if req.tipo == "quiz":
         trechos_quiz = "\n\n".join(
@@ -472,7 +555,8 @@ def agent_study(req: StudyRequest):
         "flashcards": flashcards_resultado,
         "resumo": resumo_resultado,
         "quiz": quiz_resultado,
-        "total": len(flashcards_resultado) or len(quiz_resultado),
+        "postits": postits_resultado,
+        "total": len(flashcards_resultado) or len(quiz_resultado) or len(postits_resultado),
         "artefatos": artefatos_criados,
     }
 

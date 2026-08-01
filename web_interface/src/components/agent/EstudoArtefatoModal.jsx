@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { X, Pencil, Check, Copy, FileText, FileDown, Trash2, Loader2 } from 'lucide-react';
 import ModalWrapper from '../shared/ModalWrapper';
+import PostIt from '../shared/PostIt';
 import { exportResumoCanalDocx, exportRelatorioPdf } from '../../services/api';
 
 /** Achata o conteúdo estruturado num texto corrido — usado por copiar/exportar. */
@@ -17,6 +18,9 @@ function formatarTexto(tipo, dados) {
       const certa = String.fromCharCode(65 + q.correta);
       return `Pergunta: ${q.pergunta}\n${alts}\nCorreta: ${certa}\nExplicação: ${q.explicacao || ''}`;
     }).join('\n\n');
+  }
+  if (tipo === 'postits' && Array.isArray(dados)) {
+    return dados.map(p => `- ${p}`).join('\n');
   }
   return String(dados || '');
 }
@@ -188,6 +192,12 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
                   {q.explicacao && <p style={{ fontSize: '11px', color: textSecond, marginTop: '8px' }}>{q.explicacao}</p>}
                 </div>
               ))}
+            </div>
+          )}
+
+          {artefato.tipo === 'postits' && Array.isArray(dados) && (
+            <div className="columns-2 md:columns-3">
+              {dados.map((texto, i) => <PostIt key={i} texto={texto} index={i} darkMode={darkMode} />)}
             </div>
           )}
         </div>
