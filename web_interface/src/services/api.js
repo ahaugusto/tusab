@@ -315,6 +315,14 @@ export const renomearArtefatoEstudo = (projeto_nome, artefato_id, titulo) =>
 export const excluirArtefatoEstudo = (projeto_nome, artefato_id) =>
   axios.delete(`${API_BASE}/agent/study/artefato/${encodeURIComponent(projeto_nome)}/${encodeURIComponent(artefato_id)}`);
 
+/** Registra a revisão de um flashcard (repetição espaçada, SM-2) — qualidade 0-5 */
+export const revisarFlashcard = (projeto_nome, card_id, qualidade) =>
+  axios.post(`${API_BASE}/agent/study/revisar`, { projeto_nome, card_id, qualidade });
+
+/** Progresso de repetição espaçada de todos os flashcards já revisados do projeto */
+export const buscarProgressoRevisao = (projeto_nome) =>
+  axios.get(`${API_BASE}/agent/study/revisao/${encodeURIComponent(projeto_nome)}`);
+
 /** Lista históricos auto-salvos em _chat_history/ (fora do corpus BM25) */
 export const listarHistoricosSalvos = (projeto_nome) => axios.get(`${API_BASE}/agent/chat/historicos-salvos/${encodeURIComponent(projeto_nome)}`);
 

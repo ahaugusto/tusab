@@ -8,6 +8,8 @@ import re
 import json
 import time
 import random
+import hashlib
+import datetime
 
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field, model_validator
@@ -42,6 +44,12 @@ class RenomearArtefatoRequest(BaseModel):
     projeto_nome: str = Field(max_length=120)
     artefato_id:  str = Field(max_length=60)
     titulo:       str = Field(min_length=1, max_length=150)
+
+
+class RevisarCardRequest(BaseModel):
+    projeto_nome: str = Field(max_length=120)
+    card_id:      str = Field(max_length=32)
+    qualidade:    int = Field(ge=0, le=5)  # 0-5 escala SM-2; UI mapeia 3 botões (1/3/5)
 
 
 def _chamar_llm_estudo(prompt: str) -> str:
@@ -127,6 +135,16 @@ def _parsear_flashcards_json(texto: str, n_esperado: int) -> list:
     return []
 
 
+def _id_flashcard(pergunta: str) -> str:
+    """Id estável (hash da pergunta) — sobrevive a regeneração; base da repetição espaçada.
+
+    Se a mesma pergunta reaparecer numa geração futura, o progresso de revisão
+    já registrado continua valendo (não reseta pra zero por ela ter vindo de
+    um novo lote gerado pelo LLM).
+    """
+    return hashlib.sha1(pergunta.strip().encode("utf-8")).hexdigest()[:12]
+
+
 def _validar_cards(data: list) -> list:
     """Filtra e normaliza itens do array JSON — descarta entradas sem pergunta/resposta."""
     resultado = []
@@ -136,7 +154,7 @@ def _validar_cards(data: list) -> list:
         pergunta = str(item.get("pergunta") or item.get("question") or item.get("front") or "").strip()
         resposta  = str(item.get("resposta")  or item.get("answer")   or item.get("back")  or "").strip()
         if pergunta and resposta:
-            resultado.append({"pergunta": pergunta, "resposta": resposta})
+            resultado.append({"id": _id_flashcard(pergunta), "pergunta": pergunta, "resposta": resposta})
     return resultado
 
 
@@ -266,6 +284,61 @@ def _filtrar_chunks_por_tema(chunks: list, tema: str, n: int) -> list:
         return [chunks[i] for i in top]
     except Exception:
         return random.sample(chunks, min(n, len(chunks)))
+
+
+def _progresso_flashcards_path(canal_prefixo: str) -> str:
+    return os.path.join(NEURAL_DIR, canal_prefixo, "management", "flashcards_progresso.json")
+
+
+def _ler_progresso_flashcards(canal_prefixo: str) -> dict:
+    path = _progresso_flashcards_path(canal_prefixo)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _aplicar_sm2(estado: dict, qualidade: int) -> dict:
+    """Algoritmo SM-2 (SuperMemo 2) simplificado — repetição espaçada dos flashcards.
+
+    `qualidade` (0-5): a UI mapeia 3 botões pra 3 pontos da escala (Não
+    lembrei=1, Difícil=3, Fácil=5) em vez dos 6 níveis originais do SM-2 —
+    granularidade fina demais seria fricção sem benefício real pro usuário.
+    `estado` é o registro anterior do card (vazio = nunca revisado, usa os
+    defaults de um card novo: 0 repetições, EF 2.5).
+    """
+    repeticoes = estado.get("repeticoes", 0)
+    intervalo  = estado.get("intervalo_dias", 0)
+    ef         = estado.get("fator_facilidade", 2.5)
+
+    if qualidade < 3:
+        repeticoes = 0
+        intervalo = 1
+    else:
+        if repeticoes == 0:
+            intervalo = 1
+        elif repeticoes == 1:
+            intervalo = 6
+        else:
+            intervalo = round(intervalo * ef)
+        repeticoes += 1
+
+    ef = max(1.3, ef + (0.1 - (5 - qualidade) * (0.08 + (5 - qualidade) * 0.02)))
+
+    hoje = datetime.date.today()
+    proxima = hoje + datetime.timedelta(days=intervalo)
+
+    return {
+        "repeticoes":        repeticoes,
+        "intervalo_dias":    intervalo,
+        "fator_facilidade":  round(ef, 2),
+        "ultima_revisao":    hoje.isoformat(),
+        "proxima_revisao":   proxima.isoformat(),
+    }
 
 
 def _manifest_estudo_path(canal_prefixo: str) -> str:
@@ -590,6 +663,30 @@ def agent_study_get(projeto_nome: str):
             pass
 
     return {"flashcards": flashcards, "resumo": resumo, "total": len(flashcards)}
+
+
+@router.post("/agent/study/revisar")
+def agent_study_revisar(req: RevisarCardRequest):
+    """Aplica SM-2 à revisão de um flashcard e persiste o novo estado — repetição espaçada."""
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+    progresso = _ler_progresso_flashcards(canal_prefixo)
+    novo_estado = _aplicar_sm2(progresso.get(req.card_id, {}), req.qualidade)
+    progresso[req.card_id] = novo_estado
+    mgmt_dir = os.path.join(NEURAL_DIR, canal_prefixo, "management")
+    os.makedirs(mgmt_dir, exist_ok=True)
+    salvar_json_atomico(progresso, _progresso_flashcards_path(canal_prefixo), indent=2)
+    return {"ok": True, "card_id": req.card_id, **novo_estado}
+
+
+@router.get("/agent/study/revisao/{projeto_nome}")
+def agent_study_revisao(projeto_nome: str):
+    """Progresso de repetição espaçada (SM-2) de todos os flashcards já revisados do projeto."""
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"progresso": {}}
+    return {"progresso": _ler_progresso_flashcards(canal_prefixo)}
 
 
 @router.get("/agent/study/artefatos/{projeto_nome}")
