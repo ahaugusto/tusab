@@ -310,6 +310,7 @@ function App() {
   const [estudoResumo,     setEstudoResumo]     = useState('');
   const [estudoQuiz,       setEstudoQuiz]       = useState([]);
   const [estudoTopicos,    setEstudoTopicos]    = useState([]);
+  const [estudoPostits,    setEstudoPostits]    = useState([]);
   const [estudoRevisados,  setEstudoRevisados]  = useState(new Set());
 
   const handleEstudoGerar = useCallback(async () => {
@@ -321,6 +322,7 @@ function App() {
     setEstudoResumo('');
     setEstudoQuiz([]);
     setEstudoTopicos([]);
+    setEstudoPostits([]);
     setEstudoRevisados(new Set());
     try {
       // Cada tipo selecionado dispara sua própria chamada, em paralelo — não
@@ -346,6 +348,7 @@ function App() {
           if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
           if (data.resumo) setEstudoResumo(data.resumo);
           if (data.quiz?.length) setEstudoQuiz(data.quiz);
+          if (data.postits?.length) setEstudoPostits(data.postits);
         }
       }
       if (erros.length) setEstudoErro(erros.join(' '));
@@ -361,6 +364,7 @@ function App() {
     setEstudoResumo('');
     setEstudoQuiz([]);
     setEstudoTopicos([]);
+    setEstudoPostits([]);
     setEstudoRevisados(new Set());
     setEstudoErro('');
   }, []);
@@ -2031,6 +2035,7 @@ function App() {
                   resumo={estudoResumo}
                   quiz={estudoQuiz}
                   topicos={estudoTopicos}
+                  postits={estudoPostits}
                   revisados={estudoRevisados}       setRevisados={setEstudoRevisados}
                   onGerar={handleEstudoGerar}
                   onResetar={handleEstudoResetar}
