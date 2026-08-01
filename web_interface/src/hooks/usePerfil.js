@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react';
 // ---------------------------------------------------------------------------
 export const PERFIS_CONFIG = {
   estudante: {
-    abas: ['repositorio', 'historico', 'relatorio', 'agente', 'admin'],
+    abas: ['repositorio', 'historico', 'relatorio', 'estudo', 'agente', 'admin'],
     persona_padrao: 'didatico',
     busca_ampla: true,
     config_api: true,
@@ -22,7 +22,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: true,
   },
   professor: {
-    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'agente', 'admin'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'estudo', 'agente', 'admin'],
     persona_padrao: 'didatico',
     busca_ampla: true,
     config_api: true,
@@ -39,7 +39,7 @@ export const PERFIS_CONFIG = {
     limpar_canal: true,
   },
   pesquisador: {
-    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'agente', 'admin'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'estudo', 'agente', 'admin'],
     persona_padrao: 'tecnico',
     busca_ampla: true,
     config_api: true,
@@ -62,7 +62,7 @@ export const PERFIS_CONFIG = {
     fontes_publicas: true,
   },
   profissional: {
-    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'monitor', 'agente', 'admin'],
+    abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'monitor', 'estudo', 'agente', 'admin'],
     persona_padrao: 'objetivo',
     busca_ampla: true,
     config_api: true,
