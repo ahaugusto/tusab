@@ -16,6 +16,7 @@ import {
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
   Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard, History,
+  GraduationCap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -37,7 +38,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarFonte, statusFonte, listarFontes,
+  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ import UpdateSuccessModal       from './components/modals/UpdateSuccessModal';
 import ExtractionTab            from './components/extraction/ExtractionTab';
 import AgentTab                 from './components/tabs/AgentTab';
 import AdminTab                 from './components/tabs/AdminTab';
+import EstudoTab                from './components/agent/EstudoTab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -296,6 +298,58 @@ function App() {
     handleAprofundarClose,
   } = useAgentConfig({ activeTab, showError });
 
+  // ─── Estado persistente do Modo Estudo (aba "Estudo") ──────────────────────
+  const projetosIndexados = agentStatus?.canais_indexados || [];
+  const [estudoProjeto,    setEstudoProjeto]    = useState('');
+  const [estudoTipo,       setEstudoTipo]       = useState('flashcards');
+  const [estudoNCards,     setEstudoNCards]     = useState(10);
+  const [estudoGerando,    setEstudoGerando]    = useState(false);
+  const [estudoErro,       setEstudoErro]       = useState('');
+  const [estudoFlashcards, setEstudoFlashcards] = useState([]);
+  const [estudoResumo,     setEstudoResumo]     = useState('');
+  const [estudoRevisados,  setEstudoRevisados]  = useState(new Set());
+
+  const handleEstudoGerar = useCallback(async () => {
+    if (!estudoProjeto) { setEstudoErro('Selecione um projeto indexado antes de gerar.'); return; }
+    setEstudoGerando(true);
+    setEstudoErro('');
+    setEstudoFlashcards([]);
+    setEstudoResumo('');
+    setEstudoRevisados(new Set());
+    try {
+      const res = await gerarEstudo({ projeto_nome: estudoProjeto, tipo: estudoTipo, n_cards: estudoNCards });
+      const data = res.data;
+      if (data.error) { setEstudoErro(data.message || 'Erro ao gerar conteúdo de estudo.'); return; }
+      if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
+      if (data.resumo) setEstudoResumo(data.resumo);
+    } catch (e) {
+      setEstudoErro(e?.response?.data?.message || e?.message || 'Erro de conexão com o backend.');
+    } finally {
+      setEstudoGerando(false);
+    }
+  }, [estudoProjeto, estudoTipo, estudoNCards]);
+
+  const handleEstudoResetar = useCallback(() => {
+    setEstudoFlashcards([]);
+    setEstudoResumo('');
+    setEstudoRevisados(new Set());
+    setEstudoErro('');
+  }, []);
+
+  const handleEstudoExportarAnki = useCallback(async () => {
+    if (!estudoProjeto || !estudoFlashcards.length) return;
+    try {
+      const resp = await exportFlashcardsAnki(estudoProjeto);
+      if (!resp.ok) { setEstudoErro('Erro ao exportar CSV.'); return; }
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `tusab_${estudoProjeto}_flashcards.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch { setEstudoErro('Erro ao exportar flashcards.'); }
+  }, [estudoProjeto, estudoFlashcards]);
+
   const { seen, markSeen, KEYS } = useOnboarding();
   const { hasSeenWarning, markWarningShown } = useDriveWarning();
   const [showDriveWarning, setShowDriveWarning] = useState(false);
@@ -486,7 +540,7 @@ function App() {
 
   /** Keyboard shortcuts: Esc closes/collapses chat; Shift+key navigates tabs / opens chat */
   useEffect(() => {
-    const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral', H: 'historico' };
+    const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral', H: 'historico', U: 'estudo' };
     const onKey = (e) => {
       if (e.key === 'Escape' && chatOpen) {
         if (chatExpandido) { setChatExpandido(false); return; }
@@ -1455,6 +1509,7 @@ function App() {
                 { id: 'historico',   icon: History,          label: t('tabs.historico')   },
                 { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                 { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
+                { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
                 { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
               ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
@@ -1542,8 +1597,10 @@ function App() {
                 {[
                   { id: 'extracao',    icon: Zap,             label: t('tabs.extraction')  },
                   { id: 'repositorio', icon: BookOpen,         label: t('tabs.repositorio') },
+                  { id: 'historico',   icon: History,          label: t('tabs.historico')   },
                   { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                   { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
+                  { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
                   { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
                   { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
                 ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
@@ -1640,7 +1697,7 @@ function App() {
                 ) : (
                   <div>
                     <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico') }[activeTab]}
+                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico'), estudo: t('tabs.estudo') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
@@ -1924,6 +1981,28 @@ function App() {
               <div id="panel-monitor" role="tabpanel" aria-labelledby="tab-monitor" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
                 <MonitorTab darkMode={darkMode} btnFocus={BTN_FOCUS} onGoToAdmin={() => { setActiveTab('admin'); setShowHome(false); }} />
+              </div>
+            )}
+
+            {/* ── TAB: ESTUDO ── */}
+            {activeTab === 'estudo' && (
+              <div id="panel-estudo" role="tabpanel" aria-labelledby="tab-estudo" ref={mainScrollRef}
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
+                <EstudoTab
+                  darkMode={darkMode}
+                  projetosIndexados={projetosIndexados}
+                  projeto={estudoProjeto}           setProjeto={setEstudoProjeto}
+                  tipo={estudoTipo}                 setTipo={setEstudoTipo}
+                  nCards={estudoNCards}             setNCards={setEstudoNCards}
+                  gerando={estudoGerando}
+                  erro={estudoErro}
+                  flashcards={estudoFlashcards}
+                  resumo={estudoResumo}
+                  revisados={estudoRevisados}       setRevisados={setEstudoRevisados}
+                  onGerar={handleEstudoGerar}
+                  onResetar={handleEstudoResetar}
+                  onExportarAnki={handleEstudoExportarAnki}
+                />
               </div>
             )}
 
