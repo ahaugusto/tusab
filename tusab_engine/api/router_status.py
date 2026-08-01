@@ -202,11 +202,18 @@ def clear_log():
 @router.get("/open-folder")
 def open_folder(name: str, prefixo: str = ""):
     import subprocess
+    import sys
     from tusab_engine.storage import NEURAL_DIR
     folders = {
         "data":            motor_tusab.DATA_DIR,
         "gestao":          motor_tusab.gestao_canal_dir(prefixo) if prefixo else motor_tusab.GESTAO_DIR,
         "agent_index":     agent_tusab.INDEX_DIR,
+        # Pasta raiz do projeto — contém youtube/, documents/, texts/ juntos.
+        # É o que o botão "Abrir pasta" do Repositório deve abrir por padrão:
+        # o usuário quer ver TUDO que foi indexado daquele projeto, não só o
+        # conteúdo do YouTube (indexar() já cobre as 3 subpastas — ver
+        # agent/index.py).
+        "projeto":         os.path.join(NEURAL_DIR, prefixo) if prefixo else motor_tusab.NEURAL_DIR,
         "canal_youtube":   os.path.join(NEURAL_DIR, prefixo, "youtube") if prefixo else motor_tusab.NEURAL_DIR,
         "canal_documents": os.path.join(NEURAL_DIR, prefixo, "documents") if prefixo else motor_tusab.NEURAL_DIR,
     }
@@ -214,7 +221,10 @@ def open_folder(name: str, prefixo: str = ""):
     if not target:
         return {"error": True, "message": "Pasta desconhecida"}
     os.makedirs(target, exist_ok=True)
-    subprocess.Popen(["explorer", target])
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", target])
+    else:
+        subprocess.Popen(["explorer", target])
     return {"ok": True}
 
 
