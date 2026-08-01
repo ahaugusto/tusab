@@ -1,9 +1,10 @@
 // Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square } from 'lucide-react';
-import { ttsStatus, ttsSintetizar } from '../../services/api';
+import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, HelpCircle, Trash2, Pencil, X } from 'lucide-react';
+import { ttsStatus, ttsSintetizar, listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo } from '../../services/api';
+import EstudoArtefatoModal from './EstudoArtefatoModal';
 
 /**
  * EstudoTab — componente controlado: todo estado persistente vive no AgentTab pai.
@@ -16,6 +17,7 @@ export default function EstudoTab({
   projeto,        setProjeto,
   tipo,           setTipo,
   nCards,         setNCards,
+  tema,           setTema,
   gerando,
   erro,
   flashcards,
@@ -35,6 +37,76 @@ export default function EstudoTab({
   // Quiz — estado efêmero de navegação/respostas, mesma filosofia dos flashcards
   const [quizIdx,       setQuizIdx]       = useState(0);
   const [quizRespostas, setQuizRespostas] = useState({}); // { [idx]: alternativaEscolhidaIdx }
+
+  // Kanban de artefatos persistidos — lista independente do resultado "ao vivo"
+  // acima (flashcards/resumo/quiz da última geração); é buscada do backend
+  // porque sobrevive a troca de aba/projeto, ao contrário do estado efêmero.
+  const [artefatos,           setArtefatos]           = useState([]);
+  const [artefatoAberto,      setArtefatoAberto]       = useState(null); // entrada do manifest
+  const [artefatoDados,       setArtefatoDados]        = useState(null); // conteúdo estruturado
+  const [artefatoCarregando,  setArtefatoCarregando]   = useState(false);
+  const [tituloEditando,      setTituloEditando]       = useState(null); // id do card em edição inline
+  const [tituloEditandoValor, setTituloEditandoValor]  = useState('');
+
+  const refetchArtefatos = useCallback(() => {
+    if (!projeto) { setArtefatos([]); return; }
+    listarArtefatosEstudo(projeto).then(r => setArtefatos(r.data?.artefatos || [])).catch(() => setArtefatos([]));
+  }, [projeto]);
+
+  useEffect(() => { refetchArtefatos(); }, [refetchArtefatos]);
+
+  // Refaz a busca assim que uma geração termina (gerando true→false) — os
+  // artefatos recém-criados já estão salvos no backend nesse ponto.
+  const prevGerandoRef = useRef(gerando);
+  useEffect(() => {
+    if (prevGerandoRef.current && !gerando) refetchArtefatos();
+    prevGerandoRef.current = gerando;
+  }, [gerando, refetchArtefatos]);
+
+  const handleAbrirArtefato = async (art) => {
+    setArtefatoCarregando(true);
+    try {
+      const r = await buscarArtefatoEstudo(projeto, art.id);
+      if (r.data?.ok) { setArtefatoAberto(art); setArtefatoDados(r.data.dados); }
+    } finally {
+      setArtefatoCarregando(false);
+    }
+  };
+
+  const handleRenomearArtefato = async (novoTitulo) => {
+    await renomearArtefatoEstudo(projeto, artefatoAberto.id, novoTitulo).catch(() => {});
+    setArtefatoAberto(prev => prev ? { ...prev, titulo: novoTitulo } : prev);
+    refetchArtefatos();
+  };
+
+  const handleExcluirArtefato = async () => {
+    await excluirArtefatoEstudo(projeto, artefatoAberto.id).catch(() => {});
+    setArtefatoAberto(null);
+    setArtefatoDados(null);
+    refetchArtefatos();
+  };
+
+  const handleIniciarEdicaoTitulo = (e, art) => {
+    e.stopPropagation();
+    setTituloEditando(art.id);
+    setTituloEditandoValor(art.titulo);
+  };
+
+  const handleSalvarTituloInline = async (art) => {
+    const limpo = tituloEditandoValor.trim();
+    setTituloEditando(null);
+    if (!limpo || limpo === art.titulo) return;
+    await renomearArtefatoEstudo(projeto, art.id, limpo).catch(() => {});
+    refetchArtefatos();
+  };
+
+  const handleExcluirCard = async (e, art) => {
+    e.stopPropagation();
+    await excluirArtefatoEstudo(projeto, art.id).catch(() => {});
+    refetchArtefatos();
+  };
+
+  const ICONE_TIPO = { resumo: FileText, flashcards: Layers, quiz: HelpCircle };
 
   const card = flashcards?.[currentIdx] ?? null;
   const perguntaQuiz = quiz?.[quizIdx] ?? null;
@@ -212,6 +284,40 @@ export default function EstudoTab({
           </div>
         </div>
 
+        {/* Tema — opcional, escopa a geração a um recorte específico do projeto via BM25 */}
+        <div>
+          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: textSecond, marginBottom: '8px' }}>
+            {t('estudo.label_tema')}
+          </p>
+          <div style={{ position: 'relative' }}>
+            <input
+              value={tema}
+              onChange={e => setTema(e.target.value)}
+              placeholder={t('estudo.tema_placeholder')}
+              maxLength={200}
+              style={{
+                width: '100%', padding: '8px 32px 8px 12px', borderRadius: '10px',
+                fontSize: '12px', fontWeight: 500,
+                background: darkMode ? 'rgba(255,255,255,0.06)' : '#f8fafc',
+                border: `1px solid ${tema ? 'rgba(139,92,246,0.40)' : borderColor}`,
+                color: textPrimary, outline: 'none',
+              }} />
+            {tema && (
+              <button onClick={() => setTema('')} aria-label={t('estudo.tema_limpar')} style={{
+                position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', color: textSecond, padding: 0,
+                display: 'flex',
+              }}>
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: '10px', color: textSecond, marginTop: '5px', marginBottom: 0 }}>
+            {t('estudo.tema_hint')}
+          </p>
+        </div>
+
         {/* Quantidade — some se só "resumo" estiver selecionado (não usa contagem) */}
         {tipo.some(t => t !== 'resumo') && (
           <div>
@@ -262,6 +368,74 @@ export default function EstudoTab({
           )}
         </div>
       </div>
+
+      {/* ── Kanban de artefatos salvos ───────────────────────────────────────── */}
+      {artefatos.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: textSecond, margin: 0 }}>
+            {t('estudo.kanban_titulo', { count: artefatos.length })}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            {artefatos.map(art => {
+              const Icone = ICONE_TIPO[art.tipo] || FileText;
+              return (
+                <div key={art.id}
+                  onClick={() => handleAbrirArtefato(art)}
+                  style={{
+                    background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '14px',
+                    padding: '12px 14px', width: '220px', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', gap: '6px',
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icone size={13} color={darkMode ? '#a78bfa' : '#7c3aed'} />
+                    <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                      letterSpacing: '0.04em', color: darkMode ? '#a78bfa' : '#7c3aed' }}>{t(`estudo.type_${art.tipo}`)}</span>
+                    <div style={{ flex: 1 }} />
+                    <button onClick={e => handleIniciarEdicaoTitulo(e, art)} aria-label={t('estudo.artefato_editar_titulo')}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecond, padding: '2px', display: 'flex' }}>
+                      <Pencil size={11} />
+                    </button>
+                    <button onClick={e => handleExcluirCard(e, art)} aria-label={t('estudo.artefato_excluir')}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecond, padding: '2px', display: 'flex' }}>
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+
+                  {tituloEditando === art.id ? (
+                    <input
+                      autoFocus
+                      value={tituloEditandoValor}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => setTituloEditandoValor(e.target.value)}
+                      onBlur={() => handleSalvarTituloInline(art)}
+                      onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setTituloEditando(null); }}
+                      style={{
+                        fontSize: '12px', fontWeight: 700, color: textPrimary, background: 'transparent',
+                        border: `1px solid rgba(139,92,246,0.40)`, borderRadius: '6px', padding: '3px 6px', outline: 'none',
+                      }} />
+                  ) : (
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: textPrimary, margin: 0,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {art.titulo}
+                    </p>
+                  )}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                    {art.tema && (
+                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px',
+                        background: darkMode ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.10)', color: darkMode ? '#a78bfa' : '#7c3aed' }}>
+                        {art.tema}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '10px', color: textSecond }}>{art.criado_em}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Erro */}
       {erro && (
@@ -498,8 +672,10 @@ export default function EstudoTab({
                 const fontSize = 12 + norm * 18; // 12px..30px
                 return (
                   <span key={tp.termo}
-                    title={t('estudo.topico_ocorrencias', { count: tp.ocorrencias })}
-                    style={{ fontSize: `${fontSize}px`, fontWeight: 700, color: cores[i % cores.length], lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+                    onClick={() => setTema(tp.termo)}
+                    title={t('estudo.topico_usar_como_tema', { count: tp.ocorrencias })}
+                    style={{ fontSize: `${fontSize}px`, fontWeight: 700, color: cores[i % cores.length], lineHeight: 1.2,
+                      whiteSpace: 'nowrap', cursor: 'pointer' }}>
                     {tp.termo}
                   </span>
                 );
@@ -557,6 +733,17 @@ export default function EstudoTab({
       )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
+      {artefatoAberto && artefatoDados !== null && (
+        <EstudoArtefatoModal
+          darkMode={darkMode}
+          artefato={artefatoAberto}
+          dados={artefatoDados}
+          onClose={() => { setArtefatoAberto(null); setArtefatoDados(null); }}
+          onRenomear={handleRenomearArtefato}
+          onExcluir={handleExcluirArtefato}
+        />
+      )}
     </div>
   );
 }

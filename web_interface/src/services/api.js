@@ -299,6 +299,22 @@ export const fetchEstudo = (projeto_nome) => axios.get(`${API_BASE}/agent/study/
 export const buscarTopicos = (projeto_nome, limit = 40) =>
   axios.get(`${API_BASE}/agent/study/topicos/${encodeURIComponent(projeto_nome)}`, { params: { limit }, timeout: 60000 });
 
+/** Lista os artefatos de estudo persistidos (resumo/flashcards/quiz) — kanban da aba Estudo */
+export const listarArtefatosEstudo = (projeto_nome) =>
+  axios.get(`${API_BASE}/agent/study/artefatos/${encodeURIComponent(projeto_nome)}`);
+
+/** Busca o conteúdo estruturado de um artefato — usado ao expandir um card no modal */
+export const buscarArtefatoEstudo = (projeto_nome, artefato_id) =>
+  axios.get(`${API_BASE}/agent/study/artefato/${encodeURIComponent(projeto_nome)}/${encodeURIComponent(artefato_id)}`);
+
+/** Renomeia o título editável de um card do kanban de estudo */
+export const renomearArtefatoEstudo = (projeto_nome, artefato_id, titulo) =>
+  axios.post(`${API_BASE}/agent/study/artefato/renomear`, { projeto_nome, artefato_id, titulo });
+
+/** Remove um card do kanban de estudo (arquivos + manifest) */
+export const excluirArtefatoEstudo = (projeto_nome, artefato_id) =>
+  axios.delete(`${API_BASE}/agent/study/artefato/${encodeURIComponent(projeto_nome)}/${encodeURIComponent(artefato_id)}`);
+
 /** Lista históricos auto-salvos em _chat_history/ (fora do corpus BM25) */
 export const listarHistoricosSalvos = (projeto_nome) => axios.get(`${API_BASE}/agent/chat/historicos-salvos/${encodeURIComponent(projeto_nome)}`);
 
