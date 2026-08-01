@@ -10,7 +10,25 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 
 ## Download
 
-**[⬇ Baixar última versão (v1.0.40)](https://github.com/ahaugusto/tusab-public/releases/latest)** — Windows 10/11 x64 · inclui Python e yt-dlp embutidos
+**[⬇ Baixar última versão](https://github.com/ahaugusto/tusab-public/releases/latest)**
+
+| Plataforma | Requisito | Arquivo |
+|---|---|---|
+| Windows 10/11 x64 | — | `Tusab-Setup-X.X.X.exe` |
+| macOS (Apple Silicon — M1 ou superior) | macOS 12+ | `Tusab-X.X.X-arm64.dmg` |
+
+Python e yt-dlp já vêm embutidos nos dois instaladores — nada para instalar à parte.
+**macOS Intel não é suportado no momento** (só Apple Silicon/arm64).
+
+### Instalando no macOS
+
+1. Baixe o `.dmg` (link acima).
+2. Abra o `.dmg` e arraste o ícone do Tusab para a pasta **Aplicativos**.
+3. Abra o Tusab a partir de Aplicativos. O app é **assinado e notarizado pela Apple**
+   (Developer ID + notarização automatizada no CI) — abre normalmente, sem precisar
+   liberar nada manualmente em Ajustes do Sistema → Privacidade e Segurança.
+4. Na primeira execução, o Tusab detecta se o Ollama está instalado e oferece o
+   download automático caso não esteja.
 
 ---
 
@@ -69,7 +87,7 @@ O Ollama é configurado na primeira execução via wizard embutido. Para provedo
 **Backend:** Python 3.12 + FastAPI + Uvicorn — API REST em `localhost:8001`  
 **Agente RAG:** rank_bm25 (BM25Okapi) + sentence-transformers (CrossEncoder) + Ollama / provedores externos  
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React  
-**Desktop:** Electron 34 + electron-builder (instalador NSIS para Windows)  
+**Desktop:** Electron 34 + electron-builder (instalador NSIS para Windows · `.dmg`/`.zip` assinado e notarizado para macOS arm64)  
 **Extração:** yt-dlp (bundled) + pdfplumber + python-docx  
 **Imagens:** Ollama multimodal (llava/gemma3) → fallback RapidOCR (embutido, sem instalação externa)  
 **Áudio:** faster-whisper (modelo `base`, CPU, ~150 MB)  
