@@ -226,6 +226,15 @@ jobs:
           APPLE_API_KEY: ${{ env.APPLE_API_KEY_PATH }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          # Sem isso, o publisher do electron-builder recusa anexar os
+          # artefatos a uma release já existente com mais de 2h (guard interno
+          # dele, ver gitHubPublisher.ts — pensado pra evitar sobrescrever uma
+          # release "definitiva" antiga por engano). A release do Windows é
+          # criada bem antes da notarização do Mac terminar (notarização real
+          # leva 90-180min), então esse guard sempre disparava aqui — build,
+          # assinatura e notarização terminavam OK mas o upload era pulado em
+          # silêncio (exit code 0, log só mostra "skipped publishing").
+          EP_GH_IGNORE_TIME: "true"
         # ulimit padrão do runner (256) é baixo demais pra assinar cada um dos
         # milhares de arquivos dentro de python_env (torch/onnxruntime/
         # transformers) — sem isso, EMFILE: too many open files. 10240 ainda
