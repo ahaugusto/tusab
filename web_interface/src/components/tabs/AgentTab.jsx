@@ -3,14 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
   KeyRound, CheckCircle2, Eye, EyeOff, AlertTriangle, Loader2,
-  Zap, ArrowUp, Sparkles, X, Info, ExternalLink, GraduationCap,
+  Zap, ArrowUp, Sparkles, X, Info, ExternalLink,
   Settings, LayoutGrid, RefreshCw, Copy, Check,
 } from 'lucide-react';
 import OllamaSetup from '../agent/OllamaSetup';
-import EstudoTab from '../agent/EstudoTab';
 import PersonaCustomModal from '../shared/PersonaCustomModal';
 import { BTN_FOCUS } from '../../constants';
-import { saveAgentConfig, gerarEstudo, exportFlashcardsAnki, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
+import { saveAgentConfig, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
 
 function useSubTabs(t) {
   return [
@@ -57,7 +56,6 @@ export default function AgentTab({
   useEffect(() => {
     if (initialSubTab) setSubTab(initialSubTab);
   }, [initialSubTab]);
-  const [estudoOpen, setEstudoOpen] = useState(true);
   const [showPersonaCustomModal, setShowPersonaCustomModal] = useState(false);
   const [comandoCopiado, setComandoCopiado] = useState(false);
   const copiarComandoInstalacao = () => {
@@ -66,44 +64,6 @@ export default function AgentTab({
       setTimeout(() => setComandoCopiado(false), 2000);
     }).catch(() => {});
   };
-  const projetosIndexados = agentStatus?.canais_indexados || [];
-
-  // ── Estado persistente do Modo Estudo (sobrevive à troca de aba/accordion) ──
-  const [estudoProjeto,    setEstudoProjeto]    = useState('');
-  const [estudoTipo,       setEstudoTipo]       = useState('flashcards');
-  const [estudoNCards,     setEstudoNCards]     = useState(10);
-  const [estudoGerando,    setEstudoGerando]    = useState(false);
-  const [estudoErro,       setEstudoErro]       = useState('');
-  const [estudoFlashcards, setEstudoFlashcards] = useState([]);
-  const [estudoResumo,     setEstudoResumo]     = useState('');
-  const [estudoRevisados,  setEstudoRevisados]  = useState(new Set());
-
-  const handleEstudoGerar = useCallback(async () => {
-    if (!estudoProjeto) { setEstudoErro('Selecione um projeto indexado antes de gerar.'); return; }
-    setEstudoGerando(true);
-    setEstudoErro('');
-    setEstudoFlashcards([]);
-    setEstudoResumo('');
-    setEstudoRevisados(new Set());
-    try {
-      const res = await gerarEstudo({ projeto_nome: estudoProjeto, tipo: estudoTipo, n_cards: estudoNCards });
-      const data = res.data;
-      if (data.error) { setEstudoErro(data.message || 'Erro ao gerar conteúdo de estudo.'); return; }
-      if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
-      if (data.resumo) setEstudoResumo(data.resumo);
-    } catch (e) {
-      setEstudoErro(e?.response?.data?.message || e?.message || 'Erro de conexão com o backend.');
-    } finally {
-      setEstudoGerando(false);
-    }
-  }, [estudoProjeto, estudoTipo, estudoNCards]);
-
-  const handleEstudoResetar = useCallback(() => {
-    setEstudoFlashcards([]);
-    setEstudoResumo('');
-    setEstudoRevisados(new Set());
-    setEstudoErro('');
-  }, []);
 
   // ── Estado persistente do download Ollama (sobrevive à troca de aba) ─────────
   const [pullProgress,  setPullProgress]  = useState(null);
@@ -151,20 +111,6 @@ export default function AgentTab({
     setPulling(true);
     setTimeout(() => { clearInterval(iv); setPullingModel(null); setPullProgress(null); }, 900000);
   }, [setOllamaStatus]);
-
-  const handleEstudoExportarAnki = useCallback(async () => {
-    if (!estudoProjeto || !estudoFlashcards.length) return;
-    try {
-      const resp = await exportFlashcardsAnki(estudoProjeto);
-      if (!resp.ok) { setEstudoErro('Erro ao exportar CSV.'); return; }
-      const blob = await resp.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `tusab_${estudoProjeto}_flashcards.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch { setEstudoErro('Erro ao exportar flashcards.'); }
-  }, [estudoProjeto, estudoFlashcards]);
 
   return (
     <div id="panel-agente" role="tabpanel" aria-labelledby="tab-agente"
@@ -214,67 +160,7 @@ export default function AgentTab({
         )}
       </AnimatePresence>
 
-      {/* ══════════════════════════════════════════
-          SUB-ABA: FUNCIONALIDADES
-      ══════════════════════════════════════════ */}
       <AnimatePresence mode="wait">
-        {subTab === 'funcionalidades' && (
-          <motion.div key="funcionalidades"
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}
-            className="space-y-4">
-
-            {/* Modo Estudo */}
-            <section aria-labelledby="estudo-heading"
-              className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-              <button
-                aria-expanded={estudoOpen} aria-controls="estudo-body"
-                onClick={() => setEstudoOpen(v => !v)}
-                className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${estudoOpen && (darkMode ? 'border-b border-white/10' : 'border-b border-slate-100')} ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'} ${BTN_FOCUS}`}>
-                <GraduationCap size={14} className="text-primary shrink-0" aria-hidden="true" />
-                <h3 id="estudo-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                  Modo Estudo
-                </h3>
-                {projetosIndexados.length > 0 && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold mr-1 ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-100 text-violet-700'}`}>
-                    {projetosIndexados.length} projeto{projetosIndexados.length > 1 ? 's' : ''}
-                  </span>
-                )}
-                <motion.div animate={{ rotate: estudoOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ArrowUp size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
-                </motion.div>
-              </button>
-
-              <AnimatePresence initial={false}>
-                {estudoOpen && (
-                  <motion.div id="estudo-body"
-                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
-                    style={{ overflow: 'hidden' }}>
-                    <div className="p-4">
-                      <EstudoTab
-                        darkMode={darkMode}
-                        projetosIndexados={projetosIndexados}
-                        projeto={estudoProjeto}           setProjeto={setEstudoProjeto}
-                        tipo={estudoTipo}                 setTipo={setEstudoTipo}
-                        nCards={estudoNCards}             setNCards={setEstudoNCards}
-                        gerando={estudoGerando}
-                        erro={estudoErro}
-                        flashcards={estudoFlashcards}
-                        resumo={estudoResumo}
-                        revisados={estudoRevisados}       setRevisados={setEstudoRevisados}
-                        onGerar={handleEstudoGerar}
-                        onResetar={handleEstudoResetar}
-                        onExportarAnki={handleEstudoExportarAnki}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </section>
-          </motion.div>
-        )}
-
         {/* ══════════════════════════════════════════
             SUB-ABA: CONFIGURAÇÕES
         ══════════════════════════════════════════ */}
