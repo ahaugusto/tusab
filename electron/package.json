@@ -121,6 +121,9 @@
       "owner": "ahaugusto",
       "repo": "tusab-public",
       "releaseType": "release"
+    },
+    "releaseInfo": {
+      "releaseNotesFile": "../release_notes.md"
     }
   }
 }

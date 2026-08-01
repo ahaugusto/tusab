@@ -13,6 +13,7 @@ data/config/agent_config.json
 # --- Dados gerados em runtime ---
 data/neural/
 data/indexes/
+release_notes.md
 data/cerebro/
 data/cerebro_txt/
 data/gestao/
