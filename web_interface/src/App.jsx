@@ -303,6 +303,7 @@ function App() {
   const [estudoProjeto,    setEstudoProjeto]    = useState('');
   const [estudoTipos,      setEstudoTipos]      = useState(['flashcards']); // multi-select: gera cada tipo selecionado em paralelo
   const [estudoNCards,     setEstudoNCards]     = useState(10);
+  const [estudoTema,       setEstudoTema]       = useState(''); // opcional — escopa a geração a um tema/tópico via BM25
   const [estudoGerando,    setEstudoGerando]    = useState(false);
   const [estudoErro,       setEstudoErro]       = useState('');
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
@@ -329,7 +330,7 @@ function App() {
       const chamadas = estudoTipos.map(t =>
         t === 'topicos'
           ? buscarTopicos(estudoProjeto, estudoNCards * 2).then(r => ({ tipo: t, data: r.data }))
-          : gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards }).then(r => ({ tipo: t, data: r.data }))
+          : gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards, tema: estudoTema }).then(r => ({ tipo: t, data: r.data }))
       );
       const resultados = await Promise.allSettled(chamadas);
       const erros = [];
@@ -353,7 +354,7 @@ function App() {
     } finally {
       setEstudoGerando(false);
     }
-  }, [estudoProjeto, estudoTipos, estudoNCards]);
+  }, [estudoProjeto, estudoTipos, estudoNCards, estudoTema]);
 
   const handleEstudoResetar = useCallback(() => {
     setEstudoFlashcards([]);
@@ -2023,6 +2024,7 @@ function App() {
                   projeto={estudoProjeto}           setProjeto={setEstudoProjeto}
                   tipo={estudoTipos}                setTipo={setEstudoTipos}
                   nCards={estudoNCards}             setNCards={setEstudoNCards}
+                  tema={estudoTema}                 setTema={setEstudoTema}
                   gerando={estudoGerando}
                   erro={estudoErro}
                   flashcards={estudoFlashcards}
