@@ -295,6 +295,10 @@ export const gerarEstudo = (data) => axios.post(`${API_BASE}/agent/study`, data,
 /** Busca flashcards e resumo salvos para um projeto */
 export const fetchEstudo = (projeto_nome) => axios.get(`${API_BASE}/agent/study/${encodeURIComponent(projeto_nome)}`);
 
+/** Extrai lista de tópicos/palavras-chave (KeyBERT) para nuvem de palavras */
+export const buscarTopicos = (projeto_nome, limit = 40) =>
+  axios.get(`${API_BASE}/agent/study/topicos/${encodeURIComponent(projeto_nome)}`, { params: { limit }, timeout: 60000 });
+
 /** Lista históricos auto-salvos em _chat_history/ (fora do corpus BM25) */
 export const listarHistoricosSalvos = (projeto_nome) => axios.get(`${API_BASE}/agent/chat/historicos-salvos/${encodeURIComponent(projeto_nome)}`);
 
@@ -315,9 +319,11 @@ export const exportFlashcardsAnki = (projeto_nome) => fetch(`${API_BASE}/export/
 /** Verifica se o TTS local está disponível nesta instalação */
 export const ttsStatus = () => axios.get(`${API_BASE}/agent/tts/status`);
 
-/** Sintetiza texto em áudio WAV — retorna Blob para tocar via <audio> */
+/** Sintetiza texto em áudio WAV — retorna Blob para tocar via <audio>.
+ *  Timeout generoso (5min, mesmo usado em gerarEstudo): Pocket TTS é CPU-only
+ *  e local — medido ao vivo em ~79s pra um resumo de 3.2k chars, 60s não bastava. */
 export const ttsSintetizar = (texto) =>
-  axios.post(`${API_BASE}/agent/tts`, { texto }, { responseType: 'blob', timeout: 60000 });
+  axios.post(`${API_BASE}/agent/tts`, { texto }, { responseType: 'blob', timeout: 300000 });
 
 /** Downloads project summary as Word .docx — sends frontend messages to avoid empty server-side history */
 export const exportResumoCanalDocx = (projeto_nome, mensagens = []) =>
