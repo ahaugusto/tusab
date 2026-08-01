@@ -25,6 +25,14 @@ export default function AdminTab({
   // No app empacotado (Electron) não existe barra de endereço/cadeado — a
   // permissão de notificação é controlada pelo Windows, não pelo navegador.
   const IS_ELECTRON = !!window.tusab?.checkForUpdates;
+  // Edge/Chrome em modo --app= ou PWA instalada: mesma ausência visual de
+  // barra de endereço do Electron, mas window.tusab não existe (sem
+  // preload) — precisa de instrução própria, já que não tem cadeado nem
+  // é controlado pelas notificações do Windows por app. display-mode:
+  // standalone é o sinal padrão do Chromium pros dois casos (--app= e PWA
+  // instalada usam o mesmo modo de exibição).
+  const IS_STANDALONE_BROWSER = !IS_ELECTRON &&
+    typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
 
   const [notifPerm, setNotifPerm] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unavailable'
@@ -292,6 +300,8 @@ export default function AdminTab({
               <CheckCircle2 size={13} className="mt-0.5 shrink-0" />
               <span>{IS_ELECTRON
                 ? t('admin.notif_granted_info_electron', 'Notificações ativas. Para desativar, vá em Configurações do Windows → Sistema → Notificações, localize o Tusab e desative.')
+                : IS_STANDALONE_BROWSER
+                ? t('admin.notif_granted_info_standalone', 'Notificações ativas. Para desativar, acesse as configurações de site do navegador (ex: edge://settings/content/notifications) e altere a permissão pra este endereço.')
                 : t('admin.notif_granted_info', 'Notificações ativas. Para desativar, clique no ícone de cadeado na barra de endereço do navegador e altere a permissão de notificações.')}</span>
             </div>
           )}
@@ -301,6 +311,8 @@ export default function AdminTab({
               <BellOff size={13} className="mt-0.5 shrink-0" />
               <span>{IS_ELECTRON
                 ? t('admin.notif_denied_info_electron', 'Notificações bloqueadas pelo Windows para o Tusab. Para habilitar, vá em Configurações do Windows → Sistema → Notificações, localize o Tusab e ative.')
+                : IS_STANDALONE_BROWSER
+                ? t('admin.notif_denied_info_standalone', 'Notificações bloqueadas pelo navegador. Este app roda sem barra de endereço, então acesse as configurações de site do navegador (ex: edge://settings/content/notifications) e permita notificações pra este endereço.')
                 : t('admin.notif_denied_info', 'Notificações bloqueadas pelo navegador. Para habilitar, clique no ícone de cadeado na barra de endereço e permita notificações para este app.')}</span>
             </div>
           )}
