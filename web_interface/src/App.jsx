@@ -241,7 +241,7 @@ function App() {
   // 'canal_youtube' | 'canal_documents' — qual subpasta abrir, definido por
   // quem chama onOpenFolderPicker (ex: fonte pública selecionada na Extração
   // deve abrir documents/, não youtube/, que nem existe nesses projetos).
-  const [folderPickerTipo, setFolderPickerTipo] = useState('canal_youtube');
+  const [folderPickerTipo, setFolderPickerTipo] = useState('projeto');
   const [folderPickerNovoProjeto, setFolderPickerNovoProjeto] = useState('');
   const [folderPickerCriando, setFolderPickerCriando] = useState(false);
   const [repoProjetoInicial,  setRepoProjetoInicial]  = useState('');
@@ -1718,7 +1718,7 @@ function App() {
                 handlePause={handlePause}
                 handleCancel={handleCancel}
                 repositorio={repositorio}
-                onOpenFolderPicker={() => { setFolderPickerTipo(fontePreSelecionada === 'youtube' ? 'canal_youtube' : 'canal_documents'); setFolderPickerOpen(true); }}
+                onOpenFolderPicker={() => { setFolderPickerTipo('projeto'); setFolderPickerOpen(true); }}
                 onOpenQueueModal={() => setShowQueueModal(true)}
                 onNavigateMonitor={() => { setActiveTab('monitor'); setShowHome(false); }}
                 onRemoveCanal={() => {
