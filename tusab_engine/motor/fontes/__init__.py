@@ -27,7 +27,7 @@ from . import (
     art_institute_chicago, arxiv_adapter, bcb, camara, cern_opendata,
     clinicaltrials, crossref, data_europa_eu, data_gov_uk, datacite, doaj,
     europepmc, github, hacker_news, nasa_cmr, open_library, openalex, openfda,
-    pubmed, senado_leis, stackexchange, the_met, uniprot, wikipedia, zenodo,
+    pubmed, senado_leis, stackexchange, the_met, uniprot, wikipedia, wiktionary, zenodo,
 )
 
 _MODULOS = [
@@ -40,7 +40,7 @@ _MODULOS = [
     nasa_cmr,
     cern_opendata,
     art_institute_chicago, the_met,
-    wikipedia,
+    wikipedia, wiktionary,
 ]
 
 FONTES = {m.FONTE_META["id"]: m for m in _MODULOS}
