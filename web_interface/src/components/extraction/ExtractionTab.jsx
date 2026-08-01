@@ -600,14 +600,12 @@ export default function ExtractionTab({
           <StatCard icon={FileText} label={t('stats.files')}     value={status.stats.files_generated}
             color="accent"    sub={t('stats.parts')}
             onOpen={() => {
-              // arXiv não gera pasta youtube/ — abrir documents/ nesse caso.
-              const tipoPasta = fontePreSelecionada === 'youtube' ? 'canal_youtube' : 'canal_documents';
               const nomesRepo  = (repositorio?.canais || []).map(c => c.nome);
               const nomesHist  = history.filter(h => h.projeto).map(h => h.projeto);
               const todos = [...new Set([...nomesRepo, ...nomesHist])];
               if (!todos.length && !canalConfigurado) return;
               if (todos.length > 1) { onOpenFolderPicker(); return; }
-              openFolder(tipoPasta, canalConfigurado || todos[0]);
+              openFolder('projeto', canalConfigurado || todos[0]);
             }}
             darkMode={darkMode} />
           <StatCard icon={Database} label={t('stats.db')}        value={canalConfigurado ? t('stats.active') : t('stats.waiting_db')}

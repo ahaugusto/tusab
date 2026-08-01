@@ -1276,7 +1276,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               )}
               {/* Abrir pasta local */}
               <button
-                onClick={e => { e.stopPropagation(); openFolder('canal_youtube', canal.nome).catch(() => {}); }}
+                onClick={e => { e.stopPropagation(); openFolder('projeto', canal.nome).catch(() => {}); }}
                 title={t('repo.open_folder_title', { nome: canal.nome })}
                 className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
@@ -1502,7 +1502,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                 </button>
                 {/* Abrir pasta local */}
                 <button
-                  onClick={e => { e.stopPropagation(); openFolder('canal_youtube', nome).catch(() => {}); }}
+                  onClick={e => { e.stopPropagation(); openFolder('projeto', nome).catch(() => {}); }}
                   title={t('repo.open_folder_title', { nome })}
                   className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
