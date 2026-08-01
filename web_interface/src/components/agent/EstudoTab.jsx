@@ -20,6 +20,7 @@ export default function EstudoTab({
   erro,
   flashcards,
   resumo,
+  quiz,
   revisados,      setRevisados,
   onGerar,
   onResetar,
@@ -30,7 +31,14 @@ export default function EstudoTab({
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped,    setFlipped]    = useState(false);
 
+  // Quiz — estado efêmero de navegação/respostas, mesma filosofia dos flashcards
+  const [quizIdx,       setQuizIdx]       = useState(0);
+  const [quizRespostas, setQuizRespostas] = useState({}); // { [idx]: alternativaEscolhidaIdx }
+
   const card = flashcards?.[currentIdx] ?? null;
+  const perguntaQuiz = quiz?.[quizIdx] ?? null;
+  const quizRespondidas = Object.keys(quizRespostas).length;
+  const quizAcertos = Object.entries(quizRespostas).filter(([idx, alt]) => quiz?.[idx]?.correta === alt).length;
   const semProjetos = projetosIndexados.length === 0;
 
   // ── TTS local (Pocket TTS) — só disponível na build Beta/Enterprise ──────────
@@ -82,7 +90,18 @@ export default function EstudoTab({
     if (currentIdx < flashcards.length - 1) { setCurrentIdx(i => i + 1); setFlipped(false); }
   };
 
-  const handleResetarLocal = () => { setCurrentIdx(0); setFlipped(false); onResetar?.(); };
+  const handleResetarLocal = () => {
+    setCurrentIdx(0); setFlipped(false);
+    setQuizIdx(0); setQuizRespostas({});
+    onResetar?.();
+  };
+
+  const handleQuizAnterior = () => setQuizIdx(i => Math.max(0, i - 1));
+  const handleQuizProximo  = () => setQuizIdx(i => Math.min(quiz.length - 1, i + 1));
+  const handleQuizResponder = (altIdx) => {
+    if (quizRespostas[quizIdx] !== undefined) return; // já respondida — não deixa trocar
+    setQuizRespostas(prev => ({ ...prev, [quizIdx]: altIdx }));
+  };
 
   // ── Estilos base ──────────────────────────────────────────────────────────
 
@@ -173,6 +192,7 @@ export default function EstudoTab({
               { id: 'flashcards', label: t('estudo.type_flashcards') },
               { id: 'resumo',     label: t('estudo.type_resumo')     },
               { id: 'ambos',      label: t('estudo.type_ambos')      },
+              { id: 'quiz',       label: t('estudo.type_quiz')       },
             ].map(({ id, label }) => (
               <button key={id} onClick={() => setTipo(id)} style={{
                 ...btnBase, padding: '6px 14px',
@@ -225,7 +245,7 @@ export default function EstudoTab({
               : <><BookOpen size={14} /> {t('estudo.generate_btn')}</>}
           </button>
 
-          {(flashcards?.length > 0 || resumo) && (
+          {(flashcards?.length > 0 || resumo || quiz?.length > 0) && (
             <button onClick={handleResetarLocal} style={{
               ...btnBase, padding: '10px 12px',
               background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
@@ -356,6 +376,97 @@ export default function EstudoTab({
               height: '100%', borderRadius: '4px',
               background: 'linear-gradient(90deg, #8b5cf6, #34d399)',
               width: `${((currentIdx + 1) / flashcards.length) * 100}%`,
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Quiz ─────────────────────────────────────────────────────────────── */}
+      {quiz?.length > 0 && (
+        <div style={{
+          background: bgCard, border: `1px solid ${borderColor}`,
+          borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>{t('estudo.section_quiz')}</p>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', color: textSecond }}>{quizIdx + 1} / {quiz.length}</span>
+              <span style={{
+                fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                background: darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5',
+                color: darkMode ? '#34d399' : '#065f46',
+              }}>{t('estudo.quiz_score', { acertos: quizAcertos, respondidas: quizRespondidas })}</span>
+            </div>
+          </div>
+
+          {perguntaQuiz && (() => {
+            const respostaEscolhida = quizRespostas[quizIdx];
+            const jaRespondeu = respostaEscolhida !== undefined;
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: textPrimary, lineHeight: 1.5, margin: 0 }}>
+                  {perguntaQuiz.pergunta}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {perguntaQuiz.alternativas.map((alt, i) => {
+                    const ehCorreta  = i === perguntaQuiz.correta;
+                    const ehEscolhida = i === respostaEscolhida;
+                    let bg = darkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc';
+                    let border = borderColor;
+                    let color = textPrimary;
+                    if (jaRespondeu && ehCorreta) {
+                      bg = darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5';
+                      border = darkMode ? 'rgba(52,211,153,0.40)' : '#6ee7b7';
+                      color = darkMode ? '#34d399' : '#065f46';
+                    } else if (jaRespondeu && ehEscolhida && !ehCorreta) {
+                      bg = darkMode ? 'rgba(248,113,113,0.15)' : '#fef2f2';
+                      border = darkMode ? 'rgba(248,113,113,0.40)' : '#fca5a5';
+                      color = darkMode ? '#f87171' : '#dc2626';
+                    }
+                    return (
+                      <button key={i} onClick={() => handleQuizResponder(i)} disabled={jaRespondeu} style={{
+                        ...btnBase, textAlign: 'left', padding: '10px 14px',
+                        background: bg, border: `1px solid ${border}`, color,
+                        cursor: jaRespondeu ? 'default' : 'pointer', fontWeight: 500,
+                      }}>{alt}</button>
+                    );
+                  })}
+                </div>
+                {jaRespondeu && perguntaQuiz.explicacao && (
+                  <p style={{
+                    fontSize: '11px', color: textSecond, margin: 0, padding: '10px 12px',
+                    background: darkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', borderRadius: '10px',
+                  }}>{perguntaQuiz.explicacao}</p>
+                )}
+              </div>
+            );
+          })()}
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleQuizAnterior} disabled={quizIdx === 0} style={{
+              ...btnBase, padding: '8px 14px',
+              background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+              color: textSecond, border: `1px solid ${borderColor}`,
+              opacity: quizIdx === 0 ? 0.4 : 1,
+              cursor: quizIdx === 0 ? 'not-allowed' : 'pointer',
+            }}>{t('estudo.prev_btn')}</button>
+            <button onClick={handleQuizProximo} disabled={quizIdx === quiz.length - 1} style={{
+              ...btnBase, flex: 1, padding: '8px 14px',
+              background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+              color: textSecond, border: `1px solid ${borderColor}`,
+              opacity: quizIdx === quiz.length - 1 ? 0.4 : 1,
+              cursor: quizIdx === quiz.length - 1 ? 'not-allowed' : 'pointer',
+            }}>{t('estudo.next_btn')}</button>
+          </div>
+
+          <div style={{ height: '4px', background: darkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+            borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: '4px',
+              background: 'linear-gradient(90deg, #8b5cf6, #34d399)',
+              width: `${((quizIdx + 1) / quiz.length) * 100}%`,
               transition: 'width 0.3s ease',
             }} />
           </div>
