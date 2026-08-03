@@ -279,9 +279,7 @@ function OllamaSetup({
             const isAtivo      = ollamaStatus.running && modelName === id && instalado;
             return (
               <div key={id} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors
-                ${instalado
-                  ? darkMode ? 'bg-secondary/8 border-secondary/20' : 'bg-emerald-50 border-emerald-200'
-                  : darkMode ? 'bg-white/3 border-white/8 hover:border-white/15' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                ${darkMode ? 'bg-white/3 border-white/8 hover:border-white/15' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className={`text-[10px] font-mono font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{label}</span>
