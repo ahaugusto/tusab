@@ -48,6 +48,7 @@ electron/
 | `configuration.mac.notarize should be a boolean` | Passou `{teamId: ...}` em vez de boolean | `notarize: false` no `package.json`, override via `-c.mac.notarize=true` só nos jobs que notarizam |
 | `EMFILE: too many open files` no deep-sign | Teto de KERNEL (`kern.maxfilesperproc`) separado do `ulimit` do processo — `ulimit -n` sozinho, mesmo em 1000000, não resolve | `sudo sysctl -w kern.maxfilesperproc=200000 kern.maxfiles=300000` antes do build |
 | `ditto: No space left on device` ao montar `.dmg` | Volume virtual da imagem `.dmg` (não o disco físico) subdimensionado pro app assinado inteiro | Em investigação — ver `agents/_historia.md` pra status mais recente antes de propor fix |
+| App instalado mostra "Arquivo de credenciais ausente da instalação" no card do Google Drive | `credentials.json` (OAuth do Drive) nunca foi commitado (`.gitignore`) — só existia localmente na máquina onde builds eram feitos manualmente; o checkout do CI nunca teve o arquivo, então `extraResources` não tinha o que copiar. Afetava (em teoria) qualquer build feito via CI, não só macOS — só foi notado no macOS porque é 100% CI, sem fallback de build local | Secret `GOOGLE_DRIVE_CREDENTIALS_JSON` (conteúdo do `credentials.json`) + passo que escreve o arquivo antes do build, em ambos os jobs (`build-windows` e `build-macos`) — mesmo padrão do `APPLE_API_KEY`. Fix em `release.yml`, ago/2026. |
 
 ## Timeouts e expectativa de duração
 
