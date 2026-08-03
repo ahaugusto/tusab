@@ -12,7 +12,7 @@ import { X, Zap, Loader2, Search } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 import CanalUrlSearchInput from './CanalUrlSearchInput';
-import { getCanalInfo, criarProjeto } from '../../services/api';
+import { getCanalInfo, criarProjeto, listarPlaylistsCanal } from '../../services/api';
 
 /**
  * ExtractionModal — always starts with project name.
@@ -112,6 +112,22 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const [selected, setSelected] = React.useState(ALL_TYPES.map(t => t.id));
   const allSelected = selected.length === ALL_TYPES.length;
 
+  // Seleção específica de playlists (só relevante quando 'Playlists' está
+  // marcado) — carregada sob demanda porque expandir cada playlist do canal
+  // é uma chamada de rede própria (yt-dlp), sem sentido pedir se o usuário
+  // não vai usar. null = ainda não carregado; array vazio = canal sem
+  // playlists OU nenhuma marcada manualmente (tratamos como "não filtrar").
+  const [playlistsDisponiveis, setPlaylistsDisponiveis] = React.useState(null);
+  const [playlistsCarregando,  setPlaylistsCarregando]  = React.useState(false);
+  const [playlistsMarcadas,    setPlaylistsMarcadas]    = React.useState(null); // null = todas
+  const [playlistsExpandido,   setPlaylistsExpandido]   = React.useState(false);
+
+  // Filtro opcional de data de publicação — aplica a todos os tipos
+  // selecionados, não só playlists (upload_date já é coletado uniformemente
+  // pelo motor de extração pra qualquer fonte).
+  const [dataInicio, setDataInicio] = React.useState('');
+  const [dataFim,    setDataFim]    = React.useState('');
+
   // Auto-update
   const [autoUpdate,        setAutoUpdate]        = React.useState(false);
   const [autoUpdateConsent, setAutoUpdateConsent] = React.useState(false);
@@ -162,6 +178,30 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     return () => { clearTimeout(timer); setCanalInfoLoading(false); };
   }, [canalUrl, step]);
 
+  // Carrega a lista de playlists do canal quando o usuário abre o painel de
+  // seleção (não no mount — evita uma chamada de yt-dlp desnecessária pra
+  // quem nunca vai expandir).
+  const handleAbrirSeletorPlaylists = () => {
+    setPlaylistsExpandido(v => !v);
+    if (playlistsDisponiveis !== null || playlistsCarregando) return;
+    setPlaylistsCarregando(true);
+    listarPlaylistsCanal(canalUrl.trim())
+      .then(r => setPlaylistsDisponiveis(r.data?.playlists || []))
+      .catch(() => setPlaylistsDisponiveis([]))
+      .finally(() => setPlaylistsCarregando(false));
+  };
+
+  const togglePlaylist = (id) => {
+    setPlaylistsMarcadas(prev => {
+      const base = prev === null ? (playlistsDisponiveis || []).map(p => p.id) : prev;
+      return base.includes(id) ? base.filter(x => x !== id) : [...base, id];
+    });
+  };
+
+  const playlistEstaMarcada = (id) => playlistsMarcadas === null || playlistsMarcadas.includes(id);
+  const todasPlaylistsMarcadas = playlistsMarcadas === null
+    || (playlistsDisponiveis && playlistsMarcadas.length === playlistsDisponiveis.length);
+
   const avancar = () => {
     if (step === 'url') {
       if (sourceType === 'fonte-publica') { setStep('projeto'); return; }
@@ -187,7 +227,11 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     const autoUpdateConfig = autoUpdate && autoUpdateConsent
       ? { enabled: true, frequencia: autoUpdateFreq }
       : { enabled: false };
-    onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig);
+    // Vazio = sem filtro (todas as playlists) — contrato do backend.
+    const playlistsParaEnviar = (selected.includes('Playlists') && playlistsMarcadas !== null && !todasPlaylistsMarcadas)
+      ? playlistsMarcadas
+      : [];
+    onConfirm(selected, nome, urlChanged ? canalUrl.trim() : undefined, autoUpdateConfig, playlistsParaEnviar, dataInicio.trim(), dataFim.trim());
   };
 
   // /fontes/{id}/search exige que o projeto já exista em disco (mesmo
@@ -661,6 +705,92 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                     </button>
                   );
                 })}
+              </div>
+
+              {/* ── Seleção de playlists específicas — só quando 'Playlists' está marcado ── */}
+              {selected.includes('Playlists') && (
+                <div className={`rounded-xl border mb-4 overflow-hidden ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-200 bg-slate-50'}`}>
+                  <button
+                    onClick={handleAbrirSeletorPlaylists}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${BTN_FOCUS}`}>
+                    <span className="text-base shrink-0" aria-hidden="true">▶️</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                        {t('extraction.playlists_selector_title')}
+                      </p>
+                      <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {playlistsMarcadas === null
+                          ? t('extraction.playlists_selector_subtitle_all')
+                          : t('extraction.playlists_selector_subtitle_count', { count: playlistsMarcadas.length })}
+                      </p>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      className={`shrink-0 transition-transform ${playlistsExpandido ? 'rotate-180' : ''} ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </button>
+
+                  {playlistsExpandido && (
+                    <div className={`px-3 pb-3 pt-1 border-t ${darkMode ? 'border-white/8' : 'border-slate-200'}`}>
+                      {playlistsCarregando && (
+                        <div className={`flex items-center gap-2 py-3 text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                          {t('extraction.playlists_loading')}
+                        </div>
+                      )}
+                      {!playlistsCarregando && playlistsDisponiveis?.length === 0 && (
+                        <p className={`text-[11px] py-2 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {t('extraction.playlists_empty')}
+                        </p>
+                      )}
+                      {!playlistsCarregando && playlistsDisponiveis?.length > 0 && (
+                        <div className="space-y-1 pt-2 max-h-40 overflow-y-auto custom-scrollbar">
+                          {playlistsDisponiveis.map(p => {
+                            const marcada = playlistEstaMarcada(p.id);
+                            return (
+                              <button key={p.id} onClick={() => togglePlaylist(p.id)}
+                                role="checkbox" aria-checked={marcada}
+                                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors ${BTN_FOCUS}
+                                  ${darkMode ? 'hover:bg-white/8' : 'hover:bg-slate-100'}`}>
+                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors
+                                  ${marcada ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                                  {marcada && <svg width="8" height="7" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                </div>
+                                <span className={`text-[11px] truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{p.titulo}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Filtro opcional de data de publicação — aplica a todos os tipos marcados ── */}
+              <div className="mb-4">
+                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {t('extraction.date_filter_label')}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={dataInicio}
+                    onChange={e => setDataInicio(e.target.value)}
+                    max={dataFim || undefined}
+                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                  />
+                  <span className={`text-[11px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.fonte_date_to')}</span>
+                  <input
+                    type="date"
+                    value={dataFim}
+                    onChange={e => setDataFim(e.target.value)}
+                    min={dataInicio || undefined}
+                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                  />
+                </div>
               </div>
 
               {/* ── Auto-update panel ── */}

@@ -365,6 +365,28 @@ def detectar_idiomas_canal(_all_videos):
     return _SUB_LANGS_PRIMARY, _SUB_LANGS_FALLBACK
 
 
+def _video_dentro_do_periodo(upload_date_raw: str, data_inicio: str, data_fim: str) -> bool:
+    """Compara upload_date (yt-dlp, formato YYYYMMDD) contra um intervalo YYYY-MM-DD.
+
+    Sem filtro ativo (data_inicio e data_fim vazios), sempre True. Um vídeo
+    sem data conhecida ('NA' — comum em streams/lives antigas) é excluído
+    quando há filtro ativo: sem data não dá pra confirmar que está dentro do
+    intervalo pedido, e incluir por padrão seria mais surpreendente que
+    excluir.
+    """
+    if not data_inicio and not data_fim:
+        return True
+    raw = (upload_date_raw or '').strip()
+    if not raw or raw == 'NA' or len(raw) != 8 or not raw.isdigit():
+        return False
+    data_video = f"{raw[:4]}-{raw[4:6]}-{raw[6:8]}"  # YYYY-MM-DD — comparável lexicograficamente
+    if data_inicio and data_video < data_inicio:
+        return False
+    if data_fim and data_video > data_fim:
+        return False
+    return True
+
+
 def gerar_fontes(canal_url):
     base = canal_url.rstrip('/')
     return [
@@ -605,7 +627,8 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
 
 # ── Engine principal ──────────────────────────────────────────────────────────
 
-def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None, projeto_nome: str = "", dispatch_event=None):
+def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None, projeto_nome: str = "",
+                  dispatch_event=None, playlists_filtro=None, data_inicio: str = "", data_fim: str = ""):
     canal_nome_raw = extrair_nome_canal(canal_url)
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
     if projeto_nome:
@@ -680,6 +703,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     playlist_id = p_lines[i + 1]
                     if not re.match(r'^[A-Za-z0-9_\-]{10,50}$', playlist_id):
                         continue
+                    if playlists_filtro and playlist_id not in playlists_filtro:
+                        continue
                     cmd_v = [
                         'yt-dlp', '--flat-playlist', '--ignore-errors',
                         '--extractor-args', 'youtube:lang=pt',
@@ -696,6 +721,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                             if vid in ids_mapeados:
                                 continue
                             if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
+                                continue
+                            if not _video_dentro_do_periodo(parts[1], data_inicio, data_fim):
                                 continue
                             all_videos.append({
                                 'id': vid, 'date': formatar_data(parts[1]),
@@ -722,6 +749,8 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                     if vid in ids_mapeados:
                         continue
                     if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
+                        continue
+                    if not _video_dentro_do_periodo(parts[1], data_inicio, data_fim):
                         continue
                     all_videos.append({
                         'id': vid, 'date': formatar_data(parts[1]),

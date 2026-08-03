@@ -65,10 +65,14 @@ export const getCanalInfo = (url) => axios.get(`${API_BASE}/canal-info`, { param
 /** Searches YouTube channels by name/term — no API key, local yt-dlp */
 export const buscarCanaisYoutube = (q) => axios.get(`${API_BASE}/canal-search`, { params: { q } });
 
+/** Lists a channel's playlists (id + título) without expanding each one's videos */
+export const listarPlaylistsCanal = (url) => axios.get(`${API_BASE}/playlists-canal`, { params: { url } });
+
 // ─── Motor ───────────────────────────────────────────────────────────────────
 
-/** Starts extraction engine with selected content types */
-export const startExtraction = (fontes) => axios.post(`${API_BASE}/start`, { fontes });
+/** Starts extraction engine with selected content types — playlists vazio = todas; datas opcionais (YYYY-MM-DD) */
+export const startExtraction = (fontes, playlists = [], data_inicio = '', data_fim = '') =>
+  axios.post(`${API_BASE}/start`, { fontes, playlists, data_inicio, data_fim });
 
 /** Pauses or resumes the extraction engine */
 export const pauseExtraction = () => axios.post(`${API_BASE}/pause`);
@@ -77,7 +81,8 @@ export const pauseExtraction = () => axios.post(`${API_BASE}/pause`);
 export const cancelExtraction = () => axios.post(`${API_BASE}/cancel`);
 
 /** Adds a channel URL to the extraction queue */
-export const queueAdd = (canal_url, fontes = [], projeto_nome = '') => axios.post(`${API_BASE}/queue/add`, { canal_url, fontes, projeto_nome });
+export const queueAdd = (canal_url, fontes = [], projeto_nome = '', playlists = [], data_inicio = '', data_fim = '') =>
+  axios.post(`${API_BASE}/queue/add`, { canal_url, fontes, projeto_nome, playlists, data_inicio, data_fim });
 
 /** Clears all pending items from the extraction queue */
 export const queueClear = () => axios.delete(`${API_BASE}/queue/clear`);
