@@ -77,6 +77,7 @@ export function useAgentConfig({ activeTab, showError }) {
   const [queryExpansion,       setQueryExpansion]       = useState(false);
   const [persona,              setPersona]              = useState('');
   const [personaCustom,        setPersonaCustom]        = useState('');
+  const [mostrarRaciocinio,    setMostrarRaciocinio]    = useState(false);
   const [canalMeta,            setCanalMeta]            = useState(null);
 
   // ─── Aprofundar base ─────────────────────────────────────────────────────
@@ -104,6 +105,7 @@ export function useAgentConfig({ activeTab, showError }) {
       if (r.data.query_expansion !== undefined) setQueryExpansion(!!r.data.query_expansion);
       if (r.data.persona !== undefined) setPersona(r.data.persona || '');
       if (r.data.persona_custom !== undefined) setPersonaCustom(r.data.persona_custom || '');
+      if (r.data.mostrar_raciocinio !== undefined) setMostrarRaciocinio(!!r.data.mostrar_raciocinio);
       if (r.data.provider === 'custom') {
         setUseCustomEndpoint(true);
         setUseExternalProvider(false);
@@ -115,6 +117,7 @@ export function useAgentConfig({ activeTab, showError }) {
             saveAgentConfig({
               provider: 'custom', api_key: realKey,
               custom_base_url: r.data.custom_base_url, custom_model: r.data.custom_model,
+              mostrar_raciocinio: !!r.data.mostrar_raciocinio,
             }).catch(() => {});
           }
         }
@@ -130,14 +133,14 @@ export function useAgentConfig({ activeTab, showError }) {
           const realKey = await window.tusab.getApiKey(r.data.provider).catch(() => null);
           if (realKey) {
             // Reinforma o backend com a chave real (sem exibir na UI)
-            saveAgentConfig({ provider: r.data.provider, api_key: realKey }).catch(() => {});
+            saveAgentConfig({ provider: r.data.provider, api_key: realKey, mostrar_raciocinio: !!r.data.mostrar_raciocinio }).catch(() => {});
           }
         }
         setAgentApiKey('');
       } else {
         setAgentProvider('ollama');
         setUseExternalProvider(false);
-        saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language })
+        saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language, mostrar_raciocinio: !!r.data.mostrar_raciocinio })
           .then(() => loadAgentConfig())
           .catch(() => {});
       }
@@ -152,7 +155,7 @@ export function useAgentConfig({ activeTab, showError }) {
   useEffect(() => {
     if (!i18n.language || !configLoadedRef.current) return;
     const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
-    saveAgentConfig({ provider, api_key: '__keep__', idioma: i18n.language }).catch(() => {});
+    saveAgentConfig({ provider, api_key: '__keep__', idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio }).catch(() => {});
   }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canalAtivoRef = useRef('');
@@ -236,7 +239,7 @@ export function useAgentConfig({ activeTab, showError }) {
     setUseExternalProvider(false);
     setUseCustomEndpoint(false);
     setAgentProvider('ollama');
-    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona, idioma: i18n.language })
+    await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona, idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio })
       .catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
   };
 
@@ -244,7 +247,7 @@ export function useAgentConfig({ activeTab, showError }) {
   const handlePersonaChange = async (novaPersona) => {
     setPersona(novaPersona);
     const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
-    await saveAgentConfig({ provider, api_key: '__keep__', persona: novaPersona, idioma: i18n.language })
+    await saveAgentConfig({ provider, api_key: '__keep__', persona: novaPersona, idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio })
       .catch(() => {});
   };
 
@@ -255,8 +258,18 @@ export function useAgentConfig({ activeTab, showError }) {
     setPersona('custom');
     setPersonaCustom(limpo);
     const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
-    await saveAgentConfig({ provider, api_key: '__keep__', persona: 'custom', persona_custom: limpo, idioma: i18n.language })
+    await saveAgentConfig({ provider, api_key: '__keep__', persona: 'custom', persona_custom: limpo, idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio })
       .catch(() => {});
+  };
+
+  /** Toggles "mostrar raciocínio do modelo" — só afeta modelos Ollama com
+   *  thinking nativo (qwen3, deepseek-r1); outros ignoram silenciosamente. */
+  const handleToggleMostrarRaciocinio = async () => {
+    const novoValor = !mostrarRaciocinio;
+    setMostrarRaciocinio(novoValor);
+    const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
+    await saveAgentConfig({ provider, api_key: '__keep__', persona, idioma: i18n.language, mostrar_raciocinio: novoValor })
+      .catch(() => { setMostrarRaciocinio(!novoValor); showError('Erro ao salvar preferência. Tente novamente.'); });
   };
 
   /** Clears external API key or endpoint customizado, resets provider to Ollama */
@@ -270,7 +283,7 @@ export function useAgentConfig({ activeTab, showError }) {
     if (providerAtual && window.tusab?.deleteApiKey) {
       window.tusab.deleteApiKey(providerAtual).catch(() => {});
     }
-    await saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language })
+    await saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio })
       .catch(() => showError('Erro ao remover chave. Tente novamente.'));
     setUseExternalProvider(false);
     setUseCustomEndpoint(false);
@@ -304,7 +317,7 @@ export function useAgentConfig({ activeTab, showError }) {
         const stored = await window.tusab.setApiKey(provider, apiKey).catch(() => false);
         if (stored) backendKey = '__encrypted__';
       }
-      const payload = { provider, api_key: backendKey, persona, idioma: i18n.language };
+      const payload = { provider, api_key: backendKey, persona, idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio };
       if (useCustomEndpoint) {
         payload.custom_base_url = customBaseUrl.trim();
         payload.custom_model = customModel.trim();
@@ -395,6 +408,7 @@ export function useAgentConfig({ activeTab, showError }) {
     queryExpansion,       setQueryExpansion,
     persona,              setPersona,
     personaCustom,        setPersonaCustom,
+    mostrarRaciocinio,    setMostrarRaciocinio,
     canalMeta,            setCanalMeta,
     aprofundarOpen,       aprofundarPendente,
     aprofundarRodando,    aprofundarProgresso,
@@ -402,6 +416,7 @@ export function useAgentConfig({ activeTab, showError }) {
     handleOllamaModelChange,
     handlePersonaChange,
     handlePersonaCustomSave,
+    handleToggleMostrarRaciocinio,
     handleSaveAgentConfig,
     handleRemoveApiKey,
     handleAprofundarConfirm,
