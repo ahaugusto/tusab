@@ -132,6 +132,7 @@ class AgentConfigRequest(BaseModel):
     persona:         str  = Field(default="", max_length=30)
     persona_custom:  str  = Field(default="", max_length=300)
     idioma:          str  = Field(default="pt", max_length=10)
+    mostrar_raciocinio: bool = Field(default=False)
 
 class AgentChatRequest(BaseModel):
     mensagem:         str  = Field(max_length=4000)
@@ -671,6 +672,7 @@ def get_agent_config():
         "persona":      config.get("persona", ""),
         "persona_custom": config.get("persona_custom", ""),
         "query_expansion": config.get("query_expansion", False),
+        "mostrar_raciocinio": config.get("mostrar_raciocinio", False),
     }
 
 
@@ -715,6 +717,10 @@ def agent_config(req: AgentConfigRequest):
             config["persona_custom"] = req.persona_custom.strip()
     if req.idioma in ("pt", "en", "es"):
         config["idioma"] = req.idioma
+    # Bool passthrough direto (sem sentinel de "não reenviado") — frontend
+    # sempre resenda o valor atual carregado do GET, mesmo em saves parciais
+    # (idioma/persona), pra não resetar silenciosamente pra False.
+    config["mostrar_raciocinio"] = req.mostrar_raciocinio
     agent_tusab.salvar_config(config)
     return {"message": "Configuração salva com sucesso."}
 

@@ -1632,12 +1632,18 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         if provider == 'ollama':
             import requests as _req
             modelo = config.get('ollama_model', 'llama3.2:1b')
+            # Opt-in do usuário (Configurar Agente → "Mostrar raciocínio do
+            # modelo") — só tem efeito real em modelos com thinking nativo
+            # (qwen3, deepseek-r1); modelos sem essa arquitetura ignoram o
+            # parâmetro silenciosamente. Default False preserva o comportamento
+            # antigo (raciocínio sempre suprimido).
+            mostrar_raciocinio = bool(config.get('mostrar_raciocinio', False))
             with _req.post('http://localhost:11434/api/generate',
                     json={
                         'model':   modelo,
                         'prompt':  prompt,
                         'stream':  True,
-                        'think':   False,
+                        'think':   mostrar_raciocinio,
                         'options': {
                             'num_ctx':     2048,
                             'num_predict': 512,
@@ -1649,6 +1655,12 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 for line in r.iter_lines():
                     if line:
                         data = json.loads(line)
+                        # thinking chega separado de response — repassa como
+                        # controle JSON (mesmo padrão de 'fontes'/'done') pra
+                        # não confundir com texto puro da resposta final.
+                        pensando = data.get('thinking', '')
+                        if pensando:
+                            yield json.dumps({'thinking': pensando})
                         chunk = data.get('response', '')
                         if chunk:
                             yield chunk
