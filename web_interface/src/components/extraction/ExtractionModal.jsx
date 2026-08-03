@@ -161,6 +161,16 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     }
   }, [canalUrl, nomeConhecidoPara]);
 
+  // Invalida a lista de playlists (e a seleção) se a URL do canal mudar
+  // dentro da mesma sessão do modal (ex: usuário volta pro step 'url' e troca
+  // de canal) — sem isso, a lista buscada pro canal anterior ficaria exibida
+  // como se fosse do canal novo.
+  React.useEffect(() => {
+    setPlaylistsDisponiveis(null);
+    setPlaylistsMarcadas(null);
+    setPlaylistsExpandido(false);
+  }, [canalUrl]);
+
   // Busca mapa de cobertura com debounce de 800ms quando URL parece válida
   React.useEffect(() => {
     if (step !== 'url') return;
@@ -663,7 +673,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 </button>
                 <button
                   onClick={handleConfirmFontePublica} disabled={criandoProjetoBusca}
-                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  className={`flex-[2] flex items-center justify-center gap-2 px-4 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                   {criandoProjetoBusca ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Search size={15} aria-hidden="true" />}
                   {t('extraction.fonte_start_confirm')}
                 </button>
@@ -871,7 +881,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className={`flex-2 flex-1 flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  className={`flex-[2] flex items-center justify-center gap-2 px-4 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
                   <Zap size={15} aria-hidden="true" />
                   {t('ops.start_confirm')}
                 </button>
