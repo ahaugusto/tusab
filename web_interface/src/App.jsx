@@ -1012,13 +1012,13 @@ function App() {
   };
 
   /** Confirms extraction with selected content types and project, or enqueues if already running */
-  const handleStartConfirm = (fontes, projetoNome = '', novaUrl, autoUpdateConfig) => {
+  const handleStartConfirm = (fontes, projetoNome = '', novaUrl, autoUpdateConfig, playlists = [], dataInicio = '', dataFim = '') => {
     setShowExtractionModal(false);
     setExtractionTypes(fontes);
     const urlEfetiva = novaUrl || canalInput.trim() || status.canal_url;
     if (novaUrl) { canalRemovidoRef.current = false; setCanalInput(novaUrl); setCanalConfigurado(''); }
     if (isRunning) {
-      queueAdd(urlEfetiva, fontes, projetoNome).catch(() => {});
+      queueAdd(urlEfetiva, fontes, projetoNome, playlists, dataInicio, dataFim).catch(() => {});
       return;
     }
     Analytics.extracaoIniciada(fontes);
@@ -1040,8 +1040,8 @@ function App() {
           ).catch(() => {});
         }
       })
-      .then(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }))
-      .catch(() => startExtraction(fontes).then(r => { if (r.data.error) setCanalError(r.data.message); }));
+      .then(() => startExtraction(fontes, playlists, dataInicio, dataFim).then(r => { if (r.data.error) setCanalError(r.data.message); }))
+      .catch(() => startExtraction(fontes, playlists, dataInicio, dataFim).then(r => { if (r.data.error) setCanalError(r.data.message); }));
   };
 
   /** Confirms a search on a public source (perfil Pesquisador) — registro

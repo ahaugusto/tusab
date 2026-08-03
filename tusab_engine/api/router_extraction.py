@@ -51,6 +51,9 @@ def run_motor():
                 fontes_filtro=state.fontes_filtro or None,
                 projeto_nome=state.projeto_nome,
                 dispatch_event=state.dispatch_event,
+                playlists_filtro=state.playlists_filtro or None,
+                data_inicio=state.data_inicio,
+                data_fim=state.data_fim,
             )
 
             cancelado = state.evento_cancelar.is_set()
@@ -100,6 +103,9 @@ def run_motor():
             state.projeto_nome = ""
         state.stats["status"]       = "Na fila"
         state.fontes_filtro         = proximo.get("fontes", [])
+        state.playlists_filtro      = proximo.get("playlists", [])
+        state.data_inicio           = proximo.get("data_inicio", "")
+        state.data_fim              = proximo.get("data_fim", "")
         state.evento_cancelar.clear()
         state.evento_pausa.set()
         state.is_paused             = False
@@ -112,12 +118,18 @@ class ChannelRequest(BaseModel):
     projeto_nome: str = Field(default="", max_length=120)
 
 class StartRequest(BaseModel):
-    fontes: list = []
+    fontes:       list = []
+    playlists:    list = []              # ids de playlist específicas — vazio = todas
+    data_inicio:  str  = Field(default="", max_length=10)  # YYYY-MM-DD
+    data_fim:     str  = Field(default="", max_length=10)
 
 class QueueAddRequest(BaseModel):
     canal_url:    str = Field(max_length=300)
     fontes:       list = []
     projeto_nome: str = Field(default="", max_length=120)
+    playlists:    list = []
+    data_inicio:  str  = Field(default="", max_length=10)
+    data_fim:     str  = Field(default="", max_length=10)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -162,6 +174,9 @@ def start_engine(background_tasks: BackgroundTasks, req: StartRequest = None):
     if not state.is_running:
         state.stats["status"]   = "Iniciando"
         state.fontes_filtro     = (req.fontes if req else [])
+        state.playlists_filtro  = (req.playlists if req else [])
+        state.data_inicio       = (req.data_inicio if req else "")
+        state.data_fim          = (req.data_fim if req else "")
         state.evento_cancelar.clear()
         state.evento_pausa.set()
         state.is_paused = False
@@ -203,7 +218,10 @@ def queue_add(req: QueueAddRequest):
     if not url or not _YT_URL_RE.match(url):
         return {"error": True, "message": "URL inválida. Use o formato: https://www.youtube.com/@canal"}
     with state.queue_lock:
-        state.extraction_queue.append({"url": url, "fontes": req.fontes, "projeto_nome": req.projeto_nome})
+        state.extraction_queue.append({
+            "url": url, "fontes": req.fontes, "projeto_nome": req.projeto_nome,
+            "playlists": req.playlists, "data_inicio": req.data_inicio, "data_fim": req.data_fim,
+        })
         tamanho = len(state.extraction_queue)
         state.salvar_fila()
     return {"ok": True, "queue_size": tamanho}
@@ -308,6 +326,50 @@ def canal_info(url: str):
         "topicos": topicos,
         "amostra_titulos": titulos[:10],
     }
+
+
+@router.get("/playlists-canal")
+def playlists_canal(url: str):
+    """Lista as playlists de um canal (id + título), sem expandir os vídeos de cada uma.
+
+    Mesma primeira chamada usada dentro de tusab_engine() pra descobrir
+    playlists (yt-dlp --flat-playlist --get-id --get-title .../playlists) —
+    rápida porque não baixa a lista de vídeos de cada playlist, só o índice
+    da aba Playlists do canal. Alimenta a seleção de playlists específicas
+    no modal de extração (em vez de sempre extrair todas).
+    """
+    import sys as _sys
+    import subprocess as _sp
+
+    url = url.strip()
+    if not url or not _YT_URL_RE.match(url):
+        return {"error": True, "message": "URL inválida"}
+
+    base = url.rstrip('/')
+    try:
+        resultado = _sp.run(
+            [_sys.executable, '-m', 'yt_dlp',
+             '--flat-playlist', '--ignore-errors', '--no-warnings',
+             '--get-id', '--get-title',
+             f"{base}/playlists"],
+            stdout=_sp.PIPE, stderr=_sp.DEVNULL,
+            text=False, check=False,
+            creationflags=getattr(_sp, 'CREATE_NO_WINDOW', 0),
+            timeout=30,
+        )
+        linhas = [l for l in resultado.stdout.decode('utf-8', errors='replace').strip().splitlines() if l.strip()]
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao consultar playlists: {e}"}
+
+    playlists = []
+    # yt-dlp --get-id --get-title imprime título e id alternados, título primeiro
+    for i in range(0, len(linhas), 2):
+        if i + 1 < len(linhas):
+            titulo, playlist_id = linhas[i].strip(), linhas[i + 1].strip()
+            if re.match(r'^[A-Za-z0-9_\-]{10,50}$', playlist_id) and titulo:
+                playlists.append({"id": playlist_id, "titulo": titulo})
+
+    return {"ok": True, "playlists": playlists}
 
 
 @router.get("/canal-search")

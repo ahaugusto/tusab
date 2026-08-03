@@ -85,6 +85,13 @@ class AppState:
         # Filtro de fontes de extração
         self.fontes_filtro: list = []
 
+        # Filtro de playlists específicas (vazio = todas) e intervalo de datas
+        # de publicação (YYYY-MM-DD, vazio = sem limite) — aplicados na etapa
+        # de mapeamento em motor/extraction.py.
+        self.playlists_filtro: list = []
+        self.data_inicio: str = ""
+        self.data_fim: str = ""
+
         # Nome do projeto de destino para a extração atual
         self.projeto_nome: str = ""
 
