@@ -269,7 +269,11 @@ function OllamaSetup({
         </div>
 
         <div className="space-y-1">
-          {(isStandby ? MODELOS_SUGERIDOS : MODELOS_PRINCIPAIS).map(([id, label, size, desc]) => {
+          {/* isStandby (Ollama não é o provedor ativo) OU showAdvanced (usuário
+              pediu pra expandir "Trocar modelo") — os dois sinalizam "quero ver
+              mais opções", não só o primeiro. Sem showAdvanced aqui, quem já usa
+              Ollama nunca via os modelos extras mesmo expandindo a seção. */}
+          {(isStandby || showAdvanced ? MODELOS_SUGERIDOS : MODELOS_PRINCIPAIS).map(([id, label, size, desc]) => {
             const instalado    = ollamaStatus.running && ollamaStatus.models?.includes(id);
             const baixandoEste = pullingModel === id;
             const isAtivo      = ollamaStatus.running && modelName === id && instalado;
