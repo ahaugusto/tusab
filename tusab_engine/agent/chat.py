@@ -316,7 +316,10 @@ def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
             modelo = config.get('ollama_model', 'llama3.2:1b')
             resp = _req.post(
                 'http://localhost:11434/api/generate',
-                json={'model': modelo, 'prompt': prompt, 'stream': False,
+                # think=False: modelos com raciocínio nativo (qwen3, deepseek-r1)
+                # gastariam o num_predict=5 todo pensando, sem sobrar token pra
+                # resposta — e vazaria <think> pro classificador de intenção.
+                json={'model': modelo, 'prompt': prompt, 'stream': False, 'think': False,
                       'options': {'num_predict': 5, 'temperature': 0.0, 'stop': ['\n']}},
                 timeout=15,
             )
@@ -1236,7 +1239,7 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
             modelo = config.get('ollama_model', 'llama3.2:1b')
             resp = _req.post(
                 'http://localhost:11434/api/generate',
-                json={'model': modelo, 'prompt': prompt, 'stream': False},
+                json={'model': modelo, 'prompt': prompt, 'stream': False, 'think': False},
                 timeout=30,
             )
             resp.raise_for_status()
@@ -1356,6 +1359,7 @@ def _gerar_resposta_llm(provider: str, api_key: str, prompt: str, config: dict) 
                 'model':   modelo,
                 'prompt':  prompt,
                 'stream':  False,
+                'think':   False,
                 'options': {
                     'num_ctx':     2048,
                     'num_predict': 512,
@@ -1633,6 +1637,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                         'model':   modelo,
                         'prompt':  prompt,
                         'stream':  True,
+                        'think':   False,
                         'options': {
                             'num_ctx':     2048,
                             'num_predict': 512,

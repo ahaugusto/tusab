@@ -18,18 +18,28 @@ const MODELOS_PRINCIPAIS = [
   ['gemma3:4b',      'Gemma 3 4B',      '~3.3 GB', 'ollama.model_gemma3_4b_desc'],
 ];
 
-// Nota: modelos com "thinking" nativo (qwen3, deepseek-r1) ficam de fora até o
-// backend tratar o campo thinking do /api/generate — senão blocos <think> vazam no chat
+// Modelos com "thinking" nativo (qwen3, deepseek-r1) — desde que o backend
+// passou a mandar think:false em toda chamada /api/generate (chat.py,
+// summarize.py, router_estudo.py, scheduler.py), o modelo não gasta tokens
+// raciocinando e não vaza <think> na resposta. Sem filtro por tamanho: a
+// escolha de baixar ou não é do usuário, não nossa — só listamos as opções.
 const MODELOS_EXTRAS = [
   ['gemma3:1b',        'Gemma 3 1B',        '~815 MB', 'ollama.model_gemma3_1b_desc'],
   ['phi4-mini:3.8b',   'Phi-4 Mini 3.8B',   '~2.5 GB', 'ollama.model_phi4_mini_desc'],
+  ['qwen3:4b',         'Qwen 3 4B',         '~2.5 GB', 'ollama.model_qwen3_4b_desc'],
   ['mistral:7b',       'Mistral 7B',        '~4.1 GB', 'ollama.model_mistral7b_desc'],
   ['llama3.1:8b',      'Llama 3.1 8B',      '~4.7 GB', 'ollama.model_llama31_8b_desc'],
   ['qwen2.5:7b',       'Qwen 2.5 7B',       '~4.7 GB', 'ollama.model_qwen25_7b_desc'],
+  ['deepseek-r1:8b',   'DeepSeek-R1 8B',    '~4.9 GB', 'ollama.model_deepseek_r1_8b_desc'],
+  ['qwen3:8b',         'Qwen 3 8B',         '~5.2 GB', 'ollama.model_qwen3_8b_desc'],
   ['mistral-nemo:12b', 'Mistral Nemo 12B',  '~7.1 GB', 'ollama.model_mistral_nemo12b_desc'],
   ['gemma3:12b',       'Gemma 3 12B',       '~8.1 GB', 'ollama.model_gemma3_12b_desc'],
   ['qwen2.5:14b',      'Qwen 2.5 14B',      '~9.0 GB', 'ollama.model_qwen25_14b_desc'],
+  ['deepseek-r1:14b',  'DeepSeek-R1 14B',   '~9.0 GB', 'ollama.model_deepseek_r1_14b_desc'],
   ['phi4:14b',         'Phi-4 14B',         '~9.1 GB', 'ollama.model_phi4_14b_desc'],
+  ['qwen3:14b',        'Qwen 3 14B',        '~9.3 GB', 'ollama.model_qwen3_14b_desc'],
+  ['gemma3:27b',       'Gemma 3 27B',       '~17 GB',  'ollama.model_gemma3_27b_desc'],
+  ['llama3.3:70b',     'Llama 3.3 70B',     '~43 GB',  'ollama.model_llama33_70b_desc'],
 ];
 
 // Lista completa para uso na aba Agente (isStandby=true) — exibe todos
