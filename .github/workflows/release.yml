@@ -114,6 +114,14 @@ jobs:
         shell: bash
         run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"
 
+      # credentials.json (OAuth do Google Drive) nunca foi commitado — só existia
+      # localmente na máquina onde builds eram feitos manualmente. Builds via CI
+      # (aqui e no job build-macos) sempre saíram sem esse arquivo, ou seja, sem
+      # sincronização com o Drive funcionando no instalador. Ver agents/macos.md.
+      - name: Escrever credentials.json (OAuth Google Drive) a partir do secret
+        shell: bash
+        run: echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS_JSON }}' > credentials.json
+
       # electron-builder lê GH_TOKEN para publicar na release.
       # [CONTRATO] publish.owner/repo em electron/package.json aponta para
       # ahaugusto/tusab-public — repositório DIFERENTE de onde este workflow
@@ -188,6 +196,12 @@ jobs:
       - name: Instalar dependências Electron
         working-directory: electron
         run: npm ci
+
+      # credentials.json (OAuth do Google Drive) nunca foi commitado — builds
+      # via CI sempre saíram sem esse arquivo, ou seja, sem sincronização com
+      # o Drive funcionando no instalador. Mesmo passo em build-windows.
+      - name: Escrever credentials.json (OAuth Google Drive) a partir do secret
+        run: echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS_JSON }}' > credentials.json
 
       # APPLE_API_KEY precisa ser um caminho de arquivo .p8 — o secret guarda
       # o conteúdo (ver macos-smoke.yml, job electron-notarize).
