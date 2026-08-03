@@ -224,6 +224,13 @@ export function useChatEngine({
                 fonteSnackbarMostrado.current = true;
                 onPrimeiraFonte();
               }
+            } else if (parsed.thinking !== undefined) {
+              // Raciocínio do modelo (qwen3/deepseek-r1 com think:true) — chega
+              // separado do texto final, acumulado num campo próprio pra UI
+              // renderizar como bloco distinto (não é a resposta em si).
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, thinking: (m.thinking || '') + parsed.thinking } : m
+              ));
             } else if (parsed.confianca_sentencas !== undefined) {
               // P1-e — sinal visual opcional de confiança por sentença; se ausente
               // (backend antigo ou trecho injetado), a mensagem simplesmente não

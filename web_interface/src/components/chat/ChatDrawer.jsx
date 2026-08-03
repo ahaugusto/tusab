@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 const ReferenciarModal = lazy(() => import('./ReferenciarModal'));
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip, AlertTriangle, Search, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, RefreshCw, Zap, ChevronDown, Maximize2, Minimize2, History, PlusCircle, ArrowLeft, FileText, SlidersHorizontal, CheckCircle2, RotateCcw, Copy, Sheet, FileDown, Check, Paperclip, AlertTriangle, Search, ThumbsUp, ThumbsDown, Brain } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -279,6 +279,10 @@ function ChatDrawer({
   const mencaoModoRef     = useRef('@');  // '@' | '@@'
   const textareaRef = useRef(null);
   const [copiedIdx,         setCopiedIdx]         = useState(null);
+  // Raciocínio (thinking) manualmente expandido/recolhido pelo usuário, por
+  // índice de mensagem — null = segue o comportamento automático (expandido
+  // enquanto ainda não há resposta final, recolhido depois).
+  const [raciocinioManual,  setRaciocinioManual]  = useState({});
   const [fontePreview,      setFontePreview]      = useState(null); // { titulo, trecho, link, data, arquivo }
 
   // ─── Action bar helpers ───────────────────────────────────────────────────
@@ -997,6 +1001,33 @@ function ChatDrawer({
                           </>
                         ) : (
                           <>
+                          {/* Raciocínio do modelo (qwen3/deepseek-r1, com "Mostrar raciocínio"
+                              ativado em Configurar Agente) — expandido automaticamente
+                              enquanto o modelo ainda não começou a resposta final (funciona
+                              como indicador de progresso mais informativo que um spinner
+                              genérico), recolhe sozinho quando o texto final chega. */}
+                          {msg.thinking && (() => {
+                            const aindaPensando = msg.streaming && !msg.content;
+                            const expandido = raciocinioManual[i] !== undefined ? raciocinioManual[i] : aindaPensando;
+                            return (
+                              <div className={`mb-2 rounded-lg border overflow-hidden ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-200 bg-slate-50'}`}>
+                                <button
+                                  onClick={() => setRaciocinioManual(prev => ({ ...prev, [i]: !expandido }))}
+                                  className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left transition-colors ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-100'}`}>
+                                  <Brain size={11} className={`shrink-0 ${aindaPensando ? 'animate-pulse' : ''} ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} />
+                                  <span className={`text-[10px] font-bold flex-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {aindaPensando ? t('chat.thinking_live') : t('chat.thinking_toggle')}
+                                  </span>
+                                  <ChevronDown size={10} className={`shrink-0 transition-transform ${expandido ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                                </button>
+                                {expandido && (
+                                  <p className={`px-2.5 pb-2 text-[10px] leading-relaxed italic whitespace-pre-wrap max-h-40 overflow-y-auto custom-scrollbar ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                    {msg.thinking}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div className="markdown-body">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}

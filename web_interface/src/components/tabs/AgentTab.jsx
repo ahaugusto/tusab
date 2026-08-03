@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   KeyRound, CheckCircle2, Eye, EyeOff, AlertTriangle, Loader2,
   Zap, ArrowUp, Sparkles, X, Info, ExternalLink,
-  Settings, LayoutGrid, RefreshCw, Copy, Check,
+  Settings, LayoutGrid, RefreshCw, Copy, Check, Brain,
 } from 'lucide-react';
 import OllamaSetup from '../agent/OllamaSetup';
 import PersonaCustomModal from '../shared/PersonaCustomModal';
@@ -40,9 +40,11 @@ export default function AgentTab({
   configOpen,          setConfigOpen,
   persona,
   personaCustom,
+  mostrarRaciocinio,
   handleOllamaModelChange,
   handlePersonaChange,
   handlePersonaCustomSave,
+  handleToggleMostrarRaciocinio,
   handleSaveAgentConfig,
   handleRemoveApiKey,
   handleTestKey,
@@ -568,6 +570,30 @@ export default function AgentTab({
                   </button>
                 ))}
               </div>
+            </section>
+
+            {/* Raciocínio visível — só tem efeito com modelos Ollama de thinking
+                nativo (qwen3, deepseek-r1); outros ignoram e continuam normais. */}
+            <section aria-labelledby="agent-thinking-heading"
+              className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <button
+                onClick={handleToggleMostrarRaciocinio}
+                className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors ${BTN_FOCUS}
+                  ${mostrarRaciocinio ? darkMode ? 'bg-primary/8' : 'bg-violet-50' : ''}`}>
+                <Brain size={14} className={mostrarRaciocinio ? 'text-primary' : darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <h3 id="agent-thinking-heading" className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                    {t('agent.thinking_title')}
+                  </h3>
+                  <p className={`text-[10px] mt-0.5 leading-snug ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {t('agent.thinking_subtitle')}
+                  </p>
+                </div>
+                <div className={`w-8 h-4 rounded-full flex items-center shrink-0 transition-colors px-0.5
+                  ${mostrarRaciocinio ? 'bg-primary justify-end' : darkMode ? 'bg-white/15 justify-start' : 'bg-slate-300 justify-start'}`}>
+                  <div className="w-3 h-3 rounded-full bg-white shadow-sm transition-all" />
+                </div>
+              </button>
             </section>
 
             <PersonaCustomModal
