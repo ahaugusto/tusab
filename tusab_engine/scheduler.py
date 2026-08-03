@@ -90,7 +90,7 @@ def _chamar_llm(prompt: str, config: dict) -> str | None:
             modelo = config.get('ollama_model', 'llama3.2:1b')
             resp = _req.post(
                 'http://localhost:11434/api/generate',
-                json={'model': modelo, 'prompt': prompt, 'stream': False},
+                json={'model': modelo, 'prompt': prompt, 'stream': False, 'think': False},
                 timeout=_TIMEOUT_LLM,
             )
             resp.raise_for_status()
