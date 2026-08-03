@@ -965,15 +965,25 @@ def cerebro_limpar(req: LimparRequest):
     canal_paths = []
     if os.path.exists(neural_dir):
         if req.canal:
-            # Limpa apenas o projeto especificado
+            # Limpa apenas o projeto especificado. Tenta o nome EXATO primeiro
+            # (é o que /neural/projetos retorna via os.scandir — o literal do
+            # disco) antes de sanitizar. Projetos antigos (criados antes de
+            # alguma convenção de sanitização, ou por um caminho que não
+            # sanitizava) podem ter espaço/acento reais na pasta — sanitizar
+            # cegamente aqui gerava um caminho que nunca existia, e o endpoint
+            # retornava sucesso (0 deletados) sem nunca achar a pasta real.
+            candidatos = [req.canal]
             canal_safe = re.sub(r'[<>:"/\\|?*\s]', '_', req.canal).strip('_')
-            candidate = os.path.join(neural_dir, canal_safe)
-            # Proteção contra path traversal
-            if (canal_safe
-                    and os.path.normpath(candidate).startswith(
+            if canal_safe and canal_safe != req.canal:
+                candidatos.append(canal_safe)
+            for nome_candidato in candidatos:
+                candidate = os.path.join(neural_dir, nome_candidato)
+                # Proteção contra path traversal
+                if (os.path.normpath(candidate).startswith(
                         os.path.normpath(neural_dir) + os.sep)
-                    and os.path.isdir(candidate)):
-                canal_paths.append(candidate)
+                        and os.path.isdir(candidate)):
+                    canal_paths.append(candidate)
+                    break
         else:
             for entry in os.scandir(neural_dir):
                 if entry.is_dir():
