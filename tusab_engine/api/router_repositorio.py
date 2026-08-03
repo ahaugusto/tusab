@@ -469,6 +469,7 @@ def _extrair_imagem(conteudo_bytes: bytes, filename: str) -> str:
             ),
             "images": [b64],
             "stream": False,
+            "think": False,
         }).encode()
         req = _ur.Request(
             "http://localhost:11434/api/generate",
