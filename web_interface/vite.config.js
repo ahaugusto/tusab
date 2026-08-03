@@ -20,6 +20,8 @@ export default defineConfig({
       '/cancel': 'http://127.0.0.1:8001',
       '/queue': 'http://127.0.0.1:8001',
       '/canal-info': 'http://127.0.0.1:8001',
+      '/canal-search': 'http://127.0.0.1:8001',
+      '/playlists-canal': 'http://127.0.0.1:8001',
       '/drive-auth': 'http://127.0.0.1:8001',
       '/open-folder': 'http://127.0.0.1:8001',
       '/neural': 'http://127.0.0.1:8001',
