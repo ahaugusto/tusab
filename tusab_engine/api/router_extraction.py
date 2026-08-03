@@ -275,6 +275,11 @@ def canal_info(url: str):
             text=False, check=False,
             creationflags=getattr(_sp, 'CREATE_NO_WINDOW', 0),
             timeout=60,
+            # PYTHONUTF8: no Windows, a saída do processo filho (yt-dlp via
+            # sys.executable -m yt_dlp) cai no codepage padrão do console em
+            # vez de UTF-8 — títulos com acento viravam "�" mesmo com
+            # errors='replace' no decode abaixo. Mesmo fix de buscar_canais_youtube().
+            env={**os.environ, 'PYTHONUTF8': '1'},
         )
         linhas = resultado.stdout.decode('utf-8', errors='replace').strip().splitlines()
     except Exception as e:
@@ -356,6 +361,9 @@ def playlists_canal(url: str):
             text=False, check=False,
             creationflags=getattr(_sp, 'CREATE_NO_WINDOW', 0),
             timeout=30,
+            # PYTHONUTF8: mesmo fix de canal_info()/buscar_canais_youtube() —
+            # sem isso, títulos de playlist com acento saem como "�" no Windows.
+            env={**os.environ, 'PYTHONUTF8': '1'},
         )
         linhas = [l for l in resultado.stdout.decode('utf-8', errors='replace').strip().splitlines() if l.strip()]
     except Exception as e:
