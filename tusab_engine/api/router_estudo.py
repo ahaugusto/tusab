@@ -63,7 +63,7 @@ def _chamar_llm_estudo(prompt: str) -> str:
         model = config.get("ollama_model", "llama3.2:1b")
         resp = _req.post(
             "http://localhost:11434/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False},
+            json={"model": model, "prompt": prompt, "stream": False, "think": False},
             timeout=300,
         )
         return resp.json().get("response", "")

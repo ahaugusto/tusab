@@ -116,7 +116,7 @@ def resumir_video(texto_completo: str, titulo: str, config: dict) -> dict | None
             modelo = config.get('ollama_model', 'llama3.2:1b')
             r = _req.post(
                 'http://localhost:11434/api/generate',
-                json={'model': modelo, 'prompt': prompt, 'stream': False,
+                json={'model': modelo, 'prompt': prompt, 'stream': False, 'think': False,
                       'options': {'temperature': 0.1, 'num_predict': 300}},
                 timeout=_SUMMARIZE_TIMEOUT,
             )
