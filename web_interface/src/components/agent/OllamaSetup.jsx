@@ -341,13 +341,6 @@ function OllamaSetup({
                 ) : (
                   <div className="shrink-0 flex items-center gap-1">
                     <button
-                      onClick={() => setConfirmarExclusao(id)}
-                      title={t('ollama.delete_model_title')}
-                      className={`shrink-0 p-1.5 rounded-lg transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0
-                        ${darkMode ? 'text-slate-500 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>
-                      <Trash2 size={12} />
-                    </button>
-                    <button
                       onClick={() => !isAtivo && onModelChange && onModelChange(id)}
                       disabled={isAtivo}
                       className={`shrink-0 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:cursor-default focus:ring-2 focus:ring-primary focus:ring-offset-0
@@ -357,6 +350,13 @@ function OllamaSetup({
                             ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30'
                             : 'bg-primary text-white border border-primary shadow-sm hover:bg-primary/90'}`}>
                       {isAtivo ? t('ollama.badge_active_full') : t('ollama.use_btn')}
+                    </button>
+                    <button
+                      onClick={() => setConfirmarExclusao(id)}
+                      title={t('ollama.delete_model_title')}
+                      className={`shrink-0 p-1.5 rounded-lg transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0
+                        ${darkMode ? 'text-slate-500 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 )}
