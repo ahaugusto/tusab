@@ -1153,6 +1153,7 @@
   "chat.feedback_useful_tooltip": "Helpful answer — save to base",
   "chat.feedback_not_useful_tooltip": "Not helpful — discard",
   "chat.model_too_heavy_hint": "This model may be too heavy for your hardware. Try a smaller model like Llama 3.2 1B or Llama 3.2 3B in the Agent tab.",
+  "chat.resource_overload_hint": "Your memory is at {{ram}}% usage during this generation — if your computer slows down, consider using a smaller Ollama model.",
   "chat.base_status_indexing": "Indexing…",
   "chat.base_status_queued": "Queued…",
   "chat.base_status_indexed": "✓ Indexed",

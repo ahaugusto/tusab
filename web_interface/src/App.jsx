@@ -194,6 +194,13 @@ function App() {
   const [cancelFlash,          setCancelFlash]          = useState(false);
   const [showCancelQueueModal, setShowCancelQueueModal] = useState(false);
   const [showScrollTop,    setShowScrollTop]    = useState(false);
+  // Posição arrastável da bolinha flutuante do chat (fechado) — null = posição
+  // padrão via classes Tailwind (canto inferior direito); pedido do usuário:
+  // a bolinha, não a janela do chat, é o que precisa sair de cima do texto.
+  const [bubblePos,        setBubblePos]        = useState(null);
+  const [draggingBubble,   setDraggingBubble]   = useState(false);
+  const bubbleDragRef = useRef({ dragging: false, moved: false, startX: 0, startY: 0, origX: 0, origY: 0 });
+  const bubbleRef = useRef(null);
   const [darkMode,         setDarkMode]         = useState(() => {
     const saved = localStorage.getItem('tusab_theme');
     if (saved !== null) return saved === 'dark';
@@ -494,6 +501,92 @@ function App() {
       localStorage.setItem('tusab_chat_ja_aberto', '1');
     }
   }, [chatJaAberto]);
+
+  // ─── Bolinha flutuante do chat: reposicionável (arrastar) ──────────────────
+  const BUBBLE_SIZE   = 64; // w-16 h-16
+  const BUBBLE_MARGIN = 12;
+
+  const clampBubblePos = useCallback((pos) => {
+    const maxX = Math.max(BUBBLE_MARGIN, window.innerWidth  - BUBBLE_SIZE - BUBBLE_MARGIN);
+    const maxY = Math.max(BUBBLE_MARGIN, window.innerHeight - BUBBLE_SIZE - BUBBLE_MARGIN);
+    return {
+      x: Math.min(Math.max(pos.x, BUBBLE_MARGIN), maxX),
+      y: Math.min(Math.max(pos.y, BUBBLE_MARGIN), maxY),
+    };
+  }, []);
+
+  // Restaura posição salva (se o usuário já arrastou a bolinha antes)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('tusab_chat_bubble_pos');
+      if (saved) {
+        const pos = JSON.parse(saved);
+        if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+          setBubblePos(clampBubblePos(pos));
+        }
+      }
+    } catch {}
+  }, [clampBubblePos]);
+
+  // Listeners globais de arraste — registrados uma única vez (deps vazias);
+  // mesmo padrão da janela flutuante do chat (ChatDrawer.jsx), pra evitar o
+  // bug clássico de addEventListener/removeEventListener referenciando
+  // closures diferentes a cada re-render.
+  useEffect(() => {
+    const onMove = (e) => {
+      const st = bubbleDragRef.current;
+      if (!st.dragging) return;
+      const dx = e.clientX - st.startX;
+      const dy = e.clientY - st.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) st.moved = true;
+      if (!st.moved) return;
+      setBubblePos(clampBubblePos({ x: st.origX + dx, y: st.origY + dy }));
+    };
+    const onUp = () => {
+      const st = bubbleDragRef.current;
+      if (st.dragging) {
+        st.dragging = false;
+        setDraggingBubble(false);
+        if (st.moved) {
+          setBubblePos(prev => {
+            if (prev) localStorage.setItem('tusab_chat_bubble_pos', JSON.stringify(prev));
+            return prev;
+          });
+        }
+      }
+    };
+    const onResize = () => {
+      setBubblePos(prev => prev ? clampBubblePos(prev) : prev);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [clampBubblePos]);
+
+  const handleBubbleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
+    const rect = bubbleRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    e.preventDefault(); // evita seleção de texto/drag nativo de imagem durante o arraste
+    bubbleDragRef.current = {
+      dragging: true, moved: false,
+      startX: e.clientX, startY: e.clientY,
+      origX: rect.left, origY: rect.top,
+    };
+    setDraggingBubble(true);
+  }, []);
+
+  // Consome o clique como "abrir chat" só se a bolinha não foi de fato
+  // arrastada — evita que soltar o arraste dispare a abertura do chat.
+  const handleBubbleClick = useCallback(() => {
+    if (bubbleDragRef.current.moved) return;
+    handleOpenChat();
+  }, [handleOpenChat]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const logContainerRef = useRef(null);
@@ -2194,9 +2287,19 @@ function App() {
               chatQueue={chatQueue}
             />
 
-            {/* Floating chat button */}
+            {/* Floating chat button — bolinha arrastável (onMouseDown inicia o
+                arraste; posição persiste em localStorage pra não ficar sobre
+                texto que o usuário precise ler) */}
             {!chatOpen && (
-              <div className={`fixed right-6 z-40 flex items-center gap-3 transition-all duration-300 ${activeTab === 'repositorio' ? 'bottom-20' : 'bottom-6'}`}>
+              <div
+                ref={bubbleRef}
+                onMouseDown={handleBubbleMouseDown}
+                className={`z-40 flex items-center gap-3 select-none ${draggingBubble ? 'cursor-grabbing' : 'cursor-grab'} ${draggingBubble ? '' : 'transition-all duration-300'} ${
+                  bubblePos
+                    ? 'fixed'
+                    : `fixed right-6 ${activeTab === 'repositorio' ? 'bottom-20' : 'bottom-6'}`
+                }`}
+                style={bubblePos ? { left: bubblePos.x, top: bubblePos.y } : undefined}>
                 {/* Snack lateral */}
                 <AnimatePresence>
                   {showChatSnack && (
@@ -2205,7 +2308,7 @@ function App() {
                       animate={{ opacity: 1, x: 0,  scale: 1 }}
                       exit={{    opacity: 0, x: 16, scale: 0.92 }}
                       transition={{ duration: 0.22, ease: 'easeOut' }}
-                      onClick={handleOpenChat}
+                      onClick={handleBubbleClick}
                       role="status"
                       aria-live="polite"
                       className={`cursor-pointer select-none flex items-center gap-2 px-3.5 py-2 rounded-2xl text-[13px] font-semibold shadow-xl whitespace-nowrap
@@ -2228,7 +2331,7 @@ function App() {
                   indexed={agentStatus.indexed}
                   configured={agentStatus.configured}
                   msgCount={chatMessages.filter(m => m.role === 'assistant').length}
-                  onClick={handleOpenChat}
+                  onClick={handleBubbleClick}
                   title={t('chat.open_tooltip')}
                 />
               </div>

@@ -1153,6 +1153,7 @@
   "chat.feedback_useful_tooltip": "Resposta útil — salvar na base",
   "chat.feedback_not_useful_tooltip": "Resposta não útil — descartar",
   "chat.model_too_heavy_hint": "Este modelo pode ser pesado demais para o seu hardware. Tente um modelo menor como Llama 3.2 1B ou Llama 3.2 3B na aba Agente.",
+  "chat.resource_overload_hint": "Sua memória está em {{ram}}% de uso durante esta geração — se o computador ficar lento, considere usar um modelo Ollama menor.",
   "chat.base_status_indexing": "Indexando…",
   "chat.base_status_queued": "Na fila…",
   "chat.base_status_indexed": "✓ Indexado",

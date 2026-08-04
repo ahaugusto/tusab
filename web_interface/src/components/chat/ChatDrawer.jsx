@@ -1133,6 +1133,19 @@ function ChatDrawer({
                               <span>{t('chat.low_confidence_hint')}</span>
                             </div>
                           )}
+                          {/* Alerta de sobrecarga de RAM durante geração local (Ollama) —
+                              amostrado no backend (throttle de 4s, no máx. 1/resposta);
+                              nível "crítico" (RAM >= 95%) escala a cor de âmbar pra vermelho. */}
+                          {msg.alertaRecursos && (
+                            <div className={`mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded-lg border text-[10px] leading-relaxed ${
+                              msg.alertaRecursos.nivel === 'critico'
+                                ? (darkMode ? 'bg-red-500/10 border-red-500/25 text-red-300' : 'bg-red-50 border-red-200 text-red-700')
+                                : (darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')
+                            }`}>
+                              <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+                              <span>{t('chat.resource_overload_hint', { ram: msg.alertaRecursos.ram_pct })}</span>
+                            </div>
+                          )}
                           {/* Feedback de resposta — só aparece após streaming concluído */}
                           {!msg.streaming && msg.role === 'assistant' && (
                             <div className="mt-2 flex items-center gap-1">
