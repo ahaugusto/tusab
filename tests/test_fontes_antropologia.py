@@ -15,7 +15,7 @@ def test_area_antropologia_registrada():
     areas = fontes_registry.listar_fontes()
     assert "antropologia" in areas
     ids = {f["id"] for f in areas["antropologia"]["fontes"]}
-    assert ids == {"wikipedia"}
+    assert ids == {"wikipedia", "wiktionary"}
 
 
 def test_wikipedia_busca_e_extrai_resumo(tmp_path, monkeypatch):
