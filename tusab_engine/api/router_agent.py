@@ -649,6 +649,28 @@ def ollama_pull_progress():
     return state.ollama_pull_progress
 
 
+@router.delete("/agent/ollama/model/{nome:path}")
+def ollama_delete_model(nome: str):
+    """Remove um modelo Ollama já baixado (libera espaço em disco).
+
+    :path no parâmetro porque tags de modelo têm ':' (ex: "qwen3:4b") — sem
+    isso o FastAPI cortaria a rota no primeiro segmento antes do ':'.
+    """
+    import requests as _req
+    if not nome or not nome.strip():
+        return {"error": True, "message": "Nome do modelo não especificado."}
+    try:
+        resp = _req.delete('http://localhost:11434/api/delete', json={'name': nome}, timeout=30)
+        if resp.status_code == 404:
+            return {"error": True, "message": f"Modelo '{nome}' não encontrado (já removido?)."}
+        resp.raise_for_status()
+        return {"ok": True, "model": nome}
+    except _req.exceptions.ConnectionError:
+        return {"error": True, "message": "Ollama não está rodando."}
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao remover modelo: {e}"}
+
+
 @router.get("/agent/canal-meta")
 def agent_canal_meta():
     config = agent_tusab.carregar_config()
