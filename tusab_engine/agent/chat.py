@@ -153,6 +153,31 @@ def _api_key_valida(config: dict) -> bool:
     return bool(key) and key != SENTINEL_KEY
 
 
+# RAM do sistema (não CPU) é o sinal usado pra alertar sobrecarga durante
+# geração local via Ollama — CPU alta é esperada em qualquer geração e não
+# diferencia uso normal de sobrecarga real; RAM alta indica risco real de
+# swap/lentidão no resto da máquina do usuário.
+_RAM_ALERTA_PCT = 88.0
+_RAM_CRITICO_PCT = 95.0
+
+
+def _checar_sobrecarga_recursos():
+    """Amostra RAM do sistema; retorna dict de alerta se acima do limiar, senão None.
+    Degradação graciosa se psutil ausente (não deveria ocorrer — é dependência
+    obrigatória do projeto, mas o padrão de checagem defensiva segue router_metrics.py)."""
+    try:
+        import psutil as _psutil
+        ram_pct = _psutil.virtual_memory().percent
+    except Exception:
+        return None
+    if ram_pct >= _RAM_ALERTA_PCT:
+        return {
+            'ram_pct': round(ram_pct, 1),
+            'nivel': 'critico' if ram_pct >= _RAM_CRITICO_PCT else 'alerta',
+        }
+    return None
+
+
 def _client_openai_compat(provider: str, api_key: str, config: dict):
     """Retorna (client, modelo) para provedores que falam o protocolo OpenAI
     (Groq e endpoint customizado — ex: 9router, github.com/decolua/9router).
@@ -1652,6 +1677,9 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                         },
                     },
                     stream=True, timeout=300) as r:
+                import time as _time
+                _ultimo_check_recursos = 0.0
+                _alerta_recursos_emitido = False
                 for line in r.iter_lines():
                     if line:
                         data = json.loads(line)
@@ -1664,6 +1692,17 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                         chunk = data.get('response', '')
                         if chunk:
                             yield chunk
+                        # Checagem throttled (a cada ~4s, não por linha) — no
+                        # máximo 1 alerta por resposta, pra não spammar o chat
+                        # numa geração longa que já está sob sobrecarga.
+                        if not _alerta_recursos_emitido:
+                            _agora = _time.time()
+                            if _agora - _ultimo_check_recursos >= 4:
+                                _ultimo_check_recursos = _agora
+                                _alerta = _checar_sobrecarga_recursos()
+                                if _alerta:
+                                    _alerta_recursos_emitido = True
+                                    yield json.dumps({'alerta_recursos': _alerta})
                         if data.get('done'):
                             break
 
