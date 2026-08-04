@@ -231,6 +231,13 @@ export function useChatEngine({
               setChatMessages(prev => prev.map(m =>
                 m._streamId === streamId ? { ...m, thinking: (m.thinking || '') + parsed.thinking } : m
               ));
+            } else if (parsed.alerta_recursos !== undefined) {
+              // Sobrecarga de RAM detectada durante geração local (Ollama) —
+              // no máximo 1 por resposta (throttle no backend); exibido como
+              // aviso inline na mensagem, não bloqueia o streaming em curso.
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, alertaRecursos: parsed.alerta_recursos } : m
+              ));
             } else if (parsed.confianca_sentencas !== undefined) {
               // P1-e — sinal visual opcional de confiança por sentença; se ausente
               // (backend antigo ou trecho injetado), a mensagem simplesmente não
