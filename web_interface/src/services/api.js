@@ -220,6 +220,9 @@ export const pullOllamaModel = (model = '') => axios.post(`${API_BASE}/agent/oll
 /** Fetches Ollama model download progress */
 export const fetchOllamaPullProgress = () => axios.get(`${API_BASE}/agent/ollama/pull-progress`);
 
+/** Removes a downloaded Ollama model (frees disk space) */
+export const deleteOllamaModel = (model) => axios.delete(`${API_BASE}/agent/ollama/model/${encodeURIComponent(model)}`);
+
 /** Deletes a project's BM25 index */
 export const deleteCanalIndex = (projeto_nome) => axios.delete(`${API_BASE}/agent/projeto/${encodeURIComponent(projeto_nome)}`);
 
