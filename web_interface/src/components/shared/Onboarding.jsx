@@ -172,7 +172,10 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
           className={`rounded-2xl max-w-md w-full shadow-2xl overflow-y-auto custom-scrollbar border ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
           style={{ maxHeight: 'min(90vh, 680px)', padding: '2rem' }}
         >
-          {/* Header row: dots + skip */}
+          {/* Header row: dots — sem "pular" aqui de propósito. Nesta etapa
+              "pular" descartava a seleção e voltava pra landing, um
+              beco sem saída confuso; "Avançar" (só habilita com perfil
+              escolhido) já é o único caminho pra frente, e é o certo. */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex gap-1.5">
               <div className="h-1.5 rounded-full w-6 bg-primary" />
@@ -180,11 +183,6 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
                 <div key={i} className={`h-1.5 rounded-full w-1.5 ${dotInactive}`} />
               ))}
             </div>
-            {perfilSelecionado && (
-              <button onClick={skip} className={`text-[11px] transition-colors ${BTN_FOCUS} ${textSkip}`}>
-                {t('onboarding.skip')}
-              </button>
-            )}
           </div>
 
           <h2 className={`text-lg font-bold mb-1 ${textTitle}`}>{t('perfil.escolha_titulo')}</h2>
