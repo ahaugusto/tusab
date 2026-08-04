@@ -285,6 +285,70 @@ function ChatDrawer({
   const [raciocinioManual,  setRaciocinioManual]  = useState({});
   const [fontePreview,      setFontePreview]      = useState(null); // { titulo, trecho, link, data, arquivo }
 
+  // ─── Janela flutuante arrastável (desktop) ─────────────────────────────────
+  // Abaixo de sm (640px, mesmo breakpoint do w-[420px] antigo) mantém o
+  // comportamento de drawer full-screen — arrastar uma janelinha pequena não
+  // faz sentido em touch/telas estreitas.
+  const FLOAT_WIDTH  = 380;
+  const FLOAT_HEIGHT = 600;
+  const FLOAT_MARGIN = 20;
+  const [chatPos, setChatPos] = useState(null); // {top, left} em px; null = ainda não calculado
+  const panelRef = useRef(null);
+  const dragStateRef = useRef({ dragging: false, offsetX: 0, offsetY: 0 });
+
+  const clampChatPos = useCallback((top, left) => {
+    const maxLeft = Math.max(8, window.innerWidth - FLOAT_WIDTH - 8);
+    const maxTop  = Math.max(8, window.innerHeight - 80); // mantém ao menos o cabeçalho visível
+    return { top: Math.min(Math.max(top, 8), maxTop), left: Math.min(Math.max(left, 8), maxLeft) };
+  }, []);
+
+  useEffect(() => {
+    if (window.innerWidth < 640) return;
+    try {
+      const salvo = JSON.parse(localStorage.getItem('tusab_chat_pos') || 'null');
+      if (salvo && typeof salvo.top === 'number' && typeof salvo.left === 'number') {
+        setChatPos(clampChatPos(salvo.top, salvo.left));
+        return;
+      }
+    } catch { /* localStorage corrompido — cai no default abaixo */ }
+    setChatPos(clampChatPos(window.innerHeight - FLOAT_HEIGHT - FLOAT_MARGIN, window.innerWidth - FLOAT_WIDTH - FLOAT_MARGIN));
+  }, [clampChatPos]);
+
+  // Listener global único (registrado uma vez) — lê/escreve via refs e forma
+  // funcional de setState, evitando o clássico bug de addEventListener vs.
+  // removeEventListener referenciando closures diferentes a cada render.
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragStateRef.current.dragging) return;
+      setChatPos(clampChatPos(e.clientY - dragStateRef.current.offsetY, e.clientX - dragStateRef.current.offsetX));
+    };
+    const onUp = () => {
+      if (!dragStateRef.current.dragging) return;
+      dragStateRef.current.dragging = false;
+      setChatPos(prev => {
+        if (prev) { try { localStorage.setItem('tusab_chat_pos', JSON.stringify(prev)); } catch {} }
+        return prev;
+      });
+    };
+    const onResize = () => setChatPos(prev => prev ? clampChatPos(prev.top, prev.left) : prev);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [clampChatPos]);
+
+  const handleChatDragStart = (e) => {
+    if (window.innerWidth < 640 || !panelRef.current) return;
+    if (e.target.closest('button, a, input, textarea, select')) return; // não rouba clique de controles do cabeçalho
+    const rect = panelRef.current.getBoundingClientRect();
+    dragStateRef.current = { dragging: true, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
+    e.preventDefault();
+  };
+
   // ─── Action bar helpers ───────────────────────────────────────────────────
   const detectaLista = (content = '') =>
     /^[-*+] .+|^\d+\. .+|\|.+\|/m.test(content);
@@ -520,11 +584,12 @@ function ChatDrawer({
     : mencaoItens;
 
   // Conteúdo interno compartilhado entre drawer e modo expandido
-  const conteudo = (onFechar) => (<>
+  const conteudo = (onFechar, onHeaderMouseDown) => (<>
     {/* Header */}
     <div className={`px-4 py-3 border-b flex flex-col gap-2 shrink-0 ${darkMode ? 'border-white/10 bg-white/4' : 'border-slate-100 bg-slate-50'}`}>
-      {/* Linha 1: identidade + controles de janela */}
-      <div className="flex items-center gap-2">
+      {/* Linha 1: identidade + controles de janela — arrasta a janela flutuante
+          quando onHeaderMouseDown é passado (só no modo não-expandido/desktop) */}
+      <div className={`flex items-center gap-2 ${onHeaderMouseDown ? 'cursor-move' : ''}`} onMouseDown={onHeaderMouseDown}>
         <Sparkles size={15} className="text-primary shrink-0" />
         <p className={`text-xs font-bold flex-1 min-w-0 truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
         {/* Botão expandir/recolher */}
@@ -2454,26 +2519,39 @@ function ChatDrawer({
     );
   }
 
+  // chatPos !== null ⇒ modo janela flutuante (desktop, ver useEffect acima).
+  // chatPos === null ⇒ mobile, mantém o drawer full-screen de sempre.
   return (
     <AnimatePresence>
       {chatOpen && (
         <>
-          {/* Backdrop — fecha o chat ao clicar fora */}
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/20 lg:bg-transparent"
-            onClick={() => setChatOpen(false)} />
+          {/* Backdrop — só fecha ao clicar fora no drawer mobile. Na janela
+              flutuante (desktop) não existe backdrop: é o próprio pedido do
+              usuário — "popup que nunca se fecha" ao interagir com o resto
+              da tela por trás. */}
+          {!chatPos && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/20"
+              onClick={() => setChatOpen(false)} />
+          )}
 
-          {/* Drawer panel */}
+          {/* Painel */}
           <motion.div
-            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.25 }}
+            ref={panelRef}
+            initial={chatPos ? { opacity: 0, scale: 0.96 } : { x: '100%' }}
+            animate={chatPos ? { opacity: 1, scale: 1 }    : { x: 0 }}
+            exit={chatPos    ? { opacity: 0, scale: 0.96 } : { x: '100%' }}
+            transition={{ type: 'tween', duration: 0.2 }}
             role="dialog"
-            aria-modal="true"
+            aria-modal={chatPos ? undefined : true}
             aria-label={t('agent.chat_title')}
             onKeyDown={e => { if (e.key === 'Escape') { if (showPersonaModal) setShowPersonaModal(false); else if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
-            className={`fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
-            {conteudo(() => setChatOpen(false))}
+            style={chatPos ? { top: chatPos.top, left: chatPos.left, width: FLOAT_WIDTH, height: FLOAT_HEIGHT, maxHeight: '80vh' } : undefined}
+            className={chatPos
+              ? `fixed z-50 flex flex-col rounded-2xl shadow-2xl border overflow-hidden ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`
+              : `fixed top-0 right-0 h-full w-full z-50 flex flex-col shadow-2xl border-l ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200'}`}>
+            {conteudo(() => setChatOpen(false), chatPos ? handleChatDragStart : undefined)}
           </motion.div>
         </>
       )}
