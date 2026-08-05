@@ -273,6 +273,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
               btnFocus={BTN_FOCUS}
               ollamaModel={ollamaModel}
               onModelChange={handleModelChange}
+              maxCols={2}
               pulling={pulling}
               pullingModel={pullingModel}
               pullProgress={pullProgress}

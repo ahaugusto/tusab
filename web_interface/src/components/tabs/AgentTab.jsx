@@ -210,6 +210,8 @@ export default function AgentTab({
                         pullingModel={pullingModel}   setPullingModel={setPullingModel}
                         pullStartTime={pullStartTime} setPullStartTime={setPullStartTime}
                         onBaixarModelo={handleBaixarModelo}
+                        mostrarRaciocinio={mostrarRaciocinio}
+                        onToggleMostrarRaciocinio={handleToggleMostrarRaciocinio}
                       />
 
                       {/* External provider toggle */}
