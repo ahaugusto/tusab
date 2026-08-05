@@ -1675,7 +1675,29 @@ function App() {
                 { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
                 { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
-              ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
+              ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => {
+                // Badge de status por item — cor + texto do tooltip explicativo
+                // (hover/focus no ícone). Antes só "agente" tinha tooltip; os
+                // outros badges (indexação/extração/update) pulsavam sem
+                // nenhuma explicação de por que estavam ali.
+                let dotColor = null, dotTooltip = null;
+                if (id === 'extracao' && (isRunning || fonteBackground)) {
+                  dotColor = 'bg-warning animate-pulse';
+                  dotTooltip = t('nav.status_extracao_rodando');
+                } else if (id === 'repositorio' && agentStatus?.indexing) {
+                  dotColor = 'bg-warning animate-pulse';
+                  dotTooltip = t('nav.status_indexacao_rodando');
+                } else if (id === 'admin' && appUpdateInfo) {
+                  dotColor = 'bg-warning animate-pulse';
+                  dotTooltip = t('nav.status_update_disponivel');
+                } else if (id === 'agente' && (agentStatus.configured || ollamaStatus?.running)) {
+                  dotColor = agentStatus.configured ? 'bg-secondary' : 'bg-warning';
+                  dotTooltip = agentStatus.configured
+                    ? t('nav.status_agente_pronto', { provider: agentStatus.provider || t('nav.status_configurado_generico') })
+                    : (ollamaStatus?.running ? t('nav.status_ollama_ativo', { modelo: ollamaStatus.models?.[0] || t('nav.status_modelo_generico') }) : null);
+                }
+                const tooltipId = dotTooltip ? `tooltip-nav-${id}` : undefined;
+                return (
                 <button key={id}
                   onClick={() => {
                     setActiveTab(id);
@@ -1686,41 +1708,30 @@ function App() {
                     }
                   }}
                   aria-label={label}
-                  aria-describedby={id === 'agente' && (agentStatus.configured || ollamaStatus?.running) ? 'tooltip-agente' : undefined}
+                  aria-describedby={tooltipId}
                   className={`group relative w-full py-2 rounded-xl flex flex-col items-center gap-1 transition-colors ${BTN_FOCUS}
                     ${activeTab === id && !showHome
                       ? darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
                       : darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/8' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
-                  {id === 'extracao' && (isRunning || fonteBackground) && (
-                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
-                  )}
-                  {/* Indicador de Operação em Background: indexação continua rodando
-                      mesmo com a modal fechada (BackgroundTask no backend) — sem isso
-                      o usuário perde qualquer sinal de que algo ainda está em curso. */}
-                  {id === 'repositorio' && agentStatus?.indexing && (
-                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
-                  )}
-                  {id === 'admin' && appUpdateInfo && (
-                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
-                  )}
-                  {id === 'agente' && (agentStatus.configured || ollamaStatus?.running) && (
+                  {dotColor && (
                     <>
-                      <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${agentStatus.configured ? 'bg-secondary' : 'bg-warning'}`} aria-hidden="true" />
-                      <div
-                        id="tooltip-agente"
-                        role="tooltip"
-                        className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
-                        ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-white text-slate-700 border border-slate-200 shadow-slate-200/60'}`}>
-                        {agentStatus.configured
-                          ? `Agente pronto · ${agentStatus.provider || 'configurado'}`
-                          : ollamaStatus?.running ? `Ollama ativo · ${ollamaStatus.models?.[0] || 'modelo carregado'}` : ''}
-                      </div>
+                      <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${dotColor}`} aria-hidden="true" />
+                      {dotTooltip && (
+                        <div
+                          id={tooltipId}
+                          role="tooltip"
+                          className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[10px] leading-snug shadow-lg
+                          ${darkMode ? 'bg-slate-800 text-slate-200 border border-white/10' : 'bg-white text-slate-700 border border-slate-200 shadow-slate-200/60'}`}>
+                          {dotTooltip}
+                        </div>
+                      )}
                     </>
                   )}
                 </button>
-              ))}
+                );
+              })}
             </div>
             <div className="flex flex-col items-center gap-0.5 w-full px-1.5 mb-1">
               <button onClick={() => setShowGuide(true)} aria-label={t('guide.title')}
