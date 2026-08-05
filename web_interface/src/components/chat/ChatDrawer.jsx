@@ -1409,7 +1409,14 @@ function ChatDrawer({
                       )}
                     </div>
                   ))}
-                  {chatLoading && (
+                  {/* Bolhas de "pensando" do Tusab (pontinhos + dica rotativa) ficam
+                      redundantes quando o próprio modelo já está mostrando o
+                      raciocínio dele — o bloco de raciocínio já cumpre esse papel
+                      de indicador de progresso. Suprime só quando a mensagem em
+                      streaming JÁ tem thinking chegando (não pelo toggle global —
+                      um modelo sem thinking nativo com o toggle ligado não produz
+                      nada, e nesse caso o loading genérico ainda precisa aparecer). */}
+                  {chatLoading && !chatMessages[chatMessages.length - 1]?.thinking && (
                     <div className="flex justify-start max-w-[85%]">
                       <div className={`px-4 py-3 rounded-2xl rounded-bl-sm border space-y-2 ${darkMode ? 'bg-white/8 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                         <div className="flex items-center gap-1.5">

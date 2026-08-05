@@ -1748,13 +1748,36 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                                     _alerta_recursos_emitido = True
                                     yield json.dumps({'alerta_recursos': _alerta})
                         if data.get('done'):
-                            # Mesmo com o orçamento maior, um modelo pode esgotar
-                            # num_predict só pensando (pergunta complexa, thinking
-                            # muito verboso) — sem isso o chat ficava com o bloco
-                            # de raciocínio e nenhuma resposta, sem explicação.
-                            if not _teve_resposta and mostrar_raciocinio and data.get('done_reason') == 'length':
-                                yield "\n\n_O modelo usou todo o espaço de geração pensando e não chegou a escrever uma resposta. Tente novamente ou desative \"Mostrar raciocínio\" para essa pergunta._"
                             break
+
+            # Modelos pequenos com thinking (ex.: qwen3:4b) às vezes "pensam"
+            # e terminam a geração sem nunca escrever a resposta em si — não é
+            # só estouro de num_predict, o modelo pode parar naturalmente logo
+            # depois do raciocínio. Repete a chamada sem think pra garantir uma
+            # resposta de verdade em vez de deixar o usuário só com o raciocínio.
+            if not _teve_resposta and mostrar_raciocinio:
+                with _req.post('http://localhost:11434/api/generate',
+                        json={
+                            'model':   modelo,
+                            'prompt':  prompt,
+                            'stream':  True,
+                            'think':   False,
+                            'options': {
+                                'num_ctx':     2048,
+                                'num_predict': 512,
+                                'num_thread':  8,
+                                'temperature': 0.3,
+                            },
+                        },
+                        stream=True, timeout=300) as r2:
+                    for line in r2.iter_lines():
+                        if line:
+                            data2 = json.loads(line)
+                            chunk2 = data2.get('response', '')
+                            if chunk2:
+                                yield chunk2
+                            if data2.get('done'):
+                                break
 
         elif provider in ('gemini', 'google'):
             import google.generativeai as _genai
