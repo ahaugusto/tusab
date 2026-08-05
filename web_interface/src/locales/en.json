@@ -934,6 +934,7 @@
   "ollama.delete_model_title": "Delete model (frees disk space)",
   "ollama.thinking_toggle_label": "Reasoning",
   "ollama.thinking_toggle_title": "Show the model's reasoning before the final answer (only has effect on this model, which has native thinking)",
+  "ollama.thinking_toggle_disabled_title": "Download this model to enable visible reasoning",
   "ollama.delete_confirm_short": "Delete?",
   "ollama.delete_confirm_yes": "Yes",
   "ollama.delete_confirm_no": "No",
