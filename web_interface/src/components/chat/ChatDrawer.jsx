@@ -1645,12 +1645,18 @@ function ChatDrawer({
             )}
           </button>
 
-          {/* Dropdown */}
+          {/* Dropdown — largura/altura fixas (w-80, 65vh) foram pensadas pra a
+              drawer antiga (quase a altura da janela); na janela flutuante
+              (chatPos, 380x600) isso sobrava do painel pros dois lados e por
+              cima, deixando a modal "quebrada" flutuando fora dos limites do
+              chat. Quando flutuante, centra sob o botão e limita a um
+              tamanho que sempre cabe dentro do próprio painel. */}
           {showHistQuick && (
             <div
-              className={`absolute bottom-full left-0 mb-2 w-80 rounded-2xl border shadow-2xl z-50 flex flex-col
+              className={`absolute bottom-full mb-2 rounded-2xl border shadow-2xl z-50 flex flex-col
+                ${chatPos ? 'left-1/2 -translate-x-1/2 w-64' : 'left-0 w-80'}
                 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
-              style={{ maxHeight: '65vh' }}>
+              style={{ maxHeight: chatPos ? Math.max(240, FLOAT_HEIGHT - 160) : '65vh' }}>
 
               {/* Header com abas */}
               <div className={`px-3 pt-2.5 pb-0 border-b ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
