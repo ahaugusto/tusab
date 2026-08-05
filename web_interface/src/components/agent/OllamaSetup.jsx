@@ -321,21 +321,28 @@ function OllamaSetup({
                   <p className={`text-[9px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t(desc)}</p>
                 </div>
 
-                <div className={`flex items-center gap-1.5 mt-auto ${thinking && onToggleMostrarRaciocinio ? 'justify-between' : 'justify-end'}`}>
-                  {thinking && onToggleMostrarRaciocinio && (
-                    <button
-                      onClick={() => instalado && onToggleMostrarRaciocinio()}
-                      disabled={!instalado}
-                      title={instalado ? t('ollama.thinking_toggle_title') : t('ollama.thinking_toggle_disabled_title')}
-                      className={`shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[9px] font-bold transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-40
-                        ${instalado && mostrarRaciocinio
-                          ? darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'
-                          : darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+                {thinking && onToggleMostrarRaciocinio && (
+                  <button
+                    onClick={() => instalado && onToggleMostrarRaciocinio()}
+                    disabled={!instalado}
+                    title={instalado ? t('ollama.thinking_toggle_title') : t('ollama.thinking_toggle_disabled_title')}
+                    className={`flex items-center justify-between gap-2 px-1.5 py-1 -mx-1.5 rounded transition-colors disabled:cursor-not-allowed
+                      ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                    <span className={`flex items-center gap-1 text-[9px] font-semibold
+                      ${instalado ? darkMode ? 'text-slate-300' : 'text-slate-600' : darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                       <Brain size={10} />
                       {t('ollama.thinking_toggle_label')}
-                    </button>
-                  )}
+                    </span>
+                    <span className={`w-6 h-3.5 rounded-full flex items-center shrink-0 transition-colors px-0.5
+                      ${instalado && mostrarRaciocinio
+                        ? 'bg-primary justify-end'
+                        : `justify-start ${darkMode ? 'bg-white/15' : 'bg-slate-300'} ${!instalado ? 'opacity-40' : ''}`}`}>
+                      <span className="w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all" />
+                    </span>
+                  </button>
+                )}
 
+                <div className="flex items-center justify-end gap-1.5 mt-auto">
                   {!instalado ? (
                     <button
                       disabled={!!pullingModel || !ollamaStatus.running}
