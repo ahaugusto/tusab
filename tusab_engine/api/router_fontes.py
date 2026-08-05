@@ -12,6 +12,7 @@ atende qualquer fonte registrada.
 
 import os
 import re
+import threading
 
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -20,6 +21,7 @@ import motor_tusab
 from tusab_engine.state import state
 from tusab_engine.motor.fontes import listar_fontes, obter_fonte
 from tusab_engine.motor.fontes._base import mensagem_erro_busca_externa
+from tusab_engine.api.router_agent import disparar_reindexacao_incremental
 
 router = APIRouter()
 
@@ -95,7 +97,21 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
         )
         fstate["stats"]["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
         if resultado.get("ok"):
-            print(f"🏁 Busca em {nome_fonte} concluída — {resultado.get('total_salvos', 0)} resultado(s) salvos.")
+            total_salvos = resultado.get('total_salvos', 0)
+            print(f"🏁 Busca em {nome_fonte} concluída — {total_salvos} resultado(s) salvos.")
+            # Reindexação incremental em thread própria — não trava fstate["running"]
+            # até indexar terminar. Pelo cache por arquivo em agent/index.py, só os
+            # documentos novos desta busca custam KeyBERT; o resto do corpus já
+            # indexado é reaproveitado. Ver disparar_reindexacao_incremental().
+            # projeto_nome aqui já é o prefixo sanitizado (nome do parâmetro é
+            # legado — ver contrato de fonte.buscar()), então serve pros dois
+            # argumentos posicionais (nome de exibição, prefixo).
+            if total_salvos > 0:
+                threading.Thread(
+                    target=disparar_reindexacao_incremental,
+                    args=(projeto_nome, projeto_nome),
+                    daemon=True,
+                ).start()
     except Exception as e:
         mensagem = mensagem_erro_busca_externa(e, nome_fonte)
         print(f"❌ ERRO NA BUSCA {fonte_id.upper()}: {mensagem}")
@@ -108,11 +124,13 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
 
 @router.post("/fontes/{fonte_id}/search")
 def fonte_search(fonte_id: str, req: FonteSearchRequest, background_tasks: BackgroundTasks):
-    """Busca numa fonte pública registrada e indexa como documentos do projeto.
+    """Busca numa fonte pública registrada e salva como documentos do projeto.
 
     [CONTRATO] Assim como POST /neural/upload, o projeto (projeto_nome) deve já
-    existir — ver POST /neural/projeto. Não reindexa automaticamente; indexação
-    continua sendo POST /agent/index, ação explícita do usuário.
+    existir — ver POST /neural/projeto. Dispara reindexação incremental em
+    background ao concluir (ver disparar_reindexacao_incremental) — não é
+    mais preciso clicar em "Indexar base" manualmente pra este conteúdo
+    aparecer no chat, embora isso continue disponível pra forçar um refresh.
     """
     fonte = obter_fonte(fonte_id)
     if not fonte:

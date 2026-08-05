@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
+from tusab_engine.api.router_agent import disparar_reindexacao_incremental
 
 router = APIRouter()
 
@@ -71,6 +72,21 @@ def run_motor():
         finally:
             state.is_running = False
             state.is_paused  = False
+            # Reindexação incremental em background — em thread própria pra não
+            # atrasar o consumo da fila (run_motor já é a thread de background
+            # da extração; indexar aqui de forma síncrona travaria o próximo
+            # canal até terminar). Mesmo em extração cancelada no meio, o que
+            # já foi salvo vale a pena indexar. Cache por arquivo (agent/index.py)
+            # garante que isso não vira um rebuild caro do corpus inteiro a
+            # cada canal da fila.
+            if state.stats.get("files_generated", 0) > 0 and state.projeto_nome:
+                _nome_display = state.stats.get("projeto_nome", "")
+                _prefixo_atual = state.projeto_nome
+                threading.Thread(
+                    target=disparar_reindexacao_incremental,
+                    args=(_nome_display, _prefixo_atual),
+                    daemon=True,
+                ).start()
 
         # Verifica fila antes de decidir se terminou
         with state.queue_lock:
