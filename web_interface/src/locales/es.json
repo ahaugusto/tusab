@@ -934,6 +934,7 @@
   "ollama.delete_model_title": "Eliminar modelo (libera espacio en disco)",
   "ollama.thinking_toggle_label": "Razonamiento",
   "ollama.thinking_toggle_title": "Mostrar el razonamiento del modelo antes de la respuesta final (solo tiene efecto en este modelo, que tiene thinking nativo)",
+  "ollama.thinking_toggle_disabled_title": "Descarga este modelo para poder activar el razonamiento visible",
   "ollama.delete_confirm_short": "¿Eliminar?",
   "ollama.delete_confirm_yes": "Sí",
   "ollama.delete_confirm_no": "No",

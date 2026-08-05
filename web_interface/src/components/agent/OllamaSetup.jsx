@@ -324,10 +324,11 @@ function OllamaSetup({
                 <div className={`flex items-center gap-1.5 mt-auto ${thinking && onToggleMostrarRaciocinio ? 'justify-between' : 'justify-end'}`}>
                   {thinking && onToggleMostrarRaciocinio && (
                     <button
-                      onClick={onToggleMostrarRaciocinio}
-                      title={t('ollama.thinking_toggle_title')}
-                      className={`shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[9px] font-bold transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0
-                        ${mostrarRaciocinio
+                      onClick={() => instalado && onToggleMostrarRaciocinio()}
+                      disabled={!instalado}
+                      title={instalado ? t('ollama.thinking_toggle_title') : t('ollama.thinking_toggle_disabled_title')}
+                      className={`shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[9px] font-bold transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-40
+                        ${instalado && mostrarRaciocinio
                           ? darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'
                           : darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
                       <Brain size={10} />
