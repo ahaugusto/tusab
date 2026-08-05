@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, RefreshCw, ChevronDown, Settings2, ExternalLink, Info, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ChevronDown, Settings2, ExternalLink, Info, Loader2, AlertTriangle, Trash2, Brain } from 'lucide-react';
 import { fetchOllamaStatus, pullOllamaModel, deleteOllamaModel } from '../../services/api';
 
 // Modelos principais — exibidos no onboarding (isStandby=false) e na lista expandida
@@ -45,6 +45,13 @@ const MODELOS_EXTRAS = [
 // Lista completa para uso na aba Agente (isStandby=true) — exibe todos
 const MODELOS_SUGERIDOS = [...MODELOS_PRINCIPAIS, ...MODELOS_EXTRAS];
 
+// Modelos com thinking nativo — mesmo critério do comentário acima (qwen3,
+// deepseek-r1). Usado pra mostrar o toggle "Mostrar raciocínio" direto no
+// card do modelo, já que em qualquer outro modelo o toggle não teria efeito.
+function isModeloThinking(id) {
+  return id.startsWith('qwen3:') || id.startsWith('deepseek-r1:');
+}
+
 function formatarTempo(segundos) {
   if (segundos < 60) return `~${Math.ceil(segundos)}s`;
   const min = Math.ceil(segundos / 60);
@@ -60,6 +67,12 @@ function OllamaSetup({
   // Estado de download — controlado pelo AgentTab para persistir entre trocas de aba
   pullProgress, pulling, pullingModel, pullStartTime,
   onBaixarModelo,
+  mostrarRaciocinio, onToggleMostrarRaciocinio,
+  // Tailwind lg:/sm: reagem à largura da JANELA, não do container — num modal
+  // estreito (ex.: Onboarding, max-w-md) 3 colunas ficariam espremidas mesmo
+  // com a janela larga. Cada chamador decide quantas colunas cabem no seu
+  // próprio espaço; 3 é o padrão (painel largo da aba Configurações).
+  maxCols = 3,
 }) {
   const { t } = useTranslation();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
@@ -281,7 +294,7 @@ function OllamaSetup({
           </a>
         </div>
 
-        <div className="space-y-1">
+        <div className={`grid grid-cols-1 ${maxCols >= 2 ? 'sm:grid-cols-2' : ''} ${maxCols >= 3 ? 'lg:grid-cols-3' : ''} gap-2`}>
           {/* isStandby (Ollama não é o provedor ativo) OU showAdvanced (usuário
               pediu pra expandir "Trocar modelo") — os dois sinalizam "quero ver
               mais opções", não só o primeiro. Sem showAdvanced aqui, quem já usa
@@ -290,10 +303,11 @@ function OllamaSetup({
             const instalado    = ollamaStatus.running && ollamaStatus.models?.includes(id);
             const baixandoEste = pullingModel === id;
             const isAtivo      = ollamaStatus.running && modelName === id && instalado;
+            const thinking     = isModeloThinking(id);
             return (
-              <div key={id} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors
+              <div key={id} className={`flex flex-col gap-2 p-2.5 rounded-lg border transition-colors
                 ${darkMode ? 'bg-white/3 border-white/8 hover:border-white/15' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className={`text-[10px] font-mono font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{label}</span>
                     <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{size}</span>
@@ -304,62 +318,77 @@ function OllamaSetup({
                       <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${darkMode ? 'bg-secondary/30 text-secondary' : 'bg-emerald-200 text-emerald-800'}`}>{t('ollama.badge_active')}</span>
                     )}
                   </div>
-                  <p className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t(desc)}</p>
+                  <p className={`text-[9px] mt-0.5 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t(desc)}</p>
                 </div>
 
-                {!instalado ? (
-                  <button
-                    disabled={!!pullingModel || !ollamaStatus.running}
-                    onClick={() => onBaixarModelo && onBaixarModelo(id)}
-                    title={!ollamaStatus.running ? t('ollama.install_required_title') : undefined}
-                    className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-40 focus:ring-2 focus:ring-primary focus:ring-offset-0
-                      ${baixandoEste
-                        ? darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700 border border-violet-300'
-                        : darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
-                    {baixandoEste
-                      ? <><Loader2 size={9} className="animate-spin" /> {pullProgress?.pct > 0 ? `${pullProgress.pct}%` : t('ollama.downloading_ellipsis')}</>
-                      : <>{t('ollama.download_btn')}</>}
-                  </button>
-                ) : confirmarExclusao === id ? (
-                  <div className="shrink-0 flex items-center gap-1">
-                    <span className={`text-[9px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('ollama.delete_confirm_short')}</span>
+                <div className={`flex items-center gap-1.5 mt-auto ${thinking && onToggleMostrarRaciocinio ? 'justify-between' : 'justify-end'}`}>
+                  {thinking && onToggleMostrarRaciocinio && (
                     <button
-                      onClick={() => handleExcluirModelo(id)}
-                      disabled={excluindoModelo === id}
-                      className={`shrink-0 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-50 focus:ring-2 focus:ring-primary focus:ring-offset-0
-                        ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                      {excluindoModelo === id ? <Loader2 size={9} className="animate-spin" /> : t('ollama.delete_confirm_yes')}
+                      onClick={onToggleMostrarRaciocinio}
+                      title={t('ollama.thinking_toggle_title')}
+                      className={`shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[9px] font-bold transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0
+                        ${mostrarRaciocinio
+                          ? darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700'
+                          : darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+                      <Brain size={10} />
+                      {t('ollama.thinking_toggle_label')}
                     </button>
+                  )}
+
+                  {!instalado ? (
                     <button
-                      onClick={() => setConfirmarExclusao(null)}
-                      disabled={excluindoModelo === id}
-                      className={`shrink-0 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-50 focus:ring-2 focus:ring-primary focus:ring-offset-0
-                        ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                      {t('ollama.delete_confirm_no')}
+                      disabled={!!pullingModel || !ollamaStatus.running}
+                      onClick={() => onBaixarModelo && onBaixarModelo(id)}
+                      title={!ollamaStatus.running ? t('ollama.install_required_title') : undefined}
+                      className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-40 focus:ring-2 focus:ring-primary focus:ring-offset-0
+                        ${baixandoEste
+                          ? darkMode ? 'bg-primary/20 text-primary' : 'bg-violet-100 text-violet-700 border border-violet-300'
+                          : darkMode ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'}`}>
+                      {baixandoEste
+                        ? <><Loader2 size={9} className="animate-spin" /> {pullProgress?.pct > 0 ? `${pullProgress.pct}%` : t('ollama.downloading_ellipsis')}</>
+                        : <>{t('ollama.download_btn')}</>}
                     </button>
-                  </div>
-                ) : (
-                  <div className="shrink-0 flex items-center gap-1">
-                    <button
-                      onClick={() => !isAtivo && onModelChange && onModelChange(id)}
-                      disabled={isAtivo}
-                      className={`shrink-0 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:cursor-default focus:ring-2 focus:ring-primary focus:ring-offset-0
-                        ${isAtivo
-                          ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
-                          : darkMode
-                            ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30'
-                            : 'bg-primary text-white border border-primary shadow-sm hover:bg-primary/90'}`}>
-                      {isAtivo ? t('ollama.badge_active_full') : t('ollama.use_btn')}
-                    </button>
-                    <button
-                      onClick={() => setConfirmarExclusao(id)}
-                      title={t('ollama.delete_model_title')}
-                      className={`shrink-0 p-1.5 rounded-lg transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0
-                        ${darkMode ? 'text-slate-500 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                )}
+                  ) : confirmarExclusao === id ? (
+                    <div className="shrink-0 flex items-center gap-1">
+                      <span className={`text-[9px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('ollama.delete_confirm_short')}</span>
+                      <button
+                        onClick={() => handleExcluirModelo(id)}
+                        disabled={excluindoModelo === id}
+                        className={`shrink-0 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-50 focus:ring-2 focus:ring-primary focus:ring-offset-0
+                          ${darkMode ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                        {excluindoModelo === id ? <Loader2 size={9} className="animate-spin" /> : t('ollama.delete_confirm_yes')}
+                      </button>
+                      <button
+                        onClick={() => setConfirmarExclusao(null)}
+                        disabled={excluindoModelo === id}
+                        className={`shrink-0 px-2 py-1 rounded text-[9px] font-bold transition-colors disabled:opacity-50 focus:ring-2 focus:ring-primary focus:ring-offset-0
+                          ${darkMode ? 'bg-white/8 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                        {t('ollama.delete_confirm_no')}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="shrink-0 flex items-center gap-1">
+                      <button
+                        onClick={() => !isAtivo && onModelChange && onModelChange(id)}
+                        disabled={isAtivo}
+                        className={`shrink-0 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:cursor-default focus:ring-2 focus:ring-primary focus:ring-offset-0
+                          ${isAtivo
+                            ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
+                            : darkMode
+                              ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30'
+                              : 'bg-primary text-white border border-primary shadow-sm hover:bg-primary/90'}`}>
+                        {isAtivo ? t('ollama.badge_active_full') : t('ollama.use_btn')}
+                      </button>
+                      <button
+                        onClick={() => setConfirmarExclusao(id)}
+                        title={t('ollama.delete_model_title')}
+                        className={`shrink-0 p-1.5 rounded-lg transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-0
+                          ${darkMode ? 'text-slate-500 hover:text-danger hover:bg-danger/10' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
