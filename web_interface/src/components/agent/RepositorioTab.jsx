@@ -133,13 +133,21 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
               {t('repo.indexar_subtitle', { count: nSel })}
             </p>
           </div>
-          {!indexando && !agentStatus?.indexing && (
-            <button onClick={onFechar}
-              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          )}
+          {/* Fechar não cancela — a indexação roda como BackgroundTask no
+              backend (handleIndexarDoChat vive em App.jsx, não neste
+              componente) e continua mesmo com a modal fechada. Sem isso o
+              usuário ficava obrigado a esperar aqui parado até terminar. */}
+          <button onClick={onFechar}
+            title={(indexando || agentStatus?.indexing) ? t('repo.indexar_close_background_hint') : undefined}
+            className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
+        {(indexando || agentStatus?.indexing) && (
+          <p className={`text-[10px] -mt-1 mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            {t('repo.indexar_close_background_hint')}
+          </p>
+        )}
 
         {/* Busca */}
         <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30

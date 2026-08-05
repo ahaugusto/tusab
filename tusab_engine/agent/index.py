@@ -45,6 +45,48 @@ def _index_path(projeto_prefixo: str) -> str:
     return os.path.join(INDEX_DIR, f"{projeto_prefixo}_index.json")
 
 
+# ── Cache incremental de chunks por arquivo ──────────────────────────────────
+#
+# indexar() reconstruía 100% do corpus a cada chamada — inclusive rerodando
+# KeyBERT (~0.3s/chunk) em arquivos já indexados e inalterados. Como o corpus
+# só cresce (extração YouTube, upload de doc, texto colado, fontes públicas
+# via API), cada reindex ficava proporcionalmente mais lento que o anterior.
+# Este cache guarda, por arquivo-fonte (mtime como fingerprint), os chunks já
+# enriquecidos — reindexar só reprocessa o que é novo ou mudou.
+#
+# _CACHE_VERSION invalida o cache inteiro (força 1 rebuild completo) sempre
+# que a lógica de parsing/enriquecimento mudar — sem isso, uma mudança em
+# _enriquecer_com_keywords()/_parsear_chunks() não se refletiria em arquivos
+# já cacheados até eles serem tocados de novo.
+_CACHE_VERSION = 1
+
+
+def _cache_chunks_path(projeto_prefixo: str) -> str:
+    return os.path.join(INDEX_DIR, f"{projeto_prefixo}_chunks_cache.json")
+
+
+def _carregar_cache_chunks(projeto_prefixo: str) -> dict:
+    caminho = _cache_chunks_path(projeto_prefixo)
+    if not os.path.exists(caminho):
+        return {}
+    try:
+        with open(caminho, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if data.get('versao') != _CACHE_VERSION:
+            return {}
+        arquivos = data.get('arquivos', {})
+        return arquivos if isinstance(arquivos, dict) else {}
+    except Exception:
+        return {}
+
+
+def _salvar_cache_chunks(projeto_prefixo: str, cache: dict):
+    try:
+        salvar_json_atomico({'versao': _CACHE_VERSION, 'arquivos': cache}, _cache_chunks_path(projeto_prefixo))
+    except Exception:
+        pass  # cache é otimização — falha ao salvar não pode quebrar a indexação
+
+
 # ── Cache BM25 em memória ─────────────────────────────────────────────────────
 # _bm25_lock evita dupla reconstrução quando dois chats usam o mesmo canal.
 
@@ -235,7 +277,7 @@ _STOPWORDS = {
 
 # ── Parser de chunks ──────────────────────────────────────────────────────────
 
-def _parsear_chunks(txt_dir: str, projeto_prefixo: str) -> list:
+def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arquivos_vistos: set = None) -> list:
     chunks   = []
     arquivos = sorted([
         f for f in os.listdir(txt_dir)
@@ -244,6 +286,21 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str) -> list:
 
     for arquivo in arquivos:
         caminho = os.path.join(txt_dir, arquivo)
+        caminho_abs = os.path.realpath(caminho)
+        if arquivos_vistos is not None:
+            arquivos_vistos.add(caminho_abs)
+
+        try:
+            mtime = os.path.getmtime(caminho)
+        except OSError:
+            continue
+
+        if cache is not None:
+            entrada = cache.get(caminho_abs)
+            if entrada and entrada.get('mtime') == mtime:
+                chunks.extend(entrada['chunks'])
+                continue
+
         with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
             conteudo = f.read()
         # Corrige mojibake latin-1→utf-8 (comum em títulos extraídos pelo yt-dlp)
@@ -253,6 +310,7 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str) -> list:
             pass
 
         blocos = re.split(r'={50,}', conteudo)
+        chunks_arquivo = []
         for bloco in blocos:
             bloco = bloco.strip()
             if not bloco or len(bloco) < 100:
@@ -282,7 +340,7 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str) -> list:
             titulo_str = titulo.group(1).strip() if titulo else ''
             # Prefixar título no texto garante que FTS5 e BM25 em disco encontram por título
             texto_com_titulo = (f"TITULO: {titulo_str}\n\n" + texto_limpo) if titulo_str else texto_limpo
-            chunks.append({
+            chunks_arquivo.append({
                 'texto':             _enriquecer_com_keywords(texto_com_titulo),
                 'texto_original':    texto_limpo,
                 'titulo':            titulo_str,
@@ -297,6 +355,10 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str) -> list:
                 'views':             int(views_m.group(1))     if views_m  else 0,
                 'timestamp_inicio':  int(ts_m.group(1))        if ts_m     else 0,
             })
+
+        chunks.extend(chunks_arquivo)
+        if cache is not None:
+            cache[caminho_abs] = {'mtime': mtime, 'chunks': chunks_arquivo}
 
     return chunks
 
@@ -352,6 +414,12 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
         if progress_callback:
             progress_callback(min(processed, total) if total else processed, total)
 
+    # Cache incremental (ver bloco "Cache incremental de chunks por arquivo"
+    # acima) — arquivos_vistos rastreia todo caminho tocado nesta rodada pra
+    # podar entradas órfãs (arquivo deletado) antes de salvar de volta.
+    cache = _carregar_cache_chunks(projeto_prefixo)
+    arquivos_vistos = set()
+
     chunks = []
     # Nova estrutura: data/neural/{projeto}/youtube/{canal}/*.txt
     # Varre TODOS os subdiretórios de canal dentro do projeto.
@@ -360,15 +428,15 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
         for canal_entry in os.scandir(youtube_base):
             if canal_entry.is_dir():
                 # Nova estrutura: youtube/{canal}/*.txt
-                chunks += _parsear_chunks(canal_entry.path, canal_entry.name)
+                chunks += _parsear_chunks(canal_entry.path, canal_entry.name, cache=cache, arquivos_vistos=arquivos_vistos)
                 _tick()
             elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
                 # Legado flat: youtube/*.txt (arquivos anteriores à migração de estrutura)
-                chunks += _parsear_chunks(youtube_base, projeto_prefixo)
+                chunks += _parsear_chunks(youtube_base, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos)
                 _tick()
     # Legado: data/neural/youtube/ plano (arquivos nomeados {projeto_prefixo}_*.txt)
     if os.path.exists(TXT_DIR):
-        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo)
+        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos)
         _tick()
 
     seen_files = set()
@@ -385,7 +453,22 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
             if caminho in seen_files:
                 continue
             seen_files.add(caminho)
+            arquivos_vistos.add(caminho)
+
             try:
+                mtime = os.path.getmtime(caminho)
+            except OSError:
+                _tick()
+                continue
+
+            cache_entrada = cache.get(caminho)
+            if cache_entrada and cache_entrada.get('mtime') == mtime:
+                chunks.extend(cache_entrada['chunks'])
+                _tick()
+                continue
+
+            try:
+                chunks_arquivo = []
                 with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
                     conteudo = f.read().strip()
                 if len(conteudo) < 80:
@@ -419,7 +502,7 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
                 for parte in partes:
                     if len(parte) < 80:
                         continue
-                    chunks.append({
+                    chunks_arquivo.append({
                         'texto':          _enriquecer_com_keywords(parte),
                         'texto_original': parte,
                         'titulo':         titulo_doc,
@@ -431,10 +514,19 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
                         'canal':          canal_dir,
                         'descricao':      '',
                     })
+                chunks.extend(chunks_arquivo)
+                cache[caminho] = {'mtime': mtime, 'chunks': chunks_arquivo}
             except Exception:
                 pass
             finally:
                 _tick()
+
+    # Poda entradas do cache cujo arquivo não foi visto nesta rodada (deletado
+    # ou movido) — sem isso o cache cresceria pra sempre e nunca refletiria
+    # exclusões reais do repositório.
+    cache_podado = {k: v for k, v in cache.items() if k in arquivos_vistos}
+    _salvar_cache_chunks(projeto_prefixo, cache_podado)
+
     return chunks
 
 

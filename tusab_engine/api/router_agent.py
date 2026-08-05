@@ -97,6 +97,30 @@ def _run_indexacao(projeto_nome: str, projeto_prefixo: str):
         state.agent_indexing = False
 
 
+def disparar_reindexacao_incremental(projeto_nome: str, projeto_prefixo: str):
+    """Reindexação automática em background após ingestão de conteúdo (extração
+    YouTube, upload, texto colado, busca em fonte pública/API) — pra quando o
+    usuário for à aba Repositório clicar "Indexar", a maior parte do trabalho
+    já estar feita. Só compensa chamar isso liberalmente (a cada ingestão,
+    não só no clique manual) porque agent/index.py cacheia chunks por arquivo
+    e pula KeyBERT no que não mudou — sem isso, cada chamada extra seria uma
+    reconstrução cara e desnecessária do corpus inteiro.
+
+    Outros routers (router_extraction, router_repositorio, router_fontes)
+    importam e chamam esta função via BackgroundTasks — nunca chamam
+    _run_indexacao() diretamente, pra passar sempre pelo guard abaixo.
+
+    Guard: se já há uma indexação em andamento (manual ou outro gatilho
+    automático), não sobrepõe — a próxima ingestão (ou o clique manual do
+    usuário) cobre o que ficou pendente. Duas chamadas concorrentes de
+    indexar() pro mesmo projeto competeriam pelos mesmos arquivos de cache/
+    índice sem ganho real, só trabalho duplicado.
+    """
+    if state.agent_indexing:
+        return
+    _run_indexacao(projeto_nome, projeto_prefixo)
+
+
 # ── Models ────────────────────────────────────────────────────────────────────
 
 _PERSONAS_VALIDAS = {'', 'objetivo', 'tecnico', 'didatico', 'descontraido', 'socratico', 'custom'}
