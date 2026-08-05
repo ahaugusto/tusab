@@ -120,7 +120,8 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const [playlistsDisponiveis, setPlaylistsDisponiveis] = React.useState(null);
   const [playlistsCarregando,  setPlaylistsCarregando]  = React.useState(false);
   const [playlistsMarcadas,    setPlaylistsMarcadas]    = React.useState(null); // null = todas
-  const [playlistsExpandido,   setPlaylistsExpandido]   = React.useState(false);
+  const [playlistsModalAberto, setPlaylistsModalAberto] = React.useState(false);
+  const [buscaPlaylist,        setBuscaPlaylist]        = React.useState('');
 
   // Filtro opcional de data de publicação — aplica a todos os tipos
   // selecionados, não só playlists (upload_date já é coletado uniformemente
@@ -168,7 +169,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   React.useEffect(() => {
     setPlaylistsDisponiveis(null);
     setPlaylistsMarcadas(null);
-    setPlaylistsExpandido(false);
+    setPlaylistsModalAberto(false);
   }, [canalUrl]);
 
   // Busca mapa de cobertura com debounce de 800ms quando URL parece válida
@@ -192,7 +193,8 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // seleção (não no mount — evita uma chamada de yt-dlp desnecessária pra
   // quem nunca vai expandir).
   const handleAbrirSeletorPlaylists = () => {
-    setPlaylistsExpandido(v => !v);
+    setPlaylistsModalAberto(true);
+    setBuscaPlaylist('');
     if (playlistsDisponiveis !== null || playlistsCarregando) return;
     setPlaylistsCarregando(true);
     listarPlaylistsCanal(canalUrl.trim())
@@ -211,6 +213,22 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const playlistEstaMarcada = (id) => playlistsMarcadas === null || playlistsMarcadas.includes(id);
   const todasPlaylistsMarcadas = playlistsMarcadas === null
     || (playlistsDisponiveis && playlistsMarcadas.length === playlistsDisponiveis.length);
+
+  const playlistsFiltradas = (buscaPlaylist.trim()
+    ? (playlistsDisponiveis || []).filter(p => p.titulo.toLowerCase().includes(buscaPlaylist.trim().toLowerCase()))
+    : (playlistsDisponiveis || []));
+  // "Marcar/desmarcar todos" agem só sobre o resultado filtrado da busca —
+  // playlists fora do filtro atual mantêm o estado que já tinham.
+  const marcarTodasFiltradas = () => setPlaylistsMarcadas(prev => {
+    const base = prev === null ? (playlistsDisponiveis || []).map(p => p.id) : [...prev];
+    const idsFiltrados = playlistsFiltradas.map(p => p.id);
+    return Array.from(new Set([...base, ...idsFiltrados]));
+  });
+  const desmarcarTodasFiltradas = () => setPlaylistsMarcadas(prev => {
+    const base = prev === null ? (playlistsDisponiveis || []).map(p => p.id) : prev;
+    const idsFiltrados = new Set(playlistsFiltradas.map(p => p.id));
+    return base.filter(id => !idsFiltrados.has(id));
+  });
 
   const avancar = () => {
     if (step === 'url') {
@@ -717,12 +735,16 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 })}
               </div>
 
-              {/* ── Seleção de playlists específicas — só quando 'Playlists' está marcado ── */}
+              {/* ── Seleção de playlists específicas — só quando 'Playlists' está marcado ──
+                  Sub-modal em vez de painel inline: canais com muitas playlists tornavam
+                  a lista de ~4 itens visíveis (max-h-40) impraticável de navegar sem
+                  busca nem seleção em lote. */}
               {selected.includes('Playlists') && (
                 <div className={`rounded-xl border mb-4 overflow-hidden ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-200 bg-slate-50'}`}>
                   <button
                     onClick={handleAbrirSeletorPlaylists}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${BTN_FOCUS}`}>
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${BTN_FOCUS}
+                      ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-100'}`}>
                     <span className="text-base shrink-0" aria-hidden="true">▶️</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -735,13 +757,63 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                       </p>
                     </div>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className={`shrink-0 transition-transform ${playlistsExpandido ? 'rotate-180' : ''} ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      className={`shrink-0 -rotate-90 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                       <path d="M6 9l6 6 6-6"/>
                     </svg>
                   </button>
+                </div>
+              )}
 
-                  {playlistsExpandido && (
-                    <div className={`px-3 pb-3 pt-1 border-t ${darkMode ? 'border-white/8' : 'border-slate-200'}`}>
+              {playlistsModalAberto && (
+                <ModalWrapper onClose={() => setPlaylistsModalAberto(false)} label={t('extraction.playlists_selector_title')} zIndex="z-[60]">
+                  <div className={`rounded-2xl border shadow-2xl w-full max-w-md flex flex-col ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}
+                    style={{ maxHeight: 'min(80vh, 560px)' }}>
+                    {/* Header */}
+                    <div className={`flex items-start justify-between px-5 pt-5 pb-3 border-b shrink-0 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                      <div>
+                        <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('extraction.playlists_selector_title')}</h3>
+                        <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+                          {playlistsMarcadas === null
+                            ? t('extraction.playlists_selector_subtitle_all')
+                            : t('extraction.playlists_selector_subtitle_count', { count: playlistsMarcadas.length })}
+                        </p>
+                      </div>
+                      <button onClick={() => setPlaylistsModalAberto(false)}
+                        className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:bg-white/8' : 'text-slate-400 hover:bg-slate-100'}`}>
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Busca + marcar/desmarcar todos */}
+                    {!playlistsCarregando && playlistsDisponiveis?.length > 0 && (
+                      <div className={`px-5 pt-3 pb-2 border-b shrink-0 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                        <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 mb-2.5 ${darkMode ? 'bg-white/5 border-white/15' : 'bg-slate-50 border-slate-200'}`}>
+                          <Search size={12} className={darkMode ? 'text-slate-500' : 'text-slate-400'} />
+                          <input
+                            type="text"
+                            value={buscaPlaylist}
+                            onChange={e => setBuscaPlaylist(e.target.value)}
+                            placeholder={t('extraction.playlists_busca_placeholder')}
+                            className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={marcarTodasFiltradas}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${BTN_FOCUS}
+                              ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                            {t('extraction.playlists_marcar_todas')}
+                          </button>
+                          <button onClick={desmarcarTodasFiltradas}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${BTN_FOCUS}
+                              ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                            {t('extraction.playlists_desmarcar_todas')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lista */}
+                    <div className="flex-1 overflow-y-auto px-5 py-3 custom-scrollbar">
                       {playlistsCarregando && (
                         <div className={`flex items-center gap-2 py-3 text-[11px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                           <Loader2 size={12} className="animate-spin" aria-hidden="true" />
@@ -753,9 +825,14 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                           {t('extraction.playlists_empty')}
                         </p>
                       )}
-                      {!playlistsCarregando && playlistsDisponiveis?.length > 0 && (
-                        <div className="space-y-1 pt-2 max-h-40 overflow-y-auto custom-scrollbar">
-                          {playlistsDisponiveis.map(p => {
+                      {!playlistsCarregando && playlistsDisponiveis?.length > 0 && playlistsFiltradas.length === 0 && (
+                        <p className={`text-[11px] py-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {t('extraction.playlists_busca_vazio', { query: buscaPlaylist })}
+                        </p>
+                      )}
+                      {!playlistsCarregando && playlistsFiltradas.length > 0 && (
+                        <div className="space-y-1">
+                          {playlistsFiltradas.map(p => {
                             const marcada = playlistEstaMarcada(p.id);
                             return (
                               <button key={p.id} onClick={() => togglePlaylist(p.id)}
@@ -773,8 +850,17 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+
+                    {/* Footer */}
+                    <div className={`px-5 py-3 border-t shrink-0 ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
+                      <button onClick={() => setPlaylistsModalAberto(false)}
+                        className={`w-full py-2 rounded-xl text-xs font-bold transition-colors ${BTN_FOCUS}
+                          ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-violet-600 text-white hover:bg-violet-700'}`}>
+                        {t('extraction.playlists_concluido')}
+                      </button>
+                    </div>
+                  </div>
+                </ModalWrapper>
               )}
 
               {/* ── Filtro opcional de data de publicação — aplica a todos os tipos marcados ── */}
