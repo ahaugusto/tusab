@@ -25,6 +25,12 @@ class StudyRequest(BaseModel):
     tipo:         str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos | quiz
     n_cards:      int = Field(default=10, ge=1, le=30)
     tema:         str = Field(default="", max_length=200)  # opcional — escopa a geração a um tema/tópico
+    # opcional — restringe o corpus de origem a itens específicos já
+    # armazenados no projeto (por 'arquivo', o mesmo identificador já presente
+    # em cada chunk do índice) antes de aplicar o filtro de tema. Vazio =
+    # comportamento antigo, projeto inteiro. Combinável com `tema`: os itens
+    # definem o universo, o tema rankeia dentro dele.
+    arquivos:     list[str] = Field(default_factory=list, max_length=50)
 
     # campo legado — normalizado via model_validator:
     canal_nome: str = Field(default="", max_length=120)
@@ -373,7 +379,7 @@ def _formatar_texto_indexavel(tipo: str, dados) -> str:
     return str(dados)  # resumo já é texto
 
 
-def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, tema: str, dados) -> dict | None:
+def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, tema: str, dados, n_itens: int = 0) -> dict | None:
     """Salva um artefato do Modo Estudo em neural/{prefixo}/estudo/ e registra no manifest.
 
     Grava DOIS arquivos por artefato:
@@ -433,6 +439,7 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
             "criado_em": agora,
             "projeto": projeto_nome,
             "tema": tema.strip(),
+            "n_itens": n_itens,  # 0 = gerado do projeto inteiro; N = restrito a N itens específicos
             "arquivo_txt": arquivo_txt,
             "arquivo_json": arquivo_json,
         }
@@ -469,9 +476,20 @@ def agent_study(req: StudyRequest):
     if not chunks:
         return {"error": True, "message": "Índice vazio. Adicione conteúdo e indexe novamente."}
 
+    # Restringe o universo a itens específicos escolhidos pelo usuário (ex.:
+    # 2 vídeos e 1 documento, não o projeto inteiro) — o tema (se também
+    # informado) rankeia dentro desse subconjunto, não do projeto inteiro.
+    if req.arquivos:
+        arquivos_set = set(req.arquivos)
+        chunks_selecionados = [c for c in chunks if c.get("arquivo") in arquivos_set]
+        if not chunks_selecionados:
+            return {"error": True, "message": "Nenhum conteúdo encontrado nos itens selecionados."}
+        chunks = chunks_selecionados
+
     # Amostra distribuída: por tema via BM25 se informado, senão aleatória de
-    # todo o índice. Flashcards precisam de mais diversidade; resumo precisa
-    # de menos tokens no prompt.
+    # todo o índice (ou do subconjunto de itens, se restringido acima).
+    # Flashcards precisam de mais diversidade; resumo precisa de menos
+    # tokens no prompt.
     n_amostras = min(req.n_cards * 3, 60, len(chunks))
     amostra = _filtrar_chunks_por_tema(chunks, req.tema, n_amostras)
     # Amostra menor dedicada ao resumo — reduz contexto enviado ao LLM (~18k→4k chars)
@@ -514,7 +532,7 @@ def agent_study(req: StudyRequest):
                 "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "postits": postits_resultado,
             }, pi_path, indent=2)
-            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "postits", req.tema, postits_resultado)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "postits", req.tema, postits_resultado, n_itens=len(req.arquivos))
             if artefato:
                 artefatos_criados.append(artefato)
         except Exception as e:
@@ -552,7 +570,7 @@ def agent_study(req: StudyRequest):
                 "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "quiz": quiz_resultado,
             }, qz_path, indent=2)
-            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "quiz", req.tema, quiz_resultado)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "quiz", req.tema, quiz_resultado, n_itens=len(req.arquivos))
             if artefato:
                 artefatos_criados.append(artefato)
         except Exception as e:
@@ -591,7 +609,7 @@ def agent_study(req: StudyRequest):
                 "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "flashcards": flashcards_resultado,
             }, fc_path, indent=2)
-            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "flashcards", req.tema, flashcards_resultado)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "flashcards", req.tema, flashcards_resultado, n_itens=len(req.arquivos))
             if artefato:
                 artefatos_criados.append(artefato)
         except Exception as e:
@@ -617,7 +635,7 @@ def agent_study(req: StudyRequest):
             rs_path = os.path.join(mgmt_dir, "resumo_estudo.md")
             with open(rs_path, "w", encoding="utf-8") as f:
                 f.write(resumo_resultado)
-            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "resumo", req.tema, resumo_resultado)
+            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "resumo", req.tema, resumo_resultado, n_itens=len(req.arquivos))
             if artefato:
                 artefatos_criados.append(artefato)
         except Exception as e:
@@ -632,6 +650,47 @@ def agent_study(req: StudyRequest):
         "total": len(flashcards_resultado) or len(quiz_resultado) or len(postits_resultado),
         "artefatos": artefatos_criados,
     }
+
+
+@router.get("/agent/study/itens/{projeto_nome}")
+def agent_study_itens(projeto_nome: str):
+    """Lista os itens (vídeos/documentos/textos) já indexados do projeto, agregados
+    por 'arquivo' — alimenta o seletor "Itens específicos" no Modo Estudo, que
+    restringe flashcards/resumo/quiz/post-its a um recorte escolhido do
+    projeto em vez do conteúdo inteiro. Reaproveita o índice já carregado em
+    disco (mesmo arquivo que agent_study() lê); não faz nenhum scan novo.
+    """
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+
+    from tusab_engine.agent.index import _index_path
+
+    idx_path = _index_path(canal_prefixo)
+    if not os.path.exists(idx_path):
+        return {"error": True, "message": f"Índice não encontrado para '{projeto_nome}'. Indexe a base primeiro."}
+
+    try:
+        with open(idx_path, "r", encoding="utf-8") as f:
+            idx_data = json.load(f)
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao carregar índice: {e}"}
+
+    agregados = {}
+    for c in idx_data.get("chunks", []):
+        arquivo = c.get("arquivo") or ""
+        if not arquivo:
+            continue
+        item = agregados.setdefault(arquivo, {
+            "arquivo": arquivo,
+            "titulo": c.get("titulo") or arquivo,
+            "aba": c.get("aba", "documento"),
+            "n_chunks": 0,
+        })
+        item["n_chunks"] += 1
+
+    itens = sorted(agregados.values(), key=lambda x: x["titulo"].lower())
+    return {"ok": True, "itens": itens}
 
 
 @router.get("/agent/study/{projeto_nome}")

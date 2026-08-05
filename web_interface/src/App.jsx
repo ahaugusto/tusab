@@ -38,7 +38,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki, buscarTopicos,
+  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki, buscarTopicos, listarItensEstudo,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -313,6 +313,11 @@ function App() {
   const [estudoTipos,      setEstudoTipos]      = useState(['flashcards']); // multi-select: gera cada tipo selecionado em paralelo
   const [estudoNCards,     setEstudoNCards]     = useState(10);
   const [estudoTema,       setEstudoTema]       = useState(''); // opcional — escopa a geração a um tema/tópico via BM25
+  // Itens específicos (opcional) — restringe a geração a vídeos/documentos
+  // escolhidos em vez do projeto inteiro; combina com estudoTema (itens
+  // definem o universo, tema rankeia dentro dele).
+  const [estudoItensDisponiveis,   setEstudoItensDisponiveis]   = useState([]); // [{arquivo, titulo, aba, n_chunks}]
+  const [estudoItensSelecionados,  setEstudoItensSelecionados]  = useState([]); // [arquivo, ...]
   const [estudoGerando,    setEstudoGerando]    = useState(false);
   const [estudoErro,       setEstudoErro]       = useState('');
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
@@ -320,6 +325,16 @@ function App() {
   const [estudoQuiz,       setEstudoQuiz]       = useState([]);
   const [estudoTopicos,    setEstudoTopicos]    = useState([]);
   const [estudoPostits,    setEstudoPostits]    = useState([]);
+
+  // Itens específicos são por projeto — troca de projeto invalida a lista e
+  // qualquer seleção anterior (arquivo de outro projeto não existe aqui).
+  useEffect(() => {
+    setEstudoItensSelecionados([]);
+    if (!estudoProjeto) { setEstudoItensDisponiveis([]); return; }
+    listarItensEstudo(estudoProjeto)
+      .then(r => setEstudoItensDisponiveis(r.data?.itens || []))
+      .catch(() => setEstudoItensDisponiveis([]));
+  }, [estudoProjeto]);
 
   const handleEstudoGerar = useCallback(async () => {
     if (!estudoProjeto) { setEstudoErro('Selecione um projeto indexado antes de gerar.'); return; }
@@ -339,7 +354,7 @@ function App() {
       const chamadas = estudoTipos.map(t =>
         t === 'topicos'
           ? buscarTopicos(estudoProjeto, estudoNCards * 2).then(r => ({ tipo: t, data: r.data }))
-          : gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards, tema: estudoTema }).then(r => ({ tipo: t, data: r.data }))
+          : gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards, tema: estudoTema, arquivos: estudoItensSelecionados }).then(r => ({ tipo: t, data: r.data }))
       );
       const resultados = await Promise.allSettled(chamadas);
       const erros = [];
@@ -364,7 +379,7 @@ function App() {
     } finally {
       setEstudoGerando(false);
     }
-  }, [estudoProjeto, estudoTipos, estudoNCards, estudoTema]);
+  }, [estudoProjeto, estudoTipos, estudoNCards, estudoTema, estudoItensSelecionados]);
 
   const handleEstudoResetar = useCallback(() => {
     setEstudoFlashcards([]);
@@ -2176,6 +2191,8 @@ function App() {
                   tipo={estudoTipos}                setTipo={setEstudoTipos}
                   nCards={estudoNCards}             setNCards={setEstudoNCards}
                   tema={estudoTema}                 setTema={setEstudoTema}
+                  itensDisponiveis={estudoItensDisponiveis}
+                  itensSelecionados={estudoItensSelecionados}   setItensSelecionados={setEstudoItensSelecionados}
                   gerando={estudoGerando}
                   erro={estudoErro}
                   flashcards={estudoFlashcards}
