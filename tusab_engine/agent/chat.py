@@ -69,6 +69,11 @@ def _rerankar(pergunta: str, chunks: list) -> list:
     try:
         pares = [(pergunta, c['texto'][:768]) for c in chunks]
         scores = ce.predict(pares)
+        # Guarda o score bruto do CrossEncoder (não o BM25) — usado depois em
+        # _recuperar_contexto() pra filtrar candidatos irrelevantes por lacuna
+        # de relevância real, não só reordenar e descartar o número.
+        for c, s in zip(chunks, scores):
+            c['_ce_score'] = float(s)
         reordenados = sorted(zip(scores, chunks), key=lambda x: x[0], reverse=True)
         return [c for _, c in reordenados]
     except Exception:
@@ -96,6 +101,17 @@ def _rerankar(pergunta: str, chunks: list) -> list:
 # do Groq — a latência real depende do que está atrás do endpoint, mas o
 # público dessa opção (perfil técnico, servidor próprio) já assume esse risco.
 PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google', 'custom'}
+
+# Limiares do filtro de lacuna de relevância (ver _recuperar_contexto) — cortam
+# candidatos claramente irrelevantes que só entraram pra completar a cota de N.
+# CE (CrossEncoder, ms-marco-MiniLM-L-6-v2): score é um logit não-calibrado,
+# tipicamente entre -11 e +11 — uma lacuna de 4.0 pro melhor candidato já
+# indica "sem relação real", não apenas "um pouco menos relevante".
+_GAP_RELEVANCIA_CE = 4.0
+# BM25 puro: escala varia por corpus (IDF), então usa proporção do melhor
+# score, não valor absoluto — um candidato com menos de 20% do score do
+# 1º colocado é, na prática, apenas overlap incidental de termos comuns.
+_RATIO_RELEVANCIA_BM25 = 0.2
 
 # Providers que não exigem api_key real — Ollama roda sem chave por natureza;
 # 'custom' cobre servidores locais tipo 9router que tipicamente não pedem chave.
@@ -750,6 +766,23 @@ def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: di
         top = resultados[:1]
     elif not top and 'cached' in locals() and cached and cached.get('chunks'):
         top = [{**cached['chunks'][0], 'score': 0.0, 'canal': projeto_nome}]
+
+    # Filtro de lacuna de relevância: BM25/CrossEncoder sempre completam até
+    # `n` candidatos, mesmo quando só o 1º é de fato relevante e o resto é
+    # "o menos ruim entre o que sobrou" (ex.: pergunta conceitual genérica
+    # tipo "o que é RAG" puxando leis sem nenhuma relação, só porque nada
+    # mais no corpus teve overlap melhor). Corta por LACUNA em relação ao
+    # melhor candidato — nunca por valor absoluto, porque BM25 puro e
+    # CrossEncoder estão em escalas diferentes — e nunca remove o 1º
+    # colocado, então sempre sobra ao menos 1 fonte quando houve algum match.
+    if len(top) > 1:
+        if busca_ampla and all('_ce_score' in c for c in top):
+            melhor_ce = top[0]['_ce_score']
+            top = [top[0]] + [c for c in top[1:] if c['_ce_score'] >= melhor_ce - _GAP_RELEVANCIA_CE]
+        else:
+            melhor_score = top[0]['score']
+            if melhor_score > 0:
+                top = [top[0]] + [c for c in top[1:] if c['score'] >= melhor_score * _RATIO_RELEVANCIA_BM25]
 
     return top
 
@@ -1663,6 +1696,15 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             # parâmetro silenciosamente. Default False preserva o comportamento
             # antigo (raciocínio sempre suprimido).
             mostrar_raciocinio = bool(config.get('mostrar_raciocinio', False))
+            # num_predict é um orçamento ÚNICO pra thinking + resposta combinados
+            # (o runtime só separa os dois depois, no parsing do stream) — com o
+            # valor fixo de 512, um modelo que "pensa" muito podia consumir 100%
+            # do orçamento só no raciocínio e nunca chegar a gerar a resposta em
+            # si (usuário via o bloco de raciocínio truncado e nada depois).
+            # num_ctx sobe também porque o prompt (RAG) + geração maior precisam
+            # caber na mesma janela de contexto.
+            num_predict = 2048 if mostrar_raciocinio else 512
+            num_ctx     = 4096 if mostrar_raciocinio else 2048
             with _req.post('http://localhost:11434/api/generate',
                     json={
                         'model':   modelo,
@@ -1670,8 +1712,8 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                         'stream':  True,
                         'think':   mostrar_raciocinio,
                         'options': {
-                            'num_ctx':     2048,
-                            'num_predict': 512,
+                            'num_ctx':     num_ctx,
+                            'num_predict': num_predict,
                             'num_thread':  8,
                             'temperature': 0.3,
                         },
@@ -1680,6 +1722,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 import time as _time
                 _ultimo_check_recursos = 0.0
                 _alerta_recursos_emitido = False
+                _teve_resposta = False
                 for line in r.iter_lines():
                     if line:
                         data = json.loads(line)
@@ -1691,6 +1734,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                             yield json.dumps({'thinking': pensando})
                         chunk = data.get('response', '')
                         if chunk:
+                            _teve_resposta = True
                             yield chunk
                         # Checagem throttled (a cada ~4s, não por linha) — no
                         # máximo 1 alerta por resposta, pra não spammar o chat
@@ -1704,6 +1748,12 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                                     _alerta_recursos_emitido = True
                                     yield json.dumps({'alerta_recursos': _alerta})
                         if data.get('done'):
+                            # Mesmo com o orçamento maior, um modelo pode esgotar
+                            # num_predict só pensando (pergunta complexa, thinking
+                            # muito verboso) — sem isso o chat ficava com o bloco
+                            # de raciocínio e nenhuma resposta, sem explicação.
+                            if not _teve_resposta and mostrar_raciocinio and data.get('done_reason') == 'length':
+                                yield "\n\n_O modelo usou todo o espaço de geração pensando e não chegou a escrever uma resposta. Tente novamente ou desative \"Mostrar raciocínio\" para essa pergunta._"
                             break
 
         elif provider in ('gemini', 'google'):
