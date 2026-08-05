@@ -307,6 +307,10 @@ export const fetchEstudo = (projeto_nome) => axios.get(`${API_BASE}/agent/study/
 export const buscarTopicos = (projeto_nome, limit = 40) =>
   axios.get(`${API_BASE}/agent/study/topicos/${encodeURIComponent(projeto_nome)}`, { params: { limit }, timeout: 60000 });
 
+/** Lista itens (vídeos/documentos/textos) já indexados do projeto — seletor "Itens específicos" */
+export const listarItensEstudo = (projeto_nome) =>
+  axios.get(`${API_BASE}/agent/study/itens/${encodeURIComponent(projeto_nome)}`);
+
 /** Lista os artefatos de estudo persistidos (resumo/flashcards/quiz) — kanban da aba Estudo */
 export const listarArtefatosEstudo = (projeto_nome) =>
   axios.get(`${API_BASE}/agent/study/artefatos/${encodeURIComponent(projeto_nome)}`);

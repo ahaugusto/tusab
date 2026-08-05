@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, HelpCircle, Trash2, Pencil, X } from 'lucide-react';
+import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, HelpCircle, Trash2, Pencil, X, Search, Video } from 'lucide-react';
 import { ttsStatus, ttsSintetizar, listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, revisarFlashcard, buscarProgressoRevisao } from '../../services/api';
 import EstudoArtefatoModal from './EstudoArtefatoModal';
 import PostIt from '../shared/PostIt';
@@ -19,6 +19,8 @@ export default function EstudoTab({
   tipo,           setTipo,
   nCards,         setNCards,
   tema,           setTema,
+  itensDisponiveis = [],
+  itensSelecionados = [], setItensSelecionados,
   gerando,
   erro,
   flashcards,
@@ -34,6 +36,17 @@ export default function EstudoTab({
   // Estado efêmero de navegação — pode resetar sem perder o resultado
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped,    setFlipped]    = useState(false);
+
+  // Filtro de busca do seletor "Itens específicos" — puramente local, não
+  // precisa sobreviver a troca de aba/projeto como a seleção em si.
+  const [buscaItem, setBuscaItem] = useState('');
+  const itensFiltrados = buscaItem.trim()
+    ? itensDisponiveis.filter(i => i.titulo.toLowerCase().includes(buscaItem.trim().toLowerCase()))
+    : itensDisponiveis;
+  const toggleItem = (arquivo) => setItensSelecionados(prev =>
+    prev.includes(arquivo) ? prev.filter(a => a !== arquivo) : [...prev, arquivo]);
+  const selecionarTodosItens = () => setItensSelecionados(itensFiltrados.map(i => i.arquivo));
+  const desmarcarTodosItens  = () => setItensSelecionados([]);
 
   // Quiz — estado efêmero de navegação/respostas, mesma filosofia dos flashcards
   const [quizIdx,       setQuizIdx]       = useState(0);
@@ -342,6 +355,79 @@ export default function EstudoTab({
             {t('estudo.tema_hint')}
           </p>
         </div>
+
+        {/* Itens específicos — opcional, restringe o universo de geração a
+            vídeos/documentos escolhidos em vez do projeto inteiro; combina
+            com o Tema acima (itens definem o universo, tema rankeia dentro). */}
+        {itensDisponiveis.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.05em', color: textSecond, margin: 0 }}>
+                {t('estudo.label_itens')}
+                {itensSelecionados.length > 0 && (
+                  <span style={{ color: darkMode ? '#a78bfa' : '#7c3aed' }}> ({itensSelecionados.length})</span>
+                )}
+              </p>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={selecionarTodosItens} style={{
+                  ...btnBase, padding: '3px 9px', fontSize: '10px',
+                  background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                  color: textSecond, border: `1px solid ${borderColor}`,
+                }}>{t('estudo.itens_selecionar_todos')}</button>
+                <button onClick={desmarcarTodosItens} style={{
+                  ...btnBase, padding: '3px 9px', fontSize: '10px',
+                  background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                  color: textSecond, border: `1px solid ${borderColor}`,
+                }}>{t('estudo.itens_desmarcar_todos')}</button>
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '8px' }}>
+              <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: textSecond }} />
+              <input
+                value={buscaItem}
+                onChange={e => setBuscaItem(e.target.value)}
+                placeholder={t('estudo.itens_busca_placeholder')}
+                style={{
+                  width: '100%', padding: '7px 10px 7px 30px', borderRadius: '10px',
+                  fontSize: '12px', fontWeight: 500,
+                  background: darkMode ? 'rgba(255,255,255,0.06)' : '#f8fafc',
+                  border: `1px solid ${borderColor}`, color: textPrimary, outline: 'none',
+                }} />
+            </div>
+
+            <div style={{
+              maxHeight: '200px', overflowY: 'auto', borderRadius: '10px',
+              border: `1px solid ${borderColor}`, display: 'flex', flexDirection: 'column',
+            }}>
+              {itensFiltrados.length === 0 ? (
+                <p style={{ fontSize: '11px', color: textSecond, textAlign: 'center', padding: '14px 0', margin: 0 }}>
+                  {t('estudo.itens_busca_vazio')}
+                </p>
+              ) : itensFiltrados.map((item, i) => {
+                const Icone = item.aba === 'youtube' ? Video : FileText;
+                const marcado = itensSelecionados.includes(item.arquivo);
+                return (
+                  <label key={item.arquivo} onClick={() => toggleItem(item.arquivo)} style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', cursor: 'pointer',
+                    borderTop: i > 0 ? `1px solid ${borderColor}` : 'none',
+                    background: marcado ? (darkMode ? 'rgba(139,92,246,0.10)' : 'rgba(139,92,246,0.06)') : 'transparent',
+                  }}>
+                    <input type="checkbox" checked={marcado} onChange={() => toggleItem(item.arquivo)} style={{ cursor: 'pointer', accentColor: '#7c3aed', flexShrink: 0 }} />
+                    <Icone size={12} style={{ color: textSecond, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: '11px', fontWeight: 500, color: textPrimary,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.titulo}</span>
+                    <span style={{ fontSize: '9px', color: textSecond, flexShrink: 0 }}>{t('estudo.itens_chunks_suffix', { count: item.n_chunks })}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: '10px', color: textSecond, marginTop: '5px', marginBottom: 0 }}>
+              {t('estudo.itens_hint')}
+            </p>
+          </div>
+        )}
 
         {/* Quantidade — some se só "resumo" estiver selecionado (não usa contagem) */}
         {tipo.some(t => t !== 'resumo') && (
