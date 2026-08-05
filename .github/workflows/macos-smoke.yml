@@ -71,7 +71,7 @@ jobs:
         run: ./python_env-macos-arm64/bin/python3 -m pip freeze > requirements-lock-macos-arm64.txt
 
       - name: Publicar lock como artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: requirements-lock-macos-arm64
           path: requirements-lock-macos-arm64.txt
@@ -207,7 +207,7 @@ jobs:
 
       - name: Publicar log do app (sempre, ajuda a depurar mesmo em sucesso)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-app-log
           path: app.log
@@ -331,7 +331,7 @@ jobs:
 
       - name: Publicar .dmg/.zip como artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-mac-unsigned
           path: |
@@ -342,7 +342,7 @@ jobs:
 
       - name: Publicar log do app rodando via .dmg
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-app-dmg-log
           path: app-dmg.log
@@ -475,7 +475,7 @@ jobs:
 
       - name: Publicar .dmg/.zip assinados como artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-mac-signed
           path: |
@@ -486,7 +486,7 @@ jobs:
 
       - name: Publicar log do app assinado
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-app-signed-log
           path: app-signed.log
@@ -652,7 +652,7 @@ jobs:
 
       - name: Publicar .dmg/.zip notarizados como artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-mac-notarized
           path: |
@@ -663,7 +663,7 @@ jobs:
 
       - name: Publicar log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-app-notarized-log
           path: app-notarized.log
@@ -836,7 +836,7 @@ jobs:
 
       - name: Publicar log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tusab-ollama-autoinstall-log
           path: app-ollama.log
