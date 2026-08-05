@@ -16,7 +16,7 @@ import {
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
   Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard, History,
-  GraduationCap,
+  GraduationCap, Move,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -471,6 +471,37 @@ function App() {
   // Snack lateral "Pergunte à sua base →" — convite para o chat
   const [showChatSnack, setShowChatSnack] = useState(false);
 
+  // Dica única "arraste pra mover" — a bolinha é arrastável (ver
+  // handleBubbleMouseDown) mas nada na UI avisa isso; sem indicação, o
+  // recurso é invisível. Mostra uma vez, um tempo depois do usuário já ter
+  // aberto o chat (não compete com o convite inicial), e nunca mais depois
+  // que ela é dispensada OU que o usuário já arrastou de verdade (aprendeu
+  // fazendo — ver handleBubbleMouseDown/onUp abaixo).
+  const [dragHintVisto, setDragHintVisto] = useState(
+    () => localStorage.getItem('tusab_chat_bubble_drag_hint_visto') === '1'
+  );
+  const [showDragHint, setShowDragHint] = useState(false);
+
+  const dismissDragHint = useCallback(() => {
+    setShowDragHint(false);
+    setDragHintVisto(true);
+    localStorage.setItem('tusab_chat_bubble_drag_hint_visto', '1');
+  }, []);
+
+  useEffect(() => {
+    if (dragHintVisto || !chatJaAberto || chatOpen || bubblePos) return;
+    const t = setTimeout(() => setShowDragHint(true), 4000);
+    return () => clearTimeout(t);
+  }, [dragHintVisto, chatJaAberto, chatOpen, bubblePos]);
+
+  // Auto-esconde (sem marcar como "vista") depois de um tempo — só marca
+  // como definitivamente vista em clique explícito ou arraste real.
+  useEffect(() => {
+    if (!showDragHint) return;
+    const t = setTimeout(() => setShowDragHint(false), 8000);
+    return () => clearTimeout(t);
+  }, [showDragHint]);
+
   // Reabre o convite a cada nova indexação concluída (true→false), não só uma vez por sessão —
   // o usuário deve ser convidado a interagir sempre que houver base nova/atualizada disponível.
   useEffect(() => {
@@ -552,6 +583,8 @@ function App() {
             if (prev) localStorage.setItem('tusab_chat_bubble_pos', JSON.stringify(prev));
             return prev;
           });
+          // Já aprendeu arrastando — a dica nunca mais precisa aparecer.
+          dismissDragHint();
         }
       }
     };
@@ -566,7 +599,7 @@ function App() {
       window.removeEventListener('mouseup', onUp);
       window.removeEventListener('resize', onResize);
     };
-  }, [clampBubblePos]);
+  }, [clampBubblePos, dismissDragHint]);
 
   const handleBubbleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
@@ -2311,6 +2344,35 @@ function App() {
                     : `fixed right-6 ${activeTab === 'repositorio' ? 'bottom-20' : 'bottom-6'}`
                 }`}
                 style={bubblePos ? { left: bubblePos.x, top: bubblePos.y } : undefined}>
+                {/* Dica única "arraste pra mover" — some no clique, no X, ou
+                    sozinha depois de 8s; nunca mais aparece após dispensada
+                    ou após o usuário já ter arrastado a bolinha de verdade. */}
+                <AnimatePresence>
+                  {showDragHint && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.94 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{    opacity: 0, y: 6, scale: 0.94 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      onClick={dismissDragHint}
+                      role="status"
+                      aria-live="polite"
+                      className={`absolute bottom-full right-0 mb-2 cursor-pointer select-none flex items-center gap-1.5 pl-3 pr-1.5 py-2 rounded-xl text-[11px] font-semibold shadow-xl whitespace-nowrap
+                        ${darkMode
+                          ? 'bg-[#1e1b2e] border border-white/15 text-slate-200'
+                          : 'bg-white border border-slate-200 text-slate-700'}`}>
+                      <Move size={12} className="opacity-60 shrink-0" aria-hidden="true" />
+                      {t('chat.bubble_drag_hint')}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); dismissDragHint(); }}
+                        aria-label={t('common.close')}
+                        className={`ml-0.5 p-1 rounded-md shrink-0 ${darkMode ? 'hover:bg-white/10 text-slate-500' : 'hover:bg-slate-100 text-slate-400'}`}>
+                        <X size={10} />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Snack lateral */}
                 <AnimatePresence>
                   {showChatSnack && (
