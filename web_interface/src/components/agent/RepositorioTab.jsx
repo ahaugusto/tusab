@@ -87,6 +87,24 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
+  // Poda seleções "fantasma": se um projeto perdeu conteúdo (ou foi removido)
+  // depois de marcado, indexarSel[nome] continua true pra sempre (o estado
+  // vive no componente pai, não é resetado ao reabrir o modal) — o checkbox
+  // fica desabilitado e sem marca visual, mas o contador do header ainda
+  // soma essa entrada, gerando "N selecionado(s)" maior que os checks visíveis.
+  React.useEffect(() => {
+    const validos = new Set(projetos.filter(p => (p.n_arquivos ?? 1) > 0).map(p => p.nome));
+    setIndexarSel(prev => {
+      let mudou = false;
+      const limpo = {};
+      for (const [nome, marcado] of Object.entries(prev)) {
+        if (marcado && validos.has(nome)) limpo[nome] = true;
+        else if (marcado) mudou = true;
+      }
+      return mudou ? limpo : prev;
+    });
+  }, [projetos, setIndexarSel]);
+
   const lista = projetos.length > 0 ? projetos : [];
   const listaFiltrada = busca.trim()
     ? lista.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()))
