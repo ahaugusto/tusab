@@ -1070,7 +1070,12 @@ function App() {
       setAgentIndexError(extrairMensagemErro(err));
     } finally {
       indexacaoLoteRef.current = null;
-      if (isLote && !showHome && !showLanding) {
+      // Antes só disparava para lote (>1 projeto) — a modal ficava aberta e
+      // bloqueada até terminar, então indexação de 1 projeto sempre tinha
+      // feedback visível ali. Agora que a modal pode ser fechada a qualquer
+      // momento (indexação continua rodando em background), sem este toast
+      // o usuário que fechou a modal nunca saberia que terminou.
+      if (!showHome && !showLanding) {
         const total = indexadas + comErro;
         setProgressToast({
           message: comErro > 0
@@ -1656,6 +1661,12 @@ function App() {
                   <Icon size={17} aria-hidden="true" />
                   <span className="text-[9px] font-semibold leading-none tracking-wide">{label}</span>
                   {id === 'extracao' && (isRunning || fonteBackground) && (
+                    <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
+                  )}
+                  {/* Indicador de Operação em Background: indexação continua rodando
+                      mesmo com a modal fechada (BackgroundTask no backend) — sem isso
+                      o usuário perde qualquer sinal de que algo ainda está em curso. */}
+                  {id === 'repositorio' && agentStatus?.indexing && (
                     <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" aria-hidden="true" />
                   )}
                   {id === 'admin' && appUpdateInfo && (

@@ -9,11 +9,12 @@ import json
 import glob
 
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel, Field
 
 import motor_tusab
 from tusab_engine.state import state
+from tusab_engine.api.router_agent import disparar_reindexacao_incremental
 from tusab_engine.motor import fhir as fhir_motor
 from tusab_engine.motor import web_scraper
 
@@ -546,6 +547,7 @@ def _extrair_audio(conteudo_bytes: bytes, filename: str) -> str:
 
 @router.post("/neural/upload")
 async def cerebro_upload(
+    background_tasks: BackgroundTasks,
     arquivo: UploadFile = File(...),
     canal: str = Form(default="")
 ):
@@ -749,6 +751,12 @@ async def cerebro_upload(
     manifest.append(entry)
     motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 
+    # Reindexação incremental em background (BackgroundTasks roda após a
+    # resposta ser enviada — não atrasa a confirmação do upload). Cache por
+    # arquivo em agent/index.py garante que só este documento novo custa
+    # KeyBERT; o resto do corpus já indexado é reaproveitado.
+    background_tasks.add_task(disparar_reindexacao_incremental, canal_prefixo, canal_prefixo)
+
     resp = {"ok": True, "id": fid, "nome": arquivo.filename, "chars": len(texto)}
     if aviso_extracao:
         resp["aviso"] = aviso_extracao
@@ -756,7 +764,7 @@ async def cerebro_upload(
 
 
 @router.post("/neural/texto")
-def cerebro_texto(req: TextoRequest):
+def cerebro_texto(req: TextoRequest, background_tasks: BackgroundTasks):
     """Salva texto colado pelo usuário no neural/{canal}/textos/.
 
     [CONTRATO CRÍTICO] Mesma restrição de /neural/upload — projeto deve existir previamente.
@@ -800,11 +808,13 @@ def cerebro_texto(req: TextoRequest):
     manifest.append(entry)
     motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
 
+    background_tasks.add_task(disparar_reindexacao_incremental, canal_prefixo, canal_prefixo)
+
     return {"ok": True, "id": fid, "titulo": req.titulo}
 
 
 @router.post("/neural/url")
-def cerebro_url(req: UrlRequest):
+def cerebro_url(req: UrlRequest, background_tasks: BackgroundTasks):
     """Busca uma URL avulsa, extrai o conteúdo principal (trafilatura) e salva
     no neural/{canal}/documents/ — mesma ideia de /neural/texto, mas o texto
     vem de uma página em vez de ser colado manualmente.
@@ -864,6 +874,8 @@ def cerebro_url(req: UrlRequest):
     }
     manifest.append(entry)
     motor_tusab.salvar_json_atomico(manifest, manifest_path, indent=2)
+
+    background_tasks.add_task(disparar_reindexacao_incremental, canal_prefixo, canal_prefixo)
 
     return {"ok": True, "id": fid, "titulo": pagina["titulo"], "chars": len(pagina["texto"])}
 
