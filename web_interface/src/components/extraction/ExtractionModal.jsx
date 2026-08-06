@@ -119,6 +119,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // playlists OU nenhuma marcada manualmente (tratamos como "não filtrar").
   const [playlistsDisponiveis, setPlaylistsDisponiveis] = React.useState(null);
   const [playlistsCarregando,  setPlaylistsCarregando]  = React.useState(false);
+  const [playlistsErro,        setPlaylistsErro]        = React.useState(false); // distingue "erro ao buscar" de "canal sem playlists"
   const [playlistsMarcadas,    setPlaylistsMarcadas]    = React.useState(null); // null = todas
   const [playlistsModalAberto, setPlaylistsModalAberto] = React.useState(false);
   const [buscaPlaylist,        setBuscaPlaylist]        = React.useState('');
@@ -168,6 +169,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // como se fosse do canal novo.
   React.useEffect(() => {
     setPlaylistsDisponiveis(null);
+    setPlaylistsErro(false);
     setPlaylistsMarcadas(null);
     setPlaylistsModalAberto(false);
   }, [canalUrl]);
@@ -197,10 +199,24 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     setBuscaPlaylist('');
     if (playlistsDisponiveis !== null || playlistsCarregando) return;
     setPlaylistsCarregando(true);
+    setPlaylistsErro(false);
     listarPlaylistsCanal(canalUrl.trim())
-      .then(r => setPlaylistsDisponiveis(r.data?.playlists || []))
-      .catch(() => setPlaylistsDisponiveis([]))
+      .then(r => {
+        // O backend responde 200 mesmo em erro (URL inválida, yt-dlp falhou
+        // etc.), só com {error: true} no corpo — sem checar isso aqui, um
+        // erro real virava silenciosamente "Nenhuma playlist encontrada",
+        // indistinguível de um canal genuinamente sem playlists.
+        if (r.data?.error) { setPlaylistsErro(true); setPlaylistsDisponiveis([]); return; }
+        setPlaylistsDisponiveis(r.data?.playlists || []);
+      })
+      .catch(() => { setPlaylistsErro(true); setPlaylistsDisponiveis([]); })
       .finally(() => setPlaylistsCarregando(false));
+  };
+
+  const handleTentarPlaylistsNovamente = () => {
+    setPlaylistsDisponiveis(null);
+    setPlaylistsErro(false);
+    handleAbrirSeletorPlaylists();
   };
 
   const togglePlaylist = (id) => {
@@ -717,6 +733,51 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               <div className="space-y-1 mb-5">
                 {ALL_TYPES.map(({ id, label, icon }) => {
                   const checked = selected.includes(id);
+                  // "Playlists" ganha um comportamento extra: quando marcado, o
+                  // corpo da linha (fora do quadradinho de check) abre a modal
+                  // de seleção específica em vez de só marcar/desmarcar — o
+                  // gatilho que antes era uma linha separada abaixo agora vive
+                  // dentro do próprio botão de "Playlists".
+                  if (id === 'Playlists') {
+                    return (
+                      <div key={id} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-colors
+                        ${checked
+                          ? darkMode ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/25'
+                          : darkMode ? 'bg-white/3 border-white/8 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                        <button onClick={() => toggle(id)} role="checkbox" aria-checked={checked}
+                          className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${BTN_FOCUS}
+                          ${checked ? 'bg-primary border-primary' : darkMode ? 'border-white/30' : 'border-slate-300'}`}>
+                          {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </button>
+                        <button
+                          onClick={() => checked ? handleAbrirSeletorPlaylists() : toggle(id)}
+                          className={`flex-1 flex items-center gap-3 text-left min-w-0 ${BTN_FOCUS}`}>
+                          <span className="text-lg leading-none shrink-0" aria-hidden="true">{icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className={`text-xs font-semibold block ${checked ? 'text-primary' : darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                            {checked && (
+                              <>
+                                <span className={`text-[10px] block mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  {t('extraction.playlists_selecionar_especificas')}
+                                </span>
+                                <span className={`text-[9px] block mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {playlistsMarcadas === null
+                                    ? t('extraction.playlists_selector_subtitle_all')
+                                    : t('extraction.playlists_selector_subtitle_count', { count: playlistsMarcadas.length })}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {checked && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                              className={`shrink-0 -rotate-90 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                              <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  }
                   return (
                     <button key={id} onClick={() => toggle(id)}
                       role="checkbox" aria-checked={checked}
@@ -734,35 +795,6 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                   );
                 })}
               </div>
-
-              {/* ── Seleção de playlists específicas — só quando 'Playlists' está marcado ──
-                  Sub-modal em vez de painel inline: canais com muitas playlists tornavam
-                  a lista de ~4 itens visíveis (max-h-40) impraticável de navegar sem
-                  busca nem seleção em lote. */}
-              {selected.includes('Playlists') && (
-                <div className={`rounded-xl border mb-4 overflow-hidden ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-200 bg-slate-50'}`}>
-                  <button
-                    onClick={handleAbrirSeletorPlaylists}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${BTN_FOCUS}
-                      ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-100'}`}>
-                    <span className="text-base shrink-0" aria-hidden="true">▶️</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[11px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                        {t('extraction.playlists_selector_title')}
-                      </p>
-                      <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {playlistsMarcadas === null
-                          ? t('extraction.playlists_selector_subtitle_all')
-                          : t('extraction.playlists_selector_subtitle_count', { count: playlistsMarcadas.length })}
-                      </p>
-                    </div>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className={`shrink-0 -rotate-90 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <path d="M6 9l6 6 6-6"/>
-                    </svg>
-                  </button>
-                </div>
-              )}
 
               {playlistsModalAberto && (
                 <ModalWrapper onClose={() => setPlaylistsModalAberto(false)} label={t('extraction.playlists_selector_title')} zIndex="z-[60]">
@@ -820,7 +852,19 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                           {t('extraction.playlists_loading')}
                         </div>
                       )}
-                      {!playlistsCarregando && playlistsDisponiveis?.length === 0 && (
+                      {!playlistsCarregando && playlistsErro && (
+                        <div className="py-2 space-y-2">
+                          <p className={`text-[11px] ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                            {t('extraction.playlists_erro')}
+                          </p>
+                          <button onClick={handleTentarPlaylistsNovamente}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${BTN_FOCUS}
+                              ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                            {t('extraction.playlists_tentar_novamente')}
+                          </button>
+                        </div>
+                      )}
+                      {!playlistsCarregando && !playlistsErro && playlistsDisponiveis?.length === 0 && (
                         <p className={`text-[11px] py-2 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                           {t('extraction.playlists_empty')}
                         </p>
