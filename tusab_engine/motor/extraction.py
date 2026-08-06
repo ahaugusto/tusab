@@ -12,6 +12,7 @@ import json
 import pandas as pd
 from datetime import datetime
 from urllib.parse import quote
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from tusab_engine.storage import (
     DATA_DIR, NEURAL_DIR, LOCAL_TXT_DIR,
@@ -387,7 +388,7 @@ def _video_dentro_do_periodo(upload_date_raw: str, data_inicio: str, data_fim: s
     return True
 
 
-def _filtrar_por_data_real(video_ids: list, data_inicio: str, data_fim: str) -> set:
+def _filtrar_por_data_real(video_ids: list, data_inicio: str, data_fim: str, dispatch_event=None, evento_cancelar=None) -> set:
     """Filtra video_ids pelo período pedido usando metadado REAL por vídeo.
 
     O mapeamento inicial usa --flat-playlist (rápido, sem abrir cada página de
@@ -398,25 +399,56 @@ def _filtrar_por_data_real(video_ids: list, data_inicio: str, data_fim: str) -> 
     candidato — só compensa fazer isso aqui, restrito aos IDs já mapeados,
     e só quando o usuário de fato pediu um filtro de data.
 
-    Em lotes de 50 URLs por chamada do yt-dlp — evita uma linha de comando
-    gigante em canais com muitos vídeos, sem precisar de um processo por vídeo.
+    Em canais grandes (milhares de vídeos mapeados), abrir uma página por
+    vídeo é lento por natureza — medido ao vivo: 3209 vídeos sequenciais em
+    lotes de 50 (um processo yt-dlp por lote, mas ainda sequencial entre
+    lotes) levou **2h38min**, sem nenhum log de progresso no meio — parecia
+    travado. Dois fixes aqui: (1) lotes rodam em paralelo (ThreadPoolExecutor,
+    8 workers — subprocess.run libera o GIL, então é paralelismo real de
+    processos do SO, não é falso paralelismo), cortando o tempo de parede em
+    ~8x; (2) print de progresso a cada lote que termina, não só no início/fim.
     """
     if not video_ids or (not data_inicio and not data_fim):
         return set(video_ids)
-    aprovados = set()
+
     LOTE = 50
-    for i in range(0, len(video_ids), LOTE):
-        lote_ids = video_ids[i:i + LOTE]
+    lotes = [video_ids[i:i + LOTE] for i in range(0, len(video_ids), LOTE)]
+
+    def _verificar_lote(lote_ids):
         urls = [f"https://www.youtube.com/watch?v={vid}" for vid in lote_ids]
         cmd = [
             'yt-dlp', '--ignore-errors', '--extractor-args', 'youtube:lang=pt',
             '--print', '%(id)s|||%(upload_date)s', *urls,
         ]
         stdout = executar_comando(cmd)
+        aprovados_lote = set()
         for line in stdout.split('\n'):
             parts = line.split('|||')
             if len(parts) >= 2 and _video_dentro_do_periodo(parts[1], data_inicio, data_fim):
-                aprovados.add(parts[0])
+                aprovados_lote.add(parts[0])
+        return aprovados_lote
+
+    aprovados = set()
+    verificados = 0
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(_verificar_lote, lote): len(lote) for lote in lotes}
+        for future in as_completed(futures):
+            aprovados |= future.result()
+            verificados += futures[future]
+            print(f"   📅 Datas verificadas: {verificados}/{len(video_ids)} ({len(aprovados)} dentro do período até agora)\n")
+            if dispatch_event:
+                dispatch_event("videos_mapeados", total=verificados)
+            # Sem isso, cancelar durante esta fase (que pode levar minutos em
+            # canais grandes) só era percebido DEPOIS que todos os lotes já
+            # tinham terminado — o usuário via "Cancelamento recebido" só
+            # bem depois de já ter desistido de esperar. Lotes já em execução
+            # nas outras threads não podem ser interrompidos de verdade (Python
+            # não mata thread no meio), mas os que ainda não começaram são
+            # cancelados, e saímos sem esperar o resto.
+            if evento_cancelar and evento_cancelar.is_set():
+                for pendente in futures:
+                    pendente.cancel()
+                break
     return aprovados
 
 
@@ -821,7 +853,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     # o mapeamento, porque exige metadado real por vídeo (ver _filtrar_por_data_real).
     if data_inicio or data_fim:
         print(f"📅 Filtro de data ativo — verificando data real de {len(all_videos)} vídeo(s) mapeado(s)...\n")
-        ids_dentro_periodo = _filtrar_por_data_real([v['id'] for v in all_videos], data_inicio, data_fim)
+        ids_dentro_periodo = _filtrar_por_data_real([v['id'] for v in all_videos], data_inicio, data_fim, dispatch_event=dispatch_event, evento_cancelar=evento_cancelar)
         all_videos = [v for v in all_videos if v['id'] in ids_dentro_periodo]
         print(f"📅 {len(all_videos)} vídeo(s) dentro do período pedido.\n")
 
