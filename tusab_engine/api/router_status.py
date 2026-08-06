@@ -169,10 +169,18 @@ def get_history():
 
             summary_path = csv_path.replace("_base.csv", "_summary.json")
             total_mapeado = total
+            ultimo_filtro = None
             if os.path.exists(summary_path):
                 try:
                     with open(summary_path, 'r', encoding='utf-8') as _sf:
-                        total_mapeado = json.load(_sf).get("total_mapeado", total)
+                        _summary = json.load(_sf)
+                    total_mapeado = _summary.get("total_mapeado", total)
+                    # Só reporta o filtro se de fato havia algo restringindo a
+                    # extração — sem isso toda extração normal (sem filtro)
+                    # ganharia um badge vazio e sem sentido na Visão Geral.
+                    _uf = _summary.get("ultimo_filtro") or {}
+                    if _uf.get("playlists") or _uf.get("data_inicio") or _uf.get("data_fim"):
+                        ultimo_filtro = _uf
                 except Exception:
                     pass
 
@@ -186,6 +194,7 @@ def get_history():
                 "sem_legenda":     sem_leg,
                 "cobertura":       round(sucesso / total_mapeado * 100) if total_mapeado > 0 else 0,
                 "ultima_extracao": str(ultima),
+                "ultimo_filtro":   ultimo_filtro,
             })
         except Exception:
             pass

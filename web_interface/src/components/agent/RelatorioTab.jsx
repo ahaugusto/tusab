@@ -9,8 +9,21 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
-import { Loader2, Search, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Search, X, ChevronUp, ChevronDown, ChevronsUpDown, Filter } from 'lucide-react';
 import { fetchRelatorio, limparHistorico } from '../../services/api';
+
+// Monta um texto legível do filtro de data/playlist da última extração —
+// mesmo cálculo usado em VisaoGeralTab.jsx (arquivos diferentes, função
+// pequena o bastante pra não valer a pena extrair um util compartilhado).
+function descreverFiltro(uf, t) {
+  if (!uf) return '';
+  const partes = [];
+  if (uf.playlists?.length) partes.push(t('overview.filtro_playlists', { count: uf.playlists.length }));
+  if (uf.data_inicio || uf.data_fim) {
+    partes.push(t('overview.filtro_periodo', { inicio: uf.data_inicio || '…', fim: uf.data_fim || t('overview.filtro_hoje') }));
+  }
+  return partes.join(' · ');
+}
 
 // Normaliza qualquer formato de data para DD/MM/YYYY
 function fmtData(s) {
@@ -265,6 +278,18 @@ function RelatorioTab({ darkMode, history, btnFocus, onRefreshHistory, canalAtiv
 
       {stats && !loading && (
         <>
+          {/* Aviso de recorte — só aparece se a última extração deste projeto
+              usou filtro de data/playlist; sem isso, os números acima
+              (total/cobertura) pareciam refletir o canal inteiro quando na
+              verdade são só de um recorte específico. */}
+          {stats.ultimo_filtro && (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px]
+              ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+              <Filter size={12} className="shrink-0" />
+              <span>{t('relatorio.filtro_aviso', { filtro: descreverFiltro(stats.ultimo_filtro, t) })}</span>
+            </div>
+          )}
+
           {/* Stats cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
