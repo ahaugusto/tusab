@@ -718,6 +718,16 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
         FONTES = [f for f in FONTES if f['aba'] in fontes_filtro]
         print(f"🎯 Fontes selecionadas: {[f['aba'] for f in FONTES]}\n")
 
+    # Anuncia filtros de playlist/data ativos ANTES do mapeamento começar —
+    # sem isso o usuário não tinha nenhum sinal no log de que um filtro
+    # estava de fato configurado, só via a contagem final (ou zero) sem
+    # saber se era por causa do filtro ou de outra coisa.
+    if playlists_filtro:
+        print(f"🎯 Playlist(s) específica(s) selecionada(s): {len(playlists_filtro)}\n")
+    if data_inicio or data_fim:
+        intervalo = f"de {data_inicio or '...'} até {data_fim or 'hoje'}"
+        print(f"📅 Filtro de data ativo: {intervalo}\n")
+
     # --- 1. MAPEAMENTO ---
     all_videos = []
     ids_mapeados = set()
@@ -745,6 +755,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         f"https://www.youtube.com/playlist?list={playlist_id}"
                     ]
                     stdout_v = executar_comando(cmd_v)
+                    novos_playlist = 0
                     for line in stdout_v.split('\n'):
                         parts = line.split('|||')
                         if len(parts) >= 4:
@@ -766,6 +777,11 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                             ids_mapeados.add(vid)
                             if titulo:
                                 titulos_mapeados.add(titulo)
+                            novos_playlist += 1
+                    if novos_playlist > 0:
+                        print(f"   📋 Playlist \"{p_lines[i]}\": {novos_playlist} vídeos mapeados ({len(all_videos)} no total)\n")
+                        if dispatch_event:
+                            dispatch_event("videos_mapeados", total=len(all_videos))
         else:
             cmd = [
                 'yt-dlp', '--flat-playlist', '--ignore-errors',
@@ -926,7 +942,14 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     nome_arquivo_base = f"{canal_nome_canal}_Parte_{parte_atual}"
     caminho_txt = os.path.join(canal_youtube_dir, f"{nome_arquivo_base}.txt")
 
-    pendentes = total_liquido - len(ids_ja_minerados)
+    # ids_ja_minerados é o histórico COMPLETO do projeto (todo-tempo, sem
+    # nenhum filtro) — usar esse total direto aqui já foi um bug real: com
+    # filtro de data/playlist ativo, df_full pode ser bem menor que o
+    # histórico inteiro, e a subtração virava negativa (ex.: "-7 vídeos
+    # inéditos"). O que importa é só a interseção — quantos dos vídeos
+    # MAPEADOS AGORA (já filtrados) ainda não foram minerados antes.
+    ids_mapeados_agora = set(df_full['id']) if not df_full.empty else set()
+    pendentes = len(ids_mapeados_agora - ids_ja_minerados)
     print(f"\n🚜 Iniciando extração — {pendentes} vídeos inéditos na fila...\n")
 
     # --- 3. EXTRAÇÃO LOCAL ---
