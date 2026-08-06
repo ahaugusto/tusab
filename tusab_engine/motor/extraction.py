@@ -57,6 +57,39 @@ def extrair_nome_canal(url):
     return name.split('?')[0]
 
 
+def _resolver_nome_canal_via_ytdlp(canal_url: str) -> str:
+    """Resolve o handle/nome real do canal via yt-dlp.
+
+    Usado só quando a URL não tem '@handle' explícito (ex: /channel/UC...,
+    /c/..., /user/...) — extrair_nome_canal() cairia no último segmento da
+    URL nesses casos, que pra /channel/ é o ID interno (ex: 'UCM3vJxmuJJkk1r0yzFI9eZg'),
+    não um nome amigável. Retorna "" se a resolução falhar (chamador mantém
+    o fallback já existente).
+    """
+    try:
+        creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+        result = subprocess.run(
+            _resolve_cmd(['yt-dlp', '--flat-playlist', '--playlist-items', '1',
+             '--print', '%(uploader_id)s|||%(channel)s',
+             '--js-runtimes', 'node', canal_url]),
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            encoding='utf-8', errors='replace', creationflags=creationflags, timeout=30,
+            env={**os.environ, 'PYTHONUTF8': '1'},
+        )
+        for linha in result.stdout.strip().splitlines():
+            partes = linha.split('|||')
+            uploader_id = partes[0].strip() if len(partes) >= 1 else ''
+            channel_nome = partes[1].strip() if len(partes) >= 2 else ''
+            if uploader_id and uploader_id not in ('NA', 'None'):
+                return uploader_id.lstrip('@')
+            if channel_nome and channel_nome not in ('NA', 'None'):
+                return channel_nome
+            break
+    except Exception:
+        pass
+    return ""
+
+
 def formatar_data(data_str):
     if not data_str or data_str == 'NA':
         return ""
@@ -661,7 +694,7 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
         for linha in result.stdout.strip().splitlines():
             partes = linha.split('|||')
             if len(partes) >= 3:
-                if partes[0].strip():
+                if partes[0].strip() and partes[0].strip() not in ('NA', 'None'):
                     meta['canal_nome']   = partes[0].strip()
                 if partes[1].strip() and partes[1].strip() != 'NA':
                     meta['canal_handle'] = partes[1].strip()
@@ -695,6 +728,16 @@ def coletar_meta_canal(canal_url: str, canal_nome_raw: str, canal_nome_canal: st
 def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filtro=None, projeto_nome: str = "",
                   dispatch_event=None, playlists_filtro=None, data_inicio: str = "", data_fim: str = ""):
     canal_nome_raw = extrair_nome_canal(canal_url)
+    if not re.search(r'@([^/?\s]+)', canal_url):
+        # URL sem '@handle' (ex: /channel/UC..., /c/..., /user/...) — o
+        # fallback de extrair_nome_canal() usaria o último segmento da URL,
+        # que pra /channel/ é o ID interno do canal (hash de 24 chars), não
+        # um nome amigável. Resolve o handle/nome real via yt-dlp antes de
+        # decidir o prefixo de pasta/arquivo — evita algo como
+        # 'UCM3vJxmuJJkk1r0yzFI9eZg_Parte_1.txt'.
+        _nome_resolvido = _resolver_nome_canal_via_ytdlp(canal_url)
+        if _nome_resolvido:
+            canal_nome_raw = _nome_resolvido
     canal_nome_safe = sanitizar_nome(canal_nome_raw)
     if projeto_nome:
         prefixo = sanitizar_nome(projeto_nome)

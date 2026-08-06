@@ -11,6 +11,39 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.42] — 2026-08-05
+
+### Adicionado
+- **Modo Estudo completo (Fases 3-6)** — lista de tópicos/nuvem de palavras (KeyBERT), geração escopada por tema via BM25 com kanban de artefatos persistentes e pesquisáveis (entram no índice, ficam disponíveis via MCP), Post-its (pontos-chave gerados por IA) e repetição espaçada nos flashcards (algoritmo SM-2).
+- **Seleção de itens específicos no Modo Estudo** — Flashcards/Resumo/Quiz/Post-its podem ser restringidos a vídeos ou documentos específicos já indexados no projeto (com busca e marcar/desmarcar todos), em vez de sempre amostrar do projeto inteiro; combina com o Tema (BM25) já existente.
+- **Seleção de playlists específicas + filtro por data de publicação** na extração do YouTube — novo endpoint `GET /playlists-canal`; a extração pode ser restringida a playlists escolhidas e/ou a um intervalo de datas em vez do canal inteiro. Seletor de playlists integrado ao botão "Playlists" (antes uma linha separada), com busca e marcar/desmarcar todas. Filtro ativo agora aparece no log em tempo real e fica persistido — visível como aviso no Relatório e ícone na Visão Geral, para não confundir um recorte do canal com o canal inteiro.
+- **Suporte a modelos Ollama com thinking nativo** (qwen3, deepseek-r1) — lista de modelos sugeridos ampliada sem filtro por tamanho (a decisão de baixar é do usuário). Raciocínio visível opcional ("Mostrar raciocínio do modelo"), com toggle direto no card de cada modelo que suporta a feature.
+- **Exclusão de modelo Ollama baixado** direto da lista de modelos — libera espaço em disco sem precisar do terminal.
+- **Janela flutuante arrastável do chat** — a bolinha e a janela do chat podem ser reposicionadas na tela (antes fixas no canto), com dica de descoberta na primeira vez que aparecem.
+- **Alerta de sobrecarga de RAM durante geração local (Ollama)** — aviso inline no chat quando a memória do sistema está muito alta durante a resposta.
+- **Cache incremental de indexação por arquivo** — reindexar não reprocessa mais o corpus inteiro a cada vez; só arquivos novos ou alterados pagam o custo do enriquecimento semântico (KeyBERT). Reindexação automática em background após qualquer ingestão de conteúdo (extração, upload, texto colado, URL avulsa, busca em fonte pública) — não depende mais só do clique manual em "Indexar base".
+- **Indicadores de status na navegação** — bolinha pulsante em "Repositório" durante indexação em background (mesmo padrão já existente em "Extração"), agora com tooltip explicando cada indicador ao passar o mouse ou focar com o teclado.
+
+### Corrigido
+- **Raciocínio do modelo sem resposta final** — um modelo com thinking podia esgotar o orçamento de geração só pensando, ou parar naturalmente sem nunca escrever a resposta em si; orçamento maior quando o raciocínio está ativo + nova tentativa automática sem thinking garantem uma resposta real em vez de deixar o usuário só com o bloco de raciocínio.
+- **Fontes irrelevantes citadas no chat mesmo sem uso real** — BM25/CrossEncoder sempre completavam a cota de resultados, mesmo quando só o primeiro candidato era de fato relevante para a pergunta; novo filtro de lacuna de relevância descarta o resto.
+- **Modal de indexação bloqueava o usuário** até terminar — fechar não cancela mais (a indexação já roda como tarefa em background no backend); toast de conclusão agora avisa também para indexação de um único projeto (antes só para lote).
+- **Exclusão de projeto falhava para pastas com nome legado** (espaço/acento no nome real em disco, criadas antes de uma convenção de sanitização) — corrigido em `cerebro_limpar()`.
+- **Contador "N selecionado(s)" na modal de indexação** incluía seleções fantasma de projetos que perderam conteúdo depois de marcados.
+- **Acentos quebrados em playlists e informações de canal** (mojibake) — variável de ambiente `PYTHONUTF8` ausente em chamadas ao yt-dlp no Windows.
+- **Filtro de data na extração não extraía nenhum vídeo** — `--flat-playlist` (usado no mapeamento rápido do canal) nunca preenche a data real de publicação; qualquer filtro de data ativo descartava 100% dos vídeos mapeados. Agora busca a data real só dos vídeos já mapeados, em lotes, e só quando o filtro está de fato ativo.
+- **Modal de histórico do chat aparecia quebrada** na nova janela flutuante — dimensionamento pensado para a drawer antiga (quase a altura da tela) não cabia no painel flutuante, menor.
+- Onboarding: removido o botão "Pular" da etapa de seleção de perfil — levava a um beco sem saída, descartando a seleção já feita sem nunca concluir o onboarding.
+- Teste da área de Antropologia desatualizado desde a adição do módulo Wiktionary — causava falha em 100% das execuções de CI (todo push + todo rebase automático de PR do Dependabot) desde 01/ago, sem relação com nenhum bug real.
+- **Nome de pasta/arquivo "aleatório" para canais do YouTube extraídos por URL sem `@handle`** (ex: `youtube.com/channel/UC...`) — o fallback de resolução de nome usava o último segmento da URL, que nesse formato é o ID interno do canal (hash de 24 caracteres), não um nome amigável. Agora resolve o handle/nome real via yt-dlp antes de decidir o prefixo, só quando a URL não traz `@handle` explícito.
+- **Modal pós-extração não refletia a indexação incremental automática** já disparada em background — o card do Agente ainda instruía "indexe a base" como passo manual pendente; agora mostra o estado de indexação em andamento em tempo real.
+
+### Alterado
+- **Lista de modelos Ollama redesenhada** — de linhas compridas em largura total para cards menores organizados em colunas (3 na aba Configurações, 2 no onboarding).
+- **Triagem completa dos 11 PRs do Dependabot** acumulados (backend, frontend e GitHub Actions) — cada um verificado isoladamente antes do merge.
+
+---
+
 ## [1.0.41] — 2026-07-31
 ### Adicionado
 - **Instalador para macOS (Apple Silicon/arm64)** — Tusab agora publica `.dmg`/`.zip` assinado (Developer ID) e notarizado pela Apple ao lado do instalador Windows, mesmo pipeline de release (`electron-builder --mac`, notarização automatizada via `@electron/notarize` no GitHub Actions `macos-latest`). Só Apple Silicon (M1 ou superior) — Intel/x86_64 fora do escopo por ora. **Nota:** o README e as notas desta release não documentavam isso até a correção retroativa em 2026-08-01 — ver `agents/_historia.md`.
