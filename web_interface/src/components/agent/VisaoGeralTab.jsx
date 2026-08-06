@@ -9,7 +9,7 @@ import { fetchRepositorio, fetchAgentStatus, fetchHistory, fetchChatStats } from
 import {
   Database, FileText, Brain, Play, BookOpen, AlignLeft,
   Search, RefreshCw, ChevronDown, ChevronUp, MessageSquare,
-  Image, Music, Stethoscope,
+  Image, Music, Stethoscope, Filter,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -19,6 +19,19 @@ function fmtBytes(b) {
   if (b < 1024)         return `${b} B`;
   if (b < 1024 * 1024)  return `${(b / 1024).toFixed(0)} KB`;
   return `${(b / 1024 / 1024).toFixed(1)} MB`;
+}
+
+// Monta um texto legível do filtro de data/playlist aplicado na última
+// extração — sem isso, a Visão Geral não tinha nenhum sinal de que a base
+// de um projeto é um recorte do canal, não o canal inteiro.
+function descreverFiltro(uf, t) {
+  if (!uf) return '';
+  const partes = [];
+  if (uf.playlists?.length) partes.push(t('overview.filtro_playlists', { count: uf.playlists.length }));
+  if (uf.data_inicio || uf.data_fim) {
+    partes.push(t('overview.filtro_periodo', { inicio: uf.data_inicio || '…', fim: uf.data_fim || t('overview.filtro_hoje') }));
+  }
+  return partes.join(' · ');
 }
 
 function fmtDate(str) {
@@ -309,6 +322,11 @@ export default function VisaoGeralTab({ darkMode, btnFocus }) {
                         <div className="flex items-center gap-2">
                           <span className="text-sm">{idx ? '🧠' : '📁'}</span>
                           <p className={`font-bold truncate max-w-[140px] ${darkMode ? 'text-white' : 'text-slate-800'}`}>@{canal.nome}</p>
+                          {hist?.ultimo_filtro && (
+                            <span title={descreverFiltro(hist.ultimo_filtro, t)} className="shrink-0">
+                              <Filter size={10} className={darkMode ? 'text-amber-400' : 'text-amber-500'} />
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className={`${td} text-right`}>
