@@ -1644,7 +1644,7 @@ function App() {
       <AnimatePresence>
         {showPostModal && (
           <PostExtractionModal key="post-modal" onClose={() => setShowPostModal(false)}
-            driveStatus={driveStatus} agentConfigured={agentStatus.configured}
+            driveStatus={driveStatus} agentConfigured={agentStatus.configured} agentIndexing={agentStatus.indexing}
             onGoToAgent={() => setActiveTab('agente')} onDriveAuth={handleDriveAuth} darkMode={darkMode} />
         )}
       </AnimatePresence>
