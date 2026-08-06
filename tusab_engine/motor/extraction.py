@@ -387,6 +387,39 @@ def _video_dentro_do_periodo(upload_date_raw: str, data_inicio: str, data_fim: s
     return True
 
 
+def _filtrar_por_data_real(video_ids: list, data_inicio: str, data_fim: str) -> set:
+    """Filtra video_ids pelo período pedido usando metadado REAL por vídeo.
+
+    O mapeamento inicial usa --flat-playlist (rápido, sem abrir cada página de
+    vídeo) — mas nesse modo o yt-dlp nunca preenche upload_date pra canais do
+    YouTube (confirmado: mesmo --dateafter/--datebefore nativos não filtram
+    nada em --flat-playlist, porque o campo simplesmente não existe ainda
+    nesse estágio). Filtrar por data exige abrir a página de cada vídeo
+    candidato — só compensa fazer isso aqui, restrito aos IDs já mapeados,
+    e só quando o usuário de fato pediu um filtro de data.
+
+    Em lotes de 50 URLs por chamada do yt-dlp — evita uma linha de comando
+    gigante em canais com muitos vídeos, sem precisar de um processo por vídeo.
+    """
+    if not video_ids or (not data_inicio and not data_fim):
+        return set(video_ids)
+    aprovados = set()
+    LOTE = 50
+    for i in range(0, len(video_ids), LOTE):
+        lote_ids = video_ids[i:i + LOTE]
+        urls = [f"https://www.youtube.com/watch?v={vid}" for vid in lote_ids]
+        cmd = [
+            'yt-dlp', '--ignore-errors', '--extractor-args', 'youtube:lang=pt',
+            '--print', '%(id)s|||%(upload_date)s', *urls,
+        ]
+        stdout = executar_comando(cmd)
+        for line in stdout.split('\n'):
+            parts = line.split('|||')
+            if len(parts) >= 2 and _video_dentro_do_periodo(parts[1], data_inicio, data_fim):
+                aprovados.add(parts[0])
+    return aprovados
+
+
 def gerar_fontes(canal_url):
     base = canal_url.rstrip('/')
     return [
@@ -722,8 +755,9 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                                 continue
                             if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
                                 continue
-                            if not _video_dentro_do_periodo(parts[1], data_inicio, data_fim):
-                                continue
+                            # Filtro de data real acontece depois do mapeamento
+                            # completo (--flat-playlist nunca preenche upload_date
+                            # aqui) — ver _filtrar_por_data_real().
                             all_videos.append({
                                 'id': vid, 'date': formatar_data(parts[1]),
                                 'views': parts[2], 'title': titulo,
@@ -750,8 +784,9 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                         continue
                     if parts[1].strip() == 'NA' and titulo and titulo in titulos_mapeados:
                         continue
-                    if not _video_dentro_do_periodo(parts[1], data_inicio, data_fim):
-                        continue
+                    # Filtro de data real acontece depois do mapeamento
+                    # completo (--flat-playlist nunca preenche upload_date
+                    # aqui) — ver _filtrar_por_data_real().
                     all_videos.append({
                         'id': vid, 'date': formatar_data(parts[1]),
                         'views': parts[2], 'title': titulo,
@@ -765,6 +800,14 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                 print(f"   📋 {aba}: {novos_fonte} vídeos mapeados ({len(all_videos)} no total)\n")
                 if dispatch_event:
                     dispatch_event("videos_mapeados", total=len(all_videos))
+
+    # Filtro de data — feito aqui (pós-mapeamento), não linha a linha durante
+    # o mapeamento, porque exige metadado real por vídeo (ver _filtrar_por_data_real).
+    if data_inicio or data_fim:
+        print(f"📅 Filtro de data ativo — verificando data real de {len(all_videos)} vídeo(s) mapeado(s)...\n")
+        ids_dentro_periodo = _filtrar_por_data_real([v['id'] for v in all_videos], data_inicio, data_fim)
+        all_videos = [v for v in all_videos if v['id'] in ids_dentro_periodo]
+        print(f"📅 {len(all_videos)} vídeo(s) dentro do período pedido.\n")
 
     df_full = pd.DataFrame(all_videos)
     total_liquido = len(df_full)
