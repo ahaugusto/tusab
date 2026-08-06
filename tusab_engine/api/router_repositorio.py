@@ -176,6 +176,22 @@ def get_relatorio(canal: str):
         }
         if stats["total"] > 0:
             stats["cobertura"] = round(stats["sucesso"] / stats["total"] * 100, 1)
+
+        # Sinaliza se esta base é um recorte (filtro de data/playlist), não o
+        # canal inteiro — sem isso o Relatório não tinha nenhuma indicação de
+        # que os números ali refletem só parte do canal.
+        ultimo_filtro = None
+        summary_path = csv_path.replace("_base.csv", "_summary.json")
+        if os.path.exists(summary_path):
+            try:
+                with open(summary_path, 'r', encoding='utf-8') as _sf:
+                    _uf = json.load(_sf).get("ultimo_filtro") or {}
+                if _uf.get("playlists") or _uf.get("data_inicio") or _uf.get("data_fim"):
+                    ultimo_filtro = _uf
+            except Exception:
+                pass
+        stats["ultimo_filtro"] = ultimo_filtro
+
         videos = df.fillna('').to_dict('records')
         return {"stats": stats, "videos": videos[:500]}
     except Exception as e:

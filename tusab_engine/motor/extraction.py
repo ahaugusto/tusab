@@ -850,6 +850,15 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
     existing_summary['canal_urls'] = urls_registradas
     # Compat: mantém canal_url como a mais recente para leituras simples
     existing_summary['canal_url'] = canal_url
+    # Registra o filtro usado nesta extração — sem isso, quem olhasse o
+    # Relatório ou a Visão Geral depois não tinha nenhum sinal de que a
+    # base é um recorte (por data e/ou playlist), não o canal inteiro.
+    existing_summary['ultimo_filtro'] = {
+        'playlists': list(playlists_filtro) if playlists_filtro else [],
+        'data_inicio': data_inicio or '',
+        'data_fim': data_fim or '',
+        'em': datetime.now().strftime('%d/%m/%Y %H:%M'),
+    }
     salvar_json_atomico(existing_summary, summary_path)
 
     # --- 1b. IDIOMAS ---
