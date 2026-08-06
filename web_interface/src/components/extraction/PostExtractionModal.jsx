@@ -8,7 +8,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Trophy, X, CheckCircle2, CloudOff, ShieldCheck, ExternalLink, Bot, Info } from 'lucide-react';
+import { Trophy, X, CheckCircle2, CloudOff, ShieldCheck, ExternalLink, Bot, Info, Loader2 } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 
@@ -23,10 +23,11 @@ import ModalWrapper from '../shared/ModalWrapper';
  * @param {boolean}  props.agentConfigured  - whether the agent has been configured
  * @param {Function} props.onGoToAgent      - callback to navigate to agent tab
  * @param {Function} props.onDriveAuth      - callback to initiate Drive OAuth flow
+ * @param {boolean}  props.agentIndexing    - whether incremental indexing is running right now
  * @param {boolean}  props.darkMode         - dark/light theme flag
  * @returns {JSX.Element}
  */
-function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgent, onDriveAuth, darkMode }) {
+function PostExtractionModal({ onClose, driveStatus, agentConfigured, agentIndexing, onGoToAgent, onDriveAuth, darkMode }) {
   const { t } = useTranslation();
   const driveConnected = driveStatus === 'autenticado';
 
@@ -107,7 +108,12 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, onGoToAgen
               {t('modal.agent_desc')}
             </p>
             <div className="space-y-1.5">
-              {agentConfigured
+              {agentIndexing
+                ? <p className="text-[10px] flex items-start gap-1.5 font-bold text-primary">
+                    <Loader2 size={12} className="shrink-0 mt-px animate-spin" aria-hidden="true" />
+                    <span>{t('modal.agent_indexing')}</span>
+                  </p>
+                : agentConfigured
                 ? <p className="text-[10px] flex items-start gap-1.5 font-bold text-secondary">
                     <CheckCircle2 size={12} className="shrink-0 mt-px" aria-hidden="true" />
                     <span>{t('modal.agent_configured')}</span>
