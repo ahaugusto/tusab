@@ -56,7 +56,7 @@ def _index_path(projeto_prefixo: str) -> str:
 #
 # _CACHE_VERSION invalida o cache inteiro (força 1 rebuild completo) sempre
 # que a lógica de parsing/enriquecimento mudar — sem isso, uma mudança em
-# _enriquecer_com_keywords()/_parsear_chunks() não se refletiria em arquivos
+# _enriquecer_com_keywords_lote()/_parsear_chunks() não se refletiria em arquivos
 # já cacheados até eles serem tocados de novo.
 _CACHE_VERSION = 1
 
@@ -341,7 +341,7 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
             # Prefixar título no texto garante que FTS5 e BM25 em disco encontram por título
             texto_com_titulo = (f"TITULO: {titulo_str}\n\n" + texto_limpo) if titulo_str else texto_limpo
             chunks_arquivo.append({
-                'texto':             _enriquecer_com_keywords(texto_com_titulo),
+                'texto':             texto_com_titulo,  # enriquecido em lote logo abaixo
                 'texto_original':    texto_limpo,
                 'titulo':            titulo_str,
                 'aba':               aba.group(1).strip()      if aba      else 'youtube',
@@ -355,6 +355,11 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
                 'views':             int(views_m.group(1))     if views_m  else 0,
                 'timestamp_inicio':  int(ts_m.group(1))        if ts_m     else 0,
             })
+
+        if chunks_arquivo:
+            textos_enriquecidos = _enriquecer_com_keywords_lote([c['texto'] for c in chunks_arquivo])
+            for c, texto_enriquecido in zip(chunks_arquivo, textos_enriquecidos):
+                c['texto'] = texto_enriquecido
 
         chunks.extend(chunks_arquivo)
         if cache is not None:
@@ -503,7 +508,7 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
                     if len(parte) < 80:
                         continue
                     chunks_arquivo.append({
-                        'texto':          _enriquecer_com_keywords(parte),
+                        'texto':          parte,  # enriquecido em lote logo abaixo
                         'texto_original': parte,
                         'titulo':         titulo_doc,
                         'aba':            aba_label,
@@ -514,6 +519,10 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
                         'canal':          canal_dir,
                         'descricao':      '',
                     })
+                if chunks_arquivo:
+                    textos_enriquecidos = _enriquecer_com_keywords_lote([c['texto'] for c in chunks_arquivo])
+                    for c, texto_enriquecido in zip(chunks_arquivo, textos_enriquecidos):
+                        c['texto'] = texto_enriquecido
                 chunks.extend(chunks_arquivo)
                 cache[caminho] = {'mtime': mtime, 'chunks': chunks_arquivo}
             except Exception:
@@ -566,32 +575,50 @@ def _get_keybert():
     return _keybert_model if _keybert_model else None
 
 
-def _enriquecer_com_keywords(texto: str) -> str:
-    """Extrai top-8 frases-chave e appenda ao texto para melhorar recall BM25.
+def _enriquecer_com_keywords_lote(textos: list) -> list:
+    """Extrai top-8 frases-chave por texto e appenda a cada um, em lote — uma só
+    passada do modelo de embeddings para todos os textos de um arquivo, em vez
+    de uma chamada (e um forward pass) por chunk. KeyBERT aceita nativamente
+    uma lista de documentos em extract_keywords(); o custo dominante é o
+    encode() do SentenceTransformer, que é executado em lote (vetorizado)
+    internamente quando recebe uma lista — muito mais eficiente que N chamadas
+    sequenciais de 1 documento cada.
 
-    Retorna `texto + " " + keywords` se KeyBERT disponível; caso contrário `texto`.
-    Nunca lança exceção — falha silenciosa garante degradação graciosa.
+    Retorna lista do mesmo tamanho de `textos`, na mesma ordem. Textos curtos
+    (<100 chars) ou com KeyBERT indisponível voltam intactos, sem entrar no lote.
+    Nunca lança exceção — falha no lote inteiro devolve os textos originais
+    intactos, mesma degradação graciosa de antes.
     """
-    if not texto or len(texto) < 100:
-        return texto
+    if not textos:
+        return []
     kw_model = _get_keybert()
     if kw_model is None:
-        return texto
+        return list(textos)
+
+    indices_validos = [i for i, t in enumerate(textos) if t and len(t) >= 100]
+    if not indices_validos:
+        return list(textos)
+
+    resultado = list(textos)
     try:
-        keyphrases = kw_model.extract_keywords(
-            texto[:3000],
+        docs = [textos[i][:3000] for i in indices_validos]
+        lote_keyphrases = kw_model.extract_keywords(
+            docs,
             keyphrase_ngram_range=(1, 2),
-            stop_words=None,   # None é o mais seguro (sem dependência externa de nltk)
+            stop_words=None,
             top_n=8,
             use_mmr=True,
             diversity=0.5,
         )
-        if not keyphrases:
-            return texto
-        kws = ' '.join(kp for kp, _ in keyphrases if kp)
-        return texto + ' ' + kws if kws else texto
+        for idx, keyphrases in zip(indices_validos, lote_keyphrases):
+            if not keyphrases:
+                continue
+            kws = ' '.join(kp for kp, _ in keyphrases if kp)
+            if kws:
+                resultado[idx] = textos[idx] + ' ' + kws
     except Exception:
-        return texto
+        pass  # falha no lote inteiro -> mantém textos originais intactos
+    return resultado
 
 
 # ── Enriquecimento BM25 ───────────────────────────────────────────────────────
