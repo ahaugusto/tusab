@@ -202,7 +202,6 @@ jobs:
       # electron/python_env-macos-arm64, nunca tocando no Python do sistema.
       - name: Instalar dependências Python (wheels arm64, sem executar interpretador arm64)
         run: |
-          python3 -m pip install --upgrade pip --break-system-packages
           python3 -m pip install \
             --target electron/python_env-macos-arm64/lib/python3.12/site-packages \
             --platform macosx_14_0_arm64 \
