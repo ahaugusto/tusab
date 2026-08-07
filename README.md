@@ -15,7 +15,7 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 | Plataforma | Requisito | Arquivo |
 |---|---|---|
 | Windows 10/11 x64 | — | `Tusab-Setup-X.X.X.exe` |
-| macOS (Apple Silicon — M1 ou superior) | macOS 12+ | `Tusab-X.X.X-arm64.dmg` |
+| macOS (Apple Silicon — M1 ou superior) | macOS 14 (Sonoma)+ | `Tusab-X.X.X-arm64.dmg` |
 
 Python e yt-dlp já vêm embutidos nos dois instaladores — nada para instalar à parte.
 **macOS Intel não é suportado no momento** (só Apple Silicon/arm64).
