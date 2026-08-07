@@ -21,8 +21,11 @@ jobs:
     # RUNNER_TOOL_CACHE aponta pra dentro de runner.temp (sempre gravável,
     # independente do usuário do SO) — o padrão do actions/setup-python
     # tenta /Users/runner/hostedtoolcache, que não existe/não é gravável
-    # pro usuário real deste runner self-hosted (m1).
-    runs-on: [self-hosted, macOS, ARM64]
+    # pro usuário real deste runner self-hosted. Job genérico (pytest+vite),
+    # não depende de arquitetura — roda em qualquer Mac self-hosted disponível
+    # (hoje: MacBookPro11,1 Intel; ver build-macos abaixo pro job que
+    # realmente exige Apple Silicon).
+    runs-on: [self-hosted, macOS, X64]
     steps:
       - uses: actions/checkout@v7
 
@@ -41,12 +44,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
-      - name: Baixar Python portátil (cpython 3.12.13, arm64)
+      - name: Baixar Python portátil (cpython 3.12.13, x86_64)
         run: |
-          curl -L -o python-macos-arm64.tar.gz \
-            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
+          curl -L -o python-macos-x64.tar.gz \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-x86_64-apple-darwin-install_only.tar.gz"
           mkdir -p python_env_tests
-          tar -xzf python-macos-arm64.tar.gz -C python_env_tests --strip-components=1
+          tar -xzf python-macos-x64.tar.gz -C python_env_tests --strip-components=1
 
       - name: Instalar dependências Python
         run: |
