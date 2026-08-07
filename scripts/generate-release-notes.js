@@ -24,6 +24,14 @@ const headerMatch = headerRe.exec(changelog);
 
 const rodape = '\n\n---\n\nVer [CHANGELOG.md](https://github.com/ahaugusto/tusab-public/blob/main/CHANGELOG.md) para o historico completo.';
 
+// Seção "### Interno (...)" é conteúdo de desenvolvimento (CI, infra,
+// processo) sem valor pra quem baixa o app -- fica documentada no
+// CHANGELOG.md do repo, mas nunca vai pro corpo da release publicada.
+// Só removida aqui, na extração; a fonte de verdade (CHANGELOG.md) fica intacta.
+function removerSecaoInterna(corpo) {
+  return corpo.replace(/### Interno\b[^\n]*\n[\s\S]*?(?=\n### |\n---|$)/, '').trim();
+}
+
 let notas;
 if (!headerMatch) {
   notas = `_Notas de versao nao encontradas no CHANGELOG.md para ${version}._${rodape}`;
@@ -32,7 +40,7 @@ if (!headerMatch) {
   const resto = changelog.slice(start);
   const proximoMatch = /\n## \[|\n---/.exec(resto);
   const corpo = proximoMatch ? resto.slice(0, proximoMatch.index) : resto;
-  notas = corpo.trim() + rodape;
+  notas = removerSecaoInterna(corpo.trim()) + rodape;
 }
 
 const outPath = path.join(repoRoot, 'release_notes.md');
