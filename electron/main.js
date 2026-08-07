@@ -646,7 +646,7 @@ function setupAppMenu () {
         { type: 'separator' },
         {
           label: 'Reportar bug…',
-          click: () => shell.openExternal('https://github.com/ahaugusto/tusab-public/issues'),
+          click: () => shell.openExternal('https://github.com/ahaugusto/tusab/issues'),
         },
         {
           label: 'E-mail de suporte',

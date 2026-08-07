@@ -762,7 +762,7 @@
   "corp.check_youtube_title": "YouTube access blocked",
   "corp.check_youtube_desc": "Transcript extraction requires access to youtube.com and googlevideo.com. Corporate proxies with content filtering frequently block these URLs.",
   "corp.check_github_title": "GitHub access blocked",
-  "corp.check_github_desc": "Tusab's auto-update downloads updates from github.com/ahaugusto/tusab-public. If blocked, the app continues to work normally — it just won't receive automatic updates.",
+  "corp.check_github_desc": "Tusab's auto-update downloads updates from github.com/ahaugusto/tusab. If blocked, the app continues to work normally — it just won't receive automatic updates.",
   "corp.check_antivirus_title": "Antivirus or EDR blocking the executable",
   "corp.check_antivirus_desc": "Solutions like CrowdStrike, Microsoft Defender for Endpoint or Symantec may block the embedded Python or yt-dlp as executables not signed by the corporate CA. Symptom: app opens but the backend never starts.",
   "corp.check_gpo_title": "Group Policy (GPO) blocking execution",
