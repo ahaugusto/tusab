@@ -74,10 +74,12 @@ ENV/
 .claude/settings.local.json
 .claude/worktrees/
 
-# --- PDFs de terceiros e prints de documentação ---
-Documentação do Produto/*.pdf
-"Documentação do Produto/Prints/"
-Documentação\ do\ Produto/Prints/
+# --- Documentação de produto: movida pra repo privado separado
+# (ahaugusto/tusab-docs) em 2026-08-07, junto com limpeza retroativa do
+# histórico deste repo (git filter-repo --invert-paths) — estratégia de
+# negócio/roadmap/B2B não pode ficar exposta quando este repo virar público.
+# Continua presente localmente (fora do git), só não é mais rastreada aqui.
+Documentação do Produto/
 
 # --- Logs de crash (podem conter informações sensíveis) ---
 sebayt_crash.log
