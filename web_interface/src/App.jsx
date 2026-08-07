@@ -38,7 +38,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki, buscarTopicos, listarItensEstudo,
+  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki, listarItensEstudo,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -322,8 +322,6 @@ function App() {
   const [estudoErro,       setEstudoErro]       = useState('');
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
   const [estudoResumo,     setEstudoResumo]     = useState('');
-  const [estudoQuiz,       setEstudoQuiz]       = useState([]);
-  const [estudoTopicos,    setEstudoTopicos]    = useState([]);
   const [estudoPostits,    setEstudoPostits]    = useState([]);
 
   // Itens específicos são por projeto — troca de projeto invalida a lista e
@@ -343,18 +341,13 @@ function App() {
     setEstudoErro('');
     setEstudoFlashcards([]);
     setEstudoResumo('');
-    setEstudoQuiz([]);
-    setEstudoTopicos([]);
     setEstudoPostits([]);
     try {
       // Cada tipo selecionado dispara sua própria chamada, em paralelo — não
-      // existe mais um "ambos" combinado: se o usuário quer flashcards e
-      // quiz ao mesmo tempo, ele simplesmente seleciona os dois botões.
-      // Tópicos usa endpoint próprio (extração local via KeyBERT, sem LLM).
+      // existe "ambos" combinado: se o usuário quer flashcards e post-its ao
+      // mesmo tempo, ele simplesmente seleciona os dois botões.
       const chamadas = estudoTipos.map(t =>
-        t === 'topicos'
-          ? buscarTopicos(estudoProjeto, estudoNCards * 2).then(r => ({ tipo: t, data: r.data }))
-          : gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards, tema: estudoTema, arquivos: estudoItensSelecionados }).then(r => ({ tipo: t, data: r.data }))
+        gerarEstudo({ projeto_nome: estudoProjeto, tipo: t, n_cards: estudoNCards, tema: estudoTema, arquivos: estudoItensSelecionados }).then(r => ({ tipo: t, data: r.data }))
       );
       const resultados = await Promise.allSettled(chamadas);
       const erros = [];
@@ -365,13 +358,9 @@ function App() {
         }
         const { tipo: t, data } = r.value;
         if (data.error) { erros.push(data.message || `Erro ao gerar ${t}.`); continue; }
-        if (t === 'topicos') setEstudoTopicos(data.topicos || []);
-        else {
-          if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
-          if (data.resumo) setEstudoResumo(data.resumo);
-          if (data.quiz?.length) setEstudoQuiz(data.quiz);
-          if (data.postits?.length) setEstudoPostits(data.postits);
-        }
+        if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
+        if (data.resumo) setEstudoResumo(data.resumo);
+        if (data.postits?.length) setEstudoPostits(data.postits);
       }
       if (erros.length) setEstudoErro(erros.join(' '));
     } catch (e) {
@@ -384,8 +373,6 @@ function App() {
   const handleEstudoResetar = useCallback(() => {
     setEstudoFlashcards([]);
     setEstudoResumo('');
-    setEstudoQuiz([]);
-    setEstudoTopicos([]);
     setEstudoPostits([]);
     setEstudoErro('');
   }, []);
@@ -2197,8 +2184,6 @@ function App() {
                   erro={estudoErro}
                   flashcards={estudoFlashcards}
                   resumo={estudoResumo}
-                  quiz={estudoQuiz}
-                  topicos={estudoTopicos}
                   postits={estudoPostits}
                   onGerar={handleEstudoGerar}
                   onResetar={handleEstudoResetar}

@@ -12,13 +12,6 @@ function formatarTexto(tipo, dados) {
   if (tipo === 'flashcards' && Array.isArray(dados)) {
     return dados.map(c => `P: ${c.pergunta}\nR: ${c.resposta}`).join('\n\n');
   }
-  if (tipo === 'quiz' && Array.isArray(dados)) {
-    return dados.map(q => {
-      const alts = q.alternativas.map((a, i) => `  ${String.fromCharCode(65 + i)}) ${a}`).join('\n');
-      const certa = String.fromCharCode(65 + q.correta);
-      return `Pergunta: ${q.pergunta}\n${alts}\nCorreta: ${certa}\nExplicação: ${q.explicacao || ''}`;
-    }).join('\n\n');
-  }
   if (tipo === 'postits' && Array.isArray(dados)) {
     return dados.map(p => `- ${p}`).join('\n');
   }
@@ -169,27 +162,6 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
                   <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
                     color: darkMode ? '#34d399' : '#059669', margin: '0 0 4px' }}>{t('estudo.card_answer_label')}</p>
                   <p style={{ fontSize: '13px', color: textPrimary, margin: 0 }}>{c.resposta}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {artefato.tipo === 'quiz' && Array.isArray(dados) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {dados.map((q, i) => (
-                <div key={i} style={{ border: `1px solid ${borderColor}`, borderRadius: '12px', padding: '12px 14px' }}>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: textPrimary, margin: '0 0 8px' }}>{i + 1}. {q.pergunta}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    {q.alternativas.map((alt, ai) => (
-                      <span key={ai} style={{
-                        fontSize: '12px', padding: '6px 10px', borderRadius: '8px',
-                        background: ai === q.correta ? (darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5') : chipBg,
-                        color: ai === q.correta ? (darkMode ? '#34d399' : '#065f46') : textPrimary,
-                        fontWeight: ai === q.correta ? 700 : 400,
-                      }}>{String.fromCharCode(65 + ai)}) {alt}</span>
-                    ))}
-                  </div>
-                  {q.explicacao && <p style={{ fontSize: '11px', color: textSecond, marginTop: '8px' }}>{q.explicacao}</p>}
                 </div>
               ))}
             </div>
