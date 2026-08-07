@@ -9,6 +9,10 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [Não lançado]
 
+### Corrigido
+- **Quiz e Tópicos removidos do Modo Estudo** — testados de ponta a ponta contra um projeto real: Quiz deu timeout de 300s numa tentativa e, noutra, o modelo local padrão (`llama3.2:1b`) ignorou a instrução de responder só em JSON, devolvendo respostas inconsistentes. Tópicos não travava, mas revelou um bug de extração de PDF pré-existente: texto com notação matemática perde espaço entre palavras (`"thisdatabaseislaterusedtoretrieve..."`), poluindo a nuvem de palavras. Removidos de frontend e backend (não só ocultos da UI). Nova dica na aba Estudo recomendando um modelo Ollama mais robusto que o padrão para os recursos que permanecem.
+- **Artefatos de Estudo fantasmas no kanban** — a listagem confiava só no manifest; se os arquivos fossem apagados por fora do app, o card continuava aparecendo. Agora valida a existência real dos arquivos em `neural/{prefixo}/estudo/` antes de listar, podando entradas órfãs automaticamente.
+
 ---
 
 ## [1.0.42] — 2026-08-06
