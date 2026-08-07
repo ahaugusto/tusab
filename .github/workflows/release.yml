@@ -137,15 +137,15 @@ jobs:
   # ── 3. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
   build-macos:
     name: Build macOS (.dmg + .zip)
-    # Self-hosted (MacBookPro11,1, Intel) — cross-build pra arm64 (pip
-    # download --platform em vez de baixar-e-executar interpretador arm64,
-    # que falharia num host Intel). Validado tanto em self-hosted quanto em
-    # macos-latest hospedado (v1.0.42 acabou saindo pelo hospedado depois
-    # do self-hosted travar 2x seguidas — Mac suspendendo sozinho mesmo com
-    # pmset configurado, depois NOPASSWD do sudo via visudo não pegando).
-    # Sem hardware Scaleway pago — usa o Mac físico do usuário, desde que
-    # ele fique acordado e o runner (svc.sh) esteja rodando.
-    runs-on: [self-hosted, macOS, X64]
+    # TEMPORÁRIO (reconstrução da release v1.0.42, 2026-08-07): voltou pro
+    # macos-latest hospedado — o self-hosted (MacBookPro11,1) caiu offline
+    # de novo (suspensão recorrente, ainda não resolvida de vez) bem no
+    # momento em que a release precisava ser refeita com urgência (assets
+    # originais perdidos na deleção do tusab-public). Reverter pro
+    # self-hosted quando a estabilidade do Mac físico estiver garantida —
+    # a lógica de cross-build (pip download --platform) funciona igual em
+    # qualquer host.
+    runs-on: macos-latest
     needs: tests
     if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     # Assinatura sozinha (deep-sign de todo o python_env com torch/
