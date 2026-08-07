@@ -7,6 +7,15 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.45] — 2026-08-07
+
+### Corrigido
+- **Menu lateral rolava na horizontal** — ao habilitar `overflow-y-auto` sem travar o eixo X, o CSS força `overflow-x` pra `auto` também (comportamento padrão da spec quando só um eixo é explicitamente definido), fazendo aparecer uma barra de rolagem horizontal indevida no rail estreito. Corrigido com `overflow-x-hidden` + `custom-scrollbar` (mesma barra fina já usada no resto do app), no rail desktop e no drawer mobile.
+
+### Alterado
+- README: banner ASCII "TUSAB" (fonte Block) substitui o logo SVG no topo — remove a duplicação visual com a seção de features mais abaixo.
+- README: seção de Screenshots ganha Home e Histórico de conversas, completando as 8 telas principais (antes só tinha onboarding, Extração, Repositório, Visão Geral, Estudo e Assistente).
+
 ## [1.0.44] — 2026-08-07
 
 ### Adicionado

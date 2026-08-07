@@ -1668,7 +1668,7 @@ function App() {
         {/* ── Nav Rail (tablet+) ── */}
         {!showHome && (
           <nav aria-label={t('nav.main')}
-            className={`hidden md:flex shrink-0 flex-col items-center w-20 py-3 border-r overflow-y-auto
+            className={`hidden md:flex shrink-0 flex-col items-center w-20 py-3 border-r overflow-y-auto overflow-x-hidden custom-scrollbar
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button onClick={() => { setShowHome(true); setProgressToast(null); }} aria-label={t('nav.home')} title={t('nav.home')}
               className={`w-14 h-14 rounded-xl flex items-center justify-center mb-2 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
@@ -1770,7 +1770,7 @@ function App() {
             <motion.nav aria-label={t('nav.main')}
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
-              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 overflow-y-auto md:hidden
+              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 overflow-y-auto overflow-x-hidden custom-scrollbar md:hidden
                 ${darkMode ? 'bg-[#0C1122] border-r border-white/10' : 'bg-white border-r border-slate-200 shadow-xl'}`}>
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => { setShowHome(true); setSidebarOpen(false); setProgressToast(null); }}
