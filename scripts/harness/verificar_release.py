@@ -20,7 +20,7 @@ import re
 import sys
 import urllib.request
 
-REPO_PADRAO = "ahaugusto/tusab-public"
+REPO_PADRAO = "ahaugusto/tusab"
 ARQUIVOS_OBRIGATORIOS = {"latest.yml"}  # .exe/.blockmap variam de nome por versão
 
 

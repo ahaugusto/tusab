@@ -15,7 +15,7 @@ PKM (Personal Knowledge Management) com IA local para Windows. Quatro camadas qu
 - Inicia o backend Python como processo filho via `python_env/`
 - Expõe APIs ao renderer via `contextBridge` em `preload.js`
 - IPC channel principal: `open-folder` (abre Explorer no path recebido do backend)
-- Auto-update via `electron-updater` (feed: GitHub Releases em `ahaugusto/tusab-public`)
+- Auto-update via `electron-updater` (feed: GitHub Releases em `ahaugusto/tusab`)
 - Backend em `localhost:8001` — hardcoded ou via env?
 - Detecta backend pronto antes de carregar o frontend (polling ou evento?)
 
@@ -48,7 +48,7 @@ data/config/agent_config.json
 | Porta | `main.js` usa `localhost:8001` hardcoded ou variável? |
 | Detecção de backend pronto | Polling `/status`? Timeout? O que acontece se Python demorar a subir? |
 | IPC `open-folder` | Path recebido do backend é passado diretamente ao `shell.openPath()`? Sanitização? |
-| Auto-update feed | `electron-updater` aponta para `ahaugusto/tusab-public`? Assets compatíveis com o que o `gh release` gera? |
+| Auto-update feed | `electron-updater` aponta para `ahaugusto/tusab`? Assets compatíveis com o que o `gh release` gera? |
 | `TUSAB_DATA_DIR` | Electron seta essa variável para `%APPDATA%/Tusab` antes de spawnar o Python? |
 
 ### 2. React → FastAPI (services/api.js vs. schemas Pydantic)
