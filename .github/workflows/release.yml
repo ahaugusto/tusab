@@ -8,6 +8,12 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  # Gatilho manual — só existe pra validar o job `tests` isoladamente (ex: depois
+  # de trocar/registrar um runner self-hosted novo) sem precisar publicar uma
+  # tag de verdade. build-windows/build-macos ficam com `if: github.event_name
+  # == 'push'` propositalmente — nunca rodam (nem builda, nem publica nada) num
+  # disparo manual.
+  workflow_dispatch: {}
 
 jobs:
   # ── 1. Testes antes de qualquer build ────────────────────────────────────────
@@ -73,6 +79,7 @@ jobs:
     name: Build Windows (.exe)
     runs-on: windows-latest
     needs: tests
+    if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     permissions:
       contents: write   # necessário para publicar a release em ahaugusto/tusab
 
@@ -148,6 +155,7 @@ jobs:
     # macos-latest hospedado (ver macos-smoke.yml, job electron-notarize).
     runs-on: [self-hosted, macOS, ARM64]
     needs: tests
+    if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     # Assinatura sozinha (deep-sign de todo o python_env com torch/
     # onnxruntime/transformers) já passa de 30min — notarização soma
     # submissão + espera da Apple em cima disso. Medido na prática
