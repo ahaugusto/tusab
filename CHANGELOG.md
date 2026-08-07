@@ -11,7 +11,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [1.0.42] — 2026-08-05
+## [1.0.42] — 2026-08-06
 
 ### Adicionado
 - **Modo Estudo completo (Fases 3-6)** — lista de tópicos/nuvem de palavras (KeyBERT), geração escopada por tema via BM25 com kanban de artefatos persistentes e pesquisáveis (entram no índice, ficam disponíveis via MCP), Post-its (pontos-chave gerados por IA) e repetição espaçada nos flashcards (algoritmo SM-2).
