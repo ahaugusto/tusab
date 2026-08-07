@@ -29,7 +29,7 @@ from tusab_engine.agent.config import carregar_config, salvar_config
 def _get_canal_doc_dirs(prefixo: str) -> list:
     """Retorna dirs de documentos/textos/estudo do canal + legado.
 
-    'estudo' guarda resumo/flashcards/quiz gerados pelo Modo Estudo
+    'estudo' guarda resumo/flashcards/postits gerados pelo Modo Estudo
     (tusab_engine/api/router_estudo.py) — inclui-los aqui é o que faz esse
     conteúdo virar pesquisável (BM25 + MCP, que consulta o mesmo índice)
     no próximo reindex, sem precisar de mecanismo próprio.
