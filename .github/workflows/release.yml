@@ -337,6 +337,12 @@ jobs:
         working-directory: electron
         run: npm ci
 
+      # electron-builder lê esse arquivo pra gerar o update-info (latest-mac.yml)
+      # mesmo com --publish never — mesmo passo do build-macos real, versão dummy
+      # aqui já que não estamos numa tag de verdade.
+      - name: Gerar release_notes.md dummy (só pra não quebrar o update-info)
+        run: echo "# Teste de cross-build — sem conteúdo real" > release_notes.md
+
       # Sem assinatura (identity=null) e sem publish — só valida que o
       # electron-builder consegue MONTAR o .app arm64 rodando em host Intel.
       - name: Empacotar ARM64 sem assinar/notarizar/publicar
