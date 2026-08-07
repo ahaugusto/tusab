@@ -19,10 +19,11 @@ jobs:
   # ── 1. Testes antes de qualquer build ────────────────────────────────────────
   tests:
     name: Testes (pytest + vite)
-    # TESTE TEMPORÁRIO (2026-08-06): verificando empiricamente se o bloqueio de
-    # billing do ubuntu-latest ("recent account payments have failed or your
-    # spending limit needs to be increased") ainda está ativo — reverter pro
-    # self-hosted macOS X64 (ver histórico do arquivo) se falhar de novo.
+    # Voltou pro ubuntu-latest hospedado em 2026-08-06 — o bloqueio de billing
+    # ("recent account payments have failed or your spending limit needs to
+    # be increased", ativo desde meados de 2026) não reproduz mais, validado
+    # via workflow_dispatch (run 31139474481, verde em 5m34s). Mais barato e
+    # rápido que qualquer runner self-hosted; não depende de nenhum Mac físico.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
