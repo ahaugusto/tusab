@@ -6,6 +6,8 @@ Your personal specialist. Point it at what you want to learn — a YouTube chann
 
 Built by **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augustoalvesbrasil) — CNPJ 65.131.075/0001-57
 
+<img src="docs/screenshots/landing.png" alt="Tusab landing screen" width="800">
+
 ---
 
 ## Download
@@ -44,6 +46,49 @@ excerpt was retrieved from.
 | **I** | Index | Extraction and indexing of YouTube, PDFs, DOCX, Markdown, plain text |
 | **A** | Augment | RAG with BM25 + CrossEncoder delivers precise chunks to the model |
 | **C** | Converse | Chat with streaming, source citation and conversation history |
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%">
+
+**Pick a profile — change it anytime**
+<img src="docs/screenshots/onboarding-profile.png" alt="Profile picker on first run" width="100%">
+</td>
+<td width="50%">
+
+**Extraction — YouTube channels or public academic sources**
+<img src="docs/screenshots/extraction.png" alt="Extraction tab" width="100%">
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Repository — every base you've built, in one place**
+<img src="docs/screenshots/repository.png" alt="Repository tab" width="100%">
+</td>
+<td width="50%">
+
+**Overview — coverage and index health at a glance**
+<img src="docs/screenshots/overview.png" alt="Overview dashboard" width="100%">
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Study Mode — flashcards, summaries and post-its from your own base**
+<img src="docs/screenshots/study-mode.png" alt="Study Mode tab" width="100%">
+</td>
+<td width="50%">
+
+**Assistant — provider, custom endpoint, response tone**
+<img src="docs/screenshots/assistant.png" alt="Assistant configuration tab" width="100%">
+</td>
+</tr>
+</table>
 
 ---
 
