@@ -6,18 +6,18 @@ import {
   Zap, ArrowUp, Sparkles, X, Info, ExternalLink,
   Settings, LayoutGrid, RefreshCw, Copy, Check,
 } from 'lucide-react';
-import OllamaSetup from '../agent/OllamaSetup';
+import OllamaSetup from '../assistente/OllamaSetup';
 import PersonaCustomModal from '../shared/PersonaCustomModal';
 import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
 
 function useSubTabs(t) {
   return [
-    { id: 'configuracoes', label: t('agent.subtab_settings'), icon: Settings },
+    { id: 'configuracoes', label: t('assistente.subtab_settings'), icon: Settings },
   ];
 }
 
-export default function AgentTab({
+export default function AssistenteTab({
   darkMode,
   mainScrollRef,
   agentStatus,
@@ -76,17 +76,17 @@ export default function AgentTab({
   const handleBaixarModelo = useCallback(async (id) => {
     setPullingModel(id);
     setPullStartTime(Date.now());
-    setPullProgress({ status: 'pulling', pct: 0, message: t('agent.pull_starting'), model: id });
+    setPullProgress({ status: 'pulling', pct: 0, message: t('assistente.pull_starting'), model: id });
     const status = await fetchOllamaStatus().catch(() => null);
     if (!status?.data?.running) {
-      setPullProgress({ status: 'error', pct: 0, message: t('agent.pull_ollama_not_running'), model: id });
+      setPullProgress({ status: 'error', pct: 0, message: t('assistente.pull_ollama_not_running'), model: id });
       setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 5000);
       return;
     }
     try {
       await pullOllamaModel(id);
     } catch {
-      setPullProgress({ status: 'error', pct: 0, message: t('agent.pull_start_error'), model: id });
+      setPullProgress({ status: 'error', pct: 0, message: t('assistente.pull_start_error'), model: id });
       setTimeout(() => { setPullingModel(null); setPullProgress(null); }, 3000);
       return;
     }
@@ -146,16 +146,16 @@ export default function AgentTab({
             className={`rounded-2xl border p-4 flex gap-3 ${darkMode ? 'bg-primary/8 border-primary/25' : 'bg-violet-50 border-violet-200'}`}>
             <Sparkles size={16} className="text-primary shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.hint_title')}</p>
+              <p className={`text-xs font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('assistente.hint_title')}</p>
               <ol className={`text-[11px] space-y-0.5 list-none ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                <li>1. {t('agent.hint_step1')}</li>
-                <li>2. {t('agent.hint_step2')}</li>
-                <li>3. {t('agent.hint_step3')}</li>
+                <li>1. {t('assistente.hint_step1')}</li>
+                <li>2. {t('assistente.hint_step2')}</li>
+                <li>3. {t('assistente.hint_step3')}</li>
               </ol>
             </div>
             <button onClick={() => setShowAgentHint(false)}
               className={`shrink-0 p-1 rounded-md transition-colors ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'} ${BTN_FOCUS}`}
-              aria-label={t('agent.hint_close_aria')}>
+              aria-label={t('assistente.hint_close_aria')}>
               <X size={13} />
             </button>
           </motion.div>
@@ -181,11 +181,11 @@ export default function AgentTab({
                 className={`w-full px-5 py-3.5 flex items-center gap-2 text-left transition-colors ${configOpen && (darkMode ? 'border-b border-white/10' : 'border-b border-slate-100')} ${darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
                 <KeyRound size={14} className="text-primary shrink-0" aria-hidden="true" />
                 <h3 id="agent-config-heading" className={`text-xs font-bold uppercase tracking-wider flex-1 ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                  {t('agent.provider_title')}
+                  {t('assistente.provider_title')}
                 </h3>
                 {agentStatus.configured && (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-secondary mr-2">
-                    <CheckCircle2 size={11} /> {t('agent.configured_badge')}
+                    <CheckCircle2 size={11} /> {t('assistente.configured_badge')}
                   </span>
                 )}
                 <motion.div animate={{ rotate: configOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -217,8 +217,8 @@ export default function AgentTab({
                       {/* External provider toggle */}
                       <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                         <div>
-                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('agent.external_toggle_title')}</p>
-                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('agent.external_toggle_desc')}</p>
+                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('assistente.external_toggle_title')}</p>
+                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('assistente.external_toggle_desc')}</p>
                         </div>
                         <button
                           role="switch" aria-checked={useExternalProvider}
@@ -247,10 +247,10 @@ export default function AgentTab({
                             className="space-y-3">
                             <div className="grid grid-cols-2 gap-2">
                               {[
-                                { id: 'gemini',    label: t('agent.provider_gemini')    },
-                                { id: 'openai',    label: t('agent.provider_openai')    },
-                                { id: 'anthropic', label: t('agent.provider_anthropic') },
-                                { id: 'groq',      label: t('agent.provider_groq')      },
+                                { id: 'gemini',    label: t('assistente.provider_gemini')    },
+                                { id: 'openai',    label: t('assistente.provider_openai')    },
+                                { id: 'anthropic', label: t('assistente.provider_anthropic') },
+                                { id: 'groq',      label: t('assistente.provider_groq')      },
                               ].map(({ id, label }) => (
                                 <button key={id} onClick={() => { setAgentProvider(id); setTestKeyResult(null); setKeyTested(false); }}
                                   className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${BTN_FOCUS}
@@ -263,27 +263,27 @@ export default function AgentTab({
                             </div>
                             <div className={`text-[11px] flex items-center gap-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                               <Info size={11} />
-                              {agentProvider === 'gemini'    && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_gemini')} <ExternalLink size={9} /></a>}
-                              {agentProvider === 'openai'    && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_openai')} <ExternalLink size={9} /></a>}
-                              {agentProvider === 'anthropic' && <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_anthropic')} <ExternalLink size={9} /></a>}
-                              {agentProvider === 'groq'      && <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('agent.get_key_groq')} <ExternalLink size={9} /></a>}
+                              {agentProvider === 'gemini'    && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_gemini')} <ExternalLink size={9} /></a>}
+                              {agentProvider === 'openai'    && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_openai')} <ExternalLink size={9} /></a>}
+                              {agentProvider === 'anthropic' && <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_anthropic')} <ExternalLink size={9} /></a>}
+                              {agentProvider === 'groq'      && <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_groq')} <ExternalLink size={9} /></a>}
                             </div>
                             <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border border-amber-500/20 text-amber-300/70' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
                               <Info size={11} className="shrink-0 mt-0.5" />
-                              <span>{t('agent.external_lgpd_warning')}</span>
+                              <span>{t('assistente.external_lgpd_warning')}</span>
                             </div>
 
                             {/* Key input */}
                             <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
                               ${keyTested ? darkMode ? 'border-secondary/50 bg-secondary/5' : 'border-emerald-300 bg-emerald-50' : darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                               <input type={showApiKey ? 'text' : 'password'}
-                                placeholder={t('agent.key_placeholder')}
+                                placeholder={t('assistente.key_placeholder')}
                                 value={agentApiKey}
                                 onChange={e => { setAgentApiKey(e.target.value); setAgentKeyError(''); setTestKeyResult(null); setKeyTested(false); }}
                                 className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
                               <button onClick={() => setShowApiKey(!showApiKey)}
                                 className={`shrink-0 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500'} ${BTN_FOCUS}`}
-                                aria-label={showApiKey ? t('agent.key_hide') : t('agent.key_show')}>
+                                aria-label={showApiKey ? t('assistente.key_hide') : t('assistente.key_show')}>
                                 {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                               </button>
                             </div>
@@ -298,10 +298,10 @@ export default function AgentTab({
                                     ? 'opacity-40 ' + (darkMode ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200')
                                     : darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 border border-violet-200'}`}>
                               {testingKey
-                                ? <><Loader2 size={12} className="animate-spin" /> {t('agent.testing')}</>
+                                ? <><Loader2 size={12} className="animate-spin" /> {t('assistente.testing')}</>
                                 : keyTested
-                                  ? <><CheckCircle2 size={12} /> {t('agent.key_verified')}</>
-                                  : <><Zap size={12} /> {t('agent.test_key')}</>}
+                                  ? <><CheckCircle2 size={12} /> {t('assistente.key_verified')}</>
+                                  : <><Zap size={12} /> {t('assistente.test_key')}</>}
                             </button>
 
                             {/* Feedback */}
@@ -317,7 +317,7 @@ export default function AgentTab({
                             )}
                             {agentApiKey.trim() && !keyTested && !testKeyResult && (
                               <p className={`text-[10px] flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                <Info size={10} /> {t('agent.test_before_save_hint')}
+                                <Info size={10} /> {t('assistente.test_before_save_hint')}
                               </p>
                             )}
 
@@ -325,15 +325,15 @@ export default function AgentTab({
                             <div className="flex gap-2">
                               <button onClick={handleRemoveApiKey}
                                 className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
-                                {t('agent.clear_key')}
+                                {t('assistente.clear_key')}
                               </button>
                               <button onClick={handleSaveAgentConfig}
                                 disabled={savingConfig || !keyTested}
-                                title={!keyTested ? t('agent.test_key_first') : undefined}
+                                title={!keyTested ? t('assistente.test_key_first') : undefined}
                                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                                   ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
                                 {savingConfig ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
-                                {savingConfig ? t('agent.saving') : configSaved ? `✓ ${t('agent.config_saved')}` : t('agent.save_config')}
+                                {savingConfig ? t('assistente.saving') : configSaved ? `✓ ${t('assistente.config_saved')}` : t('assistente.save_config')}
                               </button>
                             </div>
                           </motion.div>
@@ -346,8 +346,8 @@ export default function AgentTab({
                           tecnicamente reaproveita o mesmo protocolo OpenAI do Groq. */}
                       <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                         <div>
-                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('agent.custom_toggle_title')}</p>
-                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('agent.custom_toggle_desc')}</p>
+                          <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('assistente.custom_toggle_title')}</p>
+                          <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>{t('assistente.custom_toggle_desc')}</p>
                         </div>
                         <button
                           role="switch" aria-checked={useCustomEndpoint}
@@ -376,7 +376,7 @@ export default function AgentTab({
                             className="space-y-3">
                             <div className={`text-[11px] flex items-start gap-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                               <Info size={11} className="shrink-0 mt-0.5" />
-                              <span>{t('agent.custom_help')}</span>
+                              <span>{t('assistente.custom_help')}</span>
                             </div>
 
                             {/* URL field */}
@@ -404,12 +404,12 @@ export default function AgentTab({
                                   )}
                                   <span className={`text-[11px] font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                                     {customStatusChecking
-                                      ? t('agent.custom_checking')
+                                      ? t('assistente.custom_checking')
                                       : customStatus.running
-                                        ? t('agent.custom_detected', { count: customStatus.models.length })
-                                        : t('agent.custom_not_detected')}
+                                        ? t('assistente.custom_detected', { count: customStatus.models.length })
+                                        : t('assistente.custom_not_detected')}
                                   </span>
-                                  <button onClick={() => refreshCustomStatus(customBaseUrl.trim())} title={t('agent.custom_refresh')}
+                                  <button onClick={() => refreshCustomStatus(customBaseUrl.trim())} title={t('assistente.custom_refresh')}
                                     className={`shrink-0 p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'} ${BTN_FOCUS}`}>
                                     <RefreshCw size={11} className={customStatusChecking ? 'animate-spin' : ''} />
                                   </button>
@@ -418,11 +418,11 @@ export default function AgentTab({
                                 {!customStatus.running && !customStatusChecking && (
                                   <div className="space-y-2 pt-1">
                                     <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-amber-300/80' : 'text-amber-800'}`}>
-                                      {t('agent.custom_not_detected_hint')}
+                                      {t('assistente.custom_not_detected_hint')}
                                     </p>
                                     <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${darkMode ? 'bg-black/20' : 'bg-white'}`}>
                                       <code className={`flex-1 text-[10px] font-mono ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>npm install -g 9router</code>
-                                      <button onClick={copiarComandoInstalacao} title={t('agent.custom_copy')}
+                                      <button onClick={copiarComandoInstalacao} title={t('assistente.custom_copy')}
                                         className={`shrink-0 p-1 rounded transition-colors ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'} ${BTN_FOCUS}`}>
                                         {comandoCopiado ? <Check size={11} className="text-secondary" /> : <Copy size={11} />}
                                       </button>
@@ -441,7 +441,7 @@ export default function AgentTab({
                               ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                               <input type="text"
                                 list="custom-models-datalist"
-                                placeholder={t('agent.custom_model_placeholder')}
+                                placeholder={t('assistente.custom_model_placeholder')}
                                 value={customModel}
                                 onChange={e => { setCustomModel(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
                                 className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
@@ -454,13 +454,13 @@ export default function AgentTab({
                             <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40
                               ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                               <input type={showApiKey ? 'text' : 'password'}
-                                placeholder={t('agent.custom_key_placeholder')}
+                                placeholder={t('assistente.custom_key_placeholder')}
                                 value={agentApiKey}
                                 onChange={e => { setAgentApiKey(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
                                 className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />
                               <button onClick={() => setShowApiKey(!showApiKey)}
                                 className={`shrink-0 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500'} ${BTN_FOCUS}`}
-                                aria-label={showApiKey ? t('agent.key_hide') : t('agent.key_show')}>
+                                aria-label={showApiKey ? t('assistente.key_hide') : t('assistente.key_show')}>
                                 {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                               </button>
                             </div>
@@ -469,7 +469,7 @@ export default function AgentTab({
                             {customBaseUrl.trim() && !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i.test(customBaseUrl.trim()) && (
                               <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border border-amber-500/20 text-amber-300/70' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
                                 <Info size={11} className="shrink-0 mt-0.5" />
-                                <span>{t('agent.custom_remote_warning')}</span>
+                                <span>{t('assistente.custom_remote_warning')}</span>
                               </div>
                             )}
 
@@ -483,10 +483,10 @@ export default function AgentTab({
                                     ? 'opacity-40 ' + (darkMode ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200')
                                     : darkMode ? 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 border border-violet-200'}`}>
                               {testingKey
-                                ? <><Loader2 size={12} className="animate-spin" /> {t('agent.testing')}</>
+                                ? <><Loader2 size={12} className="animate-spin" /> {t('assistente.testing')}</>
                                 : keyTested
-                                  ? <><CheckCircle2 size={12} /> {t('agent.custom_verified')}</>
-                                  : <><Zap size={12} /> {t('agent.custom_test')}</>}
+                                  ? <><CheckCircle2 size={12} /> {t('assistente.custom_verified')}</>
+                                  : <><Zap size={12} /> {t('assistente.custom_test')}</>}
                             </button>
 
                             {agentKeyError && (
@@ -503,15 +503,15 @@ export default function AgentTab({
                             <div className="flex gap-2">
                               <button onClick={handleRemoveApiKey}
                                 className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors border-danger/40 text-danger hover:bg-danger/10 ${BTN_FOCUS}`}>
-                                {t('agent.clear_key')}
+                                {t('assistente.clear_key')}
                               </button>
                               <button onClick={handleSaveAgentConfig}
                                 disabled={savingConfig || !keyTested}
-                                title={!keyTested ? t('agent.custom_test_first') : undefined}
+                                title={!keyTested ? t('assistente.custom_test_first') : undefined}
                                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed
                                   ${configSaved ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary hover:bg-primary/30'} ${BTN_FOCUS}`}>
                                 {savingConfig ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
-                                {savingConfig ? t('agent.saving') : configSaved ? `✓ ${t('agent.config_saved')}` : t('agent.save_config')}
+                                {savingConfig ? t('assistente.saving') : configSaved ? `✓ ${t('assistente.config_saved')}` : t('assistente.save_config')}
                               </button>
                             </div>
                           </motion.div>
@@ -532,17 +532,17 @@ export default function AgentTab({
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
                 <h3 id="agent-persona-heading" className={`text-xs font-bold flex-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  {t('agent.persona_title')}
+                  {t('assistente.persona_title')}
                 </h3>
                 {persona && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-primary/15 text-primary' : 'bg-violet-100 text-violet-700'}`}>
-                    {t('agent.persona_active')}
+                    {t('assistente.persona_active')}
                   </span>
                 )}
               </div>
               <div className="p-4 space-y-2">
                 <p className={`text-[11px] mb-3 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-                  {t('agent.persona_subtitle')}
+                  {t('assistente.persona_subtitle')}
                 </p>
                 {[
                   { id: '',             emoji: '⚪', label: t('persona.default'),      desc: t('persona.default_desc')      },

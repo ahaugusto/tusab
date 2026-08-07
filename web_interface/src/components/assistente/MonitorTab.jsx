@@ -1,7 +1,7 @@
 /**
  * @file MonitorTab.jsx
  * @description Painel de observabilidade — RAM, CPU e histórico do processo Tusab
- * @module components/agent/MonitorTab
+ * @module components/assistente/MonitorTab
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */

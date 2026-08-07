@@ -171,20 +171,6 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
   // ── Utility cards (below) ─────────────────────────────────────────────────
   const allUtilityCards = [
     {
-      id:     'chat-direto',
-      icon:   '💬',
-      title:  t('home.card_chat_title'),
-      desc:   agentReady && indexed
-        ? t('home.card_chat_ready')
-        : agentReady
-          ? t('home.card_chat_index_first')
-          : t('home.card_chat_desc'),
-      badge:  null,
-      color:  agentReady && indexed ? 'secondary' : 'primary',
-      action: onOpenChatExpandido,
-      perfis: ['estudante', 'professor', 'pesquisador', 'profissional'],
-    },
-    {
       id:     'repositorio',
       icon:   '📚',
       title:  t('home.card_repo_title'),
@@ -207,8 +193,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     {
       id:     'agente',
       icon:   '⚙️',
-      title:  t('home.card_agent_title'),
-      desc:   configured ? (indexed ? t('home.card_agent_ready') : t('home.card_agent_index')) : t('home.card_agent_desc'),
+      title:  t('home.card_assistente_title'),
+      desc:   configured ? (indexed ? t('home.card_assistente_ready') : t('home.card_assistente_index')) : t('home.card_assistente_desc'),
       badge:  configured ? '✓' : null,
       color:  configured && indexed ? 'secondary' : 'primary',
       alert:  !agentReady,
@@ -295,6 +281,48 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
               ))}
             </div>
           </div>
+
+          {/* ── Talk section (só aparece com base indexada — chat sem contexto não tem valor) ── */}
+          {indexed && (
+            <div>
+              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                {t('home.section_talk')}
+              </p>
+              <button
+                onClick={onOpenChatExpandido}
+                className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${agentReady ? highlightBase : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl shrink-0">💬</span>
+                  <div>
+                    <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_chat_title')}</p>
+                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {agentReady ? t('home.card_chat_ready') : t('home.card_chat_desc')}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* ── Study section (mesmo gate — Estudo também precisa de base indexada) ── */}
+          {indexed && (
+            <div>
+              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                {t('home.section_study')}
+              </p>
+              <button
+                onClick={() => onNavigate('estudo')}
+                className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl shrink-0">🎓</span>
+                  <div>
+                    <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_estudo_title')}</p>
+                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('home.card_estudo_desc')}</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* ── Utility section ── */}
           <div>
