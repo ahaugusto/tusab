@@ -194,9 +194,15 @@ jobs:
       # nunca importa/executa o código baixado. macosx_14_0 (não 11/12/13) é
       # a tag mínima que torch>=2.12.1 publica pra arm64 (ver README —
       # requisito mínimo macOS 14/Sonoma pro instalador Apple Silicon).
+      # --break-system-packages: o Python do runner hospedado vem via Homebrew,
+      # marcado como "externally-managed" (PEP 668) — pip recusa instalar
+      # qualquer coisa sem essa flag, mesmo com --target apontando pra fora do
+      # site-packages do sistema. Seguro aqui: runner efêmero de CI, não uma
+      # máquina real, e o pip está só baixando/extraindo wheels pra dentro de
+      # electron/python_env-macos-arm64, nunca tocando no Python do sistema.
       - name: Instalar dependências Python (wheels arm64, sem executar interpretador arm64)
         run: |
-          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip --break-system-packages
           python3 -m pip install \
             --target electron/python_env-macos-arm64/lib/python3.12/site-packages \
             --platform macosx_14_0_arm64 \
@@ -204,6 +210,7 @@ jobs:
             --implementation cp \
             --abi cp312 \
             --only-binary=:all: \
+            --break-system-packages \
             -r requirements.txt
 
       - name: Build frontend
