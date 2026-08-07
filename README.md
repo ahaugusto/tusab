@@ -6,7 +6,10 @@ Your personal specialist. Point it at what you want to learn — a YouTube chann
 
 Built by **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augustoalvesbrasil) — CNPJ 65.131.075/0001-57
 
-<img src="docs/screenshots/landing.png" alt="Tusab landing screen" width="800">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="web_interface/public/logo_dark_mode.svg">
+  <img src="web_interface/public/logo_light_mode.svg" alt="Tusab" width="320">
+</picture>
 
 ---
 
