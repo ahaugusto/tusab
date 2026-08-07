@@ -135,9 +135,17 @@ jobs:
   # ── 3. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
   build-macos:
     name: Build macOS (.dmg + .zip)
-    # Self-hosted (Scaleway Mac mini) — evita consumir a cota gratuita do
-    # macos-latest hospedado (ver macos-smoke.yml, job electron-notarize).
-    runs-on: [self-hosted, macOS, ARM64]
+    # Self-hosted (MacBookPro11,1, Intel) — cross-build pra arm64. Validado
+    # em 2026-08-06/07 via workflow_dispatch (jobs de teste "[TESTE]
+    # Cross-build ARM64", runs 31140160977/31142088911/31142593262):
+    # electron-builder --arm64 e codesign/notarização não EXECUTAM código
+    # arm64, só manipulam os binários como arquivo — só a instalação de
+    # dependências Python precisava de ajuste (ver abaixo, pip download em
+    # vez de baixar-e-executar um interpretador arm64, que falharia num
+    # host Intel). Binário Electron e Python embutido confirmados via
+    # `file` como "Mach-O 64-bit executable arm64" antes de promover isso
+    # aqui. Sem hardware Scaleway pago — usa o Mac físico do usuário.
+    runs-on: [self-hosted, macOS, X64]
     needs: tests
     if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     # Assinatura sozinha (deep-sign de todo o python_env com torch/
@@ -172,6 +180,8 @@ jobs:
 
       # Python portátil (equivalente macOS do python_env embeddable do Windows)
       # — mesmo par release/versão usado no macos-smoke.yml (Fases 1-7).
+      # Extração de tar é arch-agnóstica — só EXECUTAR um binário arm64 falha
+      # num host Intel (não existe Rosetta ao contrário).
       - name: Baixar Python portátil (cpython 3.12.13, arm64)
         run: |
           curl -L -o python-macos-arm64.tar.gz \
@@ -179,10 +189,23 @@ jobs:
           mkdir -p electron/python_env-macos-arm64
           tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
 
-      - name: Instalar dependências Python
+      # pip install --platform/--python-version/--abi busca e extrai wheels de
+      # OUTRA plataforma sem executar o interpretador alvo — usa o Python do
+      # próprio runner (Intel) só como ferramenta de download+extração,
+      # nunca importa/executa o código baixado. macosx_14_0 (não 11/12/13) é
+      # a tag mínima que torch>=2.12.1 publica pra arm64 (ver README —
+      # requisito mínimo macOS 14/Sonoma pro instalador Apple Silicon).
+      - name: Instalar dependências Python (wheels arm64, sem executar interpretador arm64)
         run: |
-          ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
-          ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+          python3 -m pip install --upgrade pip
+          python3 -m pip install \
+            --target electron/python_env-macos-arm64/lib/python3.12/site-packages \
+            --platform macosx_14_0_arm64 \
+            --python-version 3.12 \
+            --implementation cp \
+            --abi cp312 \
+            --only-binary=:all: \
+            -r requirements.txt
 
       - name: Build frontend
         working-directory: web_interface
@@ -272,101 +295,3 @@ jobs:
         run: |
           security list-keychains -d user -s login.keychain-db
           security delete-keychain build.keychain 2>/dev/null || true
-
-  # ── TESTE — cross-build ARM64 a partir de hardware Intel ────────────────────
-  # Hipótese: build-macos exige runner ARM64 só por causa de UMA etapa (baixar
-  # e EXECUTAR um Python compilado pra aarch64 pra rodar pip install) — o
-  # resto do pipeline (electron-builder empacotando o target arm64, codesign,
-  # notarização via upload) não executa código ARM64, só manipula os binários
-  # como arquivo. Se isso for confirmado, o Mac Intel self-hosted passa a
-  # servir pro build de verdade, não só pra QA manual. Job temporário, só
-  # roda em disparo manual — remover/promover pra build-macos depois de
-  # validado. Sem assinatura/notarização/publish aqui de propósito (barato
-  # e rápido de iterar; assinatura real fica pra quando isso já funcionar).
-  test-cross-build-arm64:
-    name: "[TESTE] Cross-build ARM64 a partir de Intel"
-    runs-on: [self-hosted, macOS, X64]
-    if: github.event_name == 'workflow_dispatch'
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: web_interface/package-lock.json
-
-      # Extração de tar é arch-agnóstica — só a EXECUÇÃO de um binário arm64
-      # falharia num host Intel. Isso aqui é seguro.
-      - name: Baixar Python portátil ARM64 (só extração)
-        run: |
-          curl -L -o python-macos-arm64.tar.gz \
-            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
-          mkdir -p electron/python_env-macos-arm64
-          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
-
-      # pip install --platform/--python-version/--abi busca e extrai wheels
-      # de OUTRA plataforma sem precisar executar o interpretador alvo —
-      # usa o Python do próprio runner (Intel) só como ferramenta de
-      # download+extração de pacote, nunca importa/executa o código baixado.
-      # macosx_14_0 (não 11/12/13) é a tag mínima que o torch>=2.12.1 publica
-      # pra arm64 — descoberto neste teste (ver CHANGELOG).
-      - name: Instalar dependências ARM64 via pip download (sem executar interpretador ARM64)
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install \
-            --target electron/python_env-macos-arm64/lib/python3.12/site-packages \
-            --platform macosx_14_0_arm64 \
-            --python-version 3.12 \
-            --implementation cp \
-            --abi cp312 \
-            --only-binary=:all: \
-            -r requirements.txt
-
-      - name: Verificar arquitetura dos binários instalados
-        run: |
-          file electron/python_env-macos-arm64/bin/python3
-          find electron/python_env-macos-arm64/lib/python3.12/site-packages -name "*.so" | head -5 | xargs file
-
-      - name: Build frontend
-        working-directory: web_interface
-        run: npm install && npx vite build
-
-      - name: Instalar dependências Electron
-        working-directory: electron
-        run: npm ci
-
-      # electron-builder lê esse arquivo pra gerar o update-info (latest-mac.yml)
-      # mesmo com --publish never — mesmo passo do build-macos real, versão dummy
-      # aqui já que não estamos numa tag de verdade.
-      - name: Gerar release_notes.md dummy (só pra não quebrar o update-info)
-        run: echo "# Teste de cross-build — sem conteúdo real" > release_notes.md
-
-      # Sem assinatura (identity=null) e sem publish — só valida que o
-      # electron-builder consegue MONTAR o .app arm64 rodando em host Intel.
-      - name: Empacotar ARM64 sem assinar/notarizar/publicar
-        working-directory: electron
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac --arm64 --publish never -c.mac.notarize=false
-
-      - name: Verificar arquitetura do binário Electron gerado
-        run: |
-          echo "Conteúdo de dist_electron/:"
-          find dist_electron -maxdepth 2
-          APP_BIN=$(find dist_electron -name "Tusab" -path "*.app/Contents/MacOS/*" | head -1)
-          echo "Binário: $APP_BIN"
-          file "$APP_BIN"
-          PY_BIN="electron/python_env-macos-arm64/bin/python3"
-          echo "Python embutido: $PY_BIN"
-          file "$PY_BIN"
-          if ! file "$APP_BIN" | grep -q "arm64"; then
-            echo "::error::Binário Electron NÃO é arm64!"
-            exit 1
-          fi
-          if ! file "$PY_BIN" | grep -q "arm64"; then
-            echo "::error::Python embutido NÃO é arm64!"
-            exit 1
-          fi
-          echo "Confirmado: binário Electron e Python embutido são ambos arm64."
