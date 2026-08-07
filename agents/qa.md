@@ -248,7 +248,7 @@ Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 | 6 | `window.tusab` definido | DevTools (F12) → Console → `window.tusab` | Falha de preload (sandbox, asar, module not found) |
 | 7 | Indexação funciona | Abrir aba Repositório → Indexar base → modal aparece e indexa | CORS bloqueando backend, preload undefined |
 | 8 | Chat responde | Enviar mensagem no chat → resposta chega | CORS, API_BASE errado |
-| 9 | `latest.yml` está entre os assets da release | `gh release view vX.Y.Z --repo ahaugusto/tusab-public --json assets -q '.assets[].name'` deve listar `latest.yml` junto com `.exe`/`.blockmap` | `electron-updater` retorna 404 ao checar atualização — "Cannot find latest.yml in the latest release artifacts" |
+| 9 | `latest.yml` está entre os assets da release | `gh release view vX.Y.Z --repo ahaugusto/tusab --json assets -q '.assets[].name'` deve listar `latest.yml` junto com `.exe`/`.blockmap` | `electron-updater` retorna 404 ao checar atualização — "Cannot find latest.yml in the latest release artifacts" |
 
 **Regra:** se `window.tusab` for `undefined` no instalador → não publicar. Verificar `webPreferences.sandbox` e `require()` em `preload.js`.
 

@@ -117,15 +117,17 @@ jobs:
         run: echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS_JSON }}' > credentials.json
 
       # electron-builder lê GH_TOKEN para publicar na release.
-      # [CONTRATO] publish.owner/repo em electron/package.json aponta para
-      # ahaugusto/tusab-public — repositório DIFERENTE de onde este workflow
-      # roda (ahaugusto/tusab). O GITHUB_TOKEN automático do Actions só tem
-      # permissão no repo local (ahaugusto/tusab); publicar em outro repo
-      # exige um Personal Access Token com escopo `repo`, salvo como o
-      # secret RELEASE_PAT (Settings → Secrets and variables → Actions).
-      # Causa raiz de todas as releases v1.0.23–v1.0.37 terem sido feitas
-      # manualmente: 403 "Resource not accessible by integration" com
-      # GITHUB_TOKEN — ver run 28401557076 (v1.0.22, 29/jun/2026).
+      # [HISTÓRICO] RELEASE_PAT existia porque publish.owner/repo em
+      # electron/package.json apontava pra ahaugusto/tusab-public —
+      # repositório DIFERENTE de onde este workflow roda (ahaugusto/tusab) —
+      # e o GITHUB_TOKEN automático do Actions só tem permissão no repo
+      # local. Causa raiz de todas as releases v1.0.23–v1.0.37 terem sido
+      # feitas manualmente: 403 "Resource not accessible by integration"
+      # com GITHUB_TOKEN — ver run 28401557076 (v1.0.22, 29/jun/2026).
+      # Desde 2026-08-07, publish.repo aponta pro próprio ahaugusto/tusab
+      # (tusab-public foi descontinuado) — o GITHUB_TOKEN padrão já teria
+      # permissão suficiente agora, mas manteve-se RELEASE_PAT (funciona
+      # igual, sem risco de trocar token logo após a migração de repo).
       - name: Build e publicar instalador
         working-directory: electron
         env:
@@ -152,7 +154,7 @@ jobs:
     # (self-hosted, Mac mini M1-M): 90min não foi suficiente.
     timeout-minutes: 180
     permissions:
-      contents: write   # necessário para publicar a release em ahaugusto/tusab-public
+      contents: write   # necessário para publicar a release em ahaugusto/tusab
 
     steps:
       - uses: actions/checkout@v7
@@ -260,7 +262,7 @@ jobs:
           security find-identity -v -p codesigning build.keychain
 
       # Mesma extração do job build-windows — os dois jobs publicam na MESMA
-      # release (tusab-public), então geramos as notas idênticas aqui também
+      # release (ahaugusto/tusab), então geramos as notas idênticas aqui também
       # (não depende de qual job termina primeiro).
       - name: Gerar notas de release a partir do CHANGELOG.md
         run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"

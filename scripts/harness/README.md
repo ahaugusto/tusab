@@ -15,7 +15,7 @@ release, ou depois de mexer na área correspondente.
 
 ```powershell
 # Auto-update — depois de publicar
-.venv\Scripts\python.exe scripts\harness\verificar_release.py v1.0.40 --repo ahaugusto/tusab-public
+.venv\Scripts\python.exe scripts\harness\verificar_release.py v1.0.40 --repo ahaugusto/tusab
 
 # Formatação do chat — backend precisa estar rodando com um canal indexado
 .venv\Scripts\python.exe scripts\harness\verificar_formato_chat.py --canal FGV

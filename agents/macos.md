@@ -57,7 +57,7 @@ Deep-sign de todo o `python_env` (torch/onnxruntime/transformers/sentence-transf
 ## CI — padrão de workflow
 
 - `.github/workflows/macos-smoke.yml`: jobs isolados por fase (Fase 1 a 7), `workflow_dispatch` com input `only_job` — permite rodar **um job isolado** sem pagar o custo de rodar os outros 6 (macOS runner é ~10x mais caro por minuto que Linux no GitHub Actions). Sempre use `-f only_job=<nome>` ao iterar num bug específico, nunca dispare o workflow inteiro pra testar uma correção pontual.
-- `.github/workflows/release.yml`: job `build-macos`, paralelo ao `build-windows`, dispara só em push de tag `vX.Y.Z`. Publica em `ahaugusto/tusab-public` via secret `RELEASE_PAT` (mesmo padrão do Windows — `GITHUB_TOKEN` automático não tem permissão em repo diferente).
+- `.github/workflows/release.yml`: job `build-macos`, paralelo ao `build-windows`, dispara só em push de tag `vX.Y.Z`. Publica em `ahaugusto/tusab` via secret `RELEASE_PAT` (mesmo padrão do Windows — herdado de quando `publish.repo` apontava pra `tusab-public`, repositório diferente de onde o CI roda; desde 2026-08-07 publica no mesmo repo, então o `GITHUB_TOKEN` padrão já bastaria, mas manteve-se `RELEASE_PAT` por já funcionar).
 - Scripts npm distintos por intenção: `build:mac` (nunca publica — usado nos smoke tests), `build:mac:publish` (usado só no release real). Nunca sobrepor `--publish always` em cima de um script que já tem `--publish never` — comportamento de flags conflitantes é ambíguo; use um script dedicado.
 
 ## O que verificar em toda análise

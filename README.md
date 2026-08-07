@@ -10,7 +10,7 @@ Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augusto
 
 ## Download
 
-**[⬇ Baixar última versão](https://github.com/ahaugusto/tusab-public/releases/latest)**
+**[⬇ Baixar última versão](https://github.com/ahaugusto/tusab/releases/latest)**
 
 | Plataforma | Requisito | Arquivo |
 |---|---|---|
