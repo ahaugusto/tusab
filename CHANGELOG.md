@@ -7,6 +7,16 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.44] — 2026-08-07
+
+### Adicionado
+- **Áudio do Resumo com player real e persistido** — o botão de "Ouvir resumo" agora sintetiza uma vez via Pocket TTS (build Beta/Enterprise) e salva o `.wav` em disco junto do artefato; reproduções seguintes servem do cache (instantâneo) em vez de sintetizar de novo. Player real (`<audio controls>`, com play/pause/barra de progresso) no lugar do botão de toggle antigo, disponível tanto no resultado recém-gerado quanto ao reabrir um resumo salvo no kanban de Estudo. Excluir o artefato remove o áudio junto.
+- README reescrito em inglês — versão/contagem de testes corrigidas, changelog embutido (congelado em v1.0.7) removido em favor de um link direto para este arquivo, lista de funcionalidades atualizada com Modo Estudo, MCP Server, endpoint customizado e tom de resposta.
+
+### Alterado
+- **Home reorganizada**: seletor de idioma, tema e "Produzido por CriAugu" saíram do fim da lista de cards e passaram a ficar junto da logo (coluna esquerda no desktop, abaixo da logo na versão mobile) — espaçamento das seções também comprimido.
+- Menu lateral (rail desktop e drawer mobile) ganhou rolagem própria — em zoom alto do navegador, os itens de baixo não ficam mais inacessíveis.
+
 ## [1.0.43] — 2026-08-07
 
 ### Adicionado
