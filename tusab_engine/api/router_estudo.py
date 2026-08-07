@@ -22,7 +22,7 @@ router = APIRouter()
 
 class StudyRequest(BaseModel):
     projeto_nome: str = Field(default="", max_length=120)
-    tipo:         str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos | quiz
+    tipo:         str = Field(default="flashcards", max_length=20)  # flashcards | resumo | ambos | postits
     n_cards:      int = Field(default=10, ge=1, le=30)
     tema:         str = Field(default="", max_length=200)  # opcional — escopa a geração a um tema/tópico
     # opcional — restringe o corpus de origem a itens específicos já
@@ -164,63 +164,6 @@ def _validar_cards(data: list) -> list:
     return resultado
 
 
-def _parsear_quiz_json(texto: str) -> list:
-    """Extrai perguntas de múltipla escolha de uma resposta LLM.
-
-    Só duas estratégias (não três como _parsear_flashcards_json): múltipla
-    escolha não tem um formato textual natural tipo "Q:/A:" pra usar de
-    fallback — se o LLM não devolver JSON válido, melhor descartar e
-    reportar erro do que inventar um parser textual frágil pra um formato
-    que não existe organicamente.
-    """
-    texto = texto.strip()
-    try:
-        data = json.loads(texto)
-        if isinstance(data, list):
-            return _validar_quiz(data)
-    except (json.JSONDecodeError, ValueError):
-        pass
-
-    match = re.search(r'\[\s*\{.*?\}\s*\]', texto, re.DOTALL)
-    if match:
-        try:
-            data = json.loads(match.group())
-            if isinstance(data, list):
-                return _validar_quiz(data)
-        except (json.JSONDecodeError, ValueError):
-            pass
-
-    return []
-
-
-def _validar_quiz(data: list) -> list:
-    """Filtra e normaliza perguntas de múltipla escolha — descarta itens malformados."""
-    resultado = []
-    for item in data:
-        if not isinstance(item, dict):
-            continue
-        pergunta = str(item.get("pergunta") or item.get("question") or "").strip()
-        alternativas = item.get("alternativas") or item.get("options") or []
-        correta = item.get("correta", item.get("correct"))
-        explicacao = str(item.get("explicacao") or item.get("explanation") or "").strip()
-        if not pergunta or not isinstance(alternativas, list) or len(alternativas) < 2:
-            continue
-        alternativas = [str(a).strip() for a in alternativas if str(a).strip()]
-        try:
-            correta = int(correta)
-        except (TypeError, ValueError):
-            continue
-        if not (0 <= correta < len(alternativas)):
-            continue
-        resultado.append({
-            "pergunta": pergunta,
-            "alternativas": alternativas,
-            "correta": correta,
-            "explicacao": explicacao,
-        })
-    return resultado
-
-
 def _parsear_postits_json(texto: str) -> list:
     """Extrai pontos-chave curtos (post-its) de uma resposta LLM.
 
@@ -271,7 +214,7 @@ def _parsear_postits_json(texto: str) -> list:
 def _filtrar_chunks_por_tema(chunks: list, tema: str, n: int) -> list:
     """Seleciona os n chunks mais relevantes pro tema (BM25); sem tema, amostra aleatória.
 
-    Sem isso, gerar flashcards/resumo/quiz de um projeto inteiro dá material
+    Sem isso, gerar flashcards/resumo/postits de um projeto inteiro dá material
     genérico demais quando o usuário quer estudar um recorte específico (ex:
     "capitalismo" dentro de um projeto bem mais amplo). Fallback pra amostra
     aleatória se o tema não bater com nada — nunca retorna vazio se há chunks.
@@ -352,28 +295,49 @@ def _manifest_estudo_path(canal_prefixo: str) -> str:
 
 
 def _ler_manifest_estudo(canal_prefixo: str) -> list:
+    """Lê o manifest de artefatos e descarta entradas cujos arquivos não
+    existem mais em neural/{prefixo}/estudo/ — a pasta em disco é a fonte de
+    verdade, não o manifest. Um artefato só é "trazido" pra interface
+    enquanto os dois arquivos dele (.txt indexável + .json estruturado)
+    realmente existirem lá; cobre o caso de alguém apagar/mover arquivos por
+    fora do app (Explorer, sync externo, etc.), sem deixar card fantasma no
+    kanban. Reescreve o manifest podado de volta no disco quando encontra
+    órfãs, pra não repetir a checagem de arquivo a cada listagem.
+    """
     path = _manifest_estudo_path(canal_prefixo)
     if not os.path.exists(path):
         return []
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return data if isinstance(data, list) else []
+        manifest = data if isinstance(data, list) else []
     except Exception:
         return []
 
+    estudo_dir = os.path.join(NEURAL_DIR, canal_prefixo, "estudo")
+    validos = []
+    encontrou_orfa = False
+    for entrada in manifest:
+        txt = entrada.get("arquivo_txt", "")
+        jsn = entrada.get("arquivo_json", "")
+        existe = bool(txt) and bool(jsn) \
+            and os.path.exists(os.path.join(estudo_dir, txt)) \
+            and os.path.exists(os.path.join(estudo_dir, jsn))
+        if existe:
+            validos.append(entrada)
+        else:
+            encontrou_orfa = True
+
+    if encontrou_orfa:
+        salvar_json_atomico(validos, path, indent=2)
+
+    return validos
+
 
 def _formatar_texto_indexavel(tipo: str, dados) -> str:
-    """Achata o conteúdo estruturado (flashcards/quiz/resumo) num texto corrido pro BM25."""
+    """Achata o conteúdo estruturado (flashcards/postits/resumo) num texto corrido pro BM25."""
     if tipo == "flashcards":
         return "\n\n".join(f"P: {c['pergunta']}\nR: {c['resposta']}" for c in dados)
-    if tipo == "quiz":
-        partes = []
-        for q in dados:
-            alts = "\n".join(f"  {chr(65+i)}) {a}" for i, a in enumerate(q["alternativas"]))
-            certa = chr(65 + q["correta"])
-            partes.append(f"Pergunta: {q['pergunta']}\n{alts}\nCorreta: {certa}\nExplicação: {q.get('explicacao', '')}")
-        return "\n\n".join(partes)
     if tipo == "postits":
         return "\n".join(f"- {p}" for p in dados)
     return str(dados)  # resumo já é texto
@@ -385,7 +349,7 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
     Grava DOIS arquivos por artefato:
     - `.txt` achatado (TITULO:/DATA: no cabeçalho, igual ao parser de indexação
       já espera) — é o que vira pesquisável via BM25/MCP no próximo reindex.
-    - `.json` com os dados estruturados originais (array de flashcards/quiz, ou
+    - `.json` com os dados estruturados originais (array de flashcards/postits, ou
       string do resumo) — é o que a UI usa pra reconstruir o mesmo componente
       rico (flip de carta, múltipla escolha) ao reabrir um card antigo do
       kanban, em vez de re-parsear o `.txt` de volta pra estrutura.
@@ -408,7 +372,7 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
         ts = time.strftime("%Y%m%d_%H%M%S")
         artefato_id = f"{ts}_{tipo}"
 
-        rotulos = {"resumo": "Resumo", "flashcards": "Flashcards", "quiz": "Quiz", "postits": "Post-its"}
+        rotulos = {"resumo": "Resumo", "flashcards": "Flashcards", "postits": "Post-its"}
         rotulo = rotulos.get(tipo, tipo.title())
         titulo = f"{rotulo} — {tema.strip() or projeto_nome} ({agora})"
 
@@ -454,8 +418,8 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
 @router.post("/agent/study")
 def agent_study(req: StudyRequest):
     """Gera flashcards e/ou resumo estruturado a partir do índice BM25 do projeto."""
-    if req.tipo not in ("flashcards", "resumo", "ambos", "quiz", "postits"):
-        return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo, quiz, postits ou ambos."}
+    if req.tipo not in ("flashcards", "resumo", "ambos", "postits"):
+        return {"error": True, "message": "Tipo inválido. Use: flashcards, resumo, postits ou ambos."}
 
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
     if not canal_prefixo:
@@ -501,7 +465,6 @@ def agent_study(req: StudyRequest):
 
     flashcards_resultado = []
     resumo_resultado = ""
-    quiz_resultado = []
     postits_resultado = []
     artefatos_criados = []
 
@@ -537,44 +500,6 @@ def agent_study(req: StudyRequest):
                 artefatos_criados.append(artefato)
         except Exception as e:
             return {"error": True, "message": f"Erro ao gerar post-its: {e}"}
-
-    if req.tipo == "quiz":
-        trechos_quiz = "\n\n".join(
-            f"[{c.get('titulo', '')}]: {str(c.get('texto', ''))[:300]}"
-            for c in amostra
-        )
-        prompt_qz = (
-            f"Você é um tutor especializado. Com base nos trechos abaixo de \"{req.projeto_nome}\", "
-            f"gere exatamente {req.n_cards} perguntas de múltipla escolha.\n\n"
-            "RESPONDA APENAS com um array JSON válido. Nenhum texto antes ou depois.\n"
-            "Formato:\n"
-            '[\n'
-            '  {"pergunta": "texto da pergunta", "alternativas": ["A", "B", "C", "D"], "correta": 0, "explicacao": "por que essa é a certa"},\n'
-            '  ...\n'
-            ']\n\n'
-            "Regras:\n"
-            f"- Exatamente {req.n_cards} objetos no array\n"
-            "- Exatamente 4 alternativas por pergunta, plausíveis mas só uma correta\n"
-            "- \"correta\" é o índice (0-3) da alternativa certa no array \"alternativas\"\n"
-            "- Cubra conceitos variados dos trechos fornecidos\n\n"
-            f"TRECHOS:\n{trechos_quiz}"
-        )
-        try:
-            resposta_qz = _chamar_llm_estudo(prompt_qz)
-            quiz_resultado = _parsear_quiz_json(resposta_qz)
-            if not quiz_resultado:
-                return {"error": True, "message": "O modelo não retornou o quiz no formato esperado. Tente novamente."}
-            qz_path = os.path.join(mgmt_dir, "quiz.json")
-            salvar_json_atomico({
-                "canal": req.projeto_nome,
-                "gerado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                "quiz": quiz_resultado,
-            }, qz_path, indent=2)
-            artefato = _salvar_estudo_indexavel(canal_prefixo, req.projeto_nome, "quiz", req.tema, quiz_resultado, n_itens=len(req.arquivos))
-            if artefato:
-                artefatos_criados.append(artefato)
-        except Exception as e:
-            return {"error": True, "message": f"Erro ao gerar quiz: {e}"}
 
     if req.tipo in ("flashcards", "ambos"):
         trechos = "\n\n".join(
@@ -645,9 +570,8 @@ def agent_study(req: StudyRequest):
         "ok": True,
         "flashcards": flashcards_resultado,
         "resumo": resumo_resultado,
-        "quiz": quiz_resultado,
         "postits": postits_resultado,
-        "total": len(flashcards_resultado) or len(quiz_resultado) or len(postits_resultado),
+        "total": len(flashcards_resultado) or len(postits_resultado),
         "artefatos": artefatos_criados,
     }
 
@@ -656,7 +580,7 @@ def agent_study(req: StudyRequest):
 def agent_study_itens(projeto_nome: str):
     """Lista os itens (vídeos/documentos/textos) já indexados do projeto, agregados
     por 'arquivo' — alimenta o seletor "Itens específicos" no Modo Estudo, que
-    restringe flashcards/resumo/quiz/post-its a um recorte escolhido do
+    restringe flashcards/resumo/post-its a um recorte escolhido do
     projeto em vez do conteúdo inteiro. Reaproveita o índice já carregado em
     disco (mesmo arquivo que agent_study() lê); não faz nenhum scan novo.
     """
@@ -750,7 +674,7 @@ def agent_study_revisao(projeto_nome: str):
 
 @router.get("/agent/study/artefatos/{projeto_nome}")
 def agent_study_artefatos(projeto_nome: str):
-    """Lista os artefatos de estudo persistidos (resumo/flashcards/quiz) — alimenta o kanban."""
+    """Lista os artefatos de estudo persistidos (resumo/flashcards/postits) — alimenta o kanban."""
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     if not canal_prefixo:
         return {"artefatos": []}
@@ -762,8 +686,8 @@ def agent_study_artefato_conteudo(projeto_nome: str, artefato_id: str):
     """Retorna o conteúdo estruturado de um artefato — usado pra abrir o card no modal ampla.
 
     Lê do `.json` estruturado (não do `.txt` achatado indexável) pra
-    reconstruir o mesmo componente rico (flip de flashcard, múltipla escolha
-    de quiz) que a tela de geração já mostra.
+    reconstruir o mesmo componente rico (flip de flashcard, grade de
+    post-its) que a tela de geração já mostra.
     """
     canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     if not canal_prefixo:
@@ -823,68 +747,6 @@ def agent_study_artefato_deletar(projeto_nome: str, artefato_id: str):
     manifest = [e for e in manifest if e.get("id") != artefato_id]
     salvar_json_atomico(manifest, _manifest_estudo_path(canal_prefixo), indent=2)
     return {"ok": True}
-
-
-@router.get("/agent/study/topicos/{projeto_nome}")
-def agent_study_topicos(projeto_nome: str, limit: int = 40):
-    """Lista de tópicos/palavras-chave do projeto, pra nuvem de palavras.
-
-    Reaproveita o KeyBERT já usado na indexação (agent/index.py), mas
-    mantém o score desta vez — na indexação normal ele é descartado (só o
-    texto entra no corpus BM25). Extração sob demanda, sem cache: KeyBERT
-    já não cacheia na indexação também, mesma decisão de simplicidade.
-    """
-    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
-    if not canal_prefixo:
-        return {"error": True, "message": "Projeto não especificado."}
-
-    from tusab_engine.agent.index import _index_path, _get_keybert
-
-    idx_path = _index_path(canal_prefixo)
-    if not os.path.exists(idx_path):
-        return {"error": True, "message": f"Índice não encontrado para '{projeto_nome}'. Indexe a base primeiro."}
-
-    try:
-        with open(idx_path, "r", encoding="utf-8") as f:
-            idx_data = json.load(f)
-    except Exception as e:
-        return {"error": True, "message": f"Erro ao carregar índice: {e}"}
-
-    chunks = idx_data.get("chunks", [])
-    if not chunks:
-        return {"error": True, "message": "Índice vazio. Adicione conteúdo e indexe novamente."}
-
-    kw_model = _get_keybert()
-    if kw_model is None:
-        return {"error": True, "message": "Extração de tópicos indisponível nesta instalação (stack semântica ausente)."}
-
-    n_amostras = min(30, len(chunks))
-    amostra = random.sample(chunks, n_amostras)
-
-    # Agrega por termo (case-insensitive) entre chunks: mantém o score
-    # máximo observado e conta em quantos chunks distintos o termo apareceu.
-    agregados = {}
-    for c in amostra:
-        texto = str(c.get("texto_original") or c.get("texto") or "")[:3000]
-        if not texto.strip():
-            continue
-        try:
-            keyphrases = kw_model.extract_keywords(
-                texto, keyphrase_ngram_range=(1, 2), stop_words=None,
-                top_n=8, use_mmr=True, diversity=0.5,
-            )
-        except Exception:
-            continue
-        for kp, score in keyphrases:
-            chave = kp.lower().strip()
-            if not chave:
-                continue
-            atual = agregados.setdefault(chave, {"termo": kp, "score": 0.0, "ocorrencias": 0})
-            atual["score"] = max(atual["score"], float(score))
-            atual["ocorrencias"] += 1
-
-    topicos = sorted(agregados.values(), key=lambda x: x["score"], reverse=True)[:limit]
-    return {"ok": True, "topicos": topicos, "chunks_amostrados": n_amostras}
 
 
 @router.get("/agent/tts/status")

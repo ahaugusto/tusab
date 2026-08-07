@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, HelpCircle, Trash2, Pencil, X, Search, Video } from 'lucide-react';
+import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, Trash2, Pencil, X, Search, Video } from 'lucide-react';
 import { ttsStatus, ttsSintetizar, listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, revisarFlashcard, buscarProgressoRevisao } from '../../services/api';
 import EstudoArtefatoModal from './EstudoArtefatoModal';
 import PostIt from '../shared/PostIt';
@@ -25,8 +25,6 @@ export default function EstudoTab({
   erro,
   flashcards,
   resumo,
-  quiz,
-  topicos,
   postits,
   onGerar,
   onResetar,
@@ -48,12 +46,8 @@ export default function EstudoTab({
   const selecionarTodosItens = () => setItensSelecionados(itensFiltrados.map(i => i.arquivo));
   const desmarcarTodosItens  = () => setItensSelecionados([]);
 
-  // Quiz — estado efêmero de navegação/respostas, mesma filosofia dos flashcards
-  const [quizIdx,       setQuizIdx]       = useState(0);
-  const [quizRespostas, setQuizRespostas] = useState({}); // { [idx]: alternativaEscolhidaIdx }
-
   // Kanban de artefatos persistidos — lista independente do resultado "ao vivo"
-  // acima (flashcards/resumo/quiz da última geração); é buscada do backend
+  // acima (flashcards/resumo/postits da última geração); é buscada do backend
   // porque sobrevive a troca de aba/projeto, ao contrário do estado efêmero.
   const [artefatos,           setArtefatos]           = useState([]);
   const [artefatoAberto,      setArtefatoAberto]       = useState(null); // entrada do manifest
@@ -120,7 +114,7 @@ export default function EstudoTab({
     refetchArtefatos();
   };
 
-  const ICONE_TIPO = { resumo: FileText, flashcards: Layers, quiz: HelpCircle };
+  const ICONE_TIPO = { resumo: FileText, flashcards: Layers };
 
   // Repetição espaçada (SM-2) — progresso por card (chave = id estável, hash
   // da pergunta) persistido no backend, sobrevive a regenerações futuras.
@@ -143,9 +137,6 @@ export default function EstudoTab({
   useEffect(() => { setCurrentIdx(0); setFlipped(false); }, [modoRevisarHoje]);
 
   const card = flashcardsAlvo[currentIdx] ?? null;
-  const perguntaQuiz = quiz?.[quizIdx] ?? null;
-  const quizRespondidas = Object.keys(quizRespostas).length;
-  const quizAcertos = Object.entries(quizRespostas).filter(([idx, alt]) => quiz?.[idx]?.correta === alt).length;
   const semProjetos = projetosIndexados.length === 0;
 
   // ── TTS local (Pocket TTS) — só disponível na build Beta/Enterprise ──────────
@@ -202,15 +193,7 @@ export default function EstudoTab({
 
   const handleResetarLocal = () => {
     setCurrentIdx(0); setFlipped(false);
-    setQuizIdx(0); setQuizRespostas({});
     onResetar?.();
-  };
-
-  const handleQuizAnterior = () => setQuizIdx(i => Math.max(0, i - 1));
-  const handleQuizProximo  = () => setQuizIdx(i => Math.min(quiz.length - 1, i + 1));
-  const handleQuizResponder = (altIdx) => {
-    if (quizRespostas[quizIdx] !== undefined) return; // já respondida — não deixa trocar
-    setQuizRespostas(prev => ({ ...prev, [quizIdx]: altIdx }));
   };
 
   // ── Estilos base ──────────────────────────────────────────────────────────
@@ -301,8 +284,6 @@ export default function EstudoTab({
             {[
               { id: 'flashcards', label: t('estudo.type_flashcards') },
               { id: 'resumo',     label: t('estudo.type_resumo')     },
-              { id: 'quiz',       label: t('estudo.type_quiz')       },
-              { id: 'topicos',    label: t('estudo.type_topicos')    },
               { id: 'postits',    label: t('estudo.type_postits')    },
             ].map(({ id, label }) => {
               const ativo = tipo.includes(id);
@@ -320,6 +301,9 @@ export default function EstudoTab({
               );
             })}
           </div>
+          <p style={{ fontSize: '10px', color: textSecond, marginTop: '8px', marginBottom: 0 }}>
+            {t('estudo.modelo_robusto_hint')}
+          </p>
         </div>
 
         {/* Tema — opcional, escopa a geração a um recorte específico do projeto via BM25 */}
@@ -468,7 +452,7 @@ export default function EstudoTab({
               : <><BookOpen size={14} /> {t('estudo.generate_btn')}</>}
           </button>
 
-          {(flashcards?.length > 0 || resumo || quiz?.length > 0 || topicos?.length > 0 || postits?.length > 0) && (
+          {(flashcards?.length > 0 || resumo || postits?.length > 0) && (
             <button onClick={handleResetarLocal} style={{
               ...btnBase, padding: '10px 12px',
               background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
@@ -694,97 +678,6 @@ export default function EstudoTab({
         </div>
       )}
 
-      {/* ── Quiz ─────────────────────────────────────────────────────────────── */}
-      {quiz?.length > 0 && (
-        <div style={{
-          background: bgCard, border: `1px solid ${borderColor}`,
-          borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>{t('estudo.section_quiz')}</p>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', color: textSecond }}>{quizIdx + 1} / {quiz.length}</span>
-              <span style={{
-                fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
-                background: darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5',
-                color: darkMode ? '#34d399' : '#065f46',
-              }}>{t('estudo.quiz_score', { acertos: quizAcertos, respondidas: quizRespondidas })}</span>
-            </div>
-          </div>
-
-          {perguntaQuiz && (() => {
-            const respostaEscolhida = quizRespostas[quizIdx];
-            const jaRespondeu = respostaEscolhida !== undefined;
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: textPrimary, lineHeight: 1.5, margin: 0 }}>
-                  {perguntaQuiz.pergunta}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {perguntaQuiz.alternativas.map((alt, i) => {
-                    const ehCorreta  = i === perguntaQuiz.correta;
-                    const ehEscolhida = i === respostaEscolhida;
-                    let bg = darkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc';
-                    let border = borderColor;
-                    let color = textPrimary;
-                    if (jaRespondeu && ehCorreta) {
-                      bg = darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5';
-                      border = darkMode ? 'rgba(52,211,153,0.40)' : '#6ee7b7';
-                      color = darkMode ? '#34d399' : '#065f46';
-                    } else if (jaRespondeu && ehEscolhida && !ehCorreta) {
-                      bg = darkMode ? 'rgba(248,113,113,0.15)' : '#fef2f2';
-                      border = darkMode ? 'rgba(248,113,113,0.40)' : '#fca5a5';
-                      color = darkMode ? '#f87171' : '#dc2626';
-                    }
-                    return (
-                      <button key={i} onClick={() => handleQuizResponder(i)} disabled={jaRespondeu} style={{
-                        ...btnBase, textAlign: 'left', padding: '10px 14px',
-                        background: bg, border: `1px solid ${border}`, color,
-                        cursor: jaRespondeu ? 'default' : 'pointer', fontWeight: 500,
-                      }}>{alt}</button>
-                    );
-                  })}
-                </div>
-                {jaRespondeu && perguntaQuiz.explicacao && (
-                  <p style={{
-                    fontSize: '11px', color: textSecond, margin: 0, padding: '10px 12px',
-                    background: darkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', borderRadius: '10px',
-                  }}>{perguntaQuiz.explicacao}</p>
-                )}
-              </div>
-            );
-          })()}
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleQuizAnterior} disabled={quizIdx === 0} style={{
-              ...btnBase, padding: '8px 14px',
-              background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-              color: textSecond, border: `1px solid ${borderColor}`,
-              opacity: quizIdx === 0 ? 0.4 : 1,
-              cursor: quizIdx === 0 ? 'not-allowed' : 'pointer',
-            }}>{t('estudo.prev_btn')}</button>
-            <button onClick={handleQuizProximo} disabled={quizIdx === quiz.length - 1} style={{
-              ...btnBase, flex: 1, padding: '8px 14px',
-              background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-              color: textSecond, border: `1px solid ${borderColor}`,
-              opacity: quizIdx === quiz.length - 1 ? 0.4 : 1,
-              cursor: quizIdx === quiz.length - 1 ? 'not-allowed' : 'pointer',
-            }}>{t('estudo.next_btn')}</button>
-          </div>
-
-          <div style={{ height: '4px', background: darkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-            borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', borderRadius: '4px',
-              background: 'linear-gradient(90deg, #8b5cf6, #34d399)',
-              width: `${((quizIdx + 1) / quiz.length) * 100}%`,
-              transition: 'width 0.3s ease',
-            }} />
-          </div>
-        </div>
-      )}
-
       {/* ── Post-its ─────────────────────────────────────────────────────────── */}
       {postits?.length > 0 && (
         <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '20px' }}>
@@ -792,38 +685,6 @@ export default function EstudoTab({
             letterSpacing: '0.05em', color: textSecond, marginBottom: '14px' }}>{t('estudo.section_postits')}</p>
           <div className="columns-2 md:columns-3">
             {postits.map((texto, i) => <PostIt key={i} texto={texto} index={i} darkMode={darkMode} />)}
-          </div>
-        </div>
-      )}
-
-      {/* ── Lista de Tópicos / Nuvem de Palavras ────────────────────────────────
-          Sem lib externa — font-size escalado linearmente pelo score normalizado
-          entre o menor e o maior da lista (backend já ordena por score desc). */}
-      {topicos?.length > 0 && (
-        <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '20px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: textSecond, marginBottom: '14px' }}>{t('estudo.section_topicos')}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'baseline', justifyContent: 'center' }}>
-            {(() => {
-              const scores = topicos.map(x => x.score);
-              const max = Math.max(...scores), min = Math.min(...scores);
-              const cores = darkMode
-                ? ['#a78bfa', '#34d399', '#60a5fa', '#f472b6', '#fbbf24']
-                : ['#7c3aed', '#059669', '#2563eb', '#db2777', '#d97706'];
-              return topicos.map((tp, i) => {
-                const norm = max > min ? (tp.score - min) / (max - min) : 1;
-                const fontSize = 12 + norm * 18; // 12px..30px
-                return (
-                  <span key={tp.termo}
-                    onClick={() => setTema(tp.termo)}
-                    title={t('estudo.topico_usar_como_tema', { count: tp.ocorrencias })}
-                    style={{ fontSize: `${fontSize}px`, fontWeight: 700, color: cores[i % cores.length], lineHeight: 1.2,
-                      whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                    {tp.termo}
-                  </span>
-                );
-              });
-            })()}
           </div>
         </div>
       )}
