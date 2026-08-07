@@ -41,6 +41,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ### Alterado
 - **Lista de modelos Ollama redesenhada** — de linhas compridas em largura total para cards menores organizados em colunas (3 na aba Configurações, 2 no onboarding).
 - **Triagem completa dos 11 PRs do Dependabot** acumulados (backend, frontend e GitHub Actions) — cada um verificado isoladamente antes do merge.
+- **Enriquecimento KeyBERT em lote na indexação** — extração de palavras-chave passou de uma chamada ao modelo por chunk para uma única chamada em lote por arquivo, amortizando o custo do forward pass do modelo de embeddings em reindexações grandes.
 
 ---
 
