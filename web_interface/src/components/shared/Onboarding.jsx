@@ -12,7 +12,7 @@ import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2, Bell } f
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from './ModalWrapper';
 import { usePerfil, PERFIS_META, PERFIS_CONFIG } from '../../hooks/usePerfil';
-import OllamaSetup from '../agent/OllamaSetup';
+import OllamaSetup from '../assistente/OllamaSetup';
 import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress, saveAgentConfig } from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────

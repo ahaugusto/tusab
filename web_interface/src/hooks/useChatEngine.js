@@ -294,7 +294,7 @@ export function useChatEngine({
       setChatInput('');
       setChatMessages(prev => [...prev,
         { role: 'user',  content: msg },
-        { role: 'error', content: t('agent.ollama_offline') },
+        { role: 'error', content: t('assistente.ollama_offline') },
       ]);
       return;
     }

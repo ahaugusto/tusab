@@ -591,7 +591,7 @@ function ChatDrawer({
           quando onHeaderMouseDown é passado (só no modo não-expandido/desktop) */}
       <div className={`flex items-center gap-2 ${onHeaderMouseDown ? 'cursor-move' : ''}`} onMouseDown={onHeaderMouseDown}>
         <Sparkles size={15} className="text-primary shrink-0" />
-        <p className={`text-xs font-bold flex-1 min-w-0 truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('agent.chat_title')}</p>
+        <p className={`text-xs font-bold flex-1 min-w-0 truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('assistente.chat_title')}</p>
         {/* Botão expandir/recolher */}
         {setExpandido && (
           <button
@@ -665,7 +665,7 @@ function ChatDrawer({
       </div>
       {/* Chip de provider */}
       {agentProvider && agentProvider !== 'ollama' && (() => {
-        const LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini', google: 'Gemini', custom: t('agent.custom_chip_label') };
+        const LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini', google: 'Gemini', custom: t('assistente.custom_chip_label') };
         const COLORS = {
           groq:      darkMode ? 'bg-orange-500/15 text-orange-400 border-orange-500/25' : 'bg-orange-50 text-orange-600 border-orange-200',
           openai:    darkMode ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -711,7 +711,7 @@ function ChatDrawer({
     </div>
     {/* Messages area */}
     <div className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar ${darkMode ? 'bg-black/20' : 'bg-slate-50'}`}
-      role="log" aria-label={t('agent.chat_title')} aria-live="polite">
+      role="log" aria-label={t('assistente.chat_title')} aria-live="polite">
               {chatMessages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 px-4">
                   {ollamaNaoDisponivel ? (
@@ -764,7 +764,7 @@ function ChatDrawer({
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                           </svg>
-                          {t('chat.ollama_go_to_agent')}
+                          {t('chat.ollama_go_to_assistente')}
                         </button>
                       )}
                     </>
@@ -786,7 +786,7 @@ function ChatDrawer({
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {t('agent.chat_empty_no_index')}
+                        {t('assistente.chat_empty_no_index')}
                       </p>
                       {onIndexar && (
                         <button
@@ -864,7 +864,7 @@ function ChatDrawer({
                     <>
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {t('agent.chat_empty_no_index')}
+                        {t('assistente.chat_empty_no_index')}
                       </p>
                       {onIndexar && (
                         <button
@@ -881,8 +881,8 @@ function ChatDrawer({
                       <Bot size={32} className={darkMode ? 'text-slate-600' : 'text-slate-300'} aria-hidden="true" />
                       <p className={`text-xs text-center max-w-xs ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
                         {(projetosExtras || []).length > 0
-                          ? t('agent.chat_empty_ready_multi', { count: (projetosExtras || []).length + 1 })
-                          : t('agent.chat_empty_ready', { canal: projetoAtivo })}
+                          ? t('assistente.chat_empty_ready_multi', { count: (projetosExtras || []).length + 1 })
+                          : t('assistente.chat_empty_ready', { canal: projetoAtivo })}
                       </p>
 
                       {/* ── Chips das bases ativas ── */}
@@ -1187,7 +1187,7 @@ function ChatDrawer({
                             onClick={() => onRecriarIndice(projetoAtivo)}
                             className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100 transition-opacity">
                             <RefreshCw size={9} aria-hidden="true" />
-                            {t('agent.rebuild_index')}
+                            {t('assistente.rebuild_index')}
                           </button>
                         )}
                         {msg.role === 'error' && msg.modelo_lento && (
@@ -1241,7 +1241,7 @@ function ChatDrawer({
                         )}
                         {msg.fontes && msg.fontes.length > 0 && !msg.streaming && !msg.sem_contexto && (
                           <div className={`pt-2 border-t space-y-1.5 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                            <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('agent.sources')}</p>
+                            <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('assistente.sources')}</p>
                             {msg.fontes.map((f, j) => {
                               const isYt  = f.aba === 'youtube' || !!f.link;
                               const icon  = isYt ? '🎬' : f.aba === 'texto' ? '📝' : '📄';
@@ -1583,9 +1583,9 @@ function ChatDrawer({
         <textarea
           ref={textareaRef}
           id="chat-input"
-          aria-label={t('agent.chat_title')}
+          aria-label={t('assistente.chat_title')}
           rows={1}
-          placeholder={precisaSelecionarBase ? t('chat.placeholder_select_base') : ollamaSemModelo ? t('chat.ollama_no_model_placeholder') : !chatHabilitado ? t('agent.chat_placeholder_disabled') : t('agent.chat_placeholder_ready')}
+          placeholder={precisaSelecionarBase ? t('chat.placeholder_select_base') : ollamaSemModelo ? t('chat.ollama_no_model_placeholder') : !chatHabilitado ? t('assistente.chat_placeholder_disabled') : t('assistente.chat_placeholder_ready')}
           value={chatInput}
           onChange={handleInputChange}
           onKeyDown={e => {
@@ -1600,7 +1600,7 @@ function ChatDrawer({
           onClick={onSend}
           disabled={!chatHabilitado || !chatInput.trim() || ollamaSemModelo}
           className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-          aria-label={t('agent.send')}>
+          aria-label={t('assistente.send')}>
           <Send size={13} />
         </button>
       </div>
@@ -2392,7 +2392,7 @@ function ChatDrawer({
               </div>
               <div>
                 <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  {t('agent.persona_title')}
+                  {t('assistente.persona_title')}
                 </p>
                 <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   {t('chat.persona_modal_desc')}
@@ -2537,7 +2537,7 @@ function ChatDrawer({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={t('agent.chat_title')}
+        aria-label={t('assistente.chat_title')}
         onKeyDown={e => { if (e.key === 'Escape') { if (showPersonaModal) setShowPersonaModal(false); else if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setExpandido(false); } }}
         className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-[#0C1122]' : 'bg-white'}`}>
         {conteudo(() => setExpandido(false))}
@@ -2571,7 +2571,7 @@ function ChatDrawer({
             transition={{ type: 'tween', duration: 0.2 }}
             role="dialog"
             aria-modal={chatPos ? undefined : true}
-            aria-label={t('agent.chat_title')}
+            aria-label={t('assistente.chat_title')}
             onKeyDown={e => { if (e.key === 'Escape') { if (showPersonaModal) setShowPersonaModal(false); else if (showTrocarBaseModal) setShowTrocarBaseModal(false); else if (showBuscaModal) setShowBuscaModal(false); else if (showBaseModal) setShowBaseModal(false); else if (showHistModal) setShowHistModal(false); else if (showIndexModal) setShowIndexModal(false); else if (showRepoModal) setShowRepoModal(false); else setChatOpen(false); } }}
             style={chatPos ? { top: chatPos.top, left: chatPos.left, width: FLOAT_WIDTH, height: FLOAT_HEIGHT, maxHeight: '80vh' } : undefined}
             className={chatPos

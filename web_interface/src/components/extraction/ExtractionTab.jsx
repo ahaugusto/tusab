@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
 import LogLine    from '../shared/LogLine';
-import RelatorioTab from '../agent/RelatorioTab';
+import RelatorioTab from '../assistente/RelatorioTab';
 import CanalUrlSearchInput from './CanalUrlSearchInput';
 import { BTN_FOCUS } from '../../constants';
 import {

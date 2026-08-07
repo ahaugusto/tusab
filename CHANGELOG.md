@@ -7,11 +7,17 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [Não lançado]
+## [1.0.43] — 2026-08-07
+
+### Adicionado
+- **Novas seções "Conversar" e "Estudar" na Home** — atalhos diretos pro chat e pro Modo Estudo, cada um com seção própria, visíveis só quando há uma base indexada. Antes o único acesso ao chat pela Home era um card misturado entre as ferramentas de gestão (Repositório, Visão Geral, Configurar Assistente).
 
 ### Corrigido
 - **Quiz e Tópicos removidos do Modo Estudo** — testados de ponta a ponta contra um projeto real: Quiz deu timeout de 300s numa tentativa e, noutra, o modelo local padrão (`llama3.2:1b`) ignorou a instrução de responder só em JSON, devolvendo respostas inconsistentes. Tópicos não travava, mas revelou um bug de extração de PDF pré-existente: texto com notação matemática perde espaço entre palavras (`"thisdatabaseislaterusedtoretrieve..."`), poluindo a nuvem de palavras. Removidos de frontend e backend (não só ocultos da UI). Nova dica na aba Estudo recomendando um modelo Ollama mais robusto que o padrão para os recursos que permanecem.
 - **Artefatos de Estudo fantasmas no kanban** — a listagem confiava só no manifest; se os arquivos fossem apagados por fora do app, o card continuava aparecendo. Agora valida a existência real dos arquivos em `neural/{prefixo}/estudo/` antes de listar, podando entradas órfãs automaticamente.
+
+### Alterado
+- **Termo "Agente" trocado por "Assistente" em toda a interface** (aba, chat, textos de ajuda, onboarding) — mais preciso: a funcionalidade é um chat com RAG local (BM25 + CrossEncoder + LLM), sem loop autônomo nem chamada de ferramenta por iniciativa própria, que o termo "agente" sugere no uso técnico atual. Aplicado em pt/en/es (chaves e valores do i18n) e nos nomes de arquivo/pasta do frontend (`AgentTab.jsx` → `AssistenteTab.jsx`, `useAgentConfig.js` → `useAssistenteConfig.js`, `components/agent/` → `components/assistente/`). O backend interno (`tusab_engine/agent/`, rotas `/agent/*`, `agent_config.json`) mantém o nome antigo de propósito — renomear exigiria migração de configuração já salva em disco por quem já instalou o app, sem ganho de UX.
 
 ---
 

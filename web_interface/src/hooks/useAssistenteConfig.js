@@ -1,8 +1,8 @@
 /**
- * @file useAgentConfig.js
- * @description Custom hook encapsulating all agent configuration state, effects
+ * @file useAssistenteConfig.js
+ * @description Custom hook encapsulating all assistant configuration state, effects
  *              and handlers (provider, API key, Ollama, canal metadata).
- * @module hooks/useAgentConfig
+ * @module hooks/useAssistenteConfig
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
@@ -25,12 +25,12 @@ import { Analytics } from '../services/analytics';
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 /**
- * useAgentConfig — manages all agent/LLM configuration state and side-effects.
+ * useAssistenteConfig — manages all assistant/LLM configuration state and side-effects.
  *
  * @param {{ activeTab: string, showError: Function }} params
- * @returns {Object} Agent config state and handlers
+ * @returns {Object} Assistant config state and handlers
  */
-export function useAgentConfig({ activeTab, showError }) {
+export function useAssistenteConfig({ activeTab, showError }) {
   const { t, i18n } = useTranslation();
 
   // ─── State ───────────────────────────────────────────────────────────────
@@ -297,11 +297,11 @@ export function useAgentConfig({ activeTab, showError }) {
   /** Saves the agent provider and API key configuration */
   const handleSaveAgentConfig = async () => {
     if (useExternalProvider && !agentApiKey.trim()) {
-      setAgentKeyError(t('agent.key_error_required'));
+      setAgentKeyError(t('assistente.key_error_required'));
       return;
     }
     if (useCustomEndpoint && !customBaseUrl.trim()) {
-      setAgentKeyError(t('agent.custom_url_error_required'));
+      setAgentKeyError(t('assistente.custom_url_error_required'));
       return;
     }
     setSavingConfig(true);
@@ -339,7 +339,7 @@ export function useAgentConfig({ activeTab, showError }) {
         } catch { /* silencioso — não bloqueia o fluxo principal */ }
       }
     } catch {
-      setAgentKeyError(t('agent.key_error_server'));
+      setAgentKeyError(t('assistente.key_error_server'));
     }
     setSavingConfig(false);
   };
@@ -358,7 +358,7 @@ export function useAgentConfig({ activeTab, showError }) {
       setTestKeyResult({ ok, message: res.data.message });
       setKeyTested(ok);
     } catch {
-      setTestKeyResult({ ok: false, message: t('agent.key_error_server') });
+      setTestKeyResult({ ok: false, message: t('assistente.key_error_server') });
     }
     setTestingKey(false);
   };

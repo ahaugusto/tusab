@@ -263,9 +263,8 @@ web_interface/src/
   services/analytics.js     wrapper PostHog (opt-in; no-op sem consentimento)
   hooks/
     useStatus.js            polling GET /status a cada 2s
-    useAgentStatus.js       polling GET /agent/status
     useOnboarding.js        lógica de onboarding contextual
-    useAgentConfig.js       config do agente (provider, API key, Ollama poll, canal-meta, keychain)
+    useAssistenteConfig.js  config do assistente (provider, API key, Ollama poll, canal-meta, keychain)
     useChatEngine.js        pipeline de chat RAG (streaming, export detection, auto-scroll)
   components/
     home/
@@ -274,7 +273,7 @@ web_interface/src/
       CircuitBackground.jsx canvas animado de circuitos PCB com pulsos elétricos e glow do mouse
     chat/ChatDrawer.jsx     drawer lateral de chat RAG
     sidebar/SidebarContent.jsx
-    agent/
+    assistente/
       OllamaSetup.jsx       setup guiado do Ollama
       RepositorioTab.jsx    listagem e upload de docs/textos; botão "Indexar base" (modal com checkboxes por projeto)
       RelatorioTab.jsx      tabela de vídeos + stats de cobertura
@@ -329,6 +328,7 @@ tests/
 | BM25 sem query expansion para Ollama | Query expansion aumentava latência de 3s para 15s |
 | `sub_langs = 'pt'` fixo | Tentativas duplas (pt+en) causavam rate limit 429 no YouTube |
 | Shims na raiz (`motor_tusab.py`, `agent_tusab.py`) | Electron `extraResources.filter` e testes importam pelo nome antigo — zero breaking change |
+| **Termo de produto "Assistente", backend continua "agent" internamente** (07/ago/2026) | O usuário vê "Assistente" em toda a UI/i18n (mais preciso — é RAG chat, não um agente autônomo com tool-calling). Mas `tusab_engine/agent/`, `agent_config.json`, rotas `/agent/*`, o shim `agent_tusab.py` e as funções de `api.js` (`saveAgentConfig`, `testAgentKey` etc.) continuam se chamando "agent" de propósito — renomear isso exigiria migração de config já persistida em disco de usuários instalados, sem ganho de UX. Mesmo padrão do slug `profissional`/label "Especialista". **Não "corrija" essas referências pensando que é resíduo do rename** — ver `agents/_historia.md` seção "Decisões estratégicas permanentes". A pasta `agents/` na raiz (agentes especializados do Claude Code) é um conceito totalmente diferente e nunca entra nesse rename. |
 | Histórico server-side no chat | Evita payload manipulado pelo cliente injetar contexto falso |
 | `NEURAL_DIR` (não `cerebro/`) | Nomenclatura técnica neutra; `CEREBRO_DIR = NEURAL_DIR` mantém aliases para backward-compat |
 | Subpastas em inglês (`documents/`, `texts/`, `management/`) | Padrão americano independente de idioma da UI; i18n da UI não afeta nomes de pasta |
@@ -367,9 +367,9 @@ tests/
 | Mudar integração com Drive | `tusab_engine/motor/drive.py` |
 | Mudar como o BM25 indexa | `tusab_engine/agent/index.py` → `indexar()` |
 | Mudar como o chat recupera contexto | `tusab_engine/agent/chat.py` → `_recuperar_contexto()` |
-| Mudar tom/persona do agente | `tusab_engine/agent/chat.py` → `PERSONAS` + `_montar_prompt()` → config em `useAgentConfig.js` → seção "Tom" na aba Agente |
+| Mudar tom/persona do assistente | `tusab_engine/agent/chat.py` → `PERSONAS` + `_montar_prompt()` → config em `useAssistenteConfig.js` → seção "Tom" na aba Assistente |
 | Mudar parser de WhatsApp/Reuniões | `tusab_engine/api/router_repositorio.py` → `_detectar_formato_especial()`, `_parsear_whatsapp()`, `_parsear_reuniao()` |
-| Adicionar/mudar modal de indexação do Repositório | `web_interface/src/components/agent/RepositorioTab.jsx` → `showIndexar` + `handleIndexarConfirmar()` |
+| Adicionar/mudar modal de indexação do Repositório | `web_interface/src/components/assistente/RepositorioTab.jsx` → `showIndexar` + `handleIndexarConfirmar()` |
 | Acionar modal de indexação a partir do chat | `ChatDrawer` → prop `onAbrirIndexacaoRepositorio` → `App.jsx` → `repoIndexarOpen` → `RepositorioTab` |
 | Adicionar rota de status/drive | `tusab_engine/api/router_status.py` |
 | Adicionar rota de extração / fila | `tusab_engine/api/router_extraction.py` |
@@ -377,7 +377,7 @@ tests/
 | Adicionar rota de repositório / reset | `tusab_engine/api/router_repositorio.py` |
 | Adicionar export Pro (zip/docx/xlsx/pdf) | `tusab_engine/api/router_exports.py` |
 | Mudar nome de projeto na extração | `ExtractionModal.jsx` step 2 → `handleStartConfirm()` em `App.jsx` |
-| Mudar config do agente / provider / Ollama | `web_interface/src/hooks/useAgentConfig.js` |
+| Mudar config do assistente / provider / Ollama | `web_interface/src/hooks/useAssistenteConfig.js` |
 | Mudar o pipeline de chat RAG / export | `web_interface/src/hooks/useChatEngine.js` |
 | Mudar como o frontend chama o backend | `web_interface/src/services/api.js` |
 | Mudar eventos de telemetria | `web_interface/src/services/analytics.js` + `constants/index.js` |

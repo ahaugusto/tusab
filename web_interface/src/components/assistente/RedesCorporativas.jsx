@@ -1,7 +1,7 @@
 /**
  * @file RedesCorporativas.jsx
  * @description Accordion com diagnóstico e orientações para uso do Tusab em redes corporativas.
- * @module components/agent/RedesCorporativas
+ * @module components/assistente/RedesCorporativas
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */

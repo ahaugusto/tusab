@@ -2,7 +2,7 @@
  * @file BasePainel.jsx
  * @description Painel de visibilidade da base — inventário por projeto com cards
  *              de contagem de documentos, status do índice e data de última adição.
- * @module components/agent/BasePainel
+ * @module components/assistente/BasePainel
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
