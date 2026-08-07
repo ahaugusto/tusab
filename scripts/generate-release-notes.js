@@ -22,6 +22,23 @@ const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const headerRe = new RegExp(`^## \\[${escaped}\\][^\\n]*\\n`, 'm');
 const headerMatch = headerRe.exec(changelog);
 
+// Cabeçalho de instalação — nome exato dos assets que o electron-builder gera
+// (ver build.win.artifactName/build.mac.target no electron/package.json).
+// Sem isso o usuário chega na página de release e só vê uma lista de arquivos
+// sem saber qual baixar (.exe vs .dmg vs .zip vs .blockmap/.yml, que são
+// internos do auto-updater, não pra baixar manualmente).
+const cabecalho = `## Download
+
+| Plataforma | Requisito | Arquivo |
+|---|---|---|
+| Windows 10/11 x64 | — | [Tusab-Setup-${version}.exe](https://github.com/ahaugusto/tusab-public/releases/download/v${version}/Tusab-Setup-${version}.exe) |
+| macOS (Apple Silicon — M1 ou superior) | macOS 14 (Sonoma)+ | [Tusab-${version}-arm64.dmg](https://github.com/ahaugusto/tusab-public/releases/download/v${version}/Tusab-${version}-arm64.dmg) |
+
+macOS Intel não é suportado. Ignore os arquivos \`.blockmap\` e \`.yml\` — são usados pelo auto-updater, não para instalação manual.
+
+---
+`;
+
 const rodape = '\n\n---\n\nVer [CHANGELOG.md](https://github.com/ahaugusto/tusab-public/blob/main/CHANGELOG.md) para o historico completo.';
 
 // Seção "### Interno (...)" é conteúdo de desenvolvimento (CI, infra,
@@ -34,13 +51,13 @@ function removerSecaoInterna(corpo) {
 
 let notas;
 if (!headerMatch) {
-  notas = `_Notas de versao nao encontradas no CHANGELOG.md para ${version}._${rodape}`;
+  notas = cabecalho + `_Notas de versao nao encontradas no CHANGELOG.md para ${version}._${rodape}`;
 } else {
   const start = headerMatch.index + headerMatch[0].length;
   const resto = changelog.slice(start);
   const proximoMatch = /\n## \[|\n---/.exec(resto);
   const corpo = proximoMatch ? resto.slice(0, proximoMatch.index) : resto;
-  notas = removerSecaoInterna(corpo.trim()) + rodape;
+  notas = cabecalho + removerSecaoInterna(corpo.trim()) + rodape;
 }
 
 const outPath = path.join(repoRoot, 'release_notes.md');
