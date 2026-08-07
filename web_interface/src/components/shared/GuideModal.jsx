@@ -33,7 +33,7 @@ function getShortcuts(t) {
         { keys: ['Shift', 'H'],   desc: t('guide.shortcut_tab_history')    },
         { keys: ['Shift', 'V'],   desc: t('guide.shortcut_tab_overview')   },
         { keys: ['Shift', 'M'],   desc: t('guide.shortcut_tab_monitor')    },
-        { keys: ['Shift', 'I'],   desc: t('guide.shortcut_tab_agent')      },
+        { keys: ['Shift', 'I'],   desc: t('guide.shortcut_tab_assistente')      },
         { keys: ['Shift', 'A'],   desc: t('guide.shortcut_tab_admin')      },
       ],
     },

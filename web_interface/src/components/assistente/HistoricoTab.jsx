@@ -1,7 +1,7 @@
 /**
  * @file HistoricoTab.jsx
  * @description Aba de histórico de conversas — lista, busca, favoritos, retomada e exclusão
- * @module components/agent/HistoricoTab
+ * @module components/assistente/HistoricoTab
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */

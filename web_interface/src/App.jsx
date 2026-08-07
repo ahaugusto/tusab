@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE, BTN_FOCUS } from './constants';
 import { initAnalytics, getConsent, Analytics } from './services/analytics';
 import { useOnboarding } from './hooks/useOnboarding';
-import { useAgentConfig } from './hooks/useAgentConfig';
+import { useAssistenteConfig } from './hooks/useAssistenteConfig';
 import { useChatEngine }  from './hooks/useChatEngine';
 import { usePerfil, PERFIS_META, PERFIS_CONFIG } from './hooks/usePerfil';
 import ConsentModal from './components/shared/ConsentModal';
@@ -49,24 +49,24 @@ import StatCard                 from './components/shared/StatCard';
 import LogLine                  from './components/shared/LogLine';
 import ExtractionModal          from './components/extraction/ExtractionModal';
 import PostExtractionModal      from './components/extraction/PostExtractionModal';
-import OllamaSetup              from './components/agent/OllamaSetup';
-import RepositorioTab           from './components/agent/RepositorioTab';
-import RelatorioTab             from './components/agent/RelatorioTab';
-import VisaoGeralTab            from './components/agent/VisaoGeralTab';
-import MonitorTab               from './components/agent/MonitorTab';
+import OllamaSetup              from './components/assistente/OllamaSetup';
+import RepositorioTab           from './components/assistente/RepositorioTab';
+import RelatorioTab             from './components/assistente/RelatorioTab';
+import VisaoGeralTab            from './components/assistente/VisaoGeralTab';
+import MonitorTab               from './components/assistente/MonitorTab';
 import HomeScreen               from './components/home/HomeScreen';
 import LandingScreen            from './components/home/LandingScreen';
 import ChatDrawer, { LOADING_PHRASES } from './components/chat/ChatDrawer';
-import HistoricoTab             from './components/agent/HistoricoTab';
+import HistoricoTab             from './components/assistente/HistoricoTab';
 import { DriveToggle }          from './components/sidebar/SidebarContent';
 import CancelQueueModal         from './components/modals/CancelQueueModal';
 import ResetModal               from './components/modals/ResetModal';
 import QueueManagerModal        from './components/modals/QueueManagerModal';
 import UpdateSuccessModal       from './components/modals/UpdateSuccessModal';
 import ExtractionTab            from './components/extraction/ExtractionTab';
-import AgentTab                 from './components/tabs/AgentTab';
+import AssistenteTab            from './components/tabs/AssistenteTab';
 import AdminTab                 from './components/tabs/AdminTab';
-import EstudoTab                from './components/agent/EstudoTab';
+import EstudoTab                from './components/assistente/EstudoTab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -305,7 +305,7 @@ function App() {
     aprofundarRodando,    aprofundarProgresso,
     handleAprofundarConfirm,
     handleAprofundarClose,
-  } = useAgentConfig({ activeTab, showError });
+  } = useAssistenteConfig({ activeTab, showError });
 
   // ─── Estado persistente do Modo Estudo (aba "Estudo") ──────────────────────
   const projetosIndexados = agentStatus?.canais_indexados || [];
@@ -1675,7 +1675,7 @@ function App() {
                 { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                 { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                 { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
-                { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
+                { id: 'agente',      icon: Wrench,           label: t('tabs.assistente')       },
                 { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
               ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => {
                 // Badge de status por item — cor + texto do tooltip explicativo
@@ -1695,7 +1695,7 @@ function App() {
                 } else if (id === 'agente' && (agentStatus.configured || ollamaStatus?.running)) {
                   dotColor = agentStatus.configured ? 'bg-secondary' : 'bg-warning';
                   dotTooltip = agentStatus.configured
-                    ? t('nav.status_agente_pronto', { provider: agentStatus.provider || t('nav.status_configurado_generico') })
+                    ? t('nav.status_assistente_pronto', { provider: agentStatus.provider || t('nav.status_configurado_generico') })
                     : (ollamaStatus?.running ? t('nav.status_ollama_ativo', { modelo: ollamaStatus.models?.[0] || t('nav.status_modelo_generico') }) : null);
                 }
                 const tooltipId = dotTooltip ? `tooltip-nav-${id}` : undefined;
@@ -1783,7 +1783,7 @@ function App() {
                   { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                   { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                   { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
-                  { id: 'agente',      icon: Wrench,           label: t('tabs.agent')       },
+                  { id: 'agente',      icon: Wrench,           label: t('tabs.assistente')       },
                   { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
                 ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
                   <button key={id}
@@ -1880,7 +1880,7 @@ function App() {
                 ) : (
                   <div>
                     <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.agent'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico'), estudo: t('tabs.estudo') }[activeTab]}
+                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.assistente'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico'), estudo: t('tabs.estudo') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
@@ -2192,9 +2192,9 @@ function App() {
               </div>
             )}
 
-            {/* ── TAB: AGENTE ── */}
+            {/* ── TAB: ASSISTENTE ── */}
             {activeTab === 'agente' && (
-              <AgentTab
+              <AssistenteTab
                 darkMode={darkMode}
                 mainScrollRef={mainScrollRef}
                 agentStatus={agentStatus}

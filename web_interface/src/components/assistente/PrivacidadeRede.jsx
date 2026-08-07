@@ -3,7 +3,7 @@
  * @description Seção colapsável de privacidade e rede na aba Agente.
  *   Exibe transparência sobre quando/por que o app usa internet,
  *   e oferece toggle para desabilitar o electron-updater.
- * @module components/agent/PrivacidadeRede
+ * @module components/assistente/PrivacidadeRede
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */

@@ -101,30 +101,30 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, agentIndex
             <div className="flex items-center gap-2">
               <Bot size={16} className="text-primary shrink-0" aria-hidden="true" />
               <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                {t('modal.agent_title')}
+                {t('modal.assistente_title')}
               </h3>
             </div>
             <p className={`text-[11px] leading-relaxed flex-1 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
-              {t('modal.agent_desc')}
+              {t('modal.assistente_desc')}
             </p>
             <div className="space-y-1.5">
               {agentIndexing
                 ? <p className="text-[10px] flex items-start gap-1.5 font-bold text-primary">
                     <Loader2 size={12} className="shrink-0 mt-px animate-spin" aria-hidden="true" />
-                    <span>{t('modal.agent_indexing')}</span>
+                    <span>{t('modal.assistente_indexing')}</span>
                   </p>
                 : agentConfigured
                 ? <p className="text-[10px] flex items-start gap-1.5 font-bold text-secondary">
                     <CheckCircle2 size={12} className="shrink-0 mt-px" aria-hidden="true" />
-                    <span>{t('modal.agent_configured')}</span>
+                    <span>{t('modal.assistente_configured')}</span>
                   </p>
                 : <p className={`text-[10px] flex items-start gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                     <Info size={12} className="shrink-0 mt-px" aria-hidden="true" />
-                    <span>{t('modal.agent_not_configured')}</span>
+                    <span>{t('modal.assistente_not_configured')}</span>
                   </p>}
               <button onClick={() => { onGoToAgent(); onClose(); }}
                 className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors bg-primary text-white hover:bg-primary/85 shadow-sm ${BTN_FOCUS}`}>
-                <Bot size={12} aria-hidden="true" /> {t('modal.agent_btn')}
+                <Bot size={12} aria-hidden="true" /> {t('modal.assistente_btn')}
               </button>
             </div>
           </div>
