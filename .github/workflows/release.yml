@@ -19,48 +19,31 @@ jobs:
   # ── 1. Testes antes de qualquer build ────────────────────────────────────────
   tests:
     name: Testes (pytest + vite)
-    # TEMPORÁRIO: ubuntu-latest bloqueado — GitHub reporta "recent account
-    # payments have failed or your spending limit needs to be increased"
-    # mesmo após o usuário ajustar o spending limit (possível problema de
-    # forma de pagamento separado, ou propagação lenta — ver
-    # agents/_historia.md). Self-hosted não depende de billing do GitHub.
-    # RUNNER_TOOL_CACHE aponta pra dentro de runner.temp (sempre gravável,
-    # independente do usuário do SO) — o padrão do actions/setup-python
-    # tenta /Users/runner/hostedtoolcache, que não existe/não é gravável
-    # pro usuário real deste runner self-hosted. Job genérico (pytest+vite),
-    # não depende de arquitetura — roda em qualquer Mac self-hosted disponível
-    # (hoje: MacBookPro11,1 Intel; ver build-macos abaixo pro job que
-    # realmente exige Apple Silicon).
-    runs-on: [self-hosted, macOS, X64]
+    # TESTE TEMPORÁRIO (2026-08-06): verificando empiricamente se o bloqueio de
+    # billing do ubuntu-latest ("recent account payments have failed or your
+    # spending limit needs to be increased") ainda está ativo — reverter pro
+    # self-hosted macOS X64 (ver histórico do arquivo) se falhar de novo.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      # actions/setup-python@v7 tem um bug conhecido em runner self-hosted
-      # macOS: o script de instalação hardcoda /Users/runner (convenção do
-      # runner HOSPEDADO) em alguns pontos internos, ignorando
-      # RUNNER_TOOL_CACHE — "mkdir: /Users/runner: Permission denied" pro
-      # usuário real deste self-hosted (m1). O python3 do sistema (Xcode
-      # Command Line Tools) também não serve — é 3.9.6, e requirements.txt
-      # pede fastapi>=0.136.3, que não tem wheel pra 3.9. Reusa o mesmo
-      # Python portátil (python-build-standalone) já usado nos jobs de
-      # assinatura/notarização macOS.
+      # ubuntu-latest hospedado: actions/setup-python funciona normalmente aqui
+      # (o bug de permissão RUNNER_TOOL_CACHE era específico do self-hosted
+      # macOS — ver histórico do arquivo). Sem download manual de Python.
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
-      - name: Baixar Python portátil (cpython 3.12.13, x86_64)
-        run: |
-          curl -L -o python-macos-x64.tar.gz \
-            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-x86_64-apple-darwin-install_only.tar.gz"
-          mkdir -p python_env_tests
-          tar -xzf python-macos-x64.tar.gz -C python_env_tests --strip-components=1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
 
       - name: Instalar dependências Python
         run: |
-          ./python_env_tests/bin/python3 -m pip install --upgrade pip
-          ./python_env_tests/bin/python3 -m pip install -r requirements.txt pytest httpx
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest httpx
 
       - name: Dist mínimo para testes
         run: |
@@ -68,7 +51,7 @@ jobs:
           echo '<!doctype html><html><body>Tusab CI</body></html>' > web_interface/dist/index.html
 
       - name: Pytest
-        run: ./python_env_tests/bin/python3 -m pytest tests/ -v --tb=short
+        run: python -m pytest tests/ -v --tb=short
 
       - name: Build frontend
         working-directory: web_interface
