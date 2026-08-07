@@ -353,6 +353,20 @@ jobs:
 
       - name: Verificar arquitetura do binário Electron gerado
         run: |
-          APP_BIN=$(find electron/dist -name "Tusab" -path "*.app/Contents/MacOS/*" | head -1)
+          echo "Conteúdo de dist_electron/:"
+          find dist_electron -maxdepth 2
+          APP_BIN=$(find dist_electron -name "Tusab" -path "*.app/Contents/MacOS/*" | head -1)
           echo "Binário: $APP_BIN"
           file "$APP_BIN"
+          PY_BIN="electron/python_env-macos-arm64/bin/python3"
+          echo "Python embutido: $PY_BIN"
+          file "$PY_BIN"
+          if ! file "$APP_BIN" | grep -q "arm64"; then
+            echo "::error::Binário Electron NÃO é arm64!"
+            exit 1
+          fi
+          if ! file "$PY_BIN" | grep -q "arm64"; then
+            echo "::error::Python embutido NÃO é arm64!"
+            exit 1
+          fi
+          echo "Confirmado: binário Electron e Python embutido são ambos arm64."
