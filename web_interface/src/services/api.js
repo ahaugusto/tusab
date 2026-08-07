@@ -357,6 +357,13 @@ export const ttsStatus = () => axios.get(`${API_BASE}/agent/tts/status`);
 export const ttsSintetizar = (texto) =>
   axios.post(`${API_BASE}/agent/tts`, { texto }, { responseType: 'blob', timeout: 300000 });
 
+/** Gera (ou serve do cache já persistido) o áudio TTS de um artefato de Estudo salvo.
+ *  Mesmo timeout generoso de ttsSintetizar — primeira chamada sintetiza de verdade,
+ *  as seguintes servem o .wav já salvo em disco (rápido). */
+export const gerarAudioArtefato = (projeto_nome, artefato_id) =>
+  axios.post(`${API_BASE}/agent/study/artefato/${encodeURIComponent(projeto_nome)}/${encodeURIComponent(artefato_id)}/audio`,
+    {}, { responseType: 'blob', timeout: 300000 });
+
 /** Downloads project summary as Word .docx — sends frontend messages to avoid empty server-side history */
 export const exportResumoCanalDocx = (projeto_nome, mensagens = []) =>
   fetch(`${API_BASE}/export/resumo-canal`, {
