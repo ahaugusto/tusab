@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Volume2, Square, Layers, FileText, Trash2, Pencil, X, Search, Video } from 'lucide-react';
-import { ttsStatus, ttsSintetizar, listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, revisarFlashcard, buscarProgressoRevisao } from '../../services/api';
+import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Layers, FileText, Trash2, Pencil, X, Search, Video } from 'lucide-react';
+import { listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, revisarFlashcard, buscarProgressoRevisao } from '../../services/api';
 import EstudoArtefatoModal from './EstudoArtefatoModal';
+import AudioArtefatoPlayer from './AudioArtefatoPlayer';
 import PostIt from '../shared/PostIt';
 
 /**
@@ -25,6 +26,7 @@ export default function EstudoTab({
   erro,
   flashcards,
   resumo,
+  resumoArtefatoId,
   postits,
   onGerar,
   onResetar,
@@ -138,43 +140,6 @@ export default function EstudoTab({
 
   const card = flashcardsAlvo[currentIdx] ?? null;
   const semProjetos = projetosIndexados.length === 0;
-
-  // ── TTS local (Pocket TTS) — só disponível na build Beta/Enterprise ──────────
-  // torch+pocket-tts não fazem parte do instalador B2C (ver tusab_engine/agent/tts.py);
-  // build padrão nunca mostra o botão porque /agent/tts/status retorna disponivel=false.
-  const [ttsDisponivel, setTtsDisponivel] = useState(false);
-  const [ttsCarregando, setTtsCarregando] = useState(false);
-  const [ttsTocando,    setTtsTocando]    = useState(false);
-  const [ttsErro,       setTtsErro]       = useState(null);
-  const audioRef = useRef(null);
-
-  useEffect(() => {
-    ttsStatus().then(r => setTtsDisponivel(!!r.data?.disponivel)).catch(() => setTtsDisponivel(false));
-    return () => { audioRef.current?.pause(); };
-  }, []);
-
-  const handleOuvirResumo = async () => {
-    if (ttsTocando) {
-      audioRef.current?.pause();
-      setTtsTocando(false);
-      return;
-    }
-    setTtsErro(null);
-    setTtsCarregando(true);
-    try {
-      const resp = await ttsSintetizar(resumo);
-      const url = URL.createObjectURL(resp.data);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => { setTtsTocando(false); URL.revokeObjectURL(url); };
-      await audio.play();
-      setTtsTocando(true);
-    } catch {
-      setTtsErro(t('estudo.tts_error'));
-    } finally {
-      setTtsCarregando(false);
-    }
-  };
 
   const handleAnterior = () => { setCurrentIdx(i => Math.max(0, i - 1)); setFlipped(false); };
   const handleProximo  = () => { setCurrentIdx(i => Math.min(flashcardsAlvo.length - 1, i + 1)); setFlipped(false); };
@@ -692,35 +657,9 @@ export default function EstudoTab({
       {/* ── Resumo ───────────────────────────────────────────────────────────── */}
       {resumo && (
         <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '16px', padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.05em', color: textSecond, margin: 0 }}>{t('estudo.section_resumo')}</p>
-            {ttsDisponivel && (
-              <button
-                onClick={handleOuvirResumo}
-                disabled={ttsCarregando}
-                title={t('estudo.tts_button_title')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
-                  border: `1px solid ${borderColor}`, background: 'transparent',
-                  color: textSecond, cursor: ttsCarregando ? 'default' : 'pointer',
-                  opacity: ttsCarregando ? 0.6 : 1,
-                }}>
-                {ttsCarregando
-                  ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" />
-                  : ttsTocando
-                  ? <Square size={12} aria-hidden="true" />
-                  : <Volume2 size={12} aria-hidden="true" />}
-                {ttsCarregando ? t('estudo.tts_generating') : ttsTocando ? t('estudo.tts_stop') : t('estudo.tts_listen')}
-              </button>
-            )}
-          </div>
-          {ttsErro && (
-            <p style={{ fontSize: '11px', color: '#ef4444', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <AlertCircle size={11} aria-hidden="true" /> {ttsErro}
-            </p>
-          )}
+          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: textSecond, margin: '0 0 10px' }}>{t('estudo.section_resumo')}</p>
+          <AudioArtefatoPlayer darkMode={darkMode} projeto={projeto} artefatoId={resumoArtefatoId} borderColor={borderColor} />
           <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
             <ReactMarkdown components={{
               h1: ({ children }) => <h1 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px', color: textPrimary }}>{children}</h1>,

@@ -323,6 +323,9 @@ function App() {
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
   const [estudoResumo,     setEstudoResumo]     = useState('');
   const [estudoPostits,    setEstudoPostits]    = useState([]);
+  // id do artefato de resumo persistido nesta geração — alimenta o player de
+  // áudio (precisa do id pra sintetizar/servir do cache via endpoint dedicado).
+  const [estudoResumoArtefatoId, setEstudoResumoArtefatoId] = useState(null);
 
   // Itens específicos são por projeto — troca de projeto invalida a lista e
   // qualquer seleção anterior (arquivo de outro projeto não existe aqui).
@@ -342,6 +345,7 @@ function App() {
     setEstudoFlashcards([]);
     setEstudoResumo('');
     setEstudoPostits([]);
+    setEstudoResumoArtefatoId(null);
     try {
       // Cada tipo selecionado dispara sua própria chamada, em paralelo — não
       // existe "ambos" combinado: se o usuário quer flashcards e post-its ao
@@ -359,7 +363,11 @@ function App() {
         const { tipo: t, data } = r.value;
         if (data.error) { erros.push(data.message || `Erro ao gerar ${t}.`); continue; }
         if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
-        if (data.resumo) setEstudoResumo(data.resumo);
+        if (data.resumo) {
+          setEstudoResumo(data.resumo);
+          const artResumo = (data.artefatos || []).find(a => a.tipo === 'resumo');
+          if (artResumo) setEstudoResumoArtefatoId(artResumo.id);
+        }
         if (data.postits?.length) setEstudoPostits(data.postits);
       }
       if (erros.length) setEstudoErro(erros.join(' '));
@@ -374,6 +382,7 @@ function App() {
     setEstudoFlashcards([]);
     setEstudoResumo('');
     setEstudoPostits([]);
+    setEstudoResumoArtefatoId(null);
     setEstudoErro('');
   }, []);
 
@@ -1659,7 +1668,7 @@ function App() {
         {/* ── Nav Rail (tablet+) ── */}
         {!showHome && (
           <nav aria-label={t('nav.main')}
-            className={`hidden md:flex shrink-0 flex-col items-center w-20 py-3 border-r
+            className={`hidden md:flex shrink-0 flex-col items-center w-20 py-3 border-r overflow-y-auto
               ${darkMode ? 'bg-[#0C1122] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button onClick={() => { setShowHome(true); setProgressToast(null); }} aria-label={t('nav.home')} title={t('nav.home')}
               className={`w-14 h-14 rounded-xl flex items-center justify-center mb-2 transition-opacity hover:opacity-80 ${BTN_FOCUS}`}>
@@ -1761,7 +1770,7 @@ function App() {
             <motion.nav aria-label={t('nav.main')}
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
-              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 md:hidden
+              className={`fixed top-0 left-0 h-full w-52 z-30 flex flex-col px-4 pt-4 pb-6 overflow-y-auto md:hidden
                 ${darkMode ? 'bg-[#0C1122] border-r border-white/10' : 'bg-white border-r border-slate-200 shadow-xl'}`}>
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => { setShowHome(true); setSidebarOpen(false); setProgressToast(null); }}
@@ -2184,6 +2193,7 @@ function App() {
                   erro={estudoErro}
                   flashcards={estudoFlashcards}
                   resumo={estudoResumo}
+                  resumoArtefatoId={estudoResumoArtefatoId}
                   postits={estudoPostits}
                   onGerar={handleEstudoGerar}
                   onResetar={handleEstudoResetar}

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { X, Pencil, Check, Copy, FileText, FileDown, Trash2, Loader2 } from 'lucide-react';
 import ModalWrapper from '../shared/ModalWrapper';
 import PostIt from '../shared/PostIt';
+import AudioArtefatoPlayer from './AudioArtefatoPlayer';
 import { exportResumoCanalDocx, exportRelatorioPdf } from '../../services/api';
 
 /** Achata o conteúdo estruturado num texto corrido — usado por copiar/exportar. */
@@ -147,9 +148,12 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
         {/* Conteúdo */}
         <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
           {artefato.tipo === 'resumo' && (
-            <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
-              <ReactMarkdown>{String(dados || '')}</ReactMarkdown>
-            </div>
+            <>
+              <AudioArtefatoPlayer darkMode={darkMode} projeto={artefato.projeto} artefatoId={artefato.id} borderColor={borderColor} />
+              <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
+                <ReactMarkdown>{String(dados || '')}</ReactMarkdown>
+              </div>
+            </>
           )}
 
           {artefato.tipo === 'flashcards' && Array.isArray(dados) && (

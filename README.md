@@ -2,193 +2,208 @@
 
 **INDEX · AUGMENT · CONVERSE**
 
-Seu especialista particular. Aponte o que quer aprender — um canal do YouTube, um PDF, um documento — o Tusab absorve tudo e responde suas perguntas citando a fonte exata. Roda na sua máquina, funciona offline, zero custo com Ollama.
+Your personal specialist. Point it at what you want to learn — a YouTube channel, a PDF, a document — and Tusab absorbs it all and answers your questions citing the exact source. Runs on your machine, works offline, zero cost with Ollama.
 
-Desenvolvido por **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augustoalvesbrasil) — CNPJ 65.131.075/0001-57
+Built by **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augustoalvesbrasil) — CNPJ 65.131.075/0001-57
 
 ---
 
 ## Download
 
-**[⬇ Baixar última versão](https://github.com/ahaugusto/tusab/releases/latest)**
+**[⬇ Download latest release](https://github.com/ahaugusto/tusab/releases/latest)**
 
-| Plataforma | Requisito | Arquivo |
+| Platform | Requirement | File |
 |---|---|---|
 | Windows 10/11 x64 | — | `Tusab-Setup-X.X.X.exe` |
-| macOS (Apple Silicon — M1 ou superior) | macOS 14 (Sonoma)+ | `Tusab-X.X.X-arm64.dmg` |
+| macOS (Apple Silicon — M1 or newer) | macOS 14 (Sonoma)+ | `Tusab-X.X.X-arm64.dmg` |
 
-Python e yt-dlp já vêm embutidos nos dois instaladores — nada para instalar à parte.
-**macOS Intel não é suportado no momento** (só Apple Silicon/arm64).
+Python and yt-dlp are bundled in both installers — nothing else to install.
+**macOS Intel is not supported at the moment** (Apple Silicon/arm64 only).
 
-### Instalando no macOS
+### Installing on macOS
 
-1. Baixe o `.dmg` (link acima).
-2. Abra o `.dmg` e arraste o ícone do Tusab para a pasta **Aplicativos**.
-3. Abra o Tusab a partir de Aplicativos. O app é **assinado e notarizado pela Apple**
-   (Developer ID + notarização automatizada no CI) — abre normalmente, sem precisar
-   liberar nada manualmente em Ajustes do Sistema → Privacidade e Segurança.
-4. Na primeira execução, o Tusab detecta se o Ollama está instalado e oferece o
-   download automático caso não esteja.
-
----
-
-## O que é
-
-Tusab é um sistema de gestão de conhecimento pessoal (PKM) com IA local. Você decide o que o especialista aprende — vídeos, documentos, anotações — e consulta por chat em linguagem natural. Ele só responde com o que você indexou, sempre citando a fonte exata de onde o trecho foi recuperado.
-
-| Letra | Etapa | O que faz |
-|-------|-------|-----------|
-| **I** | Index | Extração e indexação de YouTube, PDFs, DOCX, Markdown, texto livre |
-| **A** | Augment | RAG com BM25 + CrossEncoder entrega chunks precisos ao modelo |
-| **C** | Converse | Chat com streaming, citação de fonte e histórico de conversa |
+1. Download the `.dmg` (link above).
+2. Open the `.dmg` and drag the Tusab icon into **Applications**.
+3. Launch Tusab from Applications. The app is **signed and notarized by Apple**
+   (Developer ID + automated notarization in CI) — it opens normally, no need
+   to manually allow anything in System Settings → Privacy & Security.
+4. On first launch, Tusab detects whether Ollama is installed and offers to
+   download it automatically if not.
 
 ---
 
-## Funcionalidades
+## What it is
 
-- Extração automática de canais inteiros do YouTube (legendas + metadados)
-- Busca acadêmica no arXiv por tema (perfil Pesquisador) — baixa e indexa os PDFs automaticamente
-- Busca de estudos clínicos via FHIR/ResearchStudy (perfil Pesquisador) — servidor público, sem autenticação, escopo restrito a estudos de pesquisa
-- Upload de PDFs, DOCX, Markdown, CSV e TXT
-- Upload de imagens (PNG, JPG, WEBP etc.) — descrição via Ollama multimodal ou OCR (RapidOCR)
-- Upload de áudio (MP3, WAV, M4A etc.) — transcrição via faster-whisper local
-- Parser automático de conversas WhatsApp e transcrições de reuniões (Zoom, Teams, Otter)
-- Colar texto diretamente pela interface
-- Agente RAG local: BM25Okapi + CrossEncoder (ms-marco-MiniLM-L-6-v2) + anti-alucinação
-- Busca Restrita (BM25 puro, ~1 ms) e Busca Ampla (BM25 + CrossEncoder, ~250 ms)
-- Chat com streaming de resposta e citação verificável da fonte
-- Multi-base: consulta simultânea em múltiplas bases de conhecimento
-- Seletor de modelos Ollama e provedores externos (Groq, OpenAI, Anthropic, Google)
-- Backup opcional para Google Drive (escopo `drive.file`)
-- Export de base como `.tusab` (portabilidade entre máquinas)
-- Relatório de extração por canal com estatísticas e tabela de vídeos
+Tusab is a personal knowledge management (PKM) system with local AI. You decide what
+the specialist learns — videos, documents, notes — and query it via natural-language
+chat. It only answers with what you've indexed, always citing the exact source the
+excerpt was retrieved from.
+
+| Letter | Stage | What it does |
+|--------|-------|---------------|
+| **I** | Index | Extraction and indexing of YouTube, PDFs, DOCX, Markdown, plain text |
+| **A** | Augment | RAG with BM25 + CrossEncoder delivers precise chunks to the model |
+| **C** | Converse | Chat with streaming, source citation and conversation history |
+
+---
+
+## Features
+
+- Automatic extraction of entire YouTube channels (captions + metadata), with optional
+  playlist selection and publish-date filtering
+- Academic search on arXiv by topic (Researcher profile) — downloads and indexes the PDFs automatically
+- Clinical study search via FHIR/ResearchStudy (Researcher profile) — public server, no auth, scoped to research studies
+- Upload PDFs, DOCX, Markdown, CSV and TXT
+- Upload images (PNG, JPG, WEBP, etc.) — description via multimodal Ollama or OCR (RapidOCR)
+- Upload audio (MP3, WAV, M4A, etc.) — transcription via local faster-whisper
+- Automatic parser for WhatsApp conversations and meeting transcripts (Zoom, Teams, Otter)
+- Paste text directly from the interface
+- Local RAG assistant: BM25Okapi + CrossEncoder (ms-marco-MiniLM-L-6-v2) + anti-hallucination
+- Narrow Search (pure BM25, ~1 ms) and Broad Search (BM25 + CrossEncoder, ~250 ms)
+- Streaming chat with verifiable source citation, adjustable response tone/persona,
+  and 👍/👎 feedback that feeds useful answers back into the search index
+- Multi-base: query multiple knowledge bases at once
+- Ollama model picker plus external providers (Groq, OpenAI, Anthropic, Google) or any
+  self-hosted OpenAI-compatible endpoint (e.g. [9router](https://github.com/decolua/9router))
+- **Study Mode**: flashcards with spaced repetition (SM-2), structured summaries with
+  local text-to-speech playback, and post-it style key points — all generated from your
+  own indexed content and saved for later review
+- **MCP Server**: expose your knowledge base to Claude Code, Cursor or any MCP-compatible
+  editor, so you can query your own sources without leaving the tool you already use
+- Optional backup to Google Drive (`drive.file` scope)
+- Export a base as `.tusab` (portable between machines)
+- Extraction report per channel with statistics and a video table
 - Auto-update via GitHub Releases
-- Internacionalização: Português, Inglês, Espanhol
-- Telemetria opt-in (PostHog)
+- Internationalization: Portuguese, English, Spanish
+- Opt-in telemetry (PostHog)
 
 ---
 
-## Provedores de IA
+## AI Providers
 
-| Provedor | Modelo padrão | Custo | Requer API key |
-|----------|--------------|-------|----------------|
-| Ollama (padrão) | llama3.2:1b | Gratuito | Não |
-| Groq | llama-3.1-70b-versatile | Free tier | Sim |
-| OpenAI | gpt-4o-mini | Pago | Sim |
-| Anthropic | claude-sonnet-4-6 | Pago | Sim |
-| Google | gemini-1.5-flash | Pago | Sim |
+| Provider | Default model | Cost | Requires API key |
+|----------|--------------|------|-------------------|
+| Ollama (default) | llama3.2:1b | Free | No |
+| Groq | llama-3.1-70b-versatile | Free tier | Yes |
+| OpenAI | gpt-4o-mini | Paid | Yes |
+| Anthropic | claude-sonnet-4-6 | Paid | Yes |
+| Google | gemini-1.5-flash | Paid | Yes |
+| Custom endpoint | any OpenAI-compatible server | Depends on the server | Optional |
 
-O Ollama é configurado na primeira execução via wizard embutido. Para provedores externos, configure a chave em **Configurar Agente** — ela é testada antes de ser salva e armazenada via DPAPI (Windows).
+Ollama is configured on first run via a built-in wizard. For external providers, set the
+key in **Configure Assistant** — it's tested before being saved and stored via DPAPI (Windows).
 
 ---
 
 ## Stack
 
-**Backend:** Python 3.12 + FastAPI + Uvicorn — API REST em `localhost:8001`  
-**Agente RAG:** rank_bm25 (BM25Okapi) + sentence-transformers (CrossEncoder) + Ollama / provedores externos  
-**Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React  
-**Desktop:** Electron 34 + electron-builder (instalador NSIS para Windows · `.dmg`/`.zip` assinado e notarizado para macOS arm64)  
-**Extração:** yt-dlp (bundled) + pdfplumber + python-docx  
-**Imagens:** Ollama multimodal (llava/gemma3) → fallback RapidOCR (embutido, sem instalação externa)  
-**Áudio:** faster-whisper (modelo `base`, CPU, ~150 MB)  
-**Drive:** Google Auth OAuth2 (escopo `drive.file`)
+**Backend:** Python 3.12 + FastAPI + Uvicorn — REST API on `localhost:8001`
+**RAG assistant:** rank_bm25 (BM25Okapi) + sentence-transformers (CrossEncoder) + Ollama / external providers
+**Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React
+**Desktop:** Electron 34 + electron-builder (NSIS installer for Windows · signed and notarized `.dmg`/`.zip` for macOS arm64)
+**Extraction:** yt-dlp (bundled) + pdfplumber + python-docx
+**Images:** multimodal Ollama (llava/gemma3) → RapidOCR fallback (bundled, no external install)
+**Audio:** faster-whisper (`base` model, CPU, ~150 MB)
+**Drive:** Google Auth OAuth2 (`drive.file` scope)
 
 ---
 
-## Estrutura do repositório
+## Repository structure
 
 ```
 Tusab/
-  api_tusab.py              <- entry point FastAPI (~165 linhas)
-  motor_tusab.py            <- shim de re-export (compatibilidade Electron)
-  agent_tusab.py            <- shim de re-export (compatibilidade Electron)
-  tusab_engine/             <- pacote Python principal
-    storage.py                <- caminhos de dados + IO atômico
+  api_tusab.py              <- FastAPI entry point (~165 lines)
+  motor_tusab.py            <- re-export shim (Electron compatibility)
+  agent_tusab.py            <- re-export shim (Electron compatibility)
+  tusab_engine/             <- main Python package
+    storage.py                <- data paths + atomic IO
     state.py                  <- AppState singleton + LogRedirector
-    agent/
-      config.py               <- carregar/salvar agent_config.json
+    agent/                    <- RAG assistant (internal module name kept as
+                                  "agent" on purpose — see CLAUDE.md)
+      config.py               <- load/save agent_config.json
       index.py                <- BM25 indexing + cache + CrossEncoder
       chat.py                 <- RAG chat + streaming
     motor/
-      drive.py                <- OAuth Google Drive + upload
-      extraction.py           <- engine de extração YouTube
-      auto_update.py          <- verificação de auto-update
+      drive.py                <- Google Drive OAuth + upload
+      extraction.py           <- YouTube extraction engine
+      auto_update.py          <- auto-update check
     api/
       router_status.py        <- GET /status, /drive-auth, /history, /open-folder
       router_extraction.py    <- POST /set-channel, /start, /pause, /cancel, /queue/*
       router_agent.py         <- /agent/* (chat, config, index, ollama, stream)
+      router_estudo.py        <- /agent/study/* (flashcards, summary, post-its, TTS)
       router_repositorio.py   <- /repositorio, /relatorio, /neural/*, /reset-total
       router_exports.py       <- /export/* (zip, markdown, docx, xlsx, pdf)
-  requirements.txt            <- dependências Python
-  smoke_test.py               <- 15 smoke tests contra backend real
-  tests/                      <- suite de testes (27 testes)
-  web_interface/              <- frontend React
+  requirements.txt            <- Python dependencies
+  tests/                      <- test suite (195 tests)
+  web_interface/              <- React frontend
     src/
-      App.jsx                 <- orquestrador principal
-      components/             <- componentes por domínio
-      services/api.js         <- camada de API centralizada
-      hooks/                  <- hooks customizados (polling, chat, config)
-      locales/                <- traduções PT/EN/ES
-    dist/                     <- build do frontend (gerado)
-  electron/                   <- wrapper desktop
+      App.jsx                 <- main orchestrator
+      components/             <- components by domain
+      services/api.js         <- centralized API layer
+      hooks/                  <- custom hooks (polling, chat, config)
+      locales/                <- PT/EN/ES translations
+    dist/                     <- frontend build (generated)
+  electron/                   <- desktop wrapper
     main.js
     preload.js
     package.json
-  Documentação do Produto/    <- documentação estratégica e técnica
   CHANGELOG.md
 ```
 
 ---
 
-## Estrutura de dados
+## Data layout
 
-Em produção (Electron): `%AppData%\Tusab\data\`  
-Em desenvolvimento: `./data/`  
-Configurável via env var `TUSAB_DATA_DIR`.
+In production (Electron): `%AppData%\Tusab\data\`
+In development: `./data/`
+Configurable via the `TUSAB_DATA_DIR` env var.
 
 ```
 data/
   neural/
-    {projeto}/
-      youtube/        <- transcrições .txt extraídas do YouTube
-      documents/      <- PDFs, DOCX e outros docs + _manifest.json
-      texts/          <- textos colados + _manifest.json
-      management/     <- CSVs de gestão, summary.json, README, relatório
-  indexes/            <- índices BM25 em JSON por projeto ({prefixo}_index.json)
+    {project}/
+      youtube/        <- .txt transcripts extracted from YouTube
+      documents/      <- PDFs, DOCX and other docs + _manifest.json
+      texts/          <- pasted texts + _manifest.json
+      estudo/         <- Study Mode artifacts (flashcards/summary/post-its + cached audio)
+      management/     <- management CSVs, summary.json, README, report
+  indexes/            <- BM25 indexes in JSON, one per project ({prefix}_index.json)
   config/             <- agent_config.json, credentials.json, token.json
-  temp/               <- VTTs temporários (auto-removidos)
+  temp/               <- temporary VTTs (auto-removed)
 ```
 
-**Nota de segurança:** a pasta `config/` pode conter chaves de API — não inclua em backups automáticos em nuvem sem criptografia adicional. A pasta `neural/` é segura para compartilhar.
+**Security note:** the `config/` folder may contain API keys — don't include it in
+unencrypted cloud backups. The `neural/` folder is safe to share.
 
 ---
 
-## Instalação para desenvolvimento
+## Development setup
 
-**Pré-requisitos:** Node.js 20+, Python 3.12+, Git
+**Prerequisites:** Node.js 20+, Python 3.12+, Git
 
 ```powershell
-# Clonar o repositório
-git clone <repo>
-cd Tusab
+# Clone the repository
+git clone https://github.com/ahaugusto/tusab.git
+cd tusab
 
-# Criar virtualenv Python
+# Python virtualenv
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# Dependências do frontend
+# Frontend dependencies
 cd web_interface
 npm install
 cd ..
 
-# Dependências do Electron
+# Electron dependencies
 cd electron
 npm install
 cd ..
 ```
 
-**Rodar em modo dev (dois terminais):**
+**Run in dev mode (two terminals):**
 
 ```powershell
 # Terminal 1 — backend
@@ -199,151 +214,108 @@ cd web_interface
 npm run dev
 ```
 
-Interface disponível em `http://localhost:8001` (servida pelo backend com o `dist/` gerado).  
-Hot reload em `http://localhost:5173` (Vite dev server).
+Interface available at `http://localhost:8001` (served by the backend from the generated `dist/`).
+Hot reload at `http://localhost:5173` (Vite dev server).
 
-**Variáveis de ambiente:**
+**Environment variables:**
 
-| Variável | Descrição |
-|----------|-----------|
-| `TUSAB_DATA_DIR` | Sobrescreve o diretório de dados (usado em testes e Electron packaged) |
-| `ELECTRON_RUN` | Definida pelo Electron em produção — suprime abertura automática do browser |
-| `VITE_POSTHOG_KEY` | Chave PostHog para telemetria (nunca commitar — usar `web_interface/.env`) |
+| Variable | Description |
+|----------|--------------|
+| `TUSAB_DATA_DIR` | Overrides the data directory (used in tests and packaged Electron) |
+| `ELECTRON_RUN` | Set by Electron in production — suppresses automatic browser launch |
+| `VITE_POSTHOG_KEY` | PostHog telemetry key (never commit — use `web_interface/.env`) |
 
 ---
 
-## Build de produção
+## Production build
 
 ```powershell
-# 1. Build do frontend
+# 1. Build the frontend
 cd web_interface
 npm run build
 cd ..
 
-# 2. Build do instalador Windows
+# 2. Build the Windows installer
 cd electron
 npm run build
 ```
 
-Saída: `dist_electron/Tusab Setup 1.0.1.exe`
+Output: `dist_electron/Tusab-Setup-X.X.X.exe`
 
-**Pré-requisito:** `electron/python_env/` deve estar populado com Python 3.12 embeddable + dependências instaladas, e `electron/bin/yt-dlp.exe` deve existir. Esses diretórios são grandes e ficam no `.gitignore` — configure uma vez localmente antes de buildar.
+**Prerequisite:** `electron/python_env/` must be populated with an embeddable Python 3.12
+plus installed dependencies, and `electron/bin/yt-dlp.exe` must exist. These directories
+are large and gitignored — set them up once locally before building.
 
 ---
 
-## Testes
+## Tests
 
 ```powershell
-# Suite de integração (97 testes)
+# Integration suite (195 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
-
-# Smoke tests contra backend real (16 checks)
-.venv\Scripts\python.exe smoke_test.py
 ```
 
-**97/97 verde.** A suite inclui testes de integração (TestClient FastAPI) e testes de confiabilidade (escrita atômica, concorrência, índice corrompido/vazio).
+195/195 green. The suite covers integration tests (FastAPI TestClient) and reliability
+tests (atomic writes, concurrency, corrupted/empty index).
 
 ---
 
-## Configurando o Google Drive (opcional)
+## Setting up Google Drive (optional)
 
-1. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto e habilite a **Google Drive API**
-2. Crie credenciais OAuth 2.0 (Aplicativo Desktop) e baixe o JSON
-3. Renomeie para `credentials.json` e coloque na raiz do projeto
-4. Na interface do Tusab, ative o Drive na aba Repositório — o fluxo OAuth abrirá no navegador
-5. Após autorizar, `token.json` é salvo localmente (ambos no `.gitignore`)
-
----
-
-## Acessibilidade
-
-Interface com conformidade WCAG 2.1 nível AA:
-
-- Touch targets mínimos de 44×44px em todos os botões interativos
-- `aria-label` em todos os botões de ícone sem texto visível
-- `role="dialog" aria-modal="true"` em todos os modais via `ModalWrapper`
-- Focus trap + `Escape` para fechar em modais
-- `aria-live="polite"` em status dinâmicos (extração, snack, streaming)
-- `role="tooltip"` nos tooltips da sidebar
-- `prefers-reduced-motion` respeitado globalmente
-- Navegação completa por teclado com atalhos (`C` abre chat, `B/E/A/I/M` trocam abas)
-
-Auditoria completa em `Documentação do Produto/Acessibilidade e WCAG.md`.
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Drive API**
+2. Create OAuth 2.0 credentials (Desktop app) and download the JSON
+3. Rename it to `credentials.json` and place it at the project root
+4. In the Tusab interface, enable Drive from the Repository tab — the OAuth flow opens in your browser
+5. After authorizing, `token.json` is saved locally (both files are gitignored)
 
 ---
 
-## Segurança
+## Accessibility
 
-O Tusab roda localmente — sem servidor central, sem dados na nuvem por padrão.
+WCAG 2.1 AA-compliant interface:
 
-- CORS restrito a `localhost:8001`
-- Path traversal bloqueado com `os.path.realpath()` em todos os endpoints de arquivo
-- Prompt injection mitigado com delimitadores XML no pipeline RAG
-- URL do YouTube validada por regex whitelist antes de ser passada ao yt-dlp
-- Histórico do chat mantido no servidor (payload do cliente é ignorado)
-- Electron com `contextIsolation: true`, `sandbox: true` e `nodeIntegration: false`
-- yt-dlp executado via lista de argumentos (nunca `shell=True`)
-- Chave de API mascarada (`***`) na resposta `GET /agent/config`
-- Chaves armazenadas via `safeStorage` do Electron (Windows DPAPI) quando disponível
-- Arquivos sensíveis no `.gitignore`: `credentials.json`, `token.json`, `.env`, `agent_config.json`
+- Minimum 44×44px touch targets on all interactive buttons
+- `aria-label` on every icon-only button
+- `role="dialog" aria-modal="true"` on all modals via `ModalWrapper`
+- Focus trap + `Escape` to close on modals
+- `aria-live="polite"` on dynamic status (extraction, snackbars, streaming)
+- `role="tooltip"` on sidebar tooltips
+- `prefers-reduced-motion` respected globally
+- Full keyboard navigation with shortcuts (`C` opens chat, `Shift+letter` switches tabs)
+
+---
+
+## Security
+
+Tusab runs locally — no central server, no data in the cloud by default.
+
+- CORS restricted to `localhost:8001`
+- Path traversal blocked with `os.path.realpath()` on every file endpoint
+- Prompt injection mitigated with XML delimiters in the RAG pipeline
+- YouTube URLs validated against a regex whitelist before being passed to yt-dlp
+- Chat history kept server-side (client-supplied payload is ignored)
+- Electron with `contextIsolation: true`, `sandbox: true` and `nodeIntegration: false`
+- yt-dlp executed via an argument list (never `shell=True`)
+- API key masked (`***`) in the `GET /agent/config` response
+- Keys stored via Electron's `safeStorage` (Windows DPAPI) when available
+- Sensitive files gitignored: `credentials.json`, `token.json`, `.env`, `agent_config.json`
 
 ---
 
 ## Changelog
 
-### [1.0.7] — 2026-06-25
-
-**Correções**
-- **Export PDF não funcionava no app instalado** — `reportlab` não estava no bundle `python_env/`; instalado e reempacotado
-- **PDFs com layout em colunas/tabelas geravam texto corrompido** — tolerâncias explícitas no `pdfplumber`, regex para desfazer hifenização automática, colapso de espaços múltiplos
-- **PDFs escaneados eram rejeitados silenciosamente** — agora aceitos com placeholder + aviso ao usuário; campo `QUALIDADE_PDF` gravado no `.txt`
-- Mensagem de erro de export PDF corrigida (não sugere mais `pip install` na versão .exe)
-
-### [1.0.6] — 2026-06-25
-
-**Correções**
-- Chip "✓ ativo" no seletor de modelos Ollama aparecia sem modelo instalado
-- E-mail de suporte com typo (`sollution` → `solutions`) na aba Admin
-- `electron-updater` apontava para repo privado — usuários sem acesso não recebiam atualizações
-- Versão exibida no nav lateral não refletia a versão de publicação
-
-**Novo**
-- Instalador NSIS em 3 idiomas: Português (padrão), Inglês, Espanhol — detectado automaticamente pelo Windows
-- Chat bloqueado com aviso claro quando Ollama está ativo mas sem modelo instalado (evita receber só fontes sem resposta)
-- Versão, ano de copyright, CNPJ e e-mail injetados em build-time — nunca desincronizam com `electron/package.json`
-
-### [1.0.1] — 2026-06-24
-
-**Correções**
-- Índices BM25 apagados indevidamente após indexação bem-sucedida
-- Fontes erradas no chat multi-base (canal global sobrescrevia seleção do usuário)
-- Base selecionada no chat perdida ao recarregar a página
-- Backend crashando no Windows (UnicodeEncodeError no banner ASCII)
-- Electron dev: Python do sistema usado em vez do `.venv`; dados em AppData em vez do projeto
-- Botão voltar no modal de upload para trocar projeto
-- Endpoint `/_debug/paths` removido de produção
-- Conformidade de nomenclatura: `cerebro/` → `neural/` em comentários, avisos e documentação
-
-**Novo**
-- Tooltip no botão flutuante de chat (hover e focus)
-- Atalho de pasta local no header de cada base no Repositório
-- Snack de primeiro acesso com `aria-live` (acessível a leitores de tela)
-- Auditoria de acessibilidade WCAG 2.1 AA documentada
-
-### [1.0.0] — 2026-06-20
-
-Lançamento inicial. Extração de YouTube, RAG local com BM25 + CrossEncoder, chat com streaming e citação de fonte, multi-base, perfis de usuário, onboarding, i18n PT/EN/ES, Google Drive, exportação de base `.tusab`, auto-update.
+Full history of every release: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-## Licença
+## License
 
 Copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
 
-Código-fonte disponível sob [Elastic License 2.0](LICENSE) — você pode ler,
-auditar, rodar e modificar livremente para uso próprio. A única restrição
-relevante: não oferecer o Tusab como serviço hospedado/gerenciado para
-terceiros. O nome "Tusab" e a marca são protegidos separadamente — ver
-[TRADEMARK.md](TRADEMARK.md). Não estamos aceitando Pull Requests externos
-no momento — ver [CONTRIBUTING.md](CONTRIBUTING.md). Bibliotecas de
-terceiros usadas e suas licenças: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Source code available under the [Elastic License 2.0](LICENSE) — you may read,
+audit, run and modify it freely for your own use. The one relevant restriction:
+you may not offer Tusab as a hosted/managed service to third parties. The "Tusab"
+name and brand are protected separately — see [TRADEMARK.md](TRADEMARK.md). We
+are not accepting external Pull Requests at this time — see
+[CONTRIBUTING.md](CONTRIBUTING.md). Third-party libraries used and their
+licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -334,6 +334,27 @@ def _ler_manifest_estudo(canal_prefixo: str) -> list:
     return validos
 
 
+def _audio_artefato_path(canal_prefixo: str, entrada: dict) -> str | None:
+    """Deriva o caminho do .wav a partir do arquivo_txt já registrado no manifest
+    (nunca do cliente) — mesmo nome-base, extensão .wav. Sem risco de path
+    traversal via artefato_id."""
+    nome_base, _ = os.path.splitext(entrada.get("arquivo_txt", ""))
+    if not nome_base:
+        return None
+    return os.path.join(NEURAL_DIR, canal_prefixo, "estudo", f"{nome_base}.wav")
+
+
+def _texto_para_audio(tipo: str, dados) -> str:
+    """Extrai o texto a ser lido em voz alta a partir dos dados estruturados do artefato."""
+    if tipo == "resumo":
+        return str(dados or "")
+    if tipo == "postits":
+        return ". ".join(str(p) for p in (dados or []))
+    if tipo == "flashcards":
+        return ". ".join(f"{c.get('pergunta', '')}. {c.get('resposta', '')}" for c in (dados or []))
+    return ""
+
+
 def _formatar_texto_indexavel(tipo: str, dados) -> str:
     """Achata o conteúdo estruturado (flashcards/postits/resumo) num texto corrido pro BM25."""
     if tipo == "flashcards":
@@ -736,7 +757,7 @@ def agent_study_artefato_deletar(projeto_nome: str, artefato_id: str):
     if not entrada:
         return {"error": True, "message": "Artefato não encontrado."}
     estudo_dir = os.path.join(NEURAL_DIR, canal_prefixo, "estudo")
-    for chave in ("arquivo_txt", "arquivo_json"):
+    for chave in ("arquivo_txt", "arquivo_json", "arquivo_audio"):
         nome = entrada.get(chave, "")
         caminho = os.path.join(estudo_dir, nome) if nome else ""
         if caminho and os.path.exists(caminho):
@@ -747,6 +768,63 @@ def agent_study_artefato_deletar(projeto_nome: str, artefato_id: str):
     manifest = [e for e in manifest if e.get("id") != artefato_id]
     salvar_json_atomico(manifest, _manifest_estudo_path(canal_prefixo), indent=2)
     return {"ok": True}
+
+
+@router.post("/agent/study/artefato/{projeto_nome}/{artefato_id}/audio")
+def agent_study_artefato_audio(projeto_nome: str, artefato_id: str):
+    """Gera (ou serve do cache) o áudio TTS de um artefato de estudo — build Beta/Enterprise.
+
+    Sintetizar tem custo real de CPU (medido: ~79s pra um resumo de 3.2k chars) —
+    por isso é sob demanda (não em toda geração) e persistido em disco na primeira
+    vez; chamadas seguintes servem o .wav já salvo sem chamar o modelo de novo.
+    Path do áudio deriva do arquivo_txt já registrado no manifest, nunca do
+    cliente — sem risco de path traversal via artefato_id.
+    """
+    from tusab_engine.agent.tts import sintetizar_audio, tts_disponivel
+    if not tts_disponivel():
+        return {"error": True, "message": "TTS não disponível nesta edição do Tusab."}
+
+    canal_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
+    if not canal_prefixo:
+        return {"error": True, "message": "Projeto não especificado."}
+    manifest = _ler_manifest_estudo(canal_prefixo)
+    entrada = next((e for e in manifest if e.get("id") == artefato_id), None)
+    if not entrada:
+        return {"error": True, "message": "Artefato não encontrado."}
+
+    audio_path = _audio_artefato_path(canal_prefixo, entrada)
+    if not audio_path:
+        return {"error": True, "message": "Artefato inválido."}
+
+    if os.path.exists(audio_path):
+        with open(audio_path, "rb") as f:
+            return Response(content=f.read(), media_type="audio/wav")
+
+    caminho_json = os.path.join(NEURAL_DIR, canal_prefixo, "estudo", entrada["arquivo_json"])
+    try:
+        with open(caminho_json, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao carregar artefato: {e}"}
+
+    texto = _texto_para_audio(entrada.get("tipo", ""), dados)
+    if not texto.strip():
+        return {"error": True, "message": "Nada para sintetizar neste artefato."}
+
+    try:
+        audio_bytes = sintetizar_audio(texto)
+    except Exception as e:
+        return {"error": True, "message": f"Erro ao gerar áudio: {e}"}
+
+    try:
+        with open(audio_path, "wb") as f:
+            f.write(audio_bytes)
+        entrada["arquivo_audio"] = os.path.basename(audio_path)
+        salvar_json_atomico(manifest, _manifest_estudo_path(canal_prefixo), indent=2)
+    except Exception:
+        pass  # falha ao persistir não deve impedir o usuário de ouvir agora
+
+    return Response(content=audio_bytes, media_type="audio/wav")
 
 
 @router.get("/agent/tts/status")

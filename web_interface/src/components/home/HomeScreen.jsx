@@ -212,6 +212,38 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     ? 'bg-[#0C1122]/95 border-primary/50 hover:bg-[#0E1428]/95 hover:border-primary/70'
     : 'bg-white border-violet-300 shadow-sm hover:shadow-md hover:border-violet-400';
 
+  // Idioma/tema/assinatura — vivem junto do logo (coluna esquerda no desktop,
+  // abaixo da logo mobile em telas estreitas), não mais soltos ao fim dos cards.
+  const footerControls = (
+    <div className="flex flex-col items-center gap-3 mt-4">
+      <div className="flex items-center gap-2">
+        <div className={`flex items-center rounded-lg border px-2 py-1.5 gap-1.5 ${darkMode ? 'bg-white/10 border-white/20' : 'bg-slate-50 border-slate-200'}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={darkMode ? 'text-slate-500' : 'text-slate-500'}>
+            <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+          </svg>
+          <select value={currentLang} onChange={e => onChangeLang(e.target.value)}
+            className={`text-[11px] font-bold bg-transparent border-none outline-none cursor-pointer pr-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            <option value="pt" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>PT</option>
+            <option value="en" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>EN</option>
+            <option value="es" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>ES</option>
+          </select>
+        </div>
+        <button onClick={onToggleTheme}
+          aria-label={t(darkMode ? 'footer.light' : 'footer.dark')}
+          title={t(darkMode ? 'footer.light' : 'footer.dark')}
+          className={`p-2 rounded-lg border transition-colors ${darkMode ? 'bg-white/10 border-white/20 text-slate-400 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+          {darkMode
+            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          }
+        </button>
+      </div>
+      <p className={`text-[11px] ${darkMode ? 'text-slate-700' : 'text-slate-400'}`}>
+        {t('home.by')}
+      </p>
+    </div>
+  );
+
   return (
     <div className={`flex-1 flex overflow-hidden relative ${darkMode ? 'bg-[#080C18]' : 'bg-slate-50'}`}>
       <CircuitBackground darkMode={darkMode} interactive />
@@ -227,10 +259,11 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
         <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
           {t('home.tagline')}
         </p>
+        {footerControls}
       </div>
 
       {/* Right — cards + footer */}
-      <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 overflow-y-auto">
+      <div className="flex flex-col items-center justify-center flex-1 px-8 py-6 overflow-y-auto">
 
         {/* Mobile logo (shown only when left panel is hidden) */}
         <div className="flex md:hidden flex-col items-center mb-6">
@@ -243,9 +276,10 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
           <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
             {t('home.tagline')}
           </p>
+          {footerControls}
         </div>
 
-        <div className="w-full max-w-md space-y-4">
+        <div className="w-full max-w-md space-y-3">
 
           {/* ── Source section ── */}
           <div>
@@ -361,35 +395,6 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             </div>
           </div>
 
-        </div>
-
-        {/* Footer controls */}
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className={`flex items-center rounded-lg border px-2 py-1.5 gap-1.5 ${darkMode ? 'bg-white/10 border-white/20' : 'bg-slate-50 border-slate-200'}`}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={darkMode ? 'text-slate-500' : 'text-slate-500'}>
-                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
-              </svg>
-              <select value={currentLang} onChange={e => onChangeLang(e.target.value)}
-                className={`text-[11px] font-bold bg-transparent border-none outline-none cursor-pointer pr-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                <option value="pt" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>PT</option>
-                <option value="en" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>EN</option>
-                <option value="es" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>ES</option>
-              </select>
-            </div>
-            <button onClick={onToggleTheme}
-              aria-label={t(darkMode ? 'footer.light' : 'footer.dark')}
-              title={t(darkMode ? 'footer.light' : 'footer.dark')}
-              className={`p-2 rounded-lg border transition-colors ${darkMode ? 'bg-white/10 border-white/20 text-slate-400 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
-              {darkMode
-                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-              }
-            </button>
-          </div>
-          <p className={`text-[11px] ${darkMode ? 'text-slate-700' : 'text-slate-400'}`}>
-            {t('home.by')}
-          </p>
         </div>
 
       </div>
