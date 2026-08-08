@@ -1,9 +1,12 @@
-```
- _|_|_|_|_|  _|    _|    _|_|_|    _|_|    _|_|_|
-     _|      _|    _|  _|        _|    _|  _|    _|
-     _|      _|    _|    _|_|    _|_|_|_|  _|_|_|
-     _|      _|    _|        _|  _|    _|  _|    _|
-     _|        _|_|    _|_|_|    _|    _|  _|_|_|
+```text
+88888888888 888     888  .d8888b.        d8888 888888b.
+    888     888     888 d88P  Y88b      d88888 888  "88b
+    888     888     888 Y88b.          d88P888 888  .88P
+    888     888     888  "Y888b.      d88P 888 8888888K.
+    888     888     888     "Y88b.   d88P  888 888  "Y88b
+    888     888     888       "888  d88P   888 888    888
+    888     Y88b. .d88P Y88b  d88P d8888888888 888   d88P
+    888      "Y88888P"   "Y8888P" d88P     888 8888888P"
 ```
 
 # Tusab
@@ -73,25 +76,25 @@ excerpt was retrieved from.
 <tr>
 <td width="50%">
 
-**Extraction — YouTube channels or public academic sources**
-<img src="docs/screenshots/extraction.png" alt="Extraction tab" width="100%">
+**Real answer, real sources — with a confidence flag when support is weak**
+<img src="docs/screenshots/chat-conversation.png" alt="Chat conversation with cited sources" width="100%">
 </td>
 <td width="50%">
 
-**Repository — every base you've built, in one place**
-<img src="docs/screenshots/repository.png" alt="Repository tab" width="100%">
+**Extraction — YouTube channels or public academic sources**
+<img src="docs/screenshots/extraction.png" alt="Extraction tab" width="100%">
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-**Overview — coverage and index health at a glance**
-<img src="docs/screenshots/overview.png" alt="Overview dashboard" width="100%">
+**Repository — every base you've built, in one place**
+<img src="docs/screenshots/repository.png" alt="Repository tab" width="100%">
 </td>
 <td width="50%">
 
-**Chat history — every conversation saved, searchable, resumable**
-<img src="docs/screenshots/chat-history.png" alt="Chat history" width="100%">
+**Overview — coverage and index health at a glance**
+<img src="docs/screenshots/overview.png" alt="Overview dashboard" width="100%">
 </td>
 </tr>
 <tr>
