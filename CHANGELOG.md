@@ -7,6 +7,15 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.46] — 2026-08-07
+
+### Corrigido
+- **Corrida de criação de release entre build-windows e build-macos** — os dois builders tentavam criar a release da tag ao mesmo tempo; dependendo de quem chegava primeiro, isso gerava dois objetos de release pra mesma tag (v1.0.42, v1.0.43, v1.0.45) ou derrubava o job inteiro com `422 already_exists` (v1.0.44). Novo job `create-release` cria a release vazia, sozinho, antes dos dois builders — eles só sobem asset, nunca disputam a criação.
+- **"em 3 base(s)" aparecia em português na Visão Geral mesmo com a interface em inglês/espanhol** — a palavra "em" estava hardcoded em português direto no JSX (`VisaoGeralTab.jsx`), só o sufixo "base(s)" é que era traduzido. Unificado numa única chave com interpolação.
+
+### Alterado
+- README: seção de Screenshots renovada com capturas reais de tela em inglês (Home com a nova disposição de seções, uma conversa real com fontes citadas e o aviso de baixa confiança em ação, Extração, Repositório, Visão Geral, Modo Estudo com material salvo, Assistente) — as capturas anteriores estavam desatualizadas e não refletiam a interface renomeada.
+
 ## [1.0.45] — 2026-08-07
 
 ### Corrigido
