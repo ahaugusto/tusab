@@ -223,7 +223,7 @@ export default function VisaoGeralTab({ darkMode, btnFocus }) {
             <span className={lbl}>{t('overview.kpi_chunks')}</span>
           </div>
           <div className={val}>{totalChunks.toLocaleString()}</div>
-          <p className={sub}>em {totalIndexados} {t('overview.kpi_bases_suffix')}</p>
+          <p className={sub}>{t('overview.kpi_bases_count', { count: totalIndexados })}</p>
         </div>
         <div className={card}>
           <div className="flex items-center gap-2 mb-2">

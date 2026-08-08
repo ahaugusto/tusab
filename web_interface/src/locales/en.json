@@ -674,7 +674,7 @@
   "overview.kpi_files": "Files",
   "overview.kpi_size_suffix": "total",
   "overview.kpi_chunks": "Indexed Fragments",
-  "overview.kpi_bases_suffix": "base(s)",
+  "overview.kpi_bases_count": "in {{count}} base(s)",
   "overview.kpi_videos": "Videos",
   "overview.kpi_transcript_suffix": "with transcript",
   "overview.kpi_interactions": "Interactions",

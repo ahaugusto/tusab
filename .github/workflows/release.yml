@@ -58,11 +58,45 @@ jobs:
         working-directory: web_interface
         run: npm install && npx vite build
 
-  # ── 2. Build do instalador Windows ───────────────────────────────────────────
+  # ── 2. Cria a release vazia antes dos builders — evita a corrida de criação ──
+  # HISTÓRICO: build-windows e build-macos rodam em paralelo e cada um chama
+  # electron-builder com --publish always, que faz "GET release da tag → se não
+  # achar, POST cria". Quando os dois checam "não existe" ao mesmo tempo, os
+  # dois tentam criar: um ganha, o outro recebe 422 already_exists. Em v1.0.42
+  # e v1.0.43 isso criou DOIS objetos de release pra mesma tag (assets
+  # espalhados entre eles); em v1.0.44 o 422 chegou a derrubar o job inteiro
+  # (build-windows "sucesso" no build mas falhou no publish, sem subir
+  # latest.yml/blockmap). Criando a release aqui, sozinha, antes de qualquer
+  # builder começar, os dois jobs seguintes só fazem "GET acha → upload assets"
+  # — sem chance de corrida na criação.
+  create-release:
+    name: Criar release (antes dos builders, evita corrida de criação)
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - name: Gerar notas de release a partir do CHANGELOG.md
+        run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"
+      - name: Criar release vazia
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "${{ github.repository }}" \
+            --title "${GITHUB_REF_NAME#v}" \
+            --notes-file release_notes.md
+
+  # ── 3. Build do instalador Windows ───────────────────────────────────────────
   build-windows:
     name: Build Windows (.exe)
     runs-on: windows-latest
-    needs: tests
+    needs: [tests, create-release]
     if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     permissions:
       contents: write   # necessário para publicar a release em ahaugusto/tusab
@@ -134,7 +168,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: npm run build -- --publish always
 
-  # ── 3. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
+  # ── 4. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
   build-macos:
     name: Build macOS (.dmg + .zip)
     # TEMPORÁRIO (reconstrução da release v1.0.42, 2026-08-07): voltou pro
@@ -146,7 +180,7 @@ jobs:
     # a lógica de cross-build (pip download --platform) funciona igual em
     # qualquer host.
     runs-on: macos-latest
-    needs: tests
+    needs: [tests, create-release]
     if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     # Assinatura sozinha (deep-sign de todo o python_env com torch/
     # onnxruntime/transformers) já passa de 30min — notarização soma
