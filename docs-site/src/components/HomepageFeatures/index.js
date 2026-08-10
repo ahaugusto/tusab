@@ -1,39 +1,43 @@
 import clsx from 'clsx';
+import Translate from '@docusaurus/Translate';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Index — indexação multi-fonte',
+    id: 'index',
     image: require('@site/static/img/thoth-index.jpg').default,
+    title: <Translate id="homepage.feature.index.title">Index — indexação multi-fonte</Translate>,
     description: (
-      <>
+      <Translate id="homepage.feature.index.description">
         Canais inteiros do YouTube, PDFs, DOCX, áudio, imagens, WhatsApp e
         transcrições de reunião — tudo extraído e indexado localmente, sem
         servidor intermediário.
-      </>
+      </Translate>
     ),
   },
   {
-    title: 'Augment — RAG local',
+    id: 'augment',
     image: require('@site/static/img/thoth-augment.jpg').default,
+    title: <Translate id="homepage.feature.augment.title">Augment — RAG local</Translate>,
     description: (
-      <>
+      <Translate id="homepage.feature.augment.description">
         BM25 + FTS5 + CrossEncoder (e busca vetorial opcional) recuperam os
         trechos mais relevantes da sua base e os entregam ao modelo como
         contexto — sem alucinar fora do que foi indexado.
-      </>
+      </Translate>
     ),
   },
   {
-    title: 'Chat — resposta com fonte',
+    id: 'chat',
     image: require('@site/static/img/thoth-chat.jpg').default,
+    title: <Translate id="homepage.feature.chat.title">Chat — resposta com fonte</Translate>,
     description: (
-      <>
+      <Translate id="homepage.feature.chat.description">
         Toda resposta cita título, data e link de origem. Roda offline com
         Ollama, ou com Groq, OpenAI, Anthropic e Gemini como provedores
         opcionais.
-      </>
+      </Translate>
     ),
   },
 ];
@@ -55,8 +59,8 @@ export default function HomepageFeatures() {
     <section className={styles.features}>
       <div className="container">
         <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
+          {FeatureList.map((props) => (
+            <Feature key={props.id} {...props} />
           ))}
         </div>
       </div>
