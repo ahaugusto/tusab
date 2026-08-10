@@ -32,7 +32,7 @@ Perfis Professor, Pesquisador e Especialista podem enfileirar múltiplos canais 
 
 ## Fontes públicas (perfil Pesquisador)
 
-Além do YouTube, o Pesquisador tem acesso a busca em fontes públicas por área de conhecimento — produção científica, tecnologia, economia, direito, saúde, ciências da terra, física/química, patrimônio cultural e antropologia/linguística — incluindo buscadores multidisciplinares como arXiv, OpenAlex, DataCite, DOAJ, Zenodo, Crossref e Open Library, todos sem necessidade de cadastro ou chave de API. Há também busca clínica via FHIR/ResearchStudy (servidor público, escopo restrito a estudos de pesquisa).
+Além do YouTube, o Pesquisador tem acesso a busca em 26 fontes públicas organizadas em 9 áreas de conhecimento — nenhuma exige cadastro ou chave de API. Ver [Fontes públicas por área de conhecimento](/funcionalidades/fontes-publicas) para a lista completa.
 
 ## Leitor de página web avulsa
 
