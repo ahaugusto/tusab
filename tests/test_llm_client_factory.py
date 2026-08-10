@@ -50,15 +50,20 @@ def test_get_llm_client_custom_usa_base_url_e_modelo_do_config():
 
 
 def test_get_llm_client_gemini_resolve_modelo_da_lista_de_candidatos():
+    # patch.object sobre o módulo já importado — não patch('google.generativeai.x') por
+    # string: pkgutil.resolve_name (usado pelo unittest.mock pra resolver strings) exige
+    # que 'google.generativeai' já esteja no atributo do pacote 'google', o que só é
+    # garantido depois de um import real. Localmente colava por acidente (outro teste já
+    # tinha importado antes); em CI com ambiente limpo quebrava com AttributeError.
+    import google.generativeai as _genai
+
     modelo_fake = MagicMock(name='models/gemini-1.5-flash')
     modelo_fake.name = 'models/gemini-1.5-flash'
     modelo_fake.supported_generation_methods = ['generateContent']
 
-    with patch('google.generativeai.configure') as mock_configure, \
-         patch('google.generativeai.list_models', return_value=[modelo_fake]):
+    with patch.object(_genai, 'configure') as mock_configure, \
+         patch.object(_genai, 'list_models', return_value=[modelo_fake]):
         client, modelo = chat_mod._get_llm_client('gemini', 'AIza-fake', {})
-
-    import google.generativeai as _genai
 
     mock_configure.assert_called_once_with(api_key='AIza-fake')
     assert modelo == 'gemini-1.5-flash'
@@ -66,12 +71,14 @@ def test_get_llm_client_gemini_resolve_modelo_da_lista_de_candidatos():
 
 
 def test_get_llm_client_gemini_sem_modelo_suportado_retorna_none():
+    import google.generativeai as _genai
+
     modelo_fake = MagicMock()
     modelo_fake.name = 'models/algum-outro-modelo'
     modelo_fake.supported_generation_methods = ['generateContent']
 
-    with patch('google.generativeai.configure'), \
-         patch('google.generativeai.list_models', return_value=[modelo_fake]):
+    with patch.object(_genai, 'configure'), \
+         patch.object(_genai, 'list_models', return_value=[modelo_fake]):
         client, modelo = chat_mod._get_llm_client('gemini', 'AIza-fake', {})
 
     # Nenhum candidato da _GEMINI_CANDIDATOS bate -> cai no fallback (1º da lista real)
