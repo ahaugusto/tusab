@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.16.1",
+    "axios": "^1.19.0",
     "framer-motion": "^12.43.0",
     "i18next": "^26.3.0",
     "i18next-browser-languagedetector": "^8.2.1",
