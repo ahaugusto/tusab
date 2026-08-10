@@ -56,9 +56,9 @@ Configuráveis a qualquer momento na aba **Assistente**:
 
 | Provedor | Modelo padrão | Custo |
 |----------|--------------|-------|
-| Groq | llama-3.1-70b-versatile | Camada gratuita |
+| Groq | llama-3.1-8b-instant | Camada gratuita |
 | OpenAI | gpt-4o-mini | Pago |
-| Anthropic | claude-sonnet | Pago |
+| Anthropic | claude-haiku-4-5 (auxiliar) / claude-sonnet-4-6 (resposta principal) | Pago |
 | Google Gemini | gemini-1.5-flash | Pago |
 | Endpoint customizado | qualquer servidor compatível com OpenAI | Depende do servidor |
 

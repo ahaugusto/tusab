@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
+import Translate, {translate} from '@docusaurus/Translate';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
@@ -18,26 +19,33 @@ function HomepageHeader() {
           </Heading>
           <p className="hero__subtitle">{siteConfig.tagline}</p>
           <p className={styles.heroDescription}>
-            Extraia canais do YouTube, indexe PDFs e documentos, e converse com um
-            assistente que responde citando a fonte exata — tudo rodando localmente,
-            sem nuvem, sem assinatura.
+            {/* Texto inline = idioma padrão do site (pt-BR, ver docusaurus.config.js
+                i18n.defaultLocale) — a tradução EN vive em i18n/en/code.json, não aqui. */}
+            <Translate id="homepage.hero.description">
+              Extraia canais do YouTube, indexe PDFs e documentos, e converse com um
+              assistente que responde citando a fonte exata — tudo rodando localmente,
+              sem nuvem, sem assinatura.
+            </Translate>
           </p>
           <div className={styles.buttons}>
             <Link className="button button--secondary button--lg" to="/intro">
-              Ler a documentação
+              <Translate id="homepage.hero.readDocs">Ler a documentação</Translate>
             </Link>
             <Link
               className="button button--outline button--lg margin-left--md"
               style={{color: 'white', borderColor: 'white'}}
               to="https://github.com/ahaugusto/tusab/releases/latest">
-              Baixar o Tusab
+              <Translate id="homepage.hero.download">Baixar o Tusab</Translate>
             </Link>
           </div>
         </div>
         <div className={styles.heroImageWrap}>
           <img
             src={require('@site/static/img/thoth-hero.jpg').default}
-            alt="Thoth, deus egípcio da escrita e do conhecimento, numa sala de controle futurista"
+            alt={translate({
+              id: 'homepage.hero.imageAlt',
+              message: 'Thoth, deus egípcio da escrita e do conhecimento, numa sala de controle futurista',
+            })}
             className={styles.heroImage}
           />
         </div>
@@ -51,7 +59,10 @@ export default function Home() {
   return (
     <Layout
       title={siteConfig.title}
-      description="Sistema de gestão de conhecimento pessoal (PKM) com IA local. Extraia canais do YouTube, indexe documentos e converse com um assistente que cita a fonte exata de cada resposta.">
+      description={translate({
+        id: 'homepage.meta.description',
+        message: 'Sistema de gestão de conhecimento pessoal (PKM) com IA local. Extraia canais do YouTube, indexe documentos e converse com um assistente que cita a fonte exata de cada resposta.',
+      })}>
       <HomepageHeader />
       <main>
         <HomepageFeatures />
