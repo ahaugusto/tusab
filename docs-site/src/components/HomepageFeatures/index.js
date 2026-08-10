@@ -5,7 +5,7 @@ import styles from './styles.module.css';
 const FeatureList = [
   {
     title: 'Index — indexação multi-fonte',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    image: require('@site/static/img/thoth-index.jpg').default,
     description: (
       <>
         Canais inteiros do YouTube, PDFs, DOCX, áudio, imagens, WhatsApp e
@@ -16,18 +16,18 @@ const FeatureList = [
   },
   {
     title: 'Augment — RAG local',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    image: require('@site/static/img/thoth-augment.jpg').default,
     description: (
       <>
-        BM25 + CrossEncoder recuperam os trechos mais relevantes da sua base
-        e os entregam ao modelo como contexto — sem alucinar fora do que foi
-        indexado.
+        BM25 + FTS5 + CrossEncoder (e busca vetorial opcional) recuperam os
+        trechos mais relevantes da sua base e os entregam ao modelo como
+        contexto — sem alucinar fora do que foi indexado.
       </>
     ),
   },
   {
     title: 'Chat — resposta com fonte',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    image: require('@site/static/img/thoth-chat.jpg').default,
     description: (
       <>
         Toda resposta cita título, data e link de origem. Roda offline com
@@ -38,13 +38,11 @@ const FeatureList = [
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({title, image, description}) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
+      <div className={clsx('text--center', styles.featureCard)}>
+        <img src={image} alt="" className={styles.featureImage} />
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>
       </div>

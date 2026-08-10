@@ -1,0 +1,22 @@
+{
+  "title": {
+    "message": "Tusab",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Tusab logo",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Documentação": {
+    "message": "Documentation",
+    "description": "Navbar item with label Documentação"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  },
+  "item.label.Download": {
+    "message": "Download",
+    "description": "Navbar item with label Download"
+  }
+}

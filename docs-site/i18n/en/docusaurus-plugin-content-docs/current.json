@@ -1,0 +1,18 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Funcionalidades": {
+    "message": "Features",
+    "description": "The label for category 'Funcionalidades' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Arquitetura técnica": {
+    "message": "Technical architecture",
+    "description": "The label for category 'Arquitetura técnica' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Desenvolvimento": {
+    "message": "Development",
+    "description": "The label for category 'Desenvolvimento' in sidebar 'tutorialSidebar'"
+  }
+}
