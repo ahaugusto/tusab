@@ -7,6 +7,14 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.47] — 2026-08-09
+
+### Alterado
+- **Tagline "Converse" → "Chat"** em todo texto (README, `alt=` das imagens de logo, `package.json`, rodapé de relatório/README gerado por extração) — "chat" já era a palavra usada em toda a interface real ("Chat with Assistant"); "converse" só existia isolado na tagline.
+- **Logo redesenhado** (`logo_light_mode.svg`, `logo_dark_mode.svg`, versões compactas do nav e do botão flutuante de chat) — a arte agora diz "ASCEND · CHAT" em vez de "ASCEND · CONVERSE", eliminando a divergência entre o texto da tagline técnica e a arte visual do logo.
+- Banner ASCII do README trocado pra fonte "ANSI Shadow" (mais larga, preenche melhor a largura da página), com a tagline "INDEX-AUGMENT-CHAT" abaixo.
+- Screenshots do README atualizados novamente para refletir o logo novo.
+
 ## [1.0.46] — 2026-08-07
 
 ### Corrigido

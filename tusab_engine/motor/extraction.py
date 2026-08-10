@@ -542,7 +542,7 @@ def gerar_relatorio_checkup(canal_nome_safe, db_file):
         f.write("DETALHAMENTO POR SEÇÃO:\n")
         f.write(stats.to_string() + "\n")
         f.write("-" * 55 + "\n")
-        f.write("Gerado por Tusab — Index.Augment.Converse\n")
+        f.write("Gerado por Tusab — Index.Augment.Chat\n")
 
     print(f"      ✅ Relatório gerado: {caminho_relatorio}")
     return caminho_relatorio
@@ -553,7 +553,7 @@ def gerar_readme(canal_nome_raw, canal_nome_safe):
     caminho_readme = os.path.join(gestao_canal_dir(canal_nome_safe), f'{canal_nome_safe}_README.md')
 
     conteudo = f"""# 🧠 Base de Conhecimento — @{canal_nome_raw}
-*Gerada automaticamente pelo Tusab — Index.Augment.Converse*
+*Gerada automaticamente pelo Tusab — Index.Augment.Chat*
 
 ## O que é este ativo?
 Este repositório contém as transcrições limpas e organizadas de todo o conteúdo

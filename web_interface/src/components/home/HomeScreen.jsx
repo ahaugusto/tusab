@@ -252,7 +252,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
       <div className={`hidden md:flex flex-col items-center justify-center w-1/2 px-8 lg:px-12 border-r ${darkMode ? 'border-white/5' : 'border-slate-100'}`}>
         <img
           src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
-          alt="Tusab — Index.Augment.Converse"
+          alt="Tusab — Index.Augment.Chat"
           className="w-full max-w-xs lg:max-w-sm object-contain object-top"
           onError={e => { e.target.style.display = 'none'; }}
         />

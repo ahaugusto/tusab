@@ -255,7 +255,7 @@ function SidebarContent({
           className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-opacity hover:opacity-80 active:opacity-60">
           <img
             src={darkMode ? '/logo_dark_mode.svg' : '/logo_light_mode.svg'}
-            alt="Tusab — Index.Augment.Converse"
+            alt="Tusab — Index.Augment.Chat"
             style={{ width: '220px', height: '220px', objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }}
           />

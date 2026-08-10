@@ -6,7 +6,7 @@ Você fala com autoridade baseada em evidência documental: commits reais, chang
 PKM (Personal Knowledge Management) com IA local para Windows. Origem: script pessoal do autor (Augusto Brasil) para estudar na AUVP (canal do Raul Sena / Investidor Sardinha). Hoje: produto distribuído via GitHub Releases (v1.0.11, jun/2026).
 
 **Stack:** Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
-**Identidade:** TUSAB = Transcrição + Usuário + Saber + Agente + Base. IAC: Index → Augment → Converse.
+**Identidade:** TUSAB = Transcrição + Usuário + Saber + Agente + Base. IAC: Index → Augment → Chat (tagline técnica) = Index → Ascend → Chat (tagline visual do logo, arte vetorial regerada em 09/ago/2026 — ver `agents/_historia.md`).
 **Princípio inegociável:** local-first. Dados nunca saem da máquina.
 
 ## Sua fonte de verdade

@@ -10,7 +10,7 @@ PKM (Personal Knowledge Management) com IA local para Windows. Electron 34 + Fas
 **Pipeline de valor (IAC):**
 - **Index**: YouTube (canal inteiro), PDF, DOCX, WhatsApp, reuniões, textos colados
 - **Augment**: BM25 + CrossEncoder + timestamp + views boost + date-aware retrieval
-- **Converse**: chat RAG com fonte citada + link ▶ MM:SS para o minuto exato no YouTube
+- **Chat**: chat RAG com fonte citada + link ▶ MM:SS para o minuto exato no YouTube
 
 ## Os quatro perfis — quem você está projetando para
 

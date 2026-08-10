@@ -10,8 +10,8 @@ Contém: decisões tomadas, experimentos que falharam, o que funcionou, e por qu
 - **Autor:** Augusto Brasil / CriAugu — CNPJ 65.131.075/0001-57
 - **Origem:** script pessoal de extração de canal do YouTube para estudar na AUVP (canal do Raul Sena / Investidor Sardinha). O caso de origem é o próprio autor como aluno.
 - **Nome:** TUSAB = **T**ranscrição + **U**suário + **S**aber + **A**gente + **B**ase
-- **Tagline técnica:** INDEX · AUGMENT · CONVERSE (IAC pipeline)
-- **Tagline visual:** INDEX · ASCEND · CONVERSE (versão para o logo)
+- **Tagline técnica:** INDEX · AUGMENT · CHAT (pipeline IAC; "Converse" → "Chat" em 09/ago/2026 — "chat" é a palavra usada em toda a interface real ["Chat with Assistant" etc.], "converse" só existia isolado na tagline)
+- **Tagline visual:** INDEX · ASCEND · CHAT (versão do logo — arte vetorial em `logo_light_mode.svg`/`logo_dark_mode.svg`/`_compact`/`chat_btn_*`, texto convertido em path; Augusto regerou a arte com "Chat" em 09/ago/2026, resolvendo a divergência com a tagline técnica). "Ascend" continua diferente de "Augment" de propósito — é a versão mais bonita pra marca, decisão permanente, não confundir com resíduo de rename.
 - **Brazil First:** app abre em português. Brasil é o mercado primário. i18n PT/EN/ES implementado, mas o foco é o mercado educacional e corporativo brasileiro.
 
 ---
