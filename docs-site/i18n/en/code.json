@@ -325,5 +325,38 @@
   "theme.tags.tagsPageTitle": {
     "message": "Tags",
     "description": "The title of the tag list page"
+  },
+  "homepage.hero.description": {
+    "message": "Extract YouTube channels, index PDFs and documents, and chat with an assistant that answers citing the exact source — all running locally, no cloud, no subscription."
+  },
+  "homepage.hero.readDocs": {
+    "message": "Read the documentation"
+  },
+  "homepage.hero.download": {
+    "message": "Download Tusab"
+  },
+  "homepage.hero.imageAlt": {
+    "message": "Thoth, the Egyptian god of writing and knowledge, in a futuristic control room"
+  },
+  "homepage.meta.description": {
+    "message": "Personal knowledge management (PKM) system with local AI. Extract YouTube channels, index documents, and chat with an assistant that cites the exact source of every answer."
+  },
+  "homepage.feature.index.title": {
+    "message": "Index — multi-source indexing"
+  },
+  "homepage.feature.index.description": {
+    "message": "Entire YouTube channels, PDFs, DOCX, audio, images, WhatsApp, and meeting transcripts — all extracted and indexed locally, with no intermediary server."
+  },
+  "homepage.feature.augment.title": {
+    "message": "Augment — local RAG"
+  },
+  "homepage.feature.augment.description": {
+    "message": "BM25 + FTS5 + CrossEncoder (and optional vector search) retrieve the most relevant excerpts from your base and deliver them to the model as context — without hallucinating beyond what was indexed."
+  },
+  "homepage.feature.chat.title": {
+    "message": "Chat — sourced answers"
+  },
+  "homepage.feature.chat.description": {
+    "message": "Every answer cites title, date, and origin link. Runs offline with Ollama, or with Groq, OpenAI, Anthropic, and Gemini as optional providers."
   }
 }
