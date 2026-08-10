@@ -18,6 +18,7 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/backend` | Engenheiro FastAPI/Python | analisar API, thread safety, atomicidade, BM25, RAG |
 | `/macos` | Engenheiro de Build/Release macOS | code signing, notarização, empacotamento Electron, bugs de CI no runner macOS |
 | `/frontend` | Engenheiro React/Vite | analisar componentes, hooks, estado, i18n, acessibilidade |
+| `/acessibilidade` | Especialista em Acessibilidade | WCAG, ARIA, navegação por teclado, leitores de tela (NVDA/JAWS/VoiceOver) |
 | `/ux` | Designer UX | avaliar fluxo, jornada, fricção, microcopy e interação por perfil |
 | `/ui` | Designer UI | auditar tokens visuais, estados de componentes, hierarquia tipográfica, consistência dark/light |
 | `/product-designer` | Product Designer | síntese UX + UI + Job to be Done + impacto de negócio — proposta integrada |

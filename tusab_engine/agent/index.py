@@ -178,7 +178,12 @@ def _get_agent_status_uncached() -> dict:
                     doc_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'documents', '*.txt'))
                     txt_txts = _glob.glob(os.path.join(NEURAL_DIR, prefixo, 'texts', '*.txt'))
                     n_fonte = len([f for f in doc_txts + txt_txts if not os.path.basename(f).startswith('_')]) + len(yt_txts)
-                    canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at, 'n_arquivos_fonte': n_fonte})
+                    try:
+                        from tusab_engine.agent.embeddings import embeddings_existe
+                        embeddings_disponivel = embeddings_existe(prefixo)
+                    except Exception:
+                        embeddings_disponivel = False
+                    canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at, 'n_arquivos_fonte': n_fonte, 'embeddings_disponivel': embeddings_disponivel})
                     if nome == projeto_nome:
                         index_count = count
                 except (json.JSONDecodeError, ValueError):
@@ -275,9 +280,60 @@ _STOPWORDS = {
 }
 
 
+# ── Embeddings (busca vetorial) ───────────────────────────────────────────────
+# Extensão aditiva do cache incremental acima: cada entrada de cache pode
+# ganhar uma chave opcional 'embeddings' (paralela a 'chunks'). Sem bump de
+# _CACHE_VERSION — não muda o schema de parsing, só adiciona um dado novo.
+#
+# Backfill dirigido (Decisão B): quando um arquivo bate cache-hit de chunk
+# (mtime igual) mas a entrada ainda não tem 'embeddings' — caso de todo
+# projeto indexado ANTES desta feature existir — gera o embedding só para
+# aquele arquivo, sem reprocessar KeyBERT/parsing, e grava de volta na própria
+# entrada de cache (mutação do dict referenciado por cache[caminho]) para
+# nunca mais recalcular.
+
+def _gerar_embeddings_arquivo(chunks_arquivo: list) -> list:
+    """Gera embeddings para os chunks de UM arquivo-fonte, em lote. Retorna
+    lista do mesmo tamanho de chunks_arquivo (com None nas posições que
+    falharem) — nunca lança, nunca deixa a indexação quebrar por isso."""
+    if not chunks_arquivo:
+        return []
+    try:
+        from tusab_engine.agent import embeddings as embeddings_mod
+        vetores = embeddings_mod.gerar_embeddings_lote(
+            [c.get('texto_original', c.get('texto', '')) for c in chunks_arquivo]
+        )
+        if vetores is None:
+            return [None] * len(chunks_arquivo)
+        return vetores
+    except Exception:
+        return [None] * len(chunks_arquivo)
+
+
+def _obter_embeddings_cache(entrada: dict) -> list:
+    """Cache-hit de chunk: reaproveita 'embeddings' se já presente, alinhada
+    E com pelo menos um vetor válido; senão faz o backfill dirigido (só a
+    chamada ao Ollama, sem reparsing).
+
+    [IMPACTO CORRIGIDO] Uma entrada com 'embeddings' == [None, None, ...]
+    (falha TOTAL do Ollama naquele arquivo numa indexação anterior) não pode
+    ser tratada como "já processada" — isso envenenaria o cache pra sempre:
+    o arquivo nunca mais tentaria gerar embedding, mesmo com o Ollama de
+    volta, até o mtime mudar de novo. `any(v is not None ...)` distingue
+    "sucesso real" (retenta nunca) de "falha total" (retenta a cada
+    indexação, mesmo custo baixo de só chamar modelo_disponivel + 1 lote)."""
+    chunks_arquivo = entrada.get('chunks', [])
+    cached_emb = entrada.get('embeddings')
+    if cached_emb is not None and len(cached_emb) == len(chunks_arquivo) and any(v is not None for v in cached_emb):
+        return cached_emb
+    vetores = _gerar_embeddings_arquivo(chunks_arquivo)
+    entrada['embeddings'] = vetores
+    return vetores
+
+
 # ── Parser de chunks ──────────────────────────────────────────────────────────
 
-def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arquivos_vistos: set = None) -> list:
+def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arquivos_vistos: set = None, embeddings_out: list = None) -> list:
     chunks   = []
     arquivos = sorted([
         f for f in os.listdir(txt_dir)
@@ -299,6 +355,8 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
             entrada = cache.get(caminho_abs)
             if entrada and entrada.get('mtime') == mtime:
                 chunks.extend(entrada['chunks'])
+                if embeddings_out is not None:
+                    embeddings_out.extend(_obter_embeddings_cache(entrada))
                 continue
 
         with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
@@ -362,8 +420,13 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
                 c['texto'] = texto_enriquecido
 
         chunks.extend(chunks_arquivo)
+        entrada_cache = {'mtime': mtime, 'chunks': chunks_arquivo}
+        if embeddings_out is not None:
+            vetores = _gerar_embeddings_arquivo(chunks_arquivo)
+            entrada_cache['embeddings'] = vetores
+            embeddings_out.extend(vetores)
         if cache is not None:
-            cache[caminho_abs] = {'mtime': mtime, 'chunks': chunks_arquivo}
+            cache[caminho_abs] = entrada_cache
 
     return chunks
 
@@ -401,7 +464,7 @@ def _contar_unidades_fonte(projeto_prefixo: str) -> int:
     return total
 
 
-def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
+def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None, embeddings_out: list = None) -> list:
     """Lê chunks de todas as fontes: todos os canais do projeto + docs + avulso + legado.
 
     progress_callback(processed, total), se fornecido, é chamado após cada
@@ -409,6 +472,10 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
     de documento/texto). Granularidade escolhida para não alterar o parsing
     interno de _parsear_chunks (ver aviso [IMPACTO] em indexar() sobre schema
     de chunks) — só envolve as chamadas já existentes com contagem de progresso.
+
+    embeddings_out, se fornecido (lista mutada por referência, mesmo idioma de
+    arquivos_vistos), recebe um vetor (ou None) por chunk, na MESMA ORDEM da
+    lista `chunks` retornada — contrato exigido por embeddings.salvar_matriz().
     """
     total = _contar_unidades_fonte(projeto_prefixo) if progress_callback else 0
     processed = 0
@@ -433,15 +500,15 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
         for canal_entry in os.scandir(youtube_base):
             if canal_entry.is_dir():
                 # Nova estrutura: youtube/{canal}/*.txt
-                chunks += _parsear_chunks(canal_entry.path, canal_entry.name, cache=cache, arquivos_vistos=arquivos_vistos)
+                chunks += _parsear_chunks(canal_entry.path, canal_entry.name, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out)
                 _tick()
             elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
                 # Legado flat: youtube/*.txt (arquivos anteriores à migração de estrutura)
-                chunks += _parsear_chunks(youtube_base, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos)
+                chunks += _parsear_chunks(youtube_base, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out)
                 _tick()
     # Legado: data/neural/youtube/ plano (arquivos nomeados {projeto_prefixo}_*.txt)
     if os.path.exists(TXT_DIR):
-        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos)
+        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out)
         _tick()
 
     seen_files = set()
@@ -469,6 +536,8 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
             cache_entrada = cache.get(caminho)
             if cache_entrada and cache_entrada.get('mtime') == mtime:
                 chunks.extend(cache_entrada['chunks'])
+                if embeddings_out is not None:
+                    embeddings_out.extend(_obter_embeddings_cache(cache_entrada))
                 _tick()
                 continue
 
@@ -524,7 +593,12 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None) -> list:
                     for c, texto_enriquecido in zip(chunks_arquivo, textos_enriquecidos):
                         c['texto'] = texto_enriquecido
                 chunks.extend(chunks_arquivo)
-                cache[caminho] = {'mtime': mtime, 'chunks': chunks_arquivo}
+                entrada_cache = {'mtime': mtime, 'chunks': chunks_arquivo}
+                if embeddings_out is not None:
+                    vetores = _gerar_embeddings_arquivo(chunks_arquivo)
+                    entrada_cache['embeddings'] = vetores
+                    embeddings_out.extend(vetores)
+                cache[caminho] = entrada_cache
             except Exception:
                 pass
             finally:
@@ -676,7 +750,17 @@ def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=N
     # Ver: Documentação do Produto/Mapa de Impacto de Dependências.md §3.2
     if callback: callback("🔍 Lendo arquivos do corpus...")
 
-    chunks = _parsear_todos_chunks(projeto_prefixo, progress_callback=progress_callback)
+    try:
+        from tusab_engine.agent import embeddings as embeddings_mod
+        gerar_embeddings = embeddings_mod.modelo_disponivel()
+    except Exception:
+        embeddings_mod = None
+        gerar_embeddings = False
+    # embeddings_out=None (Ollama sem o modelo) -> _parsear_todos_chunks nem
+    # tenta gerar embeddings, degradação graciosa idêntica a hoje (sem .npy).
+    embeddings_out = [] if gerar_embeddings else None
+
+    chunks = _parsear_todos_chunks(projeto_prefixo, progress_callback=progress_callback, embeddings_out=embeddings_out)
     if not chunks:
         raise ValueError(f"Nenhum conteúdo encontrado para '{projeto_prefixo}'. Faça a extração ou adicione documentos.")
 
@@ -699,6 +783,18 @@ def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=N
         construir_fts(projeto_prefixo, chunks)
     except Exception as e:
         if callback: callback(f"⚠️ FTS5 não disponível (degradação graciosa): {e}")
+
+    if embeddings_out is not None:
+        try:
+            if len(embeddings_out) == len(chunks):
+                if embeddings_mod.salvar_matriz(projeto_prefixo, embeddings_out):
+                    if callback: callback("🧬 Busca vetorial (embeddings) pronta.")
+            else:
+                # Não deveria acontecer (embeddings_out cresce em lockstep com
+                # chunks) — sinaliza sem quebrar a indexação em si.
+                if callback: callback("⚠️ Embeddings desalinhados com chunks — pulando busca vetorial nesta indexação.")
+        except Exception as e:
+            if callback: callback(f"⚠️ Embeddings não disponíveis (degradação graciosa): {e}")
 
     config = carregar_config()
     config['canal_indexado'] = projeto_nome

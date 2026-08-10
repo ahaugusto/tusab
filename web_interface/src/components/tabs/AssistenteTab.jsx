@@ -7,6 +7,7 @@ import {
   Settings, LayoutGrid, RefreshCw, Copy, Check,
 } from 'lucide-react';
 import OllamaSetup from '../assistente/OllamaSetup';
+import EmbeddingsStatus from '../assistente/EmbeddingsStatus';
 import PersonaCustomModal from '../shared/PersonaCustomModal';
 import { BTN_FOCUS } from '../../constants';
 import { saveAgentConfig, pullOllamaModel, fetchOllamaPullProgress, fetchOllamaStatus } from '../../services/api';
@@ -212,6 +213,14 @@ export default function AssistenteTab({
                         onBaixarModelo={handleBaixarModelo}
                         mostrarRaciocinio={mostrarRaciocinio}
                         onToggleMostrarRaciocinio={handleToggleMostrarRaciocinio}
+                      />
+
+                      {/* Busca vetorial (embeddings) — complemento opcional ao BM25+FTS5,
+                          só relevante quando Ollama está rodando (ver EmbeddingsStatus.jsx) */}
+                      <EmbeddingsStatus
+                        darkMode={darkMode}
+                        ollamaStatus={ollamaStatus} setOllamaStatus={setOllamaStatus}
+                        btnFocus={BTN_FOCUS}
                       />
 
                       {/* External provider toggle */}
