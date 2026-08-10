@@ -13,6 +13,7 @@ const sidebars = {
       items: [
         'funcionalidades/extracao-youtube',
         'funcionalidades/repositorio-multi-fonte',
+        'funcionalidades/fontes-publicas',
         'funcionalidades/assistente-rag',
         'funcionalidades/modo-estudo',
         'funcionalidades/mcp-server',

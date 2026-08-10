@@ -48,7 +48,7 @@ Constrói corpora de múltiplas fontes para análise aprofundada, com controle f
 **Diferenciais em relação ao Professor:**
 - Painel **Visão Geral** — analytics do projeto: tamanho do corpus, cobertura, distribuição de fontes
 - **Busca Ampla com CrossEncoder** ativa por padrão — BM25 recupera os top-12 candidatos, um CrossEncoder (`ms-marco-MiniLM-L-6-v2`) reordena semanticamente, os top-6 vão ao prompt
-- Busca em fontes públicas por área de conhecimento (arXiv, OpenAlex, DOAJ, Zenodo, Crossref, FHIR/ResearchStudy para estudos clínicos, entre outras)
+- Busca em [26 fontes públicas por área de conhecimento](/funcionalidades/fontes-publicas) (arXiv, PubMed, Câmara dos Deputados, Banco Central, CERN Open Data, entre outras)
 
 ## Especialista
 

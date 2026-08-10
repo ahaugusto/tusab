@@ -32,7 +32,7 @@ Teacher, Researcher, and Specialist profiles can queue multiple channels for seq
 
 ## Public sources (Researcher profile)
 
-Besides YouTube, the Researcher profile has access to searching public sources by knowledge area — scientific output, technology, economics, law, health, earth sciences, physics/chemistry, cultural heritage, and anthropology/linguistics — including multidisciplinary search engines like arXiv, OpenAlex, DataCite, DOAJ, Zenodo, Crossref, and Open Library, all without needing registration or an API key. There's also clinical search via FHIR/ResearchStudy (public server, scoped to research studies).
+Besides YouTube, the Researcher profile has access to searching 26 public sources across 9 knowledge areas — none require registration or an API key. See [Public sources by knowledge area](/funcionalidades/fontes-publicas) for the full list.
 
 ## Standalone web page reader
 
