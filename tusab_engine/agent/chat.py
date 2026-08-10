@@ -563,6 +563,21 @@ def _filtrar_por_identificador(pergunta: str, resultados: list) -> list:
     return com_identificador if com_identificador else resultados
 
 
+def _ja_incluido(resultados: list, chunk: dict, indice: int) -> bool:
+    """Dedup por título+timestamp — mesma chave usada pelo bloco FTS5 e pelo
+    bloco de busca vetorial em _recuperar_contexto(), extraída aqui pra não
+    duplicar a comparação em cada um dos dois blocos de merge. `indice` é a
+    posição do chunk em sua lista de origem (rowid no FTS5, índice no .npy
+    vetorial) — usado só como fallback de identidade quando não há título."""
+    chave_titulo = chunk.get('titulo') or f'chunk_{indice}'
+    chave_ts = chunk.get('timestamp_inicio') if chunk.get('timestamp_inicio') is not None else ''
+    return any(
+        (r.get('titulo') or f'chunk_{i}') == chave_titulo and
+        (r.get('timestamp_inicio') if r.get('timestamp_inicio') is not None else '') == chave_ts
+        for i, r in enumerate(resultados)
+    )
+
+
 def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: dict = None, projetos_extras: list = None, fontes_fixadas: list = None, busca_ampla: bool = False, perfil: str = '', trechos_fixados: list = None) -> list:
     # Trechos fixados via @@ já passaram pelo pipeline BM25+CrossEncoder no momento da busca.
     # Retorná-los diretamente evita dupla pesquisa e garante que o LLM vê exatamente o que o usuário selecionou.
@@ -674,22 +689,39 @@ def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: di
                 for rid in fts_rowids:
                     if rid < len(chunks_result):
                         c = chunks_result[rid]
-                        chave_titulo = c.get('titulo') or f'chunk_{rid}'
-                        chave_ts     = c.get('timestamp_inicio') if c.get('timestamp_inicio') is not None else ''
-                        ja_incluido = any(
-                            (r.get('titulo') or f'chunk_{i}') == chave_titulo and
-                            (r.get('timestamp_inicio') if r.get('timestamp_inicio') is not None else '') == chave_ts
-                            for i, r in enumerate(resultados)
-                        )
-                        if not ja_incluido:
+                        if not _ja_incluido(resultados, c, rid):
                             resultados.append({
-                                **chunks_result[rid],
+                                **c,
                                 'score': 0.1,
                                 'canal': projeto_nome,
                                 'fts_match': True,
                             })
         except Exception:
             pass
+
+        # Busca vetorial (embeddings) — só em Busca Ampla, mesma razão pela
+        # qual o CrossEncoder já é gateado assim: match semântico aproximado
+        # precisa de um validador de relevância real (o CrossEncoder, chamado
+        # depois em _rerankar), que não existe em Busca Restrita. Diferente
+        # do FTS5 (exact-match, mesclado sempre), este bloco só entra quando
+        # busca_ampla=True. Ver agents/_historia.md sobre a Fase 1 de
+        # embeddings — complemento ao BM25, nunca substituição.
+        if busca_ampla:
+            try:
+                from tusab_engine.agent.embeddings import buscar_vetorial
+                chunks_result = cached['chunks']
+                for idx, cos_sim in buscar_vetorial(pergunta, projeto_prefixo, len(chunks_result), top_k=n):
+                    c = chunks_result[idx]
+                    if not _ja_incluido(resultados, c, idx):
+                        resultados.append({
+                            **c,
+                            'score': 0.15,
+                            'canal': projeto_nome,
+                            'vetorial_match': True,
+                            '_cos_sim': cos_sim,
+                        })
+            except Exception:
+                pass
 
     resultados.sort(key=lambda x: x['score'], reverse=True)
 
