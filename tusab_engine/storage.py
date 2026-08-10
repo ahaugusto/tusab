@@ -175,3 +175,11 @@ def salvar_json_atomico(obj, path: str, indent=None):
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(obj, f, ensure_ascii=False, indent=indent)
     os.replace(tmp, path)
+
+
+def salvar_npy_atomico(array, path: str):
+    """numpy.save não tem variante atômica nativa — mesmo padrão tmp+replace."""
+    import numpy as np
+    tmp = path + '.tmp.npy'
+    np.save(tmp, array)
+    os.replace(tmp, path)

@@ -354,7 +354,7 @@
           <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          <p>O Ollama permite executar modelos de linguagem (LLMs) localmente, sem enviar dados para a nuvem. É a opção recomendada para quem valoriza privacidade. Alternativamente, você pode usar OpenAI, Anthropic, Gemini ou Groq configurando uma chave de API na aba <strong>Agente</strong>.</p>
+          <p>O Ollama permite executar modelos de linguagem (LLMs) localmente, sem enviar dados para a nuvem. É a opção recomendada para quem valoriza privacidade. Alternativamente, você pode usar OpenAI, Anthropic, Gemini ou Groq configurando uma chave de API na aba <strong>Assistente</strong>.</p>
         </div>
       </div>
 
@@ -364,7 +364,37 @@
           <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          <p>O Tusab usa RAG (Retrieval-Augmented Generation): ao fazer uma pergunta, o sistema recupera os trechos mais relevantes da base indexada usando BM25. Esses trechos são enviados ao LLM junto com sua pergunta. Ative a <strong>Busca Ampla</strong> para usar o CrossEncoder e melhorar a qualidade da recuperação (ligeiramente mais lento).</p>
+          <p>O Tusab usa RAG (Retrieval-Augmented Generation): ao fazer uma pergunta, o sistema recupera os trechos mais relevantes da base indexada usando BM25. Esses trechos são enviados ao LLM junto com sua pergunta. Ative a <strong>Busca Ampla</strong> para usar o CrossEncoder e melhorar a qualidade da recuperação (ligeiramente mais lento) — e, se o modelo <code>nomic-embed-text</code> estiver instalado no Ollama, a busca vetorial por significado também entra (ver pergunta específica abaixo).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          O que é a busca vetorial (embeddings) e como ativo?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Além da busca por palavra-chave (BM25), o Tusab pode recuperar trechos por <strong>significado</strong> — útil quando sua pergunta usa termos diferentes dos que aparecem no conteúdo. Isso roda 100% local via Ollama, sem enviar nada para fora da sua máquina. Na aba <strong>Assistente → Configurações</strong>, no card "Busca vetorial (embeddings)", clique em <strong>Baixar nomic-embed-text</strong> (~274 MB, uma vez só). Depois, reindexe sua base — a partir daí, toda <strong>Busca Ampla</strong> passa a combinar as duas formas de recuperação automaticamente.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          O que são os perfis (Estudante, Especialista, Pesquisador, Professor)?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>No primeiro uso, o Tusab pergunta qual perfil melhor descreve você — isso ajusta quais abas aparecem e o que é destacado na tela inicial (ex.: Pesquisador ganha acesso a bases públicas por área de conhecimento e a leitura de arquivos FHIR; Estudante vê a aba Estudo em destaque). Você pode trocar de perfil a qualquer momento — nenhum dado é perdido ao trocar, só a organização da interface muda.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          O que é a aba Estudo (flashcards, quiz, resumo)?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>A aba <strong>Estudo</strong> (atalho <code>Shift+U</code>) gera ferramentas de aprendizagem a partir da sua base indexada, com um LLM: flashcards com repetição espaçada (algoritmo SM-2 — os cards vencidos aparecem em "Revisar hoje"), resumos (com áudio, se o stack de voz local estiver disponível), quiz de múltipla escolha, nuvem de palavras-chave e post-its de pontos-chave. Você pode focar a geração num tema específico em vez da base inteira, e cada geração fica salva como um card num quadro — pesquisável no chat como qualquer outro conteúdo.</p>
         </div>
       </div>
 
@@ -442,12 +472,24 @@
           <span class="kbd"><span class="key">Shift</span> + <span class="key">A</span></span>
         </div>
         <div class="shortcut-row">
-          <span class="shortcut-label">Aba Agente</span>
+          <span class="shortcut-label">Aba Assistente</span>
           <span class="kbd"><span class="key">Shift</span> + <span class="key">I</span></span>
         </div>
         <div class="shortcut-row">
           <span class="shortcut-label">Aba Monitor</span>
           <span class="kbd"><span class="key">Shift</span> + <span class="key">M</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Visão Geral</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">V</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Histórico</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">H</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Aba Estudo</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">U</span></span>
         </div>
         <div class="shortcut-row">
           <span class="shortcut-label">Voltar à Home</span>
@@ -561,7 +603,7 @@
           <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          <p>Ollama lets you run language models (LLMs) locally without sending your data to the cloud. It's the recommended option for privacy-conscious users. Alternatively, configure an API key in the <strong>Agent</strong> tab to use OpenAI, Anthropic, Gemini, or Groq.</p>
+          <p>Ollama lets you run language models (LLMs) locally without sending your data to the cloud. It's the recommended option for privacy-conscious users. Alternatively, configure an API key in the <strong>Assistant</strong> tab to use OpenAI, Anthropic, Gemini, or Groq.</p>
         </div>
       </div>
 
@@ -571,7 +613,47 @@
           <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          <p>Tusab uses RAG (Retrieval-Augmented Generation): when you ask a question, the system retrieves the most relevant excerpts from the indexed base using BM25. Those excerpts are sent to the LLM together with your question. Enable <strong>Wide Search</strong> to activate the CrossEncoder for better retrieval quality (slightly slower).</p>
+          <p>Tusab uses RAG (Retrieval-Augmented Generation): when you ask a question, the system retrieves the most relevant excerpts from the indexed base using BM25. Those excerpts are sent to the LLM together with your question. Enable <strong>Wide Search</strong> to activate the CrossEncoder for better retrieval quality (slightly slower) — and, if the <code>nomic-embed-text</code> model is installed in Ollama, meaning-based vector search is added too (see the dedicated question below).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          What is vector search (embeddings) and how do I enable it?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Besides keyword search (BM25), Tusab can retrieve passages by <strong>meaning</strong> — useful when your question uses different words than the ones in the content. It runs 100% locally via Ollama, nothing leaves your machine. In the <strong>Assistant → Settings</strong> tab, on the "Vector search (embeddings)" card, click <strong>Download nomic-embed-text</strong> (~274 MB, one-time). Then re-index your base — from there on, every <strong>Wide Search</strong> automatically combines both retrieval methods.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          What are profiles (Student, Specialist, Researcher, Teacher)?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>On first use, Tusab asks which profile best describes you — this adjusts which tabs appear and what's highlighted on the home screen (e.g. Researcher gets access to public sources by knowledge area and FHIR file reading; Student sees the Study tab highlighted). You can switch profiles anytime — no data is lost when switching, only the interface layout changes.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          What is the Study tab (flashcards, quiz, summary)?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>The <strong>Study</strong> tab (shortcut <code>Shift+U</code>) generates learning tools from your indexed base using an LLM: spaced-repetition flashcards (SM-2 algorithm — due cards show up under "Review today"), summaries (with audio, if the local voice stack is available), multiple-choice quizzes, keyword clouds, and key-point sticky notes. You can scope generation to a specific topic instead of the whole base, and each generation is saved as a card on a board — searchable in chat like any other content.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          How do I index my base to use the chat?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>In the <strong>Repository</strong> tab, click <strong>Index base</strong>, check the projects you want to index, and confirm. After indexing, open the chat and select the project in the channel selector.</p>
         </div>
       </div>
 
@@ -582,6 +664,16 @@
         </button>
         <div class="faq-answer">
           <p>By default, <strong>no</strong>. Tusab is local-first: extraction, indexing, and search happen entirely on your machine. Data leaves only if you (a) configure an external LLM (OpenAI, Anthropic, Gemini, Groq) or (b) enable Google Drive sync. Your choice.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          How do I add PDFs, DOCXs, and texts?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>In the <strong>Repository</strong> tab, open the desired project and use the upload button. PDF, DOCX, TXT, CSV, and MD are accepted. WhatsApp conversations (Android and iOS) and meeting transcripts (Zoom, Teams, Otter) are automatically detected and structured before saving.</p>
         </div>
       </div>
 
@@ -629,12 +721,24 @@
           <span class="kbd"><span class="key">Shift</span> + <span class="key">A</span></span>
         </div>
         <div class="shortcut-row">
-          <span class="shortcut-label">Agent tab</span>
+          <span class="shortcut-label">Assistant tab</span>
           <span class="kbd"><span class="key">Shift</span> + <span class="key">I</span></span>
         </div>
         <div class="shortcut-row">
           <span class="shortcut-label">Monitor tab</span>
           <span class="kbd"><span class="key">Shift</span> + <span class="key">M</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Overview tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">V</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">History tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">H</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Study tab</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">U</span></span>
         </div>
         <div class="shortcut-row">
           <span class="shortcut-label">Back to Home</span>
@@ -744,11 +848,81 @@
 
       <div class="faq-item">
         <button class="faq-question" onclick="toggle(this)">
+          ¿Qué es Ollama y por qué lo necesito?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Ollama permite ejecutar modelos de lenguaje (LLMs) localmente, sin enviar datos a la nube. Es la opción recomendada para quien valora la privacidad. Alternativamente, puedes usar OpenAI, Anthropic, Gemini o Groq configurando una clave de API en la pestaña <strong>Asistente</strong>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Cómo funciona el chat con la base de conocimiento?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Tusab usa RAG (Retrieval-Augmented Generation): al hacer una pregunta, el sistema recupera los fragmentos más relevantes de la base indexada usando BM25. Esos fragmentos se envían al LLM junto con tu pregunta. Activa la <strong>Búsqueda Amplia</strong> para usar el CrossEncoder y mejorar la calidad de la recuperación (ligeramente más lento) — y, si el modelo <code>nomic-embed-text</code> está instalado en Ollama, también se suma búsqueda vectorial por significado (ver pregunta específica más abajo).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Qué es la búsqueda vectorial (embeddings) y cómo la activo?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Además de la búsqueda por palabra clave (BM25), Tusab puede recuperar fragmentos por <strong>significado</strong> — útil cuando tu pregunta usa términos distintos a los del contenido. Funciona 100% local vía Ollama, nada sale de tu máquina. En la pestaña <strong>Asistente → Configuración</strong>, en la tarjeta "Búsqueda vectorial (embeddings)", haz clic en <strong>Descargar nomic-embed-text</strong> (~274 MB, una sola vez). Luego reindexá tu base — desde ese momento, toda <strong>Búsqueda Amplia</strong> combina ambos métodos de recuperación automáticamente.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Qué son los perfiles (Estudiante, Especialista, Investigador, Profesor)?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>En el primer uso, Tusab pregunta qué perfil te describe mejor — esto ajusta qué pestañas aparecen y qué se destaca en la pantalla de inicio (ej.: Investigador obtiene acceso a fuentes públicas por área de conocimiento y lectura de archivos FHIR; Estudiante ve la pestaña Estudio destacada). Puedes cambiar de perfil en cualquier momento — no se pierde ningún dato al cambiar, solo cambia la organización de la interfaz.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Qué es la pestaña Estudio (flashcards, quiz, resumen)?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>La pestaña <strong>Estudio</strong> (atajo <code>Shift+U</code>) genera herramientas de aprendizaje a partir de tu base indexada, con un LLM: flashcards con repetición espaciada (algoritmo SM-2 — las tarjetas vencidas aparecen en "Revisar hoy"), resúmenes (con audio, si el stack de voz local está disponible), quiz de opción múltiple, nube de palabras clave y post-its de puntos clave. Puedes enfocar la generación en un tema específico en lugar de toda la base, y cada generación queda guardada como una tarjeta en un tablero — buscable en el chat como cualquier otro contenido.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Cómo indexo mi base para usar el chat?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>En la pestaña <strong>Repositorio</strong>, haz clic en <strong>Indexar base</strong>, marca los proyectos que deseas indexar y confirma. Después de indexar, abre el chat y selecciona el proyecto en el selector de canal.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
           ¿Mis datos salen de mi máquina?
           <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
           <p>Por defecto, <strong>no</strong>. Tusab es local-first: la extracción, indexación y búsqueda ocurren completamente en tu máquina. Los datos solo salen si (a) configuras un LLM externo (OpenAI, Anthropic, Gemini, Groq) o (b) activas la sincronización con Google Drive. Tú eliges.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggle(this)">
+          ¿Cómo agrego PDFs, DOCXs y textos?
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>En la pestaña <strong>Repositorio</strong>, abre el proyecto deseado y usa el botón de carga. Se aceptan PDF, DOCX, TXT, CSV, MD. Las conversaciones de WhatsApp (Android e iOS) y las transcripciones de reuniones (Zoom, Teams, Otter) se detectan automáticamente y se estructuran antes de guardar.</p>
         </div>
       </div>
 
@@ -796,11 +970,31 @@
           <span class="kbd"><span class="key">Shift</span> + <span class="key">A</span></span>
         </div>
         <div class="shortcut-row">
-          <span class="shortcut-label">Pestaña Agente</span>
+          <span class="shortcut-label">Pestaña Asistente</span>
           <span class="kbd"><span class="key">Shift</span> + <span class="key">I</span></span>
         </div>
         <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Monitor</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">M</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Resumen</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">V</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Historial</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">H</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Pestaña Estudio</span>
+          <span class="kbd"><span class="key">Shift</span> + <span class="key">U</span></span>
+        </div>
+        <div class="shortcut-row">
           <span class="shortcut-label">Volver a Inicio</span>
+          <span class="kbd"><span class="key">Esc</span></span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Cerrar modal / chat</span>
           <span class="kbd"><span class="key">Esc</span></span>
         </div>
       </div>
@@ -821,6 +1015,13 @@
           <div>
             <div class="contact-label">Reportar errores y sugerencias</div>
             <div class="contact-value"><a href="https://github.com/ahaugusto/tusab-public/issues" target="_blank">github.com/ahaugusto/tusab-public/issues</a></div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">👤</div>
+          <div>
+            <div class="contact-label">Autor</div>
+            <div class="contact-value">Augusto Brasil — <a href="https://linkedin.com/in/augustoalvesbrasil" target="_blank">LinkedIn</a></div>
           </div>
         </div>
       </div>

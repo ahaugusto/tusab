@@ -7,6 +7,19 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.49] — 2026-08-10
+
+### Adicionado
+- **Busca vetorial (embeddings) — Fase 1**, complemento ao BM25+FTS5 no pipeline RAG: novo módulo `tusab_engine/agent/embeddings.py` gera embeddings via Ollama (`nomic-embed-text`, local, mesmo princípio local-first), persistidos em `.npy`+`.meta.json` por projeto. Indexação faz backfill dirigido — bases já indexadas ganham embedding na próxima reindexação sem reprocessar KeyBERT. Chat mescla candidatos vetoriais só em Busca Ampla (score simbólico, mesmo padrão do FTS5), com degradação graciosa total quando o modelo não está instalado. Card "Busca vetorial (embeddings)" na aba Assistente para baixar o modelo com 1 clique — reaproveita os endpoints Ollama existentes, zero rota nova.
+- **Agente especializado `/acessibilidade`** (`agents/acessibilidade.md`) — WCAG, ARIA, navegação por teclado, comportamento real de leitores de tela (NVDA/JAWS/VoiceOver).
+- Ajuda (`electron/help.html`): FAQs novas sobre busca vetorial, perfis de usuário e a aba Estudo, em pt/en/es.
+
+### Corrigido
+- **Ajuda (`electron/help.html`) desatualizada e sem paridade entre idiomas** — inglês e espanhol estavam faltando FAQs inteiras (indexar base, upload de PDF/DOCX; espanhol também faltava Ollama e RAG/chat), atalhos de teclado incompletos nos 3 idiomas (faltavam Visão Geral, Histórico, Estudo) e referências à aba "Agente" que não existe mais na interface (renomeada para "Assistente"). Espanhol também não tinha a linha de autor no card de contato. Todos os 3 idiomas agora têm as mesmas 15 FAQs, 11 atalhos e 3 linhas de contato.
+- Cache de embeddings por arquivo tratava uma falha total do Ollama numa indexação anterior como "já processado" e nunca tentava de novo, mesmo com o Ollama de volta — corrigido pra reter apenas sucesso real, retentando falhas totais na próxima indexação.
+- `EmbeddingsStatus.jsx`: card de download podia ficar mostrando o progresso de outro modelo (o backend só tem um slot global) sem nunca sinalizar conclusão — agora confirma a instalação consultando os modelos do Ollama diretamente, independente do slot de progresso. Falha de download agora mostra mensagem de erro visível (antes só o botão reaparecia em silêncio).
+- Acessibilidade do card de embeddings: barra de progresso ganhou `role="progressbar"` + `aria-valuenow/valuemin/valuemax/valuetext`; ícones decorativos com `aria-hidden`; região de status isolada em `aria-live="polite"` (sem englobar o cabeçalho estático); foco movido para a região de status ao iniciar o download, evitando perda de foco quando o botão desmonta.
+
 ## [1.0.48] — 2026-08-09
 
 ### Alterado
