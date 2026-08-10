@@ -1,0 +1,58 @@
+{
+  "link.title.Documentação": {
+    "message": "Documentation",
+    "description": "The title of the footer links column with title=Documentação in the footer"
+  },
+  "link.title.Projeto": {
+    "message": "Project",
+    "description": "The title of the footer links column with title=Projeto in the footer"
+  },
+  "link.title.CriAugu": {
+    "message": "CriAugu",
+    "description": "The title of the footer links column with title=CriAugu in the footer"
+  },
+  "link.item.label.Introdução": {
+    "message": "Introduction",
+    "description": "The label of footer link with label=Introdução linking to /intro"
+  },
+  "link.item.label.Instalação": {
+    "message": "Installation",
+    "description": "The label of footer link with label=Instalação linking to /instalacao"
+  },
+  "link.item.label.Arquitetura": {
+    "message": "Architecture",
+    "description": "The label of footer link with label=Arquitetura linking to /arquitetura/visao-geral"
+  },
+  "link.item.label.Segurança": {
+    "message": "Security",
+    "description": "The label of footer link with label=Segurança linking to /seguranca"
+  },
+  "link.item.label.Repositório no GitHub": {
+    "message": "GitHub repository",
+    "description": "The label of footer link with label=Repositório no GitHub linking to https://github.com/ahaugusto/tusab"
+  },
+  "link.item.label.Changelog completo": {
+    "message": "Full changelog",
+    "description": "The label of footer link with label=Changelog completo linking to https://github.com/ahaugusto/tusab/blob/main/CHANGELOG.md"
+  },
+  "link.item.label.Issues": {
+    "message": "Issues",
+    "description": "The label of footer link with label=Issues linking to https://github.com/ahaugusto/tusab/issues"
+  },
+  "link.item.label.Licença (Elastic License 2.0)": {
+    "message": "License (Elastic License 2.0)",
+    "description": "The label of footer link with label=Licença (Elastic License 2.0) linking to https://github.com/ahaugusto/tusab/blob/main/LICENSE"
+  },
+  "link.item.label.Site do Tusab": {
+    "message": "Tusab website",
+    "description": "The label of footer link with label=Site do Tusab linking to https://tusab.solutions"
+  },
+  "link.item.label.Augusto Brasil no LinkedIn": {
+    "message": "Augusto Brasil on LinkedIn",
+    "description": "The label of footer link with label=Augusto Brasil no LinkedIn linking to https://linkedin.com/in/augustoalvesbrasil"
+  },
+  "copyright": {
+    "message": "© 2026 CriAugu — CNPJ 65.131.075/0001-57. Documentation built with Docusaurus.",
+    "description": "The footer copyright"
+  }
+}

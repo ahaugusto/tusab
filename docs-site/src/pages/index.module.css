@@ -5,25 +5,78 @@
 
 .heroBanner {
   padding: 4rem 0;
-  text-align: center;
+  text-align: left;
   position: relative;
   overflow: hidden;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.heroText {
+  text-align: left;
+}
+
+.heroImageWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.heroImage {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 @media screen and (max-width: 996px) {
   .heroBanner {
     padding: 2rem;
   }
+
+  .heroGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .heroText {
+    text-align: center;
+  }
+
+  .heroImageWrap {
+    order: -1;
+  }
+
+  .heroImage {
+    max-width: 280px;
+  }
 }
 
 .buttons {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+}
+
+@media screen and (max-width: 996px) {
+  .buttons {
+    justify-content: center;
+  }
 }
 
 .heroDescription {
-  max-width: 640px;
-  margin: 0 auto 1.5rem;
-  opacity: 0.9;
+  max-width: 560px;
+  margin: 0 0 1.5rem;
+  opacity: 0.85;
+}
+
+@media screen and (max-width: 996px) {
+  .heroDescription {
+    margin: 0 auto 1.5rem;
+  }
 }
