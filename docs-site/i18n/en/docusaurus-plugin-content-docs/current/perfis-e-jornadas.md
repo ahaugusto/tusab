@@ -48,7 +48,7 @@ Builds corpora from multiple sources for in-depth analysis, with fine-grained co
 **Differences from Teacher:**
 - **Overview** panel — project analytics: corpus size, coverage, source distribution
 - **Broad Search with CrossEncoder** active by default — BM25 retrieves the top-12 candidates, a CrossEncoder (`ms-marco-MiniLM-L-6-v2`) reorders them semantically, the top-6 go into the prompt
-- Search public sources by knowledge area (arXiv, OpenAlex, DOAJ, Zenodo, Crossref, FHIR/ResearchStudy for clinical studies, among others)
+- Search [26 public sources across 9 knowledge areas](/funcionalidades/fontes-publicas) (arXiv, PubMed, Brazil's Chamber of Deputies, Central Bank, CERN Open Data, among others)
 
 ## Specialist
 
