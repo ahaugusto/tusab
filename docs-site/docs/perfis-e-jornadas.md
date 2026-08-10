@@ -20,9 +20,9 @@ O Tusab tem quatro perfis com funcionalidades progressivamente mais avançadas. 
 | Busca Ampla (BM25 + CrossEncoder) | ✅ | ✅ | ✅ | ✅ |
 | Google Drive (sync) | ✅ | ✅ | ✅ | ✅ |
 | Extrair canal do YouTube / fila | — | ✅ | ✅ | ✅ |
-| Gerenciar repositório (deletar/limpar) | — | ✅ | ✅ | ✅ |
-| Painel Admin | ✅ | ✅ | — | ✅ |
-| Visão Geral (analytics do corpus) | — | — | ✅ | ✅ |
+| Gerenciar repositório (deletar/limpar) | ✅ | ✅ | ✅ | ✅ |
+| Painel Admin | ✅ | ✅ | ✅ | ✅ |
+| Visão Geral (analytics do corpus) | — | ✅ | ✅ | ✅ |
 | Monitor de sistema | — | — | — | ✅ |
 | Reset total | ✅ | ✅ | ✅ | ✅ |
 | Persona padrão do assistente | Didático | Didático | Técnico | Objetivo |

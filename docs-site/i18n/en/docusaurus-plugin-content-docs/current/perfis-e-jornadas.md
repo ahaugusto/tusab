@@ -20,9 +20,9 @@ Tusab has four profiles with progressively more advanced features. The profile i
 | Broad Search (BM25 + CrossEncoder) | ✅ | ✅ | ✅ | ✅ |
 | Google Drive (sync) | ✅ | ✅ | ✅ | ✅ |
 | Extract YouTube channel / queue | — | ✅ | ✅ | ✅ |
-| Manage repository (delete/clear) | — | ✅ | ✅ | ✅ |
-| Admin panel | ✅ | ✅ | — | ✅ |
-| Overview (corpus analytics) | — | — | ✅ | ✅ |
+| Manage repository (delete/clear) | ✅ | ✅ | ✅ | ✅ |
+| Admin panel | ✅ | ✅ | ✅ | ✅ |
+| Overview (corpus analytics) | — | ✅ | ✅ | ✅ |
 | System Monitor | — | — | — | ✅ |
 | Full reset | ✅ | ✅ | ✅ | ✅ |
 | Assistant's default persona | Didactic | Didactic | Technical | Objective |
