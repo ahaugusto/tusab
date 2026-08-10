@@ -7,6 +7,11 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.48] — 2026-08-09
+
+### Alterado
+- **Tagline "Ascend" → "Augment" na arte do logo** (`logo_light_mode.svg`, `logo_dark_mode.svg`, versões compactas, ícone do botão de chat, `electron/logo_loading.png`) — texto e logo agora usam a mesma palavra em toda parte ("Index · Augment · Chat"). "Ascend" nunca teve justificativa registrada além de ser a palavra que a arte original trazia; "Augment" referencia deliberadamente Douglas Engelbart (Intelligence Augmentation, 1962) — ver `agents/_historia.md`.
+
 ## [1.0.47] — 2026-08-09
 
 ### Alterado
