@@ -209,6 +209,78 @@ def _client_openai_compat(provider: str, api_key: str, config: dict):
     return OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1'), modelo
 
 
+# Lista única de fallback do Gemini — antes existiam 3 versões divergentes
+# (uma completa com 6 candidatos, duas truncadas com 3 em ordens diferentes)
+# espalhadas pelos pontos de dispatch abaixo. Gemini não tem tiering por
+# finalidade (diferente da Anthropic, ver _MODELO_ANTHROPIC_*): mesmo modelo
+# nas chamadas auxiliares e na resposta principal.
+_GEMINI_CANDIDATOS = [
+    'gemini-1.5-flash', 'gemini-1.5-flash-latest',
+    'gemini-1.5-flash-002', 'gemini-1.5-pro',
+    'gemini-pro', 'gemini-2.0-flash-lite',
+]
+
+# Anthropic é o único provider com tiering por finalidade: Haiku (rápido,
+# barato) para chamadas auxiliares de baixo risco (expandir query,
+# classificar intenção, mensagem de fallback sem contexto); Sonnet (melhor
+# qualidade) só na resposta final que o usuário lê. OpenAI/Gemini/Groq usam
+# o mesmo modelo padrão nas duas categorias — não há orçamento redundante
+# aí que justifique um segundo tier.
+_MODELO_ANTHROPIC_AUXILIAR  = 'claude-haiku-4-5-20251001'
+_MODELO_ANTHROPIC_PRINCIPAL = 'claude-sonnet-4-6'
+_MODELO_OPENAI = 'gpt-4o-mini'
+
+
+def _get_llm_client(provider: str, api_key: str, config: dict, principal: bool = False):
+    """Fábrica única de cliente LLM por provider.
+
+    Centraliza a escolha de SDK + modelo padrão que antes estava duplicada
+    em 5 pontos deste arquivo (_expandir_query, _classificar_intencao,
+    _responder_sem_contexto, _gerar_resposta_llm, chat_stream) — cada um
+    reimplementava o mesmo "import SDK, configura, resolve modelo padrão"
+    de forma levemente divergente (foi assim que as 3 versões diferentes da
+    lista de fallback do Gemini surgiram: a mesma decisão copiada 5 vezes
+    diverge com o tempo).
+
+    `principal=True` é a chamada que gera a resposta final que o usuário lê
+    (mais tokens/timeout no caller); `principal=False` é uso auxiliar
+    (expandir query, classificar intenção, fallback sem contexto) — só
+    muda o modelo escolhido para a Anthropic (ver _MODELO_ANTHROPIC_*).
+
+    Retorna (client, modelo). Para Gemini, `client` é o módulo `_genai`
+    configurado (não uma instância) — o caller monta
+    `client.GenerativeModel(modelo)` porque o SDK não tem um objeto de
+    cliente único como openai/anthropic.
+
+    Ollama NÃO passa por aqui: usa requests cru direto pra streaming,
+    thinking e retry (ver chat_stream) — específico demais pra abstrair
+    sem perder a lógica de cada call site.
+    """
+    if provider == 'openai':
+        from openai import OpenAI
+        return OpenAI(api_key=api_key), _MODELO_OPENAI
+
+    if provider == 'anthropic':
+        import anthropic
+        modelo = _MODELO_ANTHROPIC_PRINCIPAL if principal else _MODELO_ANTHROPIC_AUXILIAR
+        return anthropic.Anthropic(api_key=api_key), modelo
+
+    if provider in ('gemini', 'google'):
+        import google.generativeai as _genai
+        _genai.configure(api_key=api_key)
+        modelos_ok = [
+            m.name.replace('models/', '') for m in _genai.list_models()
+            if 'generateContent' in m.supported_generation_methods
+        ]
+        modelo = next((m for m in _GEMINI_CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+        return _genai, modelo
+
+    if provider in ('groq', 'custom'):
+        return _client_openai_compat(provider, api_key, config)
+
+    raise ValueError(f"Provedor desconhecido: {provider}")
+
+
 def _expandir_query(pergunta: str, config: dict) -> list:
     """Retorna [pergunta_original, variacao1, variacao2] usando o LLM configurado.
 
@@ -231,27 +303,16 @@ def _expandir_query(pergunta: str, config: dict) -> list:
     variacoes = []
     try:
         if provider in ('gemini', 'google'):
-            import google.generativeai as _genai
-            _genai.configure(api_key=api_key)
-            CANDIDATOS = [
-                'gemini-1.5-flash', 'gemini-1.5-flash-latest',
-                'gemini-1.5-flash-002', 'gemini-1.5-pro',
-                'gemini-pro', 'gemini-2.0-flash-lite',
-            ]
-            modelos_ok = [
-                m.name.replace('models/', '') for m in _genai.list_models()
-                if 'generateContent' in m.supported_generation_methods
-            ]
-            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+            client, modelo = _get_llm_client(provider, api_key, config)
             if modelo:
-                resp = _genai.GenerativeModel(modelo).generate_content(prompt_expansion)
+                resp = client.GenerativeModel(modelo).generate_content(prompt_expansion)
                 linhas = resp.text.strip().splitlines()
                 variacoes = [l.strip() for l in linhas if l.strip()][:2]
 
         elif provider == 'openai':
-            from openai import OpenAI
-            resp = OpenAI(api_key=api_key).chat.completions.create(
-                model='gpt-4o-mini',
+            client, modelo = _get_llm_client(provider, api_key, config)
+            resp = client.chat.completions.create(
+                model=modelo,
                 messages=[{'role': 'user', 'content': prompt_expansion}],
                 max_tokens=120,
                 timeout=8,
@@ -260,9 +321,9 @@ def _expandir_query(pergunta: str, config: dict) -> list:
             variacoes = [l.strip() for l in linhas if l.strip()][:2]
 
         elif provider == 'anthropic':
-            import anthropic
-            msg = anthropic.Anthropic(api_key=api_key).messages.create(
-                model='claude-haiku-4-5-20251001',
+            client, modelo = _get_llm_client(provider, api_key, config)
+            msg = client.messages.create(
+                model=modelo,
                 max_tokens=120,
                 messages=[{'role': 'user', 'content': prompt_expansion}],
                 timeout=8,
@@ -271,7 +332,7 @@ def _expandir_query(pergunta: str, config: dict) -> list:
             variacoes = [l.strip() for l in linhas if l.strip()][:2]
 
         elif provider in ('groq', 'custom'):
-            client, modelo = _client_openai_compat(provider, api_key, config)
+            client, modelo = _get_llm_client(provider, api_key, config)
             resp = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt_expansion}],
@@ -367,42 +428,36 @@ def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
             resultado = resp.json().get('response', '').strip().upper()
 
         elif provider in ('gemini', 'google'):
-            import google.generativeai as _genai
-            _genai.configure(api_key=api_key)
-            modelos_ok = [
-                m.name.replace('models/', '') for m in _genai.list_models()
-                if 'generateContent' in m.supported_generation_methods
-            ]
-            CANDIDATOS = ['gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest']
-            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+            client, modelo = _get_llm_client(provider, api_key, config)
             if not modelo:
                 return 'BUSCA'
-            resp = _genai.GenerativeModel(modelo).generate_content(
+            resp = client.GenerativeModel(modelo).generate_content(
                 prompt,
                 generation_config={'max_output_tokens': 5, 'temperature': 0.0},
             )
             resultado = resp.text.strip().upper()
 
         elif provider == 'openai':
-            from openai import OpenAI
-            resp = OpenAI(api_key=api_key).chat.completions.create(
-                model='gpt-4o-mini',
+            client, modelo = _get_llm_client(provider, api_key, config)
+            resp = client.chat.completions.create(
+                model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
                 max_tokens=5, temperature=0.0, timeout=8,
             )
             resultado = resp.choices[0].message.content.strip().upper()
 
         elif provider == 'anthropic':
-            import anthropic
-            msg = anthropic.Anthropic(api_key=api_key, timeout=8).messages.create(
-                model='claude-haiku-4-5-20251001',
+            client, modelo = _get_llm_client(provider, api_key, config)
+            msg = client.messages.create(
+                model=modelo,
                 max_tokens=5,
                 messages=[{'role': 'user', 'content': prompt}],
+                timeout=8,
             )
             resultado = msg.content[0].text.strip().upper()
 
         elif provider in ('groq', 'custom'):
-            client, modelo = _client_openai_compat(provider, api_key, config)
+            client, modelo = _get_llm_client(provider, api_key, config)
             resp = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
@@ -1336,9 +1391,9 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
             return resp.json().get('response', '').strip() or _fallback_sem_contexto(projeto_nome)
 
         elif provider == 'openai':
-            from openai import OpenAI
-            resp = OpenAI(api_key=api_key).chat.completions.create(
-                model='gpt-4o-mini',
+            client, modelo = _get_llm_client(provider, api_key, config)
+            resp = client.chat.completions.create(
+                model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
                 max_tokens=400,
                 timeout=15,
@@ -1346,16 +1401,16 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
             return resp.choices[0].message.content.strip()
 
         elif provider == 'anthropic':
-            import anthropic
-            msg = anthropic.Anthropic(api_key=api_key).messages.create(
-                model='claude-haiku-4-5-20251001',
+            client, modelo = _get_llm_client(provider, api_key, config)
+            msg = client.messages.create(
+                model=modelo,
                 max_tokens=400,
                 messages=[{'role': 'user', 'content': prompt}],
             )
             return msg.content[0].text.strip()
 
         elif provider in ('groq', 'custom'):
-            client, modelo = _client_openai_compat(provider, api_key, config)
+            client, modelo = _get_llm_client(provider, api_key, config)
             resp = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
@@ -1365,14 +1420,9 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
             return resp.choices[0].message.content.strip()
 
         elif provider in ('gemini', 'google'):
-            import google.generativeai as _genai
-            _genai.configure(api_key=api_key)
-            CANDIDATOS = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-lite']
-            modelos_ok = [m.name.replace('models/', '') for m in _genai.list_models()
-                          if 'generateContent' in m.supported_generation_methods]
-            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+            client, modelo = _get_llm_client(provider, api_key, config)
             if modelo:
-                resp = _genai.GenerativeModel(modelo).generate_content(prompt)
+                resp = client.GenerativeModel(modelo).generate_content(prompt)
                 return resp.text.strip()
 
     except Exception:
@@ -1396,43 +1446,32 @@ def _gerar_resposta_llm(provider: str, api_key: str, prompt: str, config: dict) 
     Extraído de chat() pra poder ser chamado 2x (original + retry de
     fidelidade numérica) sem duplicar o dispatch de provider."""
     if provider == 'openai':
-        from openai import OpenAI
-        resp = OpenAI(api_key=api_key).chat.completions.create(
-            model='gpt-4o-mini',
+        client, modelo = _get_llm_client(provider, api_key, config, principal=True)
+        resp = client.chat.completions.create(
+            model=modelo,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1500,
         )
         return resp.choices[0].message.content
 
     if provider == 'anthropic':
-        import anthropic
-        msg = anthropic.Anthropic(api_key=api_key).messages.create(
-            model='claude-sonnet-4-6',
+        client, modelo = _get_llm_client(provider, api_key, config, principal=True)
+        msg = client.messages.create(
+            model=modelo,
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}],
         )
         return msg.content[0].text
 
     if provider in ('gemini', 'google'):
-        import google.generativeai as _genai
-        _genai.configure(api_key=api_key)
-        CANDIDATOS = [
-            'gemini-1.5-flash', 'gemini-1.5-flash-latest',
-            'gemini-1.5-flash-002', 'gemini-1.5-pro',
-            'gemini-pro', 'gemini-2.0-flash-lite',
-        ]
-        modelos_ok = [
-            m.name.replace('models/', '') for m in _genai.list_models()
-            if 'generateContent' in m.supported_generation_methods
-        ]
-        modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+        client, modelo = _get_llm_client(provider, api_key, config, principal=True)
         if not modelo:
             raise ValueError('Nenhum modelo Gemini disponível para esta chave.')
-        resp = _genai.GenerativeModel(modelo).generate_content(prompt)
+        resp = client.GenerativeModel(modelo).generate_content(prompt)
         return resp.text
 
     if provider in ('groq', 'custom'):
-        client, modelo = _client_openai_compat(provider, api_key, config)
+        client, modelo = _get_llm_client(provider, api_key, config, principal=True)
         resp = client.chat.completions.create(
             model=modelo,
             messages=[{"role": "user", "content": prompt}],
@@ -1812,18 +1851,14 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                                 break
 
         elif provider in ('gemini', 'google'):
-            import google.generativeai as _genai
-            _genai.configure(api_key=api_key)
-            CANDIDATOS = ['gemini-1.5-flash','gemini-1.5-flash-latest','gemini-1.5-flash-002','gemini-1.5-pro','gemini-pro','gemini-2.0-flash-lite']
-            modelos_ok = [m.name.replace('models/','') for m in _genai.list_models() if 'generateContent' in m.supported_generation_methods]
-            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
+            client, modelo = _get_llm_client(provider, api_key, config, principal=True)
             if modelo:
-                for chunk in _genai.GenerativeModel(modelo).generate_content(prompt, stream=True):
+                for chunk in client.GenerativeModel(modelo).generate_content(prompt, stream=True):
                     if chunk.text:
                         yield chunk.text
 
         elif provider in ('groq', 'custom'):
-            client, modelo = _client_openai_compat(provider, api_key, config)
+            client, modelo = _get_llm_client(provider, api_key, config, principal=True)
             stream = client.chat.completions.create(
                 model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
@@ -1836,9 +1871,9 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                     yield delta
 
         elif provider == 'openai':
-            from openai import OpenAI
-            stream = OpenAI(api_key=api_key).chat.completions.create(
-                model='gpt-4o-mini',
+            client, modelo = _get_llm_client(provider, api_key, config, principal=True)
+            stream = client.chat.completions.create(
+                model=modelo,
                 messages=[{'role': 'user', 'content': prompt}],
                 max_tokens=1500,
                 stream=True,
@@ -1849,9 +1884,9 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                     yield delta
 
         elif provider == 'anthropic':
-            import anthropic
-            with anthropic.Anthropic(api_key=api_key).messages.stream(
-                model='claude-sonnet-4-6',
+            client, modelo = _get_llm_client(provider, api_key, config, principal=True)
+            with client.messages.stream(
+                model=modelo,
                 max_tokens=1500,
                 messages=[{'role': 'user', 'content': prompt}],
             ) as stream:
