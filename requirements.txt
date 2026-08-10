@@ -17,7 +17,7 @@ keybert>=0.8.0                   # extração de frases-chave para enriqueciment
 numpy>=2.4.0                     # busca vetorial (embeddings.py) — antes só transitivo via pandas/sentence-transformers
 
 # ── Provedores de IA ────────────────────────────────────────────────────────
-openai>=2.51.0                   # OpenAI + Groq (Groq usa client OpenAI)
+openai>=2.53.0                   # OpenAI + Groq (Groq usa client OpenAI)
 anthropic>=0.120.2
 google-genai>=2.14.0              # SDK google-genai (Gemini) — substitui o google-generativeai legado
 google-generativeai>=0.8.6        # ainda em uso real em chat.py::_get_llm_client (import google.generativeai) — não migrado pro SDK novo acima; nunca tinha sido declarado aqui, só funcionava em dev por instalação manual (achado real: CI limpa nunca teve o pacote)
