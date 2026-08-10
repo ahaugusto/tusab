@@ -53,7 +53,7 @@ excerpt was retrieved from.
 |--------|-------|---------------|
 | **I** | Index | Extraction and indexing of YouTube, PDFs, DOCX, Markdown, plain text |
 | **A** | Augment | RAG with BM25 + CrossEncoder delivers precise chunks to the model |
-| **C** | Converse | Chat with streaming, source citation and conversation history |
+| **C** | Chat | Chat with streaming, source citation and conversation history |
 
 ---
 
@@ -123,8 +123,12 @@ excerpt was retrieved from.
 - Upload audio (MP3, WAV, M4A, etc.) — transcription via local faster-whisper
 - Automatic parser for WhatsApp conversations and meeting transcripts (Zoom, Teams, Otter)
 - Paste text directly from the interface
-- Local RAG assistant: BM25Okapi + CrossEncoder (ms-marco-MiniLM-L-6-v2) + anti-hallucination
-- Narrow Search (pure BM25, ~1 ms) and Broad Search (BM25 + CrossEncoder, ~250 ms)
+- Local RAG assistant: BM25Okapi + FTS5 (exact match) + CrossEncoder (ms-marco-MiniLM-L-6-v2) +
+  anti-hallucination
+- Narrow Search (pure BM25, ~1 ms) and Broad Search (BM25 + FTS5 + CrossEncoder, ~250 ms)
+- Optional vector search (embeddings) via Ollama (`nomic-embed-text`, one-click download) — adds
+  meaning-based retrieval on top of keyword search in Broad Search, fully local, degrades
+  gracefully when the model isn't installed
 - Streaming chat with verifiable source citation, adjustable response tone/persona,
   and 👍/👎 feedback that feeds useful answers back into the search index
 - Multi-base: query multiple knowledge bases at once
@@ -149,9 +153,9 @@ excerpt was retrieved from.
 | Provider | Default model | Cost | Requires API key |
 |----------|--------------|------|-------------------|
 | Ollama (default) | llama3.2:1b | Free | No |
-| Groq | llama-3.1-70b-versatile | Free tier | Yes |
+| Groq | llama-3.1-8b-instant | Free tier | Yes |
 | OpenAI | gpt-4o-mini | Paid | Yes |
-| Anthropic | claude-sonnet-4-6 | Paid | Yes |
+| Anthropic | claude-haiku-4-5 | Paid | Yes |
 | Google | gemini-1.5-flash | Paid | Yes |
 | Custom endpoint | any OpenAI-compatible server | Depends on the server | Optional |
 
@@ -163,7 +167,7 @@ key in **Configure Assistant** — it's tested before being saved and stored via
 ## Stack
 
 **Backend:** Python 3.12 + FastAPI + Uvicorn — REST API on `localhost:8001`
-**RAG assistant:** rank_bm25 (BM25Okapi) + sentence-transformers (CrossEncoder) + Ollama / external providers
+**RAG assistant:** rank_bm25 (BM25Okapi) + SQLite FTS5 + sentence-transformers (CrossEncoder) + optional Ollama embeddings (`nomic-embed-text`) + Ollama / external providers
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React
 **Desktop:** Electron 34 + electron-builder (NSIS installer for Windows · signed and notarized `.dmg`/`.zip` for macOS arm64)
 **Extraction:** yt-dlp (bundled) + pdfplumber + python-docx
@@ -188,6 +192,11 @@ Tusab/
       config.py               <- load/save agent_config.json
       index.py                <- BM25 indexing + cache + CrossEncoder
       chat.py                 <- RAG chat + streaming
+      fts.py                  <- SQLite FTS5 exact-match layer
+      embeddings.py           <- optional vector search (Ollama nomic-embed-text)
+      calibration.py          <- dynamic per-corpus retrieval tuning
+      summarize.py            <- per-video LLM summaries ("deepen base")
+      tts.py                  <- local text-to-speech (Study Mode audio)
     motor/
       drive.py                <- Google Drive OAuth + upload
       extraction.py           <- YouTube extraction engine
@@ -199,8 +208,11 @@ Tusab/
       router_estudo.py        <- /agent/study/* (flashcards, summary, post-its, TTS)
       router_repositorio.py   <- /repositorio, /relatorio, /neural/*, /reset-total
       router_exports.py       <- /export/* (zip, markdown, docx, xlsx, pdf)
+      router_fontes.py        <- public academic sources (arXiv, FHIR, etc.)
+      router_digest.py        <- scheduled digest
+      router_metrics.py       <- GET /metrics
   requirements.txt            <- Python dependencies
-  tests/                      <- test suite (195 tests)
+  tests/                      <- test suite (229 tests)
   web_interface/              <- React frontend
     src/
       App.jsx                 <- main orchestrator
@@ -316,11 +328,11 @@ are large and gitignored — set them up once locally before building.
 ## Tests
 
 ```powershell
-# Integration suite (195 tests)
+# Integration suite (229 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
-195/195 green. The suite covers integration tests (FastAPI TestClient) and reliability
+229/229 green. The suite covers integration tests (FastAPI TestClient) and reliability
 tests (atomic writes, concurrency, corrupted/empty index).
 
 ---
