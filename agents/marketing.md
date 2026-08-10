@@ -13,7 +13,7 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 ## Pipeline de valor para o copy: IAC
 - **Index**: YouTube (canal inteiro), PDF, DOCX, WhatsApp (Android + iOS), reuniões (Zoom/Teams/Otter), textos colados
 - **Augment**: BM25 + CrossEncoder + timestamp + views boost + date-aware retrieval — encontra o trecho certo no momento certo
-- **Converse**: chat RAG com fonte citada + link ▶ MM:SS que leva ao minuto exato do vídeo
+- **Chat**: chat RAG com fonte citada + link ▶ MM:SS que leva ao minuto exato do vídeo
 
 ## Perfis de usuário — os quatro por quem você comunica
 | Perfil | Quem é | Job to be done | Hook de comunicação |

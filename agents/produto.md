@@ -12,7 +12,7 @@ PKM (Personal Knowledge Management) com IA local para Windows. Motor de ingestã
 ## Pipeline de valor: IAC
 - **Index**: YouTube (canal inteiro via yt-dlp), PDF, DOCX, WhatsApp (Android + iOS), reuniões (Zoom/Teams/Otter), textos colados
 - **Augment**: BM25Okapi + CrossEncoder (ms-marco-MiniLM-L-6-v2) + views boost + date-aware retrieval + chunking com overlap
-- **Converse**: chat RAG com streaming, citação de fonte, timestamp clicável, personas, multi-base
+- **Chat**: chat RAG com streaming, citação de fonte, timestamp clicável, personas, multi-base
 
 ## Perfis de usuário
 | Perfil | Slug | Job to be done |
