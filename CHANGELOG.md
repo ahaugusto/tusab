@@ -7,6 +7,20 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.50] — 2026-08-10
+
+### Adicionado
+- **Site de documentação público** (`docs-site/`, Docusaurus) publicado pela primeira vez via GitHub Pages — cobre instalação, perfis, funcionalidades, arquitetura, segurança, privacidade, acessibilidade, design system e desenvolvimento.
+- **Agente `/documentacao`** (`agents/documentacao.md`) — mantém o site e o `README.md` sincronizados com o código: audita, propõe atualizações, só publica com aprovação explícita. Registrado em `CLAUDE.md` para rodar após qualquer mudança visível ao usuário.
+
+### Corrigido
+- **Reset total disponível para todos os perfis** — antes só o perfil Especialista via o botão na aba Admin; Estudante, Professor e Pesquisador agora também têm acesso.
+- **Lista de fallback de modelos do Gemini divergente entre 5 pontos do pipeline de chat** — três versões diferentes (uma completa com 6 candidatos, duas truncadas com 3 em ordens diferentes) coexistiam em `chat.py`; unificadas numa única lista. Podia deixar usuários Gemini sem nenhum modelo disponível se o modelo da conta não estivesse nos candidatos truncados.
+- Documentação (README + site) com contagem de testes desatualizada, resíduo do rebranding "Converse"→"Chat", modelos padrão de provedor incorretos e ausência da busca vetorial (Fase 1, v1.0.49) na descrição da arquitetura.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- Nova fábrica única de cliente LLM (`_get_llm_client` em `chat.py`) substitui a construção de client+modelo duplicada em 5 pontos do módulo — formaliza (sem alterar) o tiering intencional da Anthropic: Haiku para chamadas auxiliares, Sonnet na resposta final.
+
 ## [1.0.49] — 2026-08-10
 
 ### Adicionado
