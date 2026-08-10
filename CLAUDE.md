@@ -33,10 +33,13 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/produto-b2b` | Product Manager B2B | roadmap da edição institucional, escopo mínimo vendável, priorização por contrato |
 | `/memoria` | Memória Institucional | "isso já foi tentado?", "por que X foi descartado?", "quais invariantes não podem ser violados?" |
 | `/memoria-atualizar` | Atualização da Memória | após cada release ou decisão relevante — propõe adições ao `_historia.md` para aprovação |
+| `/documentacao` | Especialista em Documentação | mantém `docs-site/` (Docusaurus, site público) e `README.md` sincronizados com o código — audita, propõe atualizações, publica com aprovação |
 
 Os prompts completos ficam em [`agents/`](agents/) e são referenciados pelos comandos em [`.claude/commands/`](.claude/commands/).
 
 **Base de memória compartilhada:** [`agents/_historia.md`](agents/_historia.md) — todos os agentes injetam este arquivo como contexto histórico. Contém: experimentos que falharam (com versão e motivo), padrões que funcionaram, decisões estratégicas permanentes e invariantes técnicas.
+
+**Documentação pública:** site em [docs-site/](docs-site/) (Docusaurus, publicado em https://ahaugusto.github.io/tusab/ via `.github/workflows/deploy-docs.yml` a cada push em `main` que toque `docs-site/**`). **Sempre que uma sessão terminar um trabalho que muda comportamento visível ao usuário** (feature nova, mudança de UI, correção de bug perceptível, nova versão no `CHANGELOG.md`) — rode `/documentacao` antes de considerar o trabalho fechado, do mesmo jeito que `/memoria-atualizar` roda após decisões relevantes. Mudanças puramente internas (refactor sem mudança de comportamento, testes, CI) não precisam.
 
 ---
 
