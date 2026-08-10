@@ -1,30 +1,36 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Paleta preto e branco — combina com a arte do mascote (Thoth, deus egípcio
+ * da escrita e do conhecimento) usada na home, que já é preto e branco.
+ * Sem cor de destaque colorida — todo acento é escala de cinza.
  */
-
-/* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #171717;
+  --ifm-color-primary-dark: #141414;
+  --ifm-color-primary-darker: #131313;
+  --ifm-color-primary-darkest: #101010;
+  --ifm-color-primary-light: #1e1e1e;
+  --ifm-color-primary-lighter: #232323;
+  --ifm-color-primary-lightest: #333333;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #f4f4f5;
+  --ifm-color-primary-dark: #dcdce0;
+  --ifm-color-primary-darker: #cececf;
+  --ifm-color-primary-darkest: #a9a9ab;
+  --ifm-color-primary-light: #f6f6f7;
+  --ifm-color-primary-lighter: #f7f7f8;
+  --ifm-color-primary-lightest: #fbfbfb;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Hero: preto sólido nos dois modos — sem gradiente colorido. Setado
+   diretamente em background-color/color (não via variável intermediária —
+   .hero--primary do Infima usa --ifm-color-primary direto, não repassa por
+   uma --ifm-hero-* própria). */
+.hero--primary {
+  background-color: #0a0a0a;
+  color: #fff;
 }

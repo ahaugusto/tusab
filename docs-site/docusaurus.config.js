@@ -33,10 +33,13 @@ const config = {
     },
   },
 
-  // Metadata útil mesmo sem i18n multi-idioma habilitado.
   i18n: {
     defaultLocale: 'pt-BR',
-    locales: ['pt-BR'],
+    locales: ['pt-BR', 'en'],
+    localeConfigs: {
+      'pt-BR': {label: 'Português', htmlLang: 'pt-BR'},
+      en: {label: 'English', htmlLang: 'en'},
+    },
   },
 
   presets: [
@@ -85,6 +88,10 @@ const config = {
             sidebarId: 'tutorialSidebar',
             position: 'left',
             label: 'Documentação',
+          },
+          {
+            type: 'localeDropdown',
+            position: 'right',
           },
           {
             href: 'https://github.com/ahaugusto/tusab',

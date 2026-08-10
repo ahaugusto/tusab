@@ -11,26 +11,35 @@ function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
-        <Heading as="h1" className="hero__title">
-          {siteConfig.title}
-        </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <p className={styles.heroDescription}>
-          Extraia canais do YouTube, indexe PDFs e documentos, e converse com um
-          assistente que responde citando a fonte exata — tudo rodando localmente,
-          sem nuvem, sem assinatura.
-        </p>
-        <div className={styles.buttons}>
-          <Link className="button button--secondary button--lg" to="/intro">
-            Ler a documentação
-          </Link>
-          <Link
-            className="button button--outline button--lg margin-left--md"
-            style={{color: 'white', borderColor: 'white'}}
-            to="https://github.com/ahaugusto/tusab/releases/latest">
-            Baixar o Tusab
-          </Link>
+      <div className={clsx('container', styles.heroGrid)}>
+        <div className={styles.heroText}>
+          <Heading as="h1" className="hero__title">
+            {siteConfig.title}
+          </Heading>
+          <p className="hero__subtitle">{siteConfig.tagline}</p>
+          <p className={styles.heroDescription}>
+            Extraia canais do YouTube, indexe PDFs e documentos, e converse com um
+            assistente que responde citando a fonte exata — tudo rodando localmente,
+            sem nuvem, sem assinatura.
+          </p>
+          <div className={styles.buttons}>
+            <Link className="button button--secondary button--lg" to="/intro">
+              Ler a documentação
+            </Link>
+            <Link
+              className="button button--outline button--lg margin-left--md"
+              style={{color: 'white', borderColor: 'white'}}
+              to="https://github.com/ahaugusto/tusab/releases/latest">
+              Baixar o Tusab
+            </Link>
+          </div>
+        </div>
+        <div className={styles.heroImageWrap}>
+          <img
+            src={require('@site/static/img/thoth-hero.jpg').default}
+            alt="Thoth, deus egípcio da escrita e do conhecimento, numa sala de controle futurista"
+            className={styles.heroImage}
+          />
         </div>
       </div>
     </header>
