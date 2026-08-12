@@ -184,11 +184,20 @@ def _vtt_por_janela_temporal(caminho_vtt, janela_segundos=120, overlap_segundos=
 
     # Se o vídeo inteiro cabe numa janela, retorna 1 chunk (evita segmentação inútil)
     if duracao <= janela_segundos:
-        dedup = []
-        for _, texto in cues:
-            if not dedup or texto != dedup[-1]:
-                dedup.append(texto)
-        return [{'texto': ' '.join(dedup).strip(), 'timestamp_inicio': cues[0][0], 'capitulo': ''}]
+        dedup_cues = []
+        for ts, texto in cues:
+            if not dedup_cues or texto != dedup_cues[-1][1]:
+                dedup_cues.append((ts, texto))
+        texto_total = ' '.join(t for _, t in dedup_cues).strip()
+        if len(texto_total) <= _LIMITE_CHUNK_CHARS:
+            return [{'texto': texto_total, 'timestamp_inicio': cues[0][0], 'capitulo': ''}]
+        sub_segs = _dividir_cues_por_tamanho(dedup_cues)
+        total = len(sub_segs)
+        return [
+            {'texto': s['texto'], 'timestamp_inicio': s['timestamp_inicio'], 'capitulo': '',
+             'parte': idx, 'total_partes': total}
+            for idx, s in enumerate(sub_segs, start=1) if len(s['texto']) >= 80
+        ] or [{'texto': texto_total, 'timestamp_inicio': cues[0][0], 'capitulo': ''}]
 
     segmentos = []
     inicio = 0
@@ -196,24 +205,40 @@ def _vtt_por_janela_temporal(caminho_vtt, janela_segundos=120, overlap_segundos=
 
     while inicio <= duracao:
         fim = inicio + janela_segundos
-        textos_janela = [t for ts, t in cues if inicio <= ts < fim]
+        cues_janela = [(ts, t) for ts, t in cues if inicio <= ts < fim]
 
         # Dedup de linhas consecutivas idênticas (padrão do VTT)
-        dedup = []
-        for t in textos_janela:
-            if not dedup or t != dedup[-1]:
-                dedup.append(t)
+        dedup_cues = []
+        for ts, t in cues_janela:
+            if not dedup_cues or t != dedup_cues[-1][1]:
+                dedup_cues.append((ts, t))
 
-        texto = ' '.join(dedup).strip()
+        texto = ' '.join(t for _, t in dedup_cues).strip()
         if len(texto) >= 80:
             fim_real = min(fim, duracao + 1)
             label = (f"{inicio // 60}:{inicio % 60:02d}"
                      f" – {fim_real // 60}:{fim_real % 60:02d}")
-            segmentos.append({
-                'texto':             texto,
-                'timestamp_inicio':  inicio,
-                'capitulo':          label,
-            })
+            if len(texto) <= _LIMITE_CHUNK_CHARS:
+                segmentos.append({
+                    'texto':             texto,
+                    'timestamp_inicio':  inicio,
+                    'capitulo':          label,
+                })
+            else:
+                # Janela de 120s com fala densa o suficiente pra estourar o teto —
+                # raro, mas o mesmo split por cue real dos capítulos se aplica aqui.
+                sub_segs = _dividir_cues_por_tamanho(dedup_cues)
+                total = len(sub_segs)
+                for idx, sub in enumerate(sub_segs, start=1):
+                    if len(sub['texto']) < 80:
+                        continue
+                    segmentos.append({
+                        'texto': sub['texto'],
+                        'timestamp_inicio': sub['timestamp_inicio'],
+                        'capitulo': label,
+                        'parte': idx,
+                        'total_partes': total,
+                    })
         inicio += passo
 
     if segmentos:
@@ -227,11 +252,40 @@ def _vtt_por_janela_temporal(caminho_vtt, janela_segundos=120, overlap_segundos=
     return [{'texto': ' '.join(dedup).strip(), 'timestamp_inicio': cues[0][0], 'capitulo': ''}]
 
 
+_LIMITE_CHUNK_CHARS = 3000
+
+
+def _dividir_cues_por_tamanho(cues_dedup: list, limite: int = _LIMITE_CHUNK_CHARS) -> list:
+    """Divide uma lista de cues (timestamp, texto) já deduplicada em sub-segmentos
+    de até `limite` caracteres, cortando sempre numa fronteira de cue real — nunca
+    um timestamp estimado. Usada quando um capítulo do YouTube (sem teto de duração)
+    produz texto maior que o teto de chunk do índice BM25 (`index.py::_LIMITE_CHUNK_CHARS`,
+    mesmo valor). Sem isso, o excedente seria truncado e nunca mais buscável no chat.
+    Retorna lista de {'texto': str, 'timestamp_inicio': int}.
+    """
+    if not cues_dedup:
+        return []
+    segmentos = []
+    atual_textos, atual_len, atual_ts = [], 0, cues_dedup[0][0]
+    for ts, texto in cues_dedup:
+        if atual_textos and atual_len + len(texto) + 1 > limite:
+            segmentos.append({'texto': ' '.join(atual_textos).strip(), 'timestamp_inicio': atual_ts})
+            atual_textos, atual_len, atual_ts = [], 0, ts
+        atual_textos.append(texto)
+        atual_len += len(texto) + 1
+    if atual_textos:
+        segmentos.append({'texto': ' '.join(atual_textos).strip(), 'timestamp_inicio': atual_ts})
+    return segmentos
+
+
 def _vtt_por_capitulo(caminho_vtt, capitulos: list) -> list:
     """Divide o VTT em segmentos usando capítulos como fronteiras.
 
     capitulos: lista de {'start_time': float, 'title': str} ordenada por start_time.
-    Retorna lista de {'texto': str, 'timestamp_inicio': int, 'capitulo': str}.
+    Retorna lista de {'texto': str, 'timestamp_inicio': int, 'capitulo': str} — segmentos
+    de capítulo com mais de `_LIMITE_CHUNK_CHARS` ganham também 'parte'/'total_partes'
+    (capítulo do YouTube não tem teto de duração; sem isso o índice BM25 truncaria
+    o excedente em vez de indexá-lo — ver `index.py::_parsear_chunks`).
     Cai no chunking temporal por janela (2 min / 15s overlap) quando não há capítulos,
     e no texto completo apenas se o chunking temporal também não produzir nada útil.
     """
@@ -270,19 +324,35 @@ def _vtt_por_capitulo(caminho_vtt, capitulos: list) -> list:
     segmentos = []
     for i, cap in enumerate(caps_sorted):
         fim = fronteiras[i + 1]
-        linhas_cap = [texto for ts, texto in cues if cap['start_time'] <= ts < fim]
-        # Dedup de linhas consecutivas idênticas (padrão do VTT)
-        dedup = []
-        for ln in linhas_cap:
-            if not dedup or ln != dedup[-1]:
-                dedup.append(ln)
-        texto = ' '.join(dedup).strip()
-        if len(texto) >= 80:
+        cues_cap = [(ts, texto) for ts, texto in cues if cap['start_time'] <= ts < fim]
+        # Dedup de linhas consecutivas idênticas (padrão do VTT) — mantém o
+        # timestamp da primeira ocorrência de cada linha, necessário pro split abaixo.
+        dedup_cues = []
+        for ts, ln in cues_cap:
+            if not dedup_cues or ln != dedup_cues[-1][1]:
+                dedup_cues.append((ts, ln))
+        texto = ' '.join(ln for _, ln in dedup_cues).strip()
+        if len(texto) < 80:
+            continue
+        if len(texto) <= _LIMITE_CHUNK_CHARS:
             segmentos.append({
                 'texto': texto,
                 'timestamp_inicio': int(cap['start_time']),
                 'capitulo': cap.get('title', ''),
             })
+        else:
+            sub_segs = _dividir_cues_por_tamanho(dedup_cues)
+            total = len(sub_segs)
+            for idx, sub in enumerate(sub_segs, start=1):
+                if len(sub['texto']) < 80:
+                    continue
+                segmentos.append({
+                    'texto': sub['texto'],
+                    'timestamp_inicio': sub['timestamp_inicio'],
+                    'capitulo': cap.get('title', ''),
+                    'parte': idx,
+                    'total_partes': total,
+                })
 
     # Se a segmentação produziu algo útil, retorna; senão cai no texto completo
     if segmentos:
@@ -1183,6 +1253,13 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                             )
                         for seg in segmentos:
                             titulo_seg = f"{v_title} — {seg['capitulo']}" if tem_capitulos and seg['capitulo'] else v_title
+                            total_partes_seg = seg.get('total_partes', 1)
+                            if total_partes_seg > 1:
+                                titulo_seg += f" (parte {seg['parte']}/{total_partes_seg})"
+                            partes_linhas = (
+                                f"PARTE: {seg['parte']}\nTOTAL_PARTES: {total_partes_seg}\n"
+                                if total_partes_seg > 1 else ""
+                            )
                             f.write(
                                 f"\n{'=' * 70}\n"
                                 f"TITULO: {titulo_seg}\n"
@@ -1192,6 +1269,7 @@ def tusab_engine(canal_url, evento_pausa=None, evento_cancelar=None, fontes_filt
                                 f"VIDEO_ID: {v_id}\n"
                                 f"VIEWS: {video.get('views', 0)}\n"
                                 f"TIMESTAMP_INICIO: {seg['timestamp_inicio']}\n"
+                                f"{partes_linhas}"
                                 f"TAGS: {tags_str}\n"
                                 f"DESCRICAO: {descricao_str}\n"
                                 f"{'-' * 70}\n"
