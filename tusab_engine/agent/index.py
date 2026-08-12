@@ -58,7 +58,11 @@ def _index_path(projeto_prefixo: str) -> str:
 # que a lógica de parsing/enriquecimento mudar — sem isso, uma mudança em
 # _enriquecer_com_keywords_lote()/_parsear_chunks() não se refletiria em arquivos
 # já cacheados até eles serem tocados de novo.
-_CACHE_VERSION = 1
+# v2 (12/ago/2026): _parsear_chunks passa a dividir blocos >3000 chars em vez de
+# truncar (extraction.py/index.py). Bump força o próximo "Indexar base" a reprocessar
+# TODO o corpus já extraído — sem isso, capítulos longos continuariam com o
+# excedente invisível pro BM25/chat mesmo depois do fix, até o .txt ser re-escrito.
+_CACHE_VERSION = 2
 
 
 def _cache_chunks_path(projeto_prefixo: str) -> str:
@@ -332,6 +336,40 @@ def _obter_embeddings_cache(entrada: dict) -> list:
 
 
 # ── Parser de chunks ──────────────────────────────────────────────────────────
+# _LIMITE_CHUNK_CHARS: mesmo teto de extraction.py::_LIMITE_CHUNK_CHARS. Capítulos
+# novos já chegam pré-divididos por lá (com timestamp real de cue, campos PARTE:/
+# TOTAL_PARTES: no bloco) — o split abaixo é só stopgap pra blocos LEGADOS (extraídos
+# antes desta correção), que não têm PARTE:/TOTAL_PARTES: e podem exceder o teto.
+
+_LIMITE_CHUNK_CHARS = 3000
+_TAXA_CHARS_POR_SEGUNDO = 18  # estimativa de fala transcrita em PT-BR — só usada pro
+                               # stopgap abaixo; capítulos novos usam timestamp real.
+
+
+def _dividir_texto_estimado(texto: str, timestamp_base: int, limite: int = _LIMITE_CHUNK_CHARS) -> list:
+    """Stopgap pra blocos legados (extraídos antes desta correção) maiores que o
+    teto do chunk: divide por caractere e estima o timestamp de cada sub-parte por
+    posição proporcional, usando uma taxa média de fala. Menos preciso que o split
+    por cue real feito em extraction.py (aqui o texto já chegou achatado, sem
+    timestamp por palavra) — mas buscável, contra a alternativa de truncar e perder
+    o trecho de vez. Retorna lista de {'texto', 'timestamp_inicio', 'timestamp_aproximado'}.
+    """
+    if len(texto) <= limite:
+        return [{'texto': texto, 'timestamp_inicio': timestamp_base, 'timestamp_aproximado': False}]
+    partes, pos, n = [], 0, len(texto)
+    while pos < n:
+        fim = min(pos + limite, n)
+        if fim < n:
+            corte = texto.rfind(' ', pos, fim)
+            if corte > pos:
+                fim = corte
+        pedaco = texto[pos:fim].strip()
+        if pedaco:
+            ts_estimado = timestamp_base + int(pos / _TAXA_CHARS_POR_SEGUNDO)
+            partes.append({'texto': pedaco, 'timestamp_inicio': ts_estimado, 'timestamp_aproximado': True})
+        pos = fim
+    return partes
+
 
 def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arquivos_vistos: set = None, embeddings_out: list = None) -> list:
     chunks   = []
@@ -383,9 +421,11 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
             vid_id_m  = re.search(r'VIDEO_ID:\s*(.+)',        bloco)
             views_m   = re.search(r'VIEWS:\s*(\d+)',          bloco)
             ts_m      = re.search(r'TIMESTAMP_INICIO:\s*(\d+)', bloco)
+            parte_m   = re.search(r'PARTE:\s*(\d+)',          bloco)
+            total_m   = re.search(r'TOTAL_PARTES:\s*(\d+)',   bloco)
 
-            partes = re.split(r'-{50,}', bloco)
-            texto  = partes[-1].strip() if len(partes) > 1 else bloco
+            partes_bloco = re.split(r'-{50,}', bloco)
+            texto  = partes_bloco[-1].strip() if len(partes_bloco) > 1 else bloco
 
             if len(texto) < 80:
                 continue
@@ -394,25 +434,46 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
             if tags_m:
                 tags = [t.strip() for t in tags_m.group(1).split(',') if t.strip()]
 
-            texto_limpo = texto[:3000]
             titulo_str = titulo.group(1).strip() if titulo else ''
-            # Prefixar título no texto garante que FTS5 e BM25 em disco encontram por título
-            texto_com_titulo = (f"TITULO: {titulo_str}\n\n" + texto_limpo) if titulo_str else texto_limpo
-            chunks_arquivo.append({
-                'texto':             texto_com_titulo,  # enriquecido em lote logo abaixo
-                'texto_original':    texto_limpo,
-                'titulo':            titulo_str,
-                'aba':               aba.group(1).strip()      if aba      else 'youtube',
-                'data':              data.group(1).strip()     if data     else '',
-                'link':              link.group(1).strip()     if link     else '',
-                'tags':              tags,
-                'descricao':         desc_m.group(1).strip()   if desc_m   else '',
-                'arquivo':           arquivo,
-                'canal':             projeto_prefixo,
-                'video_id':          vid_id_m.group(1).strip() if vid_id_m else '',
-                'views':             int(views_m.group(1))     if views_m  else 0,
-                'timestamp_inicio':  int(ts_m.group(1))        if ts_m     else 0,
-            })
+            timestamp_bloco = int(ts_m.group(1)) if ts_m else 0
+            campos_base = {
+                'titulo':    titulo_str,
+                'aba':       aba.group(1).strip()      if aba      else 'youtube',
+                'data':      data.group(1).strip()     if data     else '',
+                'link':      link.group(1).strip()     if link     else '',
+                'tags':      tags,
+                'descricao': desc_m.group(1).strip()   if desc_m   else '',
+                'arquivo':   arquivo,
+                'canal':     projeto_prefixo,
+                'video_id':  vid_id_m.group(1).strip() if vid_id_m else '',
+                'views':     int(views_m.group(1))     if views_m  else 0,
+            }
+
+            if total_m and int(total_m.group(1)) > 1:
+                # Bloco já pré-dividido por extraction.py (capítulo >3000 chars,
+                # timestamp real de cue) — texto já vem curto, sem precisar de split.
+                sub_blocos = [{'texto': texto, 'timestamp_inicio': timestamp_bloco, 'timestamp_aproximado': False}]
+                parte_atual_n, total_partes_n = int(parte_m.group(1)) if parte_m else 1, int(total_m.group(1))
+            else:
+                # Sem PARTE:/TOTAL_PARTES: — bloco legado (extraído antes desta
+                # correção) ou já dentro do teto. Stopgap: divide se necessário.
+                sub_blocos = _dividir_texto_estimado(texto, timestamp_bloco)
+                total_partes_n = len(sub_blocos)
+                parte_atual_n = None  # atribuído por sub-bloco no loop abaixo
+
+            for idx, sub in enumerate(sub_blocos, start=1):
+                texto_limpo = sub['texto'][:_LIMITE_CHUNK_CHARS]
+                # Prefixar título no texto garante que FTS5 e BM25 em disco encontram por título
+                texto_com_titulo = (f"TITULO: {titulo_str}\n\n" + texto_limpo) if titulo_str else texto_limpo
+                chunks_arquivo.append({
+                    **campos_base,
+                    'texto':               texto_com_titulo,  # enriquecido em lote logo abaixo
+                    'texto_original':      texto_limpo,
+                    'timestamp_inicio':    sub['timestamp_inicio'],
+                    'parte':               parte_atual_n if parte_atual_n is not None else idx,
+                    'total_partes':        total_partes_n,
+                    'timestamp_aproximado': sub['timestamp_aproximado'],
+                })
 
         if chunks_arquivo:
             textos_enriquecidos = _enriquecer_com_keywords_lote([c['texto'] for c in chunks_arquivo])

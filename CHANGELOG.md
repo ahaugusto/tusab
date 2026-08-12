@@ -7,6 +7,16 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.51] — 2026-08-12
+
+### Corrigido
+- **Capítulos de vídeo do YouTube maiores que 3000 caracteres eram truncados no índice de busca** — o arquivo `.txt` bruto sempre esteve completo, mas capítulos reais do YouTube não têm teto de duração (ao contrário das janelas temporais de 120s usadas quando não há capítulos) e o excedente era descartado silenciosamente do BM25 e da citação no chat. Agora capítulos longos são divididos em múltiplas partes: extrações novas usam o timestamp real de cada trecho (`tusab_engine/motor/extraction.py`); bases já extraídas ganham o mesmo tratamento automaticamente na próxima indexação, com timestamp estimado (`tusab_engine/agent/index.py`, sem precisar re-extrair do YouTube). O chat passa a incluir a parte seguinte de um capítulo dividido no contexto enviado ao modelo quando só uma parte foi recuperada pela busca, para não perder a continuidade da explicação (`tusab_engine/agent/chat.py`).
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- `index.py::_CACHE_VERSION` incrementado (1→2) para forçar o reprocessamento do cache de chunks já existente com a correção acima.
+
+---
+
 ## [1.0.50] — 2026-08-10
 
 ### Adicionado

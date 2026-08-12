@@ -165,6 +165,87 @@ def test_vtt_por_capitulo_um_capitulo_retorna_segmento(tmp_path):
         assert "capitulo" in seg
 
 
+def _gerar_vtt_capitulo_longo(caminho, n_cues=200, inicio_s=0):
+    """Gera um VTT sintético com `n_cues` cues de ~30 chars cada (~6000+ chars
+    de texto total) — simula um capítulo longo o suficiente pra estourar o
+    teto de 3000 chars."""
+    linhas = ["WEBVTT", ""]
+    t = inicio_s
+    for i in range(n_cues):
+        def fmt(s):
+            h, m, sec = int(s // 3600), int((s % 3600) // 60), s % 60
+            return f"{h:02d}:{m:02d}:{sec:06.3f}"
+        linhas.append(f"{fmt(t)} --> {fmt(t + 1.5)}")
+        linhas.append(f"palavra numero {i} do capitulo longo de teste")
+        linhas.append("")
+        t += 2.0
+    caminho.write_text("\n".join(linhas), encoding="utf-8")
+    return t  # timestamp final
+
+
+def test_dividir_cues_por_tamanho_preserva_todo_o_conteudo():
+    from tusab_engine.motor.extraction import _dividir_cues_por_tamanho
+    cues = [(i * 2, f"frase numero {i} de teste") for i in range(200)]
+    partes = _dividir_cues_por_tamanho(cues, limite=500)
+    assert len(partes) > 1
+    texto_junto = " ".join(p["texto"] for p in partes)
+    for i in range(200):
+        assert f"frase numero {i} de teste" in texto_junto
+    for p in partes:
+        assert len(p["texto"]) <= 500 + 50  # margem: corte na palavra, não no meio
+
+
+def test_dividir_cues_por_tamanho_timestamps_crescentes_e_reais():
+    from tusab_engine.motor.extraction import _dividir_cues_por_tamanho
+    cues = [(i * 2, f"frase numero {i} de teste") for i in range(200)]
+    partes = _dividir_cues_por_tamanho(cues, limite=500)
+    timestamps_cues = {ts for ts, _ in cues}
+    for p in partes:
+        assert p["timestamp_inicio"] in timestamps_cues  # nunca estimado, sempre cue real
+    tss = [p["timestamp_inicio"] for p in partes]
+    assert tss == sorted(tss)
+
+
+def test_vtt_por_capitulo_divide_capitulo_maior_que_teto(tmp_path):
+    from tusab_engine.motor.extraction import _vtt_por_capitulo, _LIMITE_CHUNK_CHARS
+    vtt = tmp_path / "v.vtt"
+    fim = _gerar_vtt_capitulo_longo(vtt, n_cues=250)  # ~10.000+ chars nesse capitulo
+    caps = [{"start_time": 0, "title": "Capitulo Longo"}]
+    resultado = _vtt_por_capitulo(str(vtt), caps)
+
+    assert len(resultado) > 1  # foi dividido
+    total_partes = resultado[0]["total_partes"]
+    assert total_partes == len(resultado)
+    for idx, seg in enumerate(resultado, start=1):
+        assert seg["parte"] == idx
+        assert seg["total_partes"] == total_partes
+        assert len(seg["texto"]) <= _LIMITE_CHUNK_CHARS + 50
+        assert seg["capitulo"] == "Capitulo Longo"
+
+    # nenhuma palavra perdida entre as partes
+    texto_junto = " ".join(seg["texto"] for seg in resultado)
+    for i in range(250):
+        assert f"palavra numero {i} do capitulo longo de teste" in texto_junto
+
+    # timestamps sobem monotonicamente entre as partes
+    tss = [seg["timestamp_inicio"] for seg in resultado]
+    assert tss == sorted(tss)
+
+
+def test_vtt_por_capitulo_curto_nao_ganha_campos_de_parte(tmp_path):
+    from tusab_engine.motor.extraction import _vtt_por_capitulo
+    vtt = tmp_path / "v.vtt"
+    vtt.write_text(
+        "WEBVTT\n\n00:00:01.000 --> 00:00:10.000\nUm capitulo curto qualquer\n",
+        encoding="utf-8"
+    )
+    caps = [{"start_time": 0, "title": "Curto"}]
+    resultado = _vtt_por_capitulo(str(vtt), caps)
+    assert len(resultado) == 1
+    assert "parte" not in resultado[0]
+    assert "total_partes" not in resultado[0]
+
+
 # ── _deduplicar_chunks ────────────────────────────────────────────────────────
 
 def test_deduplicar_chunks_remove_duplicata_exata(client):
