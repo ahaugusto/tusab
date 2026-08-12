@@ -618,6 +618,17 @@ def _filtrar_por_identificador(pergunta: str, resultados: list) -> list:
     return com_identificador if com_identificador else resultados
 
 
+_RE_SUFIXO_PARTE = re.compile(r'\s*\(parte \d+/\d+\)$')
+
+
+def _titulo_base(titulo: str) -> str:
+    """Remove o sufixo ' (parte N/M)' que extraction.py anexa ao título de cada
+    sub-parte de um capítulo dividido (ver _LIMITE_CHUNK_CHARS) — necessário pra
+    identificar partes irmãs do MESMO capítulo em _recuperar_contexto(), já que
+    o título completo difere entre elas (parte 1/2 != parte 2/2)."""
+    return _RE_SUFIXO_PARTE.sub('', titulo or '')
+
+
 def _ja_incluido(resultados: list, chunk: dict, indice: int) -> bool:
     """Dedup por título+timestamp — mesma chave usada pelo bloco FTS5 e pelo
     bloco de busca vetorial em _recuperar_contexto(), extraída aqui pra não
@@ -853,6 +864,40 @@ def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: di
         top = resultados[:1]
     elif not top and 'cached' in locals() and cached and cached.get('chunks'):
         top = [{**cached['chunks'][0], 'score': 0.0, 'canal': projeto_nome}]
+
+    # Continuidade de capítulo dividido: quando um capítulo do YouTube passou de
+    # 3000 chars, ele virou várias partes (index.py::_parsear_chunks). Se o BM25
+    # selecionou só uma parte, o LLM pode perder o fio da meada de um capítulo
+    # que continua fora do chunk recuperado. Best-effort: inclui a parte seguinte
+    # quando existir, sem deslocar nenhum candidato já selecionado — só em modo
+    # single (mesma restrição de escopo do FTS5/embeddings, ver acima), e com
+    # teto pra não inflar o prompt em capítulos com muitas partes.
+    if 'cached' in locals() and cached and cached.get('chunks'):
+        _TETO_PARTES_IRMAS = 2
+        corpus_completo = cached['chunks']
+        extras = []
+        for c in top:
+            if len(extras) >= _TETO_PARTES_IRMAS:
+                break
+            if c.get('total_partes', 1) <= 1:
+                continue
+            titulo_base_c = _titulo_base(c.get('titulo', ''))
+            irma = next((
+                x for x in corpus_completo
+                if x.get('video_id') == c.get('video_id')
+                and _titulo_base(x.get('titulo', '')) == titulo_base_c
+                and x.get('parte') == c.get('parte', 1) + 1
+            ), None)
+            if irma and not _ja_incluido(top + extras, irma, -1):
+                extra = {**irma, 'score': c['score'], 'canal': c.get('canal', projeto_nome), 'parte_irma': True}
+                # Herda _ce_score do irmão pra não quebrar o `all('_ce_score' in c
+                # for c in top)` do filtro de lacuna logo abaixo — sem isso, o
+                # filtro trocaria de critério (CE→BM25) pra lista inteira quando
+                # busca_ampla=True, só por causa de 1 chunk sem rerank.
+                if '_ce_score' in c:
+                    extra['_ce_score'] = c['_ce_score']
+                extras.append(extra)
+        top = top + extras
 
     # Filtro de lacuna de relevância: BM25/CrossEncoder sempre completam até
     # `n` candidatos, mesmo quando só o 1º é de fato relevante e o resto é
