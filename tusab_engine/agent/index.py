@@ -788,22 +788,6 @@ def _enriquecer_documento(texto: str, tags: list, descricao: str = '', n_keyword
 PRO_HINT_THRESHOLD = 3
 
 
-def _contar_canais_indexados() -> list:
-    """Retorna lista de nomes de canais com índice existente."""
-    if not os.path.exists(INDEX_DIR):
-        return []
-    canais = []
-    for fname in os.listdir(INDEX_DIR):
-        if fname.endswith('_index.json'):
-            try:
-                with open(os.path.join(INDEX_DIR, fname), 'r', encoding='utf-8') as f:
-                    data = __import__('json').load(f)
-                canais.append(data.get('projeto_nome', data.get('canal_nome', fname.replace('_index.json', ''))))
-            except Exception:
-                pass
-    return canais
-
-
 def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=None, progress_callback=None) -> int:
     # [IMPACTO] Mudança na estrutura dos chunks gerados aqui quebra chat.py:_recuperar_contexto().
     # Schema esperado por chat.py: {texto, titulo, aba, data, link, tags, arquivo, canal, descricao}.
@@ -834,8 +818,8 @@ def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=N
     os.makedirs(INDEX_DIR, exist_ok=True)
     import time as _time
     # Campo 'projeto_nome' (não mais 'canal_nome') — ver leitura retrocompatível
-    # em _get_agent_status_uncached()/_contar_canais_indexados() acima, que ainda
-    # aceita o campo legado pra índices gerados antes de 29/jul/2026.
+    # em _get_agent_status_uncached() acima, que ainda aceita o campo legado
+    # pra índices gerados antes de 29/jul/2026.
     salvar_json_atomico({'projeto_nome': projeto_nome, 'chunks': chunks, 'indexed_at': int(_time.time())}, _index_path(projeto_prefixo))
 
     if callback: callback("🗄️ Construindo índice FTS5 para busca exata...")

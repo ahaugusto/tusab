@@ -25,7 +25,8 @@ import glob
 import threading
 
 from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
-from tusab_engine.agent.config import carregar_config, SENTINEL_KEY
+from tusab_engine.agent.config import carregar_config
+from tusab_engine.agent.llm_providers import _api_key_valida, _get_llm_client
 
 # ── Constantes ─────────────────────────────────────────────────────────────────
 
@@ -81,11 +82,6 @@ def _extrair_texto_e_titulo_de_bloco(bloco: str) -> tuple:
 
 # ── Chamadas LLM ──────────────────────────────────────────────────────────────
 
-def _api_key_valida(config: dict) -> bool:
-    key = config.get('api_key', '')
-    return bool(key) and key != SENTINEL_KEY
-
-
 def resumir_video(texto_completo: str, titulo: str, config: dict) -> dict | None:
     """Gera resumo estruturado de um vídeo via LLM.
 
@@ -123,51 +119,33 @@ def resumir_video(texto_completo: str, titulo: str, config: dict) -> dict | None
             r.raise_for_status()
             resposta_raw = r.json().get('response', '').strip()
 
-        elif provider == 'openai':
-            from openai import OpenAI
-            resp = OpenAI(api_key=api_key).chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[{'role': 'user', 'content': prompt}],
-                max_tokens=300,
-                timeout=_SUMMARIZE_TIMEOUT,
-            )
-            resposta_raw = resp.choices[0].message.content.strip()
+        elif provider in ('openai', 'anthropic', 'groq', 'gemini', 'google'):
+            client, modelo = _get_llm_client(provider, api_key, config)
 
-        elif provider == 'anthropic':
-            import anthropic
-            msg = anthropic.Anthropic(api_key=api_key).messages.create(
-                model='claude-haiku-4-5-20251001',
-                max_tokens=300,
-                messages=[{'role': 'user', 'content': prompt}],
-                timeout=_SUMMARIZE_TIMEOUT,
-            )
-            resposta_raw = msg.content[0].text.strip()
+            if provider == 'openai':
+                resp = client.chat.completions.create(
+                    model=modelo, messages=[{'role': 'user', 'content': prompt}],
+                    max_tokens=300, timeout=_SUMMARIZE_TIMEOUT,
+                )
+                resposta_raw = resp.choices[0].message.content.strip()
 
-        elif provider == 'groq':
-            from openai import OpenAI
-            modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-            resp = OpenAI(
-                api_key=api_key,
-                base_url='https://api.groq.com/openai/v1',
-            ).chat.completions.create(
-                model=modelo,
-                messages=[{'role': 'user', 'content': prompt}],
-                max_tokens=300,
-                timeout=_SUMMARIZE_TIMEOUT,
-            )
-            resposta_raw = resp.choices[0].message.content.strip()
+            elif provider == 'anthropic':
+                msg = client.messages.create(
+                    model=modelo, max_tokens=300,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    timeout=_SUMMARIZE_TIMEOUT,
+                )
+                resposta_raw = msg.content[0].text.strip()
 
-        elif provider in ('gemini', 'google'):
-            import google.generativeai as _genai
-            _genai.configure(api_key=api_key)
-            CANDIDATOS = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-lite']
-            modelos_ok = [
-                m.name.replace('models/', '') for m in _genai.list_models()
-                if 'generateContent' in m.supported_generation_methods
-            ]
-            modelo = next((m for m in CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
-            if modelo:
-                resp = _genai.GenerativeModel(modelo).generate_content(prompt)
+            elif provider == 'groq':
+                resp = client.chat.completions.create(
+                    model=modelo, messages=[{'role': 'user', 'content': prompt}],
+                    max_tokens=300, timeout=_SUMMARIZE_TIMEOUT,
+                )
+                resposta_raw = resp.choices[0].message.content.strip()
+
+            elif provider in ('gemini', 'google') and modelo:
+                resp = client.GenerativeModel(modelo).generate_content(prompt)
                 resposta_raw = resp.text.strip()
 
     except Exception:

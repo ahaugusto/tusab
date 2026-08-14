@@ -23,7 +23,8 @@ from pydantic import BaseModel, Field, model_validator
 
 import motor_tusab
 from tusab_engine.state import state
-from tusab_engine.storage import NEURAL_DIR, GESTAO_DIR, DATA_DIR, gestao_canal_dir, salvar_json_atomico
+from tusab_engine.storage import NEURAL_DIR, GESTAO_DIR, DATA_DIR, INDEX_DIR, gestao_canal_dir, salvar_json_atomico
+from tusab_engine.agent.index import _index_path
 
 router = APIRouter()
 
@@ -391,7 +392,6 @@ def export_relatorio_pdf(req: ExportRelatorioPdfRequest):
 
 # ── Export de base compartilhável (.tusab) ────────────────────────────────────
 
-_INDEX_DIR = os.path.join(DATA_DIR, 'indexes')
 _TUSAB_FORMAT_VERSION = 1
 
 
@@ -403,7 +403,7 @@ def export_base_compartilhavel(projeto: str):
         return JSONResponse({"error": True, "message": "Nome do projeto não informado."})
 
     neural_path = os.path.join(NEURAL_DIR, projeto)
-    index_path  = os.path.join(_INDEX_DIR, f"{projeto}.pkl")
+    index_path  = _index_path(projeto)
 
     if not os.path.exists(neural_path):
         return JSONResponse({"error": True, "message": f"Projeto '{projeto}' não encontrado."})
@@ -427,7 +427,7 @@ def export_base_compartilhavel(projeto: str):
 
         # Índice BM25 serializado (aluno não precisa reindexar)
         if os.path.exists(index_path):
-            zf.write(index_path, os.path.join('indexes', f"{projeto}.pkl"))
+            zf.write(index_path, os.path.join('agent_index', f"{projeto}_index.json"))
 
         # Manifest — somente_leitura: True marca a base como recebida/protegida no destino
         manifest = {
@@ -479,9 +479,9 @@ async def import_base_compartilhavel(arquivo: UploadFile = File(...)):
             if not projeto:
                 return JSONResponse({"error": True, "message": "Manifest sem nome de projeto."})
 
-            # Extrai apenas neural/ e indexes/ — ignora qualquer outro caminho (segurança)
+            # Extrai apenas neural/ e agent_index/ — ignora qualquer outro caminho (segurança)
             for name in nomes:
-                if not (name.startswith('neural/') or name.startswith('indexes/')):
+                if not (name.startswith('neural/') or name.startswith('agent_index/')):
                     continue
                 # Proteção contra path traversal
                 dest = os.path.join(DATA_DIR, name)

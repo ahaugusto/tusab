@@ -15,7 +15,8 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field, model_validator
 
 import agent_tusab
-from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico
+from tusab_engine.storage import NEURAL_DIR, salvar_json_atomico, salvar_texto_atomico
+from tusab_engine.agent.llm_providers import _get_llm_client
 
 router = APIRouter()
 
@@ -75,16 +76,13 @@ def _chamar_llm_estudo(prompt: str) -> str:
         return resp.json().get("response", "")
 
     if provider in ("gemini", "google"):
-        import google.generativeai as _genai
-        _genai.configure(api_key=api_key)
-        model = _genai.GenerativeModel("gemini-1.5-flash")
-        return model.generate_content(prompt).text
+        client, model = _get_llm_client(provider, api_key, config)
+        if not model:
+            return ""
+        return client.GenerativeModel(model).generate_content(prompt).text
 
     if provider in ("openai", "groq"):
-        from openai import OpenAI
-        base_url = "https://api.groq.com/openai/v1" if provider == "groq" else None
-        llm_model = config.get("groq_model", "llama-3.1-8b-instant") if provider == "groq" else "gpt-4o-mini"
-        client = OpenAI(api_key=api_key, **({"base_url": base_url} if base_url else {}))
+        client, llm_model = _get_llm_client(provider, api_key, config)
         resp = client.chat.completions.create(
             model=llm_model,
             messages=[{"role": "user", "content": prompt}],
@@ -93,10 +91,9 @@ def _chamar_llm_estudo(prompt: str) -> str:
         return resp.choices[0].message.content or ""
 
     if provider == "anthropic":
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        client, model = _get_llm_client(provider, api_key, config)
         msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=model,
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -412,8 +409,7 @@ def _salvar_estudo_indexavel(canal_prefixo: str, projeto_nome: str, tipo: str, t
             "original, não é fonte primária.\n\n"
             f"{texto_achatado}\n"
         )
-        with open(os.path.join(estudo_dir, arquivo_txt), "w", encoding="utf-8") as f:
-            f.write(conteudo_txt)
+        salvar_texto_atomico(conteudo_txt, os.path.join(estudo_dir, arquivo_txt))
 
         salvar_json_atomico(dados, os.path.join(estudo_dir, arquivo_json), indent=2)
 
