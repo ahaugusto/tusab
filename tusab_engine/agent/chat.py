@@ -295,6 +295,28 @@ def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dic
 
 # ── Recuperação BM25 ──────────────────────────────────────────────────────────
 
+_PONTUACAO_BORDA = '.,!?;:()[]{}"\'`¿¡”“‘’'
+
+
+def _tokenizar_query(texto: str) -> list:
+    """Tokeniza a pergunta do usuário pra busca BM25: mesma base (.lower().split(),
+    compatível com a tokenização do corpus em index.py::_enriquecer_documento),
+    mas removendo pontuação de borda e stopwords antes de pontuar.
+
+    Sem isso, palavras funcionais de invólucro conversacional ("me", "sobre",
+    "o", "que"...) da própria pergunta acumulam score BM25 alto em corpus com
+    muito texto formal/repetitivo (ex: leis), competindo — e às vezes vencendo —
+    contra o termo real da pergunta. Achado ao vivo em 14/ago/2026: "Me fale
+    sobre self-rag. O que é?" numa base com papers de RAG + leis recuperava só
+    leis, porque "sobre" sozinho pontuava mais alto que "self-rag" (IDF alto
+    por termo raro por-documento, TF alto dentro de cada lei longa).
+    """
+    tokens = (texto or '').lower().split()
+    limpos = [t.strip(_PONTUACAO_BORDA) for t in tokens]
+    filtrados = [t for t in limpos if t and t not in _STOPWORDS]
+    return filtrados or limpos or tokens
+
+
 _PERFIS_RERANK = {'pesquisador', 'profissional'}  # slug 'profissional' = Especialista na UI
 
 # Cache de corpus merged: keyed por frozenset de (prefixo, mtime) de todos os projetos.
@@ -462,7 +484,7 @@ def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: di
     queries = _expandir_query(pergunta, config) if (config and usar_expansion) else [pergunta]
 
     def _scores_para_queries(bm25_obj, qs):
-        all_s = [bm25_obj.get_scores(q.lower().split()) for q in qs]
+        all_s = [bm25_obj.get_scores(_tokenizar_query(q)) for q in qs]
         return np.max(all_s, axis=0) if len(all_s) > 1 else all_s[0]
 
     # ── Modo unificado: corpus merged quando há múltiplos projetos ────────────
