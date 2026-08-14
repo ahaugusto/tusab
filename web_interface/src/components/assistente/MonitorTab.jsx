@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Activity, Cpu, HardDrive, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
 import { fetchMetrics } from '../../services/api';
 import { BTN_FOCUS } from '../../constants';
+import { localeFor } from '../../utils/locale';
 
 // ─── Mini sparkline ───────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function GaugeBar({ value, max, color, darkMode }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MonitorTab({ darkMode, btnFocus, onGoToAdmin }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [metrics, setMetrics] = useState(null);
   const [error, setError]     = useState('');
   const [paused, setPaused]   = useState(false);
@@ -216,7 +217,7 @@ export default function MonitorTab({ darkMode, btnFocus, onGoToAdmin }) {
                       : `border-slate-50 ${i === 0 ? 'bg-primary/3' : 'hover:bg-slate-50'}`
                     }`}>
                     <td className={`px-4 py-1.5 font-mono ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {new Date(h.ts * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(h.ts * 1000).toLocaleTimeString(localeFor(i18n.language), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td className={`px-4 py-1.5 text-right font-mono ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>
                       {h.ram_mb.toFixed(1)}

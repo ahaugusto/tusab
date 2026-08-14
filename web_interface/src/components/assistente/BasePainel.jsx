@@ -11,10 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Database, Play, FileText, AlignLeft, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { fetchBaseSummary } from '../../services/api';
-
-function localeFor(lang) {
-  return lang?.startsWith('en') ? 'en-US' : lang?.startsWith('es') ? 'es-ES' : 'pt-BR';
-}
+import { localeFor } from '../../utils/locale';
 
 function formatDate(ts, lang) {
   if (!ts) return null;

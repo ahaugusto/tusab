@@ -1349,7 +1349,7 @@ function App() {
       {/* WCAG 2.4.1 — Skip navigation link */}
       <a href="#main-content"
         className={`sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-xs focus:font-bold focus:bg-primary focus:text-white ${BTN_FOCUS}`}>
-        Ir para o conteúdo principal
+        {t('common.skip_to_content')}
       </a>
 
       {/* ── Modals ── */}
@@ -1377,7 +1377,7 @@ function App() {
                 if (canais.length === 0) {
                   return (
                     <>
-                      <h2 className={`text-sm font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Criar primeiro projeto</h2>
+                      <h2 className={`text-sm font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.create_first_project')}</h2>
                       <p className={`text-xs mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         Você ainda não tem projetos. Crie um para organizar seus arquivos.
                       </p>
@@ -1387,7 +1387,7 @@ function App() {
                           value={folderPickerNovoProjeto}
                           onChange={e => setFolderPickerNovoProjeto(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') handleFolderPickerCriar(); }}
-                          placeholder="Nome do projeto..."
+                          placeholder={t('home.new_project_placeholder')}
                           className={`flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:border-primary
                             ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800'}`}
                         />
@@ -1404,7 +1404,7 @@ function App() {
                 }
                 return (
                   <>
-                    <h2 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Abrir pasta do projeto</h2>
+                    <h2 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.open_project_folder_title')}</h2>
                     <div className="flex flex-col gap-1.5">
                       {canais.map((nome, i) => (
                         <button key={i}
@@ -1502,7 +1502,7 @@ function App() {
                 </a>
               )}
               <button onClick={() => setShowUpdateBanner(false)}
-                aria-label="Fechar"
+                aria-label={t('common.close')}
                 className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                 ✕
               </button>
@@ -1830,7 +1830,7 @@ function App() {
         </AnimatePresence>
 
         {/* ── Main ── */}
-        <main id="main-content" aria-label="Área principal" className="flex-1 flex flex-col overflow-hidden relative min-w-0">
+        <main id="main-content" aria-label={t('nav.main_area')} className="flex-1 flex flex-col overflow-hidden relative min-w-0">
 
           {/* Home screen */}
           {showHome && (
@@ -1856,7 +1856,7 @@ function App() {
             {/* Page header */}
             <header className={`px-4 md:px-6 lg:px-8 py-3 lg:py-4 flex justify-between items-center shrink-0 gap-4 border-b backdrop-blur-sm ${darkMode ? 'border-white/8 shadow-[0_1px_12px_rgba(0,0,0,0.25)]' : 'border-slate-200 shadow-[0_1px_8px_rgba(0,0,0,0.06)]'}`}>
               <div className="flex items-center gap-3">
-                <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu de controle"
+                <button onClick={() => setSidebarOpen(true)} aria-label={t('nav.open_control_menu')}
                   className={`md:hidden p-2 rounded-xl transition-colors ${darkMode ? 'bg-white/8 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${BTN_FOCUS}`}>
                   <Menu size={20} />
                 </button>
@@ -1903,8 +1903,8 @@ function App() {
                   <span className={`text-[10px] hidden sm:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('header.perfil_acessado')}</span>
                   <button
                     onClick={() => setShowAlterarPerfil(true)}
-                    title="Alterar perfil"
-                    aria-label="Perfil ativo — clique para alterar"
+                    title={t('perfil.trocar')}
+                    aria-label={t('perfil.active_aria')}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                       ${darkMode ? 'border-white/15 text-slate-300 bg-white/4 hover:bg-white/8' : 'border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100'}`}>
                     <span>{PERFIS_META[perfil]?.icon ?? '🧑‍💻'}</span>
@@ -1915,8 +1915,8 @@ function App() {
                 {regras.drive && driveStatus === 'autenticado' && (
                   <button
                     onClick={() => setActiveTab('repositorio')}
-                    title={isRunning ? 'Drive sincronizando…' : 'Drive conectado — ir para Repositório'}
-                    aria-label={isRunning ? 'Drive sincronizando' : 'Drive conectado — ir para Repositório'}
+                    title={isRunning ? t('drive.status_syncing') : t('drive.status_connected_action')}
+                    aria-label={isRunning ? t('drive.status_syncing') : t('drive.status_connected_action')}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${BTN_FOCUS}
                       ${isRunning
                         ? darkMode ? 'border-secondary/40 text-secondary bg-secondary/12 hover:bg-secondary/20' : 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
@@ -2058,10 +2058,8 @@ function App() {
                   {/* Expandable content */}
                   {(driveOpen || driveStatus === 'autenticado') && (
                     <div className={`px-5 pb-4 pt-0 border-t space-y-2 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
-                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                        Sincronize os arquivos extraídos com o Drive para usar no{' '}
-                        <strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>NotebookLM</strong>.
-                      </p>
+                      <p className={`text-[11px] pt-3 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}
+                        dangerouslySetInnerHTML={{ __html: t('drive.notebooklm_sync_html') }} />
                       {status.drive_auth_error && (
                         <p className={`text-[11px] text-danger flex items-center gap-1`}>
                           <AlertTriangle size={10} /> {status.drive_auth_error}
@@ -2076,14 +2074,14 @@ function App() {
                         <button onClick={() => { handleDriveCancel(); setDriveOpen(false); }}
                           className={`text-[11px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${BTN_FOCUS}
                             ${darkMode ? 'border-white/15 text-slate-400 hover:text-white hover:bg-white/8' : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
-                          <XCircle size={11} /> Cancelar autenticação
+                          <XCircle size={11} /> {t('drive.cancel_auth')}
                         </button>
                       )}
                       {driveStatus === 'autenticado' && (
                         <button onClick={handleDriveDisconnect}
                           className={`text-[11px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${BTN_FOCUS}
                             ${darkMode ? 'border-white/15 text-slate-400 hover:text-danger hover:border-danger/30' : 'border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200'}`}>
-                          <XCircle size={11} /> Desconectar Drive
+                          <XCircle size={11} /> {t('drive.disconnect')}
                         </button>
                       )}
                     </div>
@@ -2322,7 +2320,7 @@ function App() {
               onRecriarIndice={handleAgentIndex}
               onClearHistory={() => {
                 const canal = projetoChat || agentStatus.canal_indexado;
-                if (canal) clearChatHistory(canal).catch(() => showError('Erro ao limpar histórico. Tente novamente.'));
+                if (canal) clearChatHistory(canal).catch(() => showError(t('error.clear_history')));
               }}
               agentStatus={agentStatus}
               indexingDoneCount={indexingDoneCount}
@@ -2444,7 +2442,7 @@ function App() {
                   onClick={() => {
                     mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  aria-label="Voltar ao topo"
+                  aria-label={t('nav.back_to_top')}
                   style={{ backdropFilter: 'blur(16px) saturate(1.8)', WebkitBackdropFilter: 'blur(16px) saturate(1.8)' }}
                   className={`fixed z-30 p-3 rounded-full transition-all duration-200 ${BTN_FOCUS}
                     bottom-24 right-6
