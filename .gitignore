@@ -4,8 +4,7 @@
 
 # --- Credenciais e tokens OAuth (NUNCA subir) ---
 credentials.json
-data/config/token.json
-data/config/agent_config.json
+data/config/
 *.json.bak
 .env
 .env.*
@@ -42,6 +41,9 @@ output/
 # --- Node / Frontend ---
 web_interface/node_modules/
 web_interface/.vite/
+
+# --- Ferramentas de análise de código (cache local, não versionar) ---
+graphify-out/
 
 # --- Electron ---
 electron/node_modules/
