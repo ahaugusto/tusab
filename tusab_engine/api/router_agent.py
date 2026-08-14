@@ -357,7 +357,8 @@ def agent_base_summary():
             if total == 0:
                 continue
 
-            idx_path = os.path.join(INDEX_DIR, f"{prefixo}.json")
+            from tusab_engine.agent.index import _index_path
+            idx_path = _index_path(prefixo)
             idx_mtime = None
             try:
                 idx_mtime = int(os.path.getmtime(idx_path))
@@ -832,50 +833,36 @@ def agent_test_key(req: TestKeyRequest = None):
                 return {"ok": True, "message": f"Servidor respondeu! Modelo configurado: {modelo}"}
             return {"ok": True, "message": "Servidor respondeu, mas nenhum modelo foi informado — configure o nome do modelo antes de usar no chat."}
         if provider == "groq":
-            from openai import OpenAI
-            modelo = config.get("groq_model", "llama-3.1-8b-instant")
-            OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1").chat.completions.create(
+            from tusab_engine.agent.llm_providers import _get_llm_client
+            client, modelo = _get_llm_client(provider, api_key, config)
+            client.chat.completions.create(
                 model=modelo,
                 messages=[{"role": "user", "content": "ok"}],
                 max_tokens=1,
             )
             return {"ok": True, "message": f"Groq ativo! Modelo: {modelo}"}
         if provider == "openai":
-            from openai import OpenAI
-            OpenAI(api_key=api_key).chat.completions.create(
-                model="gpt-4o-mini",
+            from tusab_engine.agent.llm_providers import _get_llm_client
+            client, modelo = _get_llm_client(provider, api_key, config)
+            client.chat.completions.create(
+                model=modelo,
                 messages=[{"role": "user", "content": "ok"}],
                 max_tokens=1,
             )
         elif provider == "anthropic":
-            import anthropic
-            anthropic.Anthropic(api_key=api_key).messages.create(
-                model="claude-haiku-4-5-20251001",
+            from tusab_engine.agent.llm_providers import _get_llm_client
+            client, modelo = _get_llm_client(provider, api_key, config)
+            client.messages.create(
+                model=modelo,
                 max_tokens=1,
                 messages=[{"role": "user", "content": "ok"}],
             )
         elif provider in ("gemini", "google"):
-            import google.generativeai as _genai
-            _genai.configure(api_key=api_key)
-            modelos_disponiveis = [
-                m.name.replace("models/", "")
-                for m in _genai.list_models()
-                if "generateContent" in m.supported_generation_methods
-            ]
-            CANDIDATOS = [
-                "gemini-1.5-flash", "gemini-1.5-flash-latest",
-                "gemini-1.5-flash-002", "gemini-1.5-pro",
-                "gemini-pro", "gemini-2.0-flash-lite",
-            ]
-            modelo_escolhido = next(
-                (m for m in CANDIDATOS if m in modelos_disponiveis), None
-            )
+            from tusab_engine.agent.llm_providers import _get_llm_client
+            client, modelo_escolhido = _get_llm_client(provider, api_key, config)
             if not modelo_escolhido:
-                return {
-                    "error": True,
-                    "message": f"Nenhum modelo compatível encontrado. Disponíveis: {', '.join(modelos_disponiveis[:5])}"
-                }
-            _genai.GenerativeModel(modelo_escolhido).generate_content("ok")
+                return {"error": True, "message": "Nenhum modelo compatível com geração de texto encontrado nesta chave."}
+            client.GenerativeModel(modelo_escolhido).generate_content("ok")
             return {"ok": True, "message": f"Chave válida! Modelo: {modelo_escolhido}"}
         return {"ok": True, "message": "Chave válida! Conexão estabelecida com sucesso."}
     except Exception as e:
@@ -1074,15 +1061,13 @@ def agent_feedback(req: FeedbackRequest):
     util=False → descarta silenciosamente (sem side-effects no corpus).
     """
     import time as _time
+    from tusab_engine.storage import NEURAL_DIR, salvar_texto_atomico
     projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
 
     if not req.util:
         return {"ok": True, "action": "discarded"}
 
-    texts_dir = os.path.join(
-        __import__('tusab_engine.storage', fromlist=['NEURAL_DIR']).NEURAL_DIR,
-        projeto_prefixo, 'texts'
-    )
+    texts_dir = os.path.join(NEURAL_DIR, projeto_prefixo, 'texts')
     os.makedirs(texts_dir, exist_ok=True)
 
     ts = int(_time.time())
@@ -1093,8 +1078,7 @@ def agent_feedback(req: FeedbackRequest):
     )
     caminho = os.path.join(texts_dir, fname)
     try:
-        with open(caminho, 'w', encoding='utf-8') as f:
-            f.write(conteudo)
+        salvar_texto_atomico(conteudo, caminho)
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

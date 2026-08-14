@@ -739,19 +739,20 @@ async def cerebro_upload(
         return {"error": True, "message": "Arquivo sem conteúdo extraível"}
 
     txt_path = os.path.join(doc_dir, f"{fid}_{nome_limpo}.txt")
-    with open(txt_path, 'w', encoding='utf-8') as f:
-        f.write(f"TITULO: {arquivo.filename}\nFONTE: documento\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
-        if ext == ".pdf":
-            qualidade = "escaneado_sem_ocr" if aviso_extracao and "sem camada" in aviso_extracao else "texto_nativo"
-            f.write(f"QUALIDADE_PDF: {qualidade}\n")
-        f.write("-" * 70 + "\n")
-        f.write(texto)
+    cabecalho = f"TITULO: {arquivo.filename}\nFONTE: documento\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n"
+    if ext == ".pdf":
+        qualidade = "escaneado_sem_ocr" if aviso_extracao and "sem camada" in aviso_extracao else "texto_nativo"
+        cabecalho += f"QUALIDADE_PDF: {qualidade}\n"
+    motor_tusab.salvar_texto_atomico(cabecalho + "-" * 70 + "\n" + texto, txt_path)
 
     manifest_path = os.path.join(doc_dir, "_manifest.json")
     manifest = []
     if os.path.exists(manifest_path):
-        with open(manifest_path, 'r', encoding='utf-8') as f:
-            manifest = json.load(f)
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+        except Exception:
+            manifest = []
 
     entry = {
         "id": fid,
@@ -802,16 +803,17 @@ def cerebro_texto(req: TextoRequest, background_tasks: BackgroundTasks):
     nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', req.titulo)[:40] if req.titulo else "texto"
     txt_path = os.path.join(txt_dir2, f"{fid}_{nome_limpo}.txt")
 
-    with open(txt_path, 'w', encoding='utf-8') as f:
-        f.write(f"TITULO: {req.titulo}\nFONTE: texto\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
-        f.write("-" * 70 + "\n")
-        f.write(req.conteudo)
+    cabecalho = f"TITULO: {req.titulo}\nFONTE: texto\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n"
+    motor_tusab.salvar_texto_atomico(cabecalho + "-" * 70 + "\n" + req.conteudo, txt_path)
 
     manifest_path = os.path.join(txt_dir2, "_manifest.json")
     manifest = []
     if os.path.exists(manifest_path):
-        with open(manifest_path, 'r', encoding='utf-8') as f:
-            manifest = json.load(f)
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+        except Exception:
+            manifest = []
 
     entry = {
         "id": fid,
@@ -866,17 +868,20 @@ def cerebro_url(req: UrlRequest, background_tasks: BackgroundTasks):
     nome_limpo = re.sub(r'[^a-zA-Z0-9_\-]', '_', pagina["titulo"])[:40]
     txt_path = os.path.join(doc_dir, f"{fid}_{nome_limpo}.txt")
 
-    with open(txt_path, 'w', encoding='utf-8') as f:
-        f.write(f"TITULO: {pagina['titulo']}\nFONTE: web\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n")
-        f.write(f"URL_ORIGEM: {pagina['url']}\n")
-        f.write("-" * 70 + "\n")
-        f.write(pagina["texto"])
+    cabecalho = (
+        f"TITULO: {pagina['titulo']}\nFONTE: web\nDATA: {datetime.now().strftime('%d/%m/%Y')}\n"
+        f"URL_ORIGEM: {pagina['url']}\n"
+    )
+    motor_tusab.salvar_texto_atomico(cabecalho + "-" * 70 + "\n" + pagina["texto"], txt_path)
 
     manifest_path = os.path.join(doc_dir, "_manifest.json")
     manifest = []
     if os.path.exists(manifest_path):
-        with open(manifest_path, 'r', encoding='utf-8') as f:
-            manifest = json.load(f)
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+        except Exception:
+            manifest = []
 
     entry = {
         "id": fid,
