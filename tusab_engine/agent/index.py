@@ -260,8 +260,8 @@ def _invalidar_cache(projeto_prefixo: str):
 # ── Stopwords PT + EN ─────────────────────────────────────────────────────────
 
 _STOPWORDS = {
-    'de','a','o','que','e','do','da','em','um','para','com','uma','os','no',
-    'se','na','por','mais','as','dos','como','mas','ao','ele','das','seu',
+    'de','a','o','que','e','é','do','da','em','um','para','com','uma','os','no',
+    'se','na','por','mais','as','dos','como','mas','ao','ele','das','seu','sobre',
     'sua','ou','ser','quando','muito','nos','já','também','só','pelo','pela',
     'até','isso','ela','entre','era','depois','sem','mesmo','aos','ter','seus',
     'quem','nas','me','esse','eles','estão','você','tinha','foram','essa','num',
