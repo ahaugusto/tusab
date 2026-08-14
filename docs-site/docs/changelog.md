@@ -11,6 +11,10 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 ## Destaques recentes
 
+**v1.0.52 (2026-08-14)** — Roteamento de intenção no chat: perguntas sobre a própria base ("quantos vídeos tem essa base?", "quando foi indexada?") respondem com dado real do disco, sem chamada de LLM; perguntas de cálculo puro ("quanto é 15+27?") são resolvidas por um avaliador aritmético seguro, sem LLM nem busca; retry automático em Busca Ampla antes de mostrar "não encontrei". Atalhos de teclado para macOS documentados na Ajuda.
+
+**v1.0.51 (2026-08-12)** — Capítulos de vídeo do YouTube maiores que 3000 caracteres eram truncados no índice de busca e na citação do chat; agora são divididos em múltiplas partes, com continuidade preservada.
+
 **v1.0.50 (2026-08-10)** — Fábrica única de cliente LLM no chat (corrige um drift real na lista de fallback do Gemini); reset total disponível para todos os perfis, não só Especialista.
 
 **v1.0.49 (2026-08-10)** — Busca vetorial (embeddings via Ollama `nomic-embed-text`) como complemento ao BM25+FTS5+CrossEncoder no chat, ativa em Busca Ampla com download opcional de 1 clique.

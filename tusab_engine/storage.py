@@ -183,3 +183,78 @@ def salvar_npy_atomico(array, path: str):
     tmp = path + '.tmp.npy'
     np.save(tmp, array)
     os.replace(tmp, path)
+
+
+# ── Resumo de projetos (CSVs de gestão) ───────────────────────────────────────
+# Extraído de router_status.py::get_history() — fonte única pro número de
+# vídeos extraídos/mapeados/cobertura por projeto. Usado tanto pela rota
+# GET /history (aba Relatório) quanto pela rota METADADOS do chat
+# (tusab_engine/agent/metadados.py) — as duas precisam mostrar o MESMO
+# número pro mesmo projeto, por design (ver spec de roteamento, Fase 2,
+# critério de aceite: "divergência entre as duas superfícies é bug bloqueante").
+
+def resumir_projetos_youtube() -> list:
+    """Lê os CSVs de gestão (neural/{projeto}/management/*_base.csv) e retorna
+    um resumo por projeto: total mapeado, extraídos, sem legenda, cobertura,
+    data da última extração e o filtro ativo (playlist/data), se houver.
+
+    Nunca lança — CSV corrompido ou ausente é simplesmente pulado.
+    """
+    import re as _re
+    import glob as _glob
+    import json as _json
+    import pandas as _pd
+
+    resumo = []
+    pattern = os.path.join(NEURAL_DIR, "*", "management", "*_base.csv")
+    for csv_path in sorted(_glob.glob(pattern), key=os.path.getmtime, reverse=True):
+        try:
+            df = _pd.read_csv(csv_path, encoding="utf-8-sig")
+
+            # neural/{projeto}/management/{canal}_base.csv
+            rel = csv_path.replace(NEURAL_DIR, '').strip(os.sep)
+            parts = rel.split(os.sep)
+            projeto    = parts[0] if len(parts) >= 1 else ""
+            canal_base = os.path.basename(csv_path).replace("_base.csv", "")
+
+            total   = len(df)
+            sucesso = int((df["Status"] == "Sucesso").sum()) if "Status" in df.columns else 0
+            sem_leg = int((df["Status"] == "Sem Legenda").sum()) if "Status" in df.columns else 0
+            ultima  = df["Data_Extracao"].max() if "Data_Extracao" in df.columns else ""
+            canal_url = f"https://www.youtube.com/@{canal_base}"
+
+            if "Link" in df.columns:
+                link = df["Link"].dropna().iloc[0] if len(df) > 0 else ""
+                m = _re.search(r"@([^/?\s]+)", str(link))
+                if m:
+                    canal_url = f"https://www.youtube.com/@{m.group(1)}"
+
+            summary_path = csv_path.replace("_base.csv", "_summary.json")
+            total_mapeado = total
+            ultimo_filtro = None
+            if os.path.exists(summary_path):
+                try:
+                    with open(summary_path, 'r', encoding='utf-8') as _sf:
+                        _summary = _json.load(_sf)
+                    total_mapeado = _summary.get("total_mapeado", total)
+                    _uf = _summary.get("ultimo_filtro") or {}
+                    if _uf.get("playlists") or _uf.get("data_inicio") or _uf.get("data_fim"):
+                        ultimo_filtro = _uf
+                except Exception:
+                    pass
+
+            resumo.append({
+                "canal":           canal_base,
+                "projeto":         projeto,
+                "canal_url":       canal_url,
+                "total":           total,
+                "total_mapeado":   total_mapeado,
+                "extraidos":       sucesso,
+                "sem_legenda":     sem_leg,
+                "cobertura":       round(sucesso / total_mapeado * 100) if total_mapeado > 0 else 0,
+                "ultima_extracao": str(ultima),
+                "ultimo_filtro":   ultimo_filtro,
+            })
+        except Exception:
+            pass
+    return resumo

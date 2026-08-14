@@ -7,6 +7,18 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.52] — 2026-08-14
+
+### Adicionado
+- **Roteamento de intenção no chat** — antes de recorrer à busca (BM25/FTS5/vetorial), o chat agora reconhece diretamente dois tipos de pergunta que não precisam dela: perguntas sobre a própria base ("quantos vídeos tem essa base?", "qual o mais recente?", "quando essa base foi indexada?") respondem com dado real lido direto do disco, sem chamada de LLM e sem risco de alucinar o número; perguntas puramente aritméticas ("quanto é 15+27?", "calcule (100-25)*2") são resolvidas por um avaliador seguro (nunca `eval`/`exec`), usando só os números digitados na própria pergunta — nunca números vindos de documentos recuperados, por segurança contra prompt injection. As duas rotas respondem instantaneamente, sem esperar o modelo local/remoto.
+- **Retry automático em Busca Ampla antes de "não encontrei"** — quando a Busca Restrita não retorna contexto, o chat agora tenta automaticamente a Busca Ampla (BM25+CrossEncoder) antes de desistir. O botão "Indexar base agora" só aparece quando realmente não há nada, mesmo com o esforço extra.
+- Saudações e trechos referenciados (`[arquivo]`) respondem imediatamente, sem esperar a classificação de intenção do LLM (~800ms no Ollama).
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- Novos módulos `tusab_engine/agent/router.py`, `metadados.py`, `calculo.py`, `critique.py` — consolidam lógica antes espalhada em `chat.py` (classificação de intenção, verificação de alucinação, confiança por sentença) e formalizam o roteamento como arquitetura de primeira classe, inspirado no paper Self-RAG (Asai et al., arXiv:2310.11511). Revisão de segurança obrigatória aplicada à rota de cálculo (avaliador AST com whitelist de nós, checagem de magnitude antes de computar potenciação). 323 testes.
+
+---
+
 ## [1.0.51] — 2026-08-12
 
 ### Corrigido
