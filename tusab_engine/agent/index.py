@@ -371,7 +371,16 @@ def _dividir_texto_estimado(texto: str, timestamp_base: int, limite: int = _LIMI
     return partes
 
 
-def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arquivos_vistos: set = None, embeddings_out: list = None) -> list:
+def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arquivos_vistos: set = None, embeddings_out: list = None, tick_callback=None, stop_event=None) -> list:
+    # tick_callback (sem args), se fornecido, é chamado após cada ARQUIVO
+    # processado — granularidade fina para pastas de canal YouTube com
+    # dezenas/centenas de arquivos, onde o tick por-pasta de
+    # _parsear_todos_chunks deixava a barra de progresso parada por minutos
+    # (achado ao vivo, 14/ago/2026: indexação de 110 arquivos parecia travada
+    # em "1 de 7" — na real processava normalmente, só sem feedback granular).
+    # stop_event, se fornecido e setado, interrompe o loop entre arquivos —
+    # antes só era checado depois que TODOS os arquivos já tinham sido
+    # parseados, então cancelar durante essa fase não tinha efeito nenhum.
     chunks   = []
     arquivos = sorted([
         f for f in os.listdir(txt_dir)
@@ -379,26 +388,44 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
     ])
 
     for arquivo in arquivos:
-        caminho = os.path.join(txt_dir, arquivo)
-        caminho_abs = os.path.realpath(caminho)
-        if arquivos_vistos is not None:
-            arquivos_vistos.add(caminho_abs)
-
+        if stop_event and stop_event.is_set():
+            break
         try:
-            mtime = os.path.getmtime(caminho)
-        except OSError:
-            continue
+            _parsear_um_arquivo(
+                arquivo, txt_dir, projeto_prefixo, chunks,
+                cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out,
+            )
+        finally:
+            if tick_callback:
+                tick_callback()
 
-        if cache is not None:
-            entrada = cache.get(caminho_abs)
-            if entrada and entrada.get('mtime') == mtime:
-                chunks.extend(entrada['chunks'])
-                if embeddings_out is not None:
-                    embeddings_out.extend(_obter_embeddings_cache(entrada))
-                continue
+    return chunks
 
-        with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
-            conteudo = f.read()
+
+def _parsear_um_arquivo(arquivo: str, txt_dir: str, projeto_prefixo: str, chunks: list, *, cache: dict = None, arquivos_vistos: set = None, embeddings_out: list = None) -> None:
+    """Parseia um único arquivo .txt e estende `chunks` (mutado por referência —
+    mesmo idioma de embeddings_out/arquivos_vistos). Extraído de _parsear_chunks
+    pra permitir tick de progresso/stop_event por arquivo (ver comentário acima)."""
+    caminho = os.path.join(txt_dir, arquivo)
+    caminho_abs = os.path.realpath(caminho)
+    if arquivos_vistos is not None:
+        arquivos_vistos.add(caminho_abs)
+
+    try:
+        mtime = os.path.getmtime(caminho)
+    except OSError:
+        return
+
+    if cache is not None:
+        entrada = cache.get(caminho_abs)
+        if entrada and entrada.get('mtime') == mtime:
+            chunks.extend(entrada['chunks'])
+            if embeddings_out is not None:
+                embeddings_out.extend(_obter_embeddings_cache(entrada))
+            return
+
+    with open(caminho, 'r', encoding='utf-8-sig', errors='ignore') as f:
+        conteudo = f.read()
         # Corrige mojibake latin-1→utf-8 (comum em títulos extraídos pelo yt-dlp)
         try:
             conteudo = conteudo.encode('latin-1').decode('utf-8')
@@ -489,26 +516,36 @@ def _parsear_chunks(txt_dir: str, projeto_prefixo: str, cache: dict = None, arqu
         if cache is not None:
             cache[caminho_abs] = entrada_cache
 
-    return chunks
-
 
 def _contar_unidades_fonte(projeto_prefixo: str) -> int:
-    """Conta unidades de fonte (pastas de canal YouTube + arquivos de doc/texto)
-    sem ler conteúdo — usado só como denominador aproximado do progresso
-    granular de indexação. Não precisa espelhar 100% a lógica de
-    _parsear_todos_chunks (inclusive uma ambiguidade pré-existente com
-    arquivos legados flat), só dar estimativa razoável para a barra de progresso.
+    """Conta unidades de fonte (arquivos .txt dentro de cada pasta de canal
+    YouTube + arquivos de doc/texto) sem ler conteúdo — usado só como
+    denominador aproximado do progresso granular de indexação. Não precisa
+    espelhar 100% a lógica de _parsear_todos_chunks (inclusive uma
+    ambiguidade pré-existente com arquivos legados flat), só dar estimativa
+    razoável para a barra de progresso.
+
+    Conta por ARQUIVO, não por pasta de canal — pastas com dezenas/centenas
+    de vídeos (comum em canais grandes) faziam a barra ficar parada em "1 de
+    N" por minutos enquanto essa única unidade processava internamente
+    (achado ao vivo, 14/ago/2026, ver agents/_historia.md).
     """
     total = 0
     youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
     if os.path.isdir(youtube_base):
         for canal_entry in os.scandir(youtube_base):
             if canal_entry.is_dir():
-                total += 1
+                total += sum(
+                    1 for f in os.listdir(canal_entry.path)
+                    if f.startswith(canal_entry.name) and f.endswith('.txt')
+                )
             elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
                 total += 1
     if os.path.exists(TXT_DIR):
-        total += 1
+        total += sum(
+            1 for f in os.listdir(TXT_DIR)
+            if f.startswith(projeto_prefixo) and f.endswith('.txt')
+        )
 
     seen_files = set()
     for source_dir in _get_canal_doc_dirs(projeto_prefixo):
@@ -525,14 +562,20 @@ def _contar_unidades_fonte(projeto_prefixo: str) -> int:
     return total
 
 
-def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None, embeddings_out: list = None) -> list:
+def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None, embeddings_out: list = None, stop_event=None) -> list:
     """Lê chunks de todas as fontes: todos os canais do projeto + docs + avulso + legado.
 
     progress_callback(processed, total), se fornecido, é chamado após cada
-    unidade de fonte processada (uma pasta de canal do YouTube ou um arquivo
-    de documento/texto). Granularidade escolhida para não alterar o parsing
-    interno de _parsear_chunks (ver aviso [IMPACTO] em indexar() sobre schema
-    de chunks) — só envolve as chamadas já existentes com contagem de progresso.
+    ARQUIVO processado (não mais por pasta de canal inteira — pastas com
+    dezenas/centenas de vídeos deixavam a barra parada em "1 de N" por
+    minutos enquanto essa única unidade processava internamente por dentro;
+    achado ao vivo, 14/ago/2026, ver agents/_historia.md). `_contar_unidades_fonte`
+    usa a mesma granularidade por arquivo como denominador.
+
+    stop_event, se fornecido e setado, interrompe o parsing entre arquivos —
+    propagado até _parsear_chunks/_parsear_um_arquivo, que checam a cada
+    iteração do loop de arquivos (antes só era checado depois que TUDO já
+    tinha sido parseado, cancelamento não tinha efeito durante essa fase).
 
     embeddings_out, se fornecido (lista mutada por referência, mesmo idioma de
     arquivos_vistos), recebe um vetor (ou None) por chunk, na MESMA ORDEM da
@@ -559,18 +602,17 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None, embeddin
     youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
     if os.path.isdir(youtube_base):
         for canal_entry in os.scandir(youtube_base):
+            if stop_event and stop_event.is_set():
+                return chunks
             if canal_entry.is_dir():
                 # Nova estrutura: youtube/{canal}/*.txt
-                chunks += _parsear_chunks(canal_entry.path, canal_entry.name, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out)
-                _tick()
+                chunks += _parsear_chunks(canal_entry.path, canal_entry.name, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out, tick_callback=_tick, stop_event=stop_event)
             elif canal_entry.name.endswith('.txt') and not canal_entry.name.startswith('_'):
                 # Legado flat: youtube/*.txt (arquivos anteriores à migração de estrutura)
-                chunks += _parsear_chunks(youtube_base, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out)
-                _tick()
+                chunks += _parsear_chunks(youtube_base, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out, tick_callback=_tick, stop_event=stop_event)
     # Legado: data/neural/youtube/ plano (arquivos nomeados {projeto_prefixo}_*.txt)
-    if os.path.exists(TXT_DIR):
-        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out)
-        _tick()
+    if os.path.exists(TXT_DIR) and not (stop_event and stop_event.is_set()):
+        chunks += _parsear_chunks(TXT_DIR, projeto_prefixo, cache=cache, arquivos_vistos=arquivos_vistos, embeddings_out=embeddings_out, tick_callback=_tick, stop_event=stop_event)
 
     seen_files = set()
     for source_dir in _get_canal_doc_dirs(projeto_prefixo):
@@ -580,6 +622,8 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None, embeddin
         aba_label  = 'texto' if _base_dir == 'texts' else 'estudo' if _base_dir == 'estudo' else 'documento'
         canal_dir  = os.path.basename(os.path.dirname(source_dir))
         for fname in sorted(os.listdir(source_dir)):
+            if stop_event and stop_event.is_set():
+                return chunks
             if not fname.endswith('.txt') or fname.startswith('_'):
                 continue
             caminho = os.path.realpath(os.path.join(source_dir, fname))
@@ -805,12 +849,14 @@ def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=N
     # tenta gerar embeddings, degradação graciosa idêntica a hoje (sem .npy).
     embeddings_out = [] if gerar_embeddings else None
 
-    chunks = _parsear_todos_chunks(projeto_prefixo, progress_callback=progress_callback, embeddings_out=embeddings_out)
-    if not chunks:
-        raise ValueError(f"Nenhum conteúdo encontrado para '{projeto_prefixo}'. Faça a extração ou adicione documentos.")
+    chunks = _parsear_todos_chunks(projeto_prefixo, progress_callback=progress_callback, embeddings_out=embeddings_out, stop_event=stop_event)
 
     if stop_event and stop_event.is_set():
         if callback: callback("🛑 Indexação cancelada.")
+        return 0
+
+    if not chunks:
+        raise ValueError(f"Nenhum conteúdo encontrado para '{projeto_prefixo}'. Faça a extração ou adicione documentos.")
         return 0
 
     if callback: callback(f"📦 {len(chunks)} chunks encontrados. Salvando índice local...")

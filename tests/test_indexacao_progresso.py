@@ -4,6 +4,12 @@ Testes do progresso granular de indexação — _contar_unidades_fonte() e
 progress_callback em _parsear_todos_chunks(). Garante que a contagem de
 progresso não altera o conjunto de chunks retornado (regressão de schema
 seria crítica — ver aviso [IMPACTO] em index.py::indexar()).
+
+Granularidade por ARQUIVO (não por pasta de canal) desde 14/ago/2026 — bug
+real achado ao vivo: pastas de canal com dezenas/centenas de vídeos deixavam
+a barra de progresso parada em "1 de N" por minutos, e stop_event não tinha
+efeito nenhum durante essa fase (só era checado depois que TUDO já tinha
+sido parseado). Ver agents/_historia.md.
 """
 import os
 
@@ -44,9 +50,9 @@ def test_contar_unidades_fonte_soma_canal_e_documentos(tmp_path, monkeypatch):
     _criar_documento(str(tmp_path), "projeto_teste", "doc1.txt")
     _criar_documento(str(tmp_path), "projeto_teste", "doc2.txt")
 
-    # 1 unidade (pasta do canal, não por vídeo) + 2 documentos = 3
+    # 3 vídeos (1 unidade por arquivo, não por pasta de canal) + 2 documentos = 5
     total = index_mod._contar_unidades_fonte("projeto_teste")
-    assert total == 3
+    assert total == 5
 
 
 def test_parsear_todos_chunks_chama_progress_callback_ate_o_total(tmp_path, monkeypatch):
@@ -61,7 +67,7 @@ def test_parsear_todos_chunks_chama_progress_callback_ate_o_total(tmp_path, monk
     chamadas = []
     index_mod._parsear_todos_chunks("projeto_teste", progress_callback=lambda p, t: chamadas.append((p, t)))
 
-    assert len(chamadas) == 2  # 1 pasta de canal + 1 documento
+    assert len(chamadas) == 3  # 2 vídeos (por arquivo) + 1 documento
     # progresso é monotonicamente crescente e termina no total
     assert chamadas[-1][0] == chamadas[-1][1]
     for i in range(1, len(chamadas)):
@@ -95,6 +101,39 @@ def test_parsear_todos_chunks_com_callback_retorna_mesmos_chunks_que_sem(tmp_pat
     com_callback = index_mod._parsear_todos_chunks("projeto_teste", progress_callback=lambda p, t: None)
 
     assert sem_callback == com_callback
+
+
+def test_stop_event_interrompe_durante_pasta_de_canal_grande(tmp_path, monkeypatch):
+    """Bug real (14/ago/2026): cancelar a indexação enquanto uma pasta de
+    canal com muitos vídeos está sendo processada não tinha efeito nenhum —
+    stop_event só era checado depois que TODOS os arquivos já tinham sido
+    parseados. Agora precisa parar no meio, sem processar tudo."""
+    import threading
+
+    monkeypatch.setattr(index_mod, "NEURAL_DIR", str(tmp_path))
+    monkeypatch.setattr(index_mod, "TXT_DIR", str(tmp_path / "nao_existe_legado"))
+    monkeypatch.setattr(index_mod, "DOC_DIR", str(tmp_path / "nao_existe_doc_legado"))
+    monkeypatch.setattr(index_mod, "TEXT_DIR", str(tmp_path / "nao_existe_texto_legado"))
+
+    _criar_projeto_youtube(str(tmp_path), "projeto_teste", "canal_a", n_videos=10)
+
+    stop_event = threading.Event()
+    processed_no_stop = []
+
+    def _tick_e_parar_no_terceiro(p, t):
+        processed_no_stop.append(p)
+        if p >= 3:
+            stop_event.set()
+
+    chunks = index_mod._parsear_todos_chunks(
+        "projeto_teste", progress_callback=_tick_e_parar_no_terceiro, stop_event=stop_event
+    )
+
+    # Parou antes de processar os 10 vídeos — prova que o stop_event
+    # interrompeu o loop de arquivos dentro da pasta de canal, não só entre
+    # unidades de fonte inteiras.
+    assert len(chunks) < 10
+    assert stop_event.is_set()
 
 
 def test_progress_callback_com_arquivo_curto_ainda_conta(tmp_path, monkeypatch):
