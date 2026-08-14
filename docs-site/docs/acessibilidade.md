@@ -34,16 +34,20 @@ Interface auditada contra **WCAG 2.1 nível AA**.
 
 | Tecla | Ação |
 |-------|------|
-| `C` | Abrir/fechar chat |
-| `Esc` | Fechar chat / colapsar chat expandido |
-| `<` / `>` | Expandir / recolher chat lateral |
-| `B` | Aba Repositório |
-| `E` | Aba Extração |
-| `A` | Aba Admin |
-| `I` | Aba Assistente |
-| `M` | Aba Monitor |
-| `V` | Visão Geral |
-| `H` | Histórico |
+| `Shift + C` | Abrir chat |
+| `Esc` | Fechar chat / colapsar chat expandido / voltar à Home |
+| `<` / `>` (com chat aberto) | Expandir / recolher chat lateral |
+| `Shift + B` | Aba Repositório |
+| `Shift + E` | Aba Extração |
+| `Shift + A` | Aba Admin |
+| `Shift + I` | Aba Assistente |
+| `Shift + M` | Aba Monitor |
+| `Shift + V` | Visão Geral |
+| `Shift + H` | Histórico |
+| `Shift + U` | Aba Estudo |
+| `Shift + R` | Sub-aba Relatório (dentro de Extração) |
+
+Todos os atalhos com `Shift` são desativados automaticamente enquanto o foco está num campo de texto, para não interferir com a digitação. No macOS, os atalhos usam a mesma tecla `Shift` — não é necessário substituir por `⌘` (Cmd).
 
 ## Checklist WCAG 2.1 AA — resumo por princípio
 

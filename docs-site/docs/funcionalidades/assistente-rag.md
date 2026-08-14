@@ -15,11 +15,23 @@ Na interface o recurso se chama **"Assistente"** — termo mais preciso, já que
 
 ## Pipeline RAG
 
-1. **Expansão de query** — o LLM gera variações da pergunta para cobrir sinônimos e paráfrases (desabilitada para Ollama: adiciona 10–15s de latência em modelos pequenos)
-2. **Recuperação de contexto** — BM25Okapi no índice do(s) projeto(s) selecionado(s), sempre mesclado com FTS5 (exact-match, garante recall de termos literais como nomes próprios e siglas) e, em Busca Ampla com o modelo de embeddings instalado, também com busca vetorial por significado (ver "Busca vetorial" abaixo)
-3. **Montagem do prompt** — cada fonte recuperada é envolvida em tags XML semânticas (`<source id="N">`) para mitigar prompt injection
-4. **Geração** — modelo local (Ollama) ou provedor externo configurado
-5. **Verificação pós-geração** — checagem por sobreposição de palavras-chave contra as fontes recuperadas
+1. **Roteamento de intenção** — antes de qualquer busca, o chat verifica se a pergunta pode ser respondida sem recuperação (ver "Roteamento de intenção" abaixo). Se não, segue para a busca normalmente.
+2. **Expansão de query** — o LLM gera variações da pergunta para cobrir sinônimos e paráfrases (desabilitada para Ollama: adiciona 10–15s de latência em modelos pequenos)
+3. **Recuperação de contexto** — BM25Okapi no índice do(s) projeto(s) selecionado(s), sempre mesclado com FTS5 (exact-match, garante recall de termos literais como nomes próprios e siglas) e, em Busca Ampla com o modelo de embeddings instalado, também com busca vetorial por significado (ver "Busca vetorial" abaixo)
+4. **Montagem do prompt** — cada fonte recuperada é envolvida em tags XML semânticas (`<source id="N">`) para mitigar prompt injection
+5. **Geração** — modelo local (Ollama) ou provedor externo configurado
+6. **Verificação pós-geração** — checagem por sobreposição de palavras-chave contra as fontes recuperadas
+
+## Roteamento de intenção
+
+Nem toda pergunta precisa buscar na base. Antes do pipeline completo, o chat reconhece dois tipos de pergunta e responde diretamente:
+
+| Tipo | Exemplo | Como responde |
+|------|---------|----------------|
+| **Metadados da base** | "quantos vídeos tem essa base?", "qual o mais recente?", "quando essa base foi indexada?" | Lê o dado real direto do disco (resumo da extração, manifests) — nunca pede ao modelo para "adivinhar" um número. Zero chamada de LLM. |
+| **Cálculo** | "quanto é 15+27?", "calcule (100-25)*2" | Resolvido por um avaliador aritmético seguro (nunca `eval`/`exec`, só os operadores +, -, *, /, %, `**`), usando exclusivamente os números digitados na própria pergunta — nunca números vindos de documentos recuperados, para não abrir uma superfície de prompt injection via conteúdo de terceiros. |
+
+Saudações ("oi", "obrigado") e trechos referenciados (`[arquivo]`) também respondem de forma imediata, sem esperar a classificação de intenção do modelo. Qualquer outra pergunta segue para o pipeline de busca normalmente — o roteamento nunca inventa uma resposta: se não reconhece o padrão com segurança, degrada para a busca.
 
 ## Busca Restrita vs. Busca Ampla
 
@@ -31,7 +43,7 @@ Na interface o recurso se chama **"Assistente"** — termo mais preciso, já que
 ## Anti-alucinação
 
 - Threshold de relevância calibrado dinamicamente por corpus (não um valor fixo — um corpus pequeno e um corpus com milhares de chunks têm distribuições de score muito diferentes) determina se há contexto suficiente para responder
-- Quando não há, o chat retorna `sem_contexto: true` e a interface mostra o botão **"Indexar agora"** em vez de uma mensagem genérica
+- Quando a Busca Restrita não encontra nada, o chat tenta automaticamente a Busca Ampla (BM25+CrossEncoder) antes de desistir — só depois disso, se ainda não houver contexto, retorna `sem_contexto: true` e a interface mostra o botão **"Indexar agora"** em vez de uma mensagem genérica
 - Confiança graduada por sentença: quando parte da resposta tem baixo apoio direto nas fontes, um indicador âmbar aparece sob a mensagem — sem suprimir a resposta inteira
 
 ## Busca vetorial (embeddings)
