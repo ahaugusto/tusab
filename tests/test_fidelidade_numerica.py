@@ -1,8 +1,8 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Testes da correção de fidelidade numérica no chat —
-tusab_engine/agent/chat.py::_tem_lacuna_numerica() +
-_gerar_com_fidelidade_numerica().
+tusab_engine/agent/critique.py::tem_lacuna_numerica() +
+tusab_engine/agent/chat.py::_gerar_com_fidelidade_numerica().
 
 Bug real (29/jul/2026, ver agents/_historia.md): llama3.2:1b apagava
 números/datas ao parafrasear chunk denso ("Decreto-Lei nº 1.001, de 21 de
@@ -12,7 +12,8 @@ de rede real — _gerar_resposta_llm é mockado.
 import importlib
 from unittest.mock import patch
 
-from tusab_engine.agent.chat import _tem_lacuna_numerica, _gerar_com_fidelidade_numerica
+from tusab_engine.agent.critique import tem_lacuna_numerica as _tem_lacuna_numerica
+from tusab_engine.agent.chat import _gerar_com_fidelidade_numerica
 
 # import tusab_engine.agent.chat as chat_mod resolveria a FUNÇÃO chat, não o
 # módulo — tusab_engine/agent/__init__.py faz "from .chat import chat", que

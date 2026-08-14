@@ -4,11 +4,7 @@ Rotas de status geral, autenticação Drive, histórico e abertura de pastas.
 """
 
 import os
-import re
-import json
-import glob
 
-import pandas as pd
 from fastapi import APIRouter, BackgroundTasks
 
 import motor_tusab
@@ -141,64 +137,8 @@ def disconnect_drive():
 @router.get("/history")
 def get_history():
     """Retorna resumo de todas as extrações anteriores a partir dos CSVs de gestão."""
-    history = []
-    pattern = os.path.join(motor_tusab.NEURAL_DIR, "*", "management", "*_base.csv")
-    for csv_path in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
-        try:
-            df = pd.read_csv(csv_path, encoding="utf-8-sig")
-
-            # Extrai projeto e canal separados da estrutura de paths
-            # neural/{projeto}/management/{canal}_base.csv
-            rel = csv_path.replace(motor_tusab.NEURAL_DIR, '').strip(os.sep)
-            parts = rel.split(os.sep)
-            # parts = [projeto, 'management', '{canal}_base.csv']
-            projeto    = parts[0] if len(parts) >= 1 else ""
-            canal_base = os.path.basename(csv_path).replace("_base.csv", "")
-
-            total   = len(df)
-            sucesso = int((df["Status"] == "Sucesso").sum()) if "Status" in df.columns else 0
-            sem_leg = int((df["Status"] == "Sem Legenda").sum()) if "Status" in df.columns else 0
-            ultima  = df["Data_Extracao"].max() if "Data_Extracao" in df.columns else ""
-            canal_url = f"https://www.youtube.com/@{canal_base}"
-
-            if "Link" in df.columns:
-                link = df["Link"].dropna().iloc[0] if len(df) > 0 else ""
-                m = re.search(r"@([^/?\s]+)", str(link))
-                if m:
-                    canal_url = f"https://www.youtube.com/@{m.group(1)}"
-
-            summary_path = csv_path.replace("_base.csv", "_summary.json")
-            total_mapeado = total
-            ultimo_filtro = None
-            if os.path.exists(summary_path):
-                try:
-                    with open(summary_path, 'r', encoding='utf-8') as _sf:
-                        _summary = json.load(_sf)
-                    total_mapeado = _summary.get("total_mapeado", total)
-                    # Só reporta o filtro se de fato havia algo restringindo a
-                    # extração — sem isso toda extração normal (sem filtro)
-                    # ganharia um badge vazio e sem sentido na Visão Geral.
-                    _uf = _summary.get("ultimo_filtro") or {}
-                    if _uf.get("playlists") or _uf.get("data_inicio") or _uf.get("data_fim"):
-                        ultimo_filtro = _uf
-                except Exception:
-                    pass
-
-            history.append({
-                "canal":           canal_base,   # nome do canal YouTube
-                "projeto":         projeto,       # nome do projeto/pasta pai
-                "canal_url":       canal_url,
-                "total":           total,
-                "total_mapeado":   total_mapeado,
-                "extraidos":       sucesso,
-                "sem_legenda":     sem_leg,
-                "cobertura":       round(sucesso / total_mapeado * 100) if total_mapeado > 0 else 0,
-                "ultima_extracao": str(ultima),
-                "ultimo_filtro":   ultimo_filtro,
-            })
-        except Exception:
-            pass
-    return history
+    from tusab_engine.storage import resumir_projetos_youtube
+    return resumir_projetos_youtube()
 
 
 @router.post("/log/clear")
@@ -222,9 +162,9 @@ def open_folder(name: str, prefixo: str = ""):
         # o usuário quer ver TUDO que foi indexado daquele projeto, não só o
         # conteúdo do YouTube (indexar() já cobre as 3 subpastas — ver
         # agent/index.py).
-        "projeto":         os.path.join(NEURAL_DIR, prefixo) if prefixo else motor_tusab.NEURAL_DIR,
-        "canal_youtube":   os.path.join(NEURAL_DIR, prefixo, "youtube") if prefixo else motor_tusab.NEURAL_DIR,
-        "canal_documents": os.path.join(NEURAL_DIR, prefixo, "documents") if prefixo else motor_tusab.NEURAL_DIR,
+        "projeto":         os.path.join(NEURAL_DIR, prefixo) if prefixo else NEURAL_DIR,
+        "canal_youtube":   os.path.join(NEURAL_DIR, prefixo, "youtube") if prefixo else NEURAL_DIR,
+        "canal_documents": os.path.join(NEURAL_DIR, prefixo, "documents") if prefixo else NEURAL_DIR,
     }
     target = folders.get(name)
     if not target:

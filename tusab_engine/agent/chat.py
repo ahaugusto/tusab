@@ -23,6 +23,21 @@ from tusab_engine.agent.index import (
     _enriquecer_documento, _index_path,
     _carregar_meta_canal, _STOPWORDS,
 )
+from tusab_engine.agent.llm_providers import (
+    _api_key_valida, _client_openai_compat, _get_llm_client,
+    _GEMINI_CANDIDATOS, _MODELO_ANTHROPIC_AUXILIAR, _MODELO_ANTHROPIC_PRINCIPAL, _MODELO_OPENAI,
+)
+from tusab_engine.agent.router import (
+    rotear, pre_rotear, iniciar_classificacao_intencao, extrair_trecho_injetado,
+    _SAUDACOES, _normalizar_saudacao,
+)
+from tusab_engine.agent.metadados import responder_metadados
+from tusab_engine.agent.calculo import responder_calculo
+from tusab_engine.agent.critique import (
+    Critica, avaliar_relevancia_contexto,
+    tem_lacuna_numerica, verificar_alucinacao, avaliar_confianca_por_sentenca,
+    GAP_RELEVANCIA_CE, RATIO_RELEVANCIA_BM25,
+)
 
 # ── CrossEncoder (re-rankeamento semântico pós-BM25) ─────────────────────────
 #
@@ -102,17 +117,6 @@ def _rerankar(pergunta: str, chunks: list) -> list:
 # público dessa opção (perfil técnico, servidor próprio) já assume esse risco.
 PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google', 'custom'}
 
-# Limiares do filtro de lacuna de relevância (ver _recuperar_contexto) — cortam
-# candidatos claramente irrelevantes que só entraram pra completar a cota de N.
-# CE (CrossEncoder, ms-marco-MiniLM-L-6-v2): score é um logit não-calibrado,
-# tipicamente entre -11 e +11 — uma lacuna de 4.0 pro melhor candidato já
-# indica "sem relação real", não apenas "um pouco menos relevante".
-_GAP_RELEVANCIA_CE = 4.0
-# BM25 puro: escala varia por corpus (IDF), então usa proporção do melhor
-# score, não valor absoluto — um candidato com menos de 20% do score do
-# 1º colocado é, na prática, apenas overlap incidental de termos comuns.
-_RATIO_RELEVANCIA_BM25 = 0.2
-
 # Providers que não exigem api_key real — Ollama roda sem chave por natureza;
 # 'custom' cobre servidores locais tipo 9router que tipicamente não pedem chave.
 _PROVEDORES_SEM_CHAVE_OBRIGATORIA = {'ollama', 'custom'}
@@ -163,12 +167,6 @@ _FMT_INSTR = (
 )
 
 
-def _api_key_valida(config: dict) -> bool:
-    """Retorna True se há chave de API real configurada (não sentinel, não vazia)."""
-    key = config.get('api_key', '')
-    return bool(key) and key != SENTINEL_KEY
-
-
 # RAM do sistema (não CPU) é o sinal usado pra alertar sobrecarga durante
 # geração local via Ollama — CPU alta é esperada em qualquer geração e não
 # diferencia uso normal de sobrecarga real; RAM alta indica risco real de
@@ -192,93 +190,6 @@ def _checar_sobrecarga_recursos():
             'nivel': 'critico' if ram_pct >= _RAM_CRITICO_PCT else 'alerta',
         }
     return None
-
-
-def _client_openai_compat(provider: str, api_key: str, config: dict):
-    """Retorna (client, modelo) para provedores que falam o protocolo OpenAI
-    (Groq e endpoint customizado — ex: 9router, github.com/decolua/9router).
-    Centraliza a escolha de base_url pra não duplicar o padrão em cada um
-    dos pontos de dispatch por provider.
-    """
-    from openai import OpenAI
-    if provider == 'custom':
-        base_url = config.get('custom_base_url', '').rstrip('/')
-        modelo   = config.get('custom_model', '')
-        return OpenAI(api_key=api_key or 'local', base_url=base_url), modelo
-    modelo = config.get('groq_model', 'llama-3.1-8b-instant')
-    return OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1'), modelo
-
-
-# Lista única de fallback do Gemini — antes existiam 3 versões divergentes
-# (uma completa com 6 candidatos, duas truncadas com 3 em ordens diferentes)
-# espalhadas pelos pontos de dispatch abaixo. Gemini não tem tiering por
-# finalidade (diferente da Anthropic, ver _MODELO_ANTHROPIC_*): mesmo modelo
-# nas chamadas auxiliares e na resposta principal.
-_GEMINI_CANDIDATOS = [
-    'gemini-1.5-flash', 'gemini-1.5-flash-latest',
-    'gemini-1.5-flash-002', 'gemini-1.5-pro',
-    'gemini-pro', 'gemini-2.0-flash-lite',
-]
-
-# Anthropic é o único provider com tiering por finalidade: Haiku (rápido,
-# barato) para chamadas auxiliares de baixo risco (expandir query,
-# classificar intenção, mensagem de fallback sem contexto); Sonnet (melhor
-# qualidade) só na resposta final que o usuário lê. OpenAI/Gemini/Groq usam
-# o mesmo modelo padrão nas duas categorias — não há orçamento redundante
-# aí que justifique um segundo tier.
-_MODELO_ANTHROPIC_AUXILIAR  = 'claude-haiku-4-5-20251001'
-_MODELO_ANTHROPIC_PRINCIPAL = 'claude-sonnet-4-6'
-_MODELO_OPENAI = 'gpt-4o-mini'
-
-
-def _get_llm_client(provider: str, api_key: str, config: dict, principal: bool = False):
-    """Fábrica única de cliente LLM por provider.
-
-    Centraliza a escolha de SDK + modelo padrão que antes estava duplicada
-    em 5 pontos deste arquivo (_expandir_query, _classificar_intencao,
-    _responder_sem_contexto, _gerar_resposta_llm, chat_stream) — cada um
-    reimplementava o mesmo "import SDK, configura, resolve modelo padrão"
-    de forma levemente divergente (foi assim que as 3 versões diferentes da
-    lista de fallback do Gemini surgiram: a mesma decisão copiada 5 vezes
-    diverge com o tempo).
-
-    `principal=True` é a chamada que gera a resposta final que o usuário lê
-    (mais tokens/timeout no caller); `principal=False` é uso auxiliar
-    (expandir query, classificar intenção, fallback sem contexto) — só
-    muda o modelo escolhido para a Anthropic (ver _MODELO_ANTHROPIC_*).
-
-    Retorna (client, modelo). Para Gemini, `client` é o módulo `_genai`
-    configurado (não uma instância) — o caller monta
-    `client.GenerativeModel(modelo)` porque o SDK não tem um objeto de
-    cliente único como openai/anthropic.
-
-    Ollama NÃO passa por aqui: usa requests cru direto pra streaming,
-    thinking e retry (ver chat_stream) — específico demais pra abstrair
-    sem perder a lógica de cada call site.
-    """
-    if provider == 'openai':
-        from openai import OpenAI
-        return OpenAI(api_key=api_key), _MODELO_OPENAI
-
-    if provider == 'anthropic':
-        import anthropic
-        modelo = _MODELO_ANTHROPIC_PRINCIPAL if principal else _MODELO_ANTHROPIC_AUXILIAR
-        return anthropic.Anthropic(api_key=api_key), modelo
-
-    if provider in ('gemini', 'google'):
-        import google.generativeai as _genai
-        _genai.configure(api_key=api_key)
-        modelos_ok = [
-            m.name.replace('models/', '') for m in _genai.list_models()
-            if 'generateContent' in m.supported_generation_methods
-        ]
-        modelo = next((m for m in _GEMINI_CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
-        return _genai, modelo
-
-    if provider in ('groq', 'custom'):
-        return _client_openai_compat(provider, api_key, config)
-
-    raise ValueError(f"Provedor desconhecido: {provider}")
 
 
 def _expandir_query(pergunta: str, config: dict) -> list:
@@ -346,136 +257,6 @@ def _expandir_query(pergunta: str, config: dict) -> list:
         pass  # expansão é best-effort; falha silenciosa, pergunta original é suficiente
 
     return [pergunta] + variacoes
-
-
-# Executor compartilhado para classificação de intenção paralela ao BM25.
-# max_workers=2: suporta dois chats simultâneos sem criar thread a cada request.
-import concurrent.futures as _cf
-_intent_executor = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix='intent')
-
-# ── Classificação de intenção ────────────────────────────────────────────────
-#
-# Antes de rodar o BM25, classifica a mensagem em:
-#   BUSCA    → pergunta nova que requer recuperação na base
-#   CONTEXTO → instrução sobre a resposta anterior (traduzir, resumir, reformatar,
-#              continuar, explicar de novo, simplificar, etc.)
-#   CONVERSA → saudação ou meta-pergunta sobre o assistente
-#
-# Para CONTEXTO: pula o BM25 e usa a última resposta salva em state como contexto.
-# Para CONVERSA: pula o BM25 e responde diretamente.
-# Para BUSCA: fluxo normal.
-#
-# A classificação usa o mesmo LLM configurado com max_tokens=5 — latência típica
-# <200ms em cloud, <800ms em Ollama. Roda em paralelo com o BM25 via thread para
-# não adicionar latência no caso BUSCA.
-# Fallback: qualquer erro → assume BUSCA (comportamento atual preservado).
-
-_INTENCAO_PROMPT = """\
-Classifique a mensagem do usuário em uma das três categorias:
-
-BUSCA    = pergunta nova que requer pesquisar em documentos ou vídeos
-CONTEXTO = instrução sobre a resposta anterior (ex: traduzir, resumir, reformular,
-           explicar melhor, simplificar, continuar, dar mais detalhes, em outro idioma,
-           em inglês, em espanhol, em tópicos, em tabela, de forma mais curta, etc.)
-CONVERSA = saudação, agradecimento ou pergunta sobre o próprio assistente
-
-Histórico recente da conversa:
-{historico}
-
-Mensagem atual do usuário: "{pergunta}"
-
-Responda APENAS com uma palavra: BUSCA, CONTEXTO ou CONVERSA."""
-
-
-def _classificar_intencao(pergunta: str, historico: list, config: dict) -> str:
-    """Classifica a intenção da mensagem. Retorna 'BUSCA', 'CONTEXTO' ou 'CONVERSA'.
-
-    Sempre retorna 'BUSCA' em caso de falha — comportamento atual preservado.
-    Sem histórico ou com histórico vazio: sempre BUSCA (sem contexto para transformar).
-    """
-    if not historico:
-        return 'BUSCA'
-
-    # Resume as últimas 3 trocas para o prompt de classificação
-    trocas = []
-    for h in historico[-6:]:
-        role = 'Usuário' if h.get('role') == 'user' else 'Assistente'
-        content = str(h.get('content', ''))[:200]
-        trocas.append(f"{role}: {content}")
-    hist_resumido = '\n'.join(trocas) if trocas else '(sem histórico)'
-
-    prompt = _INTENCAO_PROMPT.format(
-        historico=hist_resumido,
-        pergunta=pergunta[:300],
-    )
-
-    provider = config.get('provider', '')
-    api_key  = config.get('api_key', '')
-
-    try:
-        if provider == 'ollama':
-            import requests as _req
-            modelo = config.get('ollama_model', 'llama3.2:1b')
-            resp = _req.post(
-                'http://localhost:11434/api/generate',
-                # think=False: modelos com raciocínio nativo (qwen3, deepseek-r1)
-                # gastariam o num_predict=5 todo pensando, sem sobrar token pra
-                # resposta — e vazaria <think> pro classificador de intenção.
-                json={'model': modelo, 'prompt': prompt, 'stream': False, 'think': False,
-                      'options': {'num_predict': 5, 'temperature': 0.0, 'stop': ['\n']}},
-                timeout=15,
-            )
-            resultado = resp.json().get('response', '').strip().upper()
-
-        elif provider in ('gemini', 'google'):
-            client, modelo = _get_llm_client(provider, api_key, config)
-            if not modelo:
-                return 'BUSCA'
-            resp = client.GenerativeModel(modelo).generate_content(
-                prompt,
-                generation_config={'max_output_tokens': 5, 'temperature': 0.0},
-            )
-            resultado = resp.text.strip().upper()
-
-        elif provider == 'openai':
-            client, modelo = _get_llm_client(provider, api_key, config)
-            resp = client.chat.completions.create(
-                model=modelo,
-                messages=[{'role': 'user', 'content': prompt}],
-                max_tokens=5, temperature=0.0, timeout=8,
-            )
-            resultado = resp.choices[0].message.content.strip().upper()
-
-        elif provider == 'anthropic':
-            client, modelo = _get_llm_client(provider, api_key, config)
-            msg = client.messages.create(
-                model=modelo,
-                max_tokens=5,
-                messages=[{'role': 'user', 'content': prompt}],
-                timeout=8,
-            )
-            resultado = msg.content[0].text.strip().upper()
-
-        elif provider in ('groq', 'custom'):
-            client, modelo = _get_llm_client(provider, api_key, config)
-            resp = client.chat.completions.create(
-                model=modelo,
-                messages=[{'role': 'user', 'content': prompt}],
-                max_tokens=5, temperature=0.0, timeout=8,
-            )
-            resultado = resp.choices[0].message.content.strip().upper()
-
-        else:
-            return 'BUSCA'
-
-        # Normaliza — LLM pode retornar "BUSCA." ou "**BUSCA**" etc.
-        for cat in ('CONTEXTO', 'CONVERSA', 'BUSCA'):
-            if cat in resultado:
-                return cat
-        return 'BUSCA'
-
-    except Exception:
-        return 'BUSCA'  # fallback seguro
 
 
 def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dict,
@@ -910,11 +691,11 @@ def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: di
     if len(top) > 1:
         if busca_ampla and all('_ce_score' in c for c in top):
             melhor_ce = top[0]['_ce_score']
-            top = [top[0]] + [c for c in top[1:] if c['_ce_score'] >= melhor_ce - _GAP_RELEVANCIA_CE]
+            top = [top[0]] + [c for c in top[1:] if c['_ce_score'] >= melhor_ce - GAP_RELEVANCIA_CE]
         else:
             melhor_score = top[0]['score']
             if melhor_score > 0:
-                top = [top[0]] + [c for c in top[1:] if c['score'] >= melhor_score * _RATIO_RELEVANCIA_BM25]
+                top = [top[0]] + [c for c in top[1:] if c['score'] >= melhor_score * RATIO_RELEVANCIA_BM25]
 
     return top
 
@@ -1057,106 +838,11 @@ def _deduplicar_chunks(chunks: list, n: int, threshold: float = 0.85) -> list:
 # "Decreto-Lei nº 1.001, de 21 de outubro de 1969" vira "Decreto-Lei nº., de
 # de outubro de" na resposta (confirmado ao vivo, 29/jul/2026, ver
 # agents/_historia.md). Não é alucinação (não inventa número errado) nem é
-# pego por _verificar_alucinacao/_calcular_confianca_por_sentenca (nenhum dos
+# pego por verificar_alucinacao/avaliar_confianca_por_sentenca (nenhum dos
 # dois lê o texto pra achar lacuna estrutural, só cobertura de vocabulário).
-# "de de" e "nº." seguido de pontuação são a assinatura textual de um número
-# apagado nesse padrão de frase em português — cobrem o caso real observado,
-# não uma tentativa de cobrir todo tipo de omissão numérica possível.
-_RE_LACUNA_NUMERICA = re.compile(r'\bde\s+de\b|n[ºo°]\.?\s*[,;.]', re.IGNORECASE)
-
-
-def _tem_lacuna_numerica(resposta: str) -> bool:
-    return bool(_RE_LACUNA_NUMERICA.search(resposta))
-
-
-# ── Verificação de alucinação ─────────────────────────────────────────────────
-
-def _verificar_alucinacao(resposta: str, contexto: list, projeto_nome: str, trecho_injetado: bool = False) -> str:
-    # Quando há trecho injetado, não filtramos: o usuário enviou conteúdo próprio da base
-    # e o LLM sempre vai usar vocabulário analítico diferente do corpus original.
-    if trecho_injetado:
-        return resposta
-
-    FRASES_NAO_ENCONTRADO = [
-        'não encontrei', 'nao encontrei', 'not found',
-        'não há informação', 'nao ha informacao',
-        'não consta', 'nao consta',
-    ]
-    resposta_lower = resposta.lower()
-
-    if any(f in resposta_lower for f in FRASES_NAO_ENCONTRADO):
-        return resposta
-
-    palavras_resposta = set(re.findall(r'\b[a-záéíóúàâêôãõç]{5,}\b', resposta_lower))
-    palavras_resposta -= _STOPWORDS
-
-    if not palavras_resposta:
-        return resposta
-
-    corpus_chunks = ' '.join(c['texto'].lower() for c in contexto)
-    encontradas   = sum(1 for p in palavras_resposta if p in corpus_chunks)
-    cobertura     = encontradas / len(palavras_resposta)
-
-    # 0.12 em vez de 0.20 — LLMs legítimos usam sinônimos e paráfrases;
-    # threshold muito alto descartar respostas corretas que só parafraseiam.
-    if cobertura < 0.12:
-        handle = f'@{projeto_nome}' if projeto_nome else 'este canal'
-        return (
-            f'Não encontrei informações suficientes sobre esse tema no conteúdo de {handle}. '
-            f'Tente reformular a pergunta ou verifique se o canal aborda esse assunto.'
-        )
-
-    return resposta
-
-
-def _calcular_confianca_por_sentenca(resposta: str, contexto: list) -> list:
-    """Mede a confiança de cada sentença da resposta contra o corpus recuperado.
-
-    Complementa _verificar_alucinacao() (que é binária: passa inteira ou é
-    trocada por "não encontrei") com um sinal graduado por trecho — permite
-    ao frontend destacar visualmente afirmações com baixo apoio no corpus,
-    sem suprimir a resposta inteira. Mesma técnica de cobertura de vocabulário
-    de _verificar_alucinacao(), aplicada por sentença em vez de na resposta toda.
-
-    Aceita tanto chunks de retrieval (campo 'texto'/'texto_original') quanto
-    fontes já formatadas para o frontend (campo 'trecho', truncado a 600
-    chars) — usado tanto pelo chat() quanto pelo endpoint de streaming.
-
-    Retorna [{"texto", "confianca", "inicio", "fim"}, ...] — offsets de
-    caractere na resposta original, para o frontend fazer highlight sem
-    reprocessar a string. Lista vazia se não houver contexto ou resposta.
-    """
-    if not resposta or not contexto:
-        return []
-
-    sentencas = re.split(r'(?<=[.!?])\s+', resposta)
-    corpus_texto = ' '.join(
-        (c.get('texto') or c.get('texto_original') or c.get('trecho') or '').lower()
-        for c in contexto
-    )
-
-    resultado = []
-    cursor = 0
-    for sent in sentencas:
-        if not sent.strip():
-            continue
-        try:
-            inicio = resposta.index(sent, cursor)
-        except ValueError:
-            continue  # sentença não encontrada no texto original — pula (não deveria ocorrer)
-        fim = inicio + len(sent)
-        cursor = fim
-
-        palavras = set(re.findall(r'\b[a-záéíóúàâêôãõç]{5,}\b', sent.lower())) - _STOPWORDS
-        if not palavras:
-            confianca = 1.0  # sentença sem conteúdo verificável (conectivo, transição)
-        else:
-            encontradas = sum(1 for p in palavras if p in corpus_texto)
-            confianca = round(encontradas / len(palavras), 3)
-
-        resultado.append({"texto": sent, "confianca": confianca, "inicio": inicio, "fim": fim})
-
-    return resultado
+# tem_lacuna_numerica() e as demais funções de crítica (verificação de
+# alucinação, confiança por sentença) vivem em agent/critique.py desde a
+# Fase 5 da formalização do roteamento — ver import no topo do arquivo.
 
 
 # Normalização de markdown gerado por LLMs — corrige padrões comuns de saída malformada
@@ -1178,22 +864,6 @@ def _normalizar_markdown(resposta: str) -> str:
     # Fecha ** não fechado no final de linha (modelo às vezes esquece o fechamento)
     resposta = re.sub(r'\*\*([^*\n]+)\n-\s\*\*', r'**\1**\n- ', resposta)
     return resposta
-
-
-# ── Detecção de trecho injetado ───────────────────────────────────────────────
-
-_RE_TRECHO_INJETADO = re.compile(r'^\[([^\]]+\.(?:txt|pdf|docx|xlsx|csv|md))\]\s*\n(.+)', re.DOTALL | re.IGNORECASE)
-
-def _extrair_trecho_injetado(pergunta: str):
-    """Detecta se a mensagem é um trecho injetado do Repositório.
-
-    Formato: '[arquivo.txt]\\nconteúdo...'
-    Retorna (arquivo, conteudo) ou (None, None).
-    """
-    m = _RE_TRECHO_INJETADO.match(pergunta.strip())
-    if m:
-        return m.group(1), m.group(2).strip()
-    return None, None
 
 
 def _montar_prompt_trecho(arquivo: str, trecho: str, meta_canal: dict = None, historico: list = None, persona: str = '', idioma: str = 'pt', persona_custom: str = '') -> str:
@@ -1328,29 +998,6 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
 
 # ── Resposta sem contexto ────────────────────────────────────────────────────
 
-_SAUDACOES = {
-    # PT-BR
-    'oi', 'olá', 'ola', 'opa', 'eai', 'e ai', 'e aí', 'ei',
-    'bom dia', 'boa tarde', 'boa noite', 'boa',
-    'tudo bem', 'tudo bom', 'tudo certo', 'tudo ótimo', 'tudo otimo',
-    'como vai', 'como você está', 'como voce esta', 'como você tá', 'como voce ta',
-    'como está', 'como ta', 'como tá', 'e então', 'e entao',
-    'salve', 'salve salve', 'fala', 'fala aí', 'fala ai',
-    # EN
-    'hello', 'hi', 'hey', 'howdy', 'greetings',
-    'good morning', 'good afternoon', 'good evening', 'good night',
-    'how are you', 'how are you doing', "how's it going", 'how is it going',
-    "what's up", 'whats up', 'sup',
-    # ES
-    'hola', 'buenas', 'buenos días', 'buenos dias',
-    'buenas tardes', 'buenas noches',
-    'cómo estás', 'como estas', 'cómo está', 'como esta',
-    'qué tal', 'que tal', 'qué hay', 'que hay',
-    'saludos', 'hey', 'ey',
-    # Neutras (qualquer idioma)
-    'teste', 'test', 'ping', 'ok', 'okay',
-}
-
 def _prompt_sem_contexto(idioma: str = 'pt') -> str:
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     return (
@@ -1369,7 +1016,7 @@ def _prompt_sem_contexto(idioma: str = 'pt') -> str:
 
 def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> str:
     """Gera resposta inteligente quando o BM25 não retorna contexto relevante."""
-    pergunta_lower = pergunta.strip().lower().rstrip('!?.')
+    pergunta_lower = _normalizar_saudacao(pergunta)
     idioma = config.get('idioma', 'pt')
 
     # Saudação simples: responde sem chamar LLM (via LLM seria overkill para um "oi")
@@ -1551,7 +1198,7 @@ def _gerar_resposta_llm(provider: str, api_key: str, prompt: str, config: dict) 
 
 def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, config: dict, contexto: list) -> str:
     """Chama _gerar_resposta_llm() e, se a resposta tiver assinatura de número/
-    data apagado (ver _tem_lacuna_numerica), tenta 1 vez mais com instrução
+    data apagado (ver critique.tem_lacuna_numerica), tenta 1 vez mais com instrução
     reforçada de fidelidade — confirmado ao vivo que reduz (não elimina
     sozinha) a perda de dígitos em modelos locais pequenos ao parafrasear
     contexto denso em números (ver agents/_historia.md, 29/jul/2026).
@@ -1562,7 +1209,7 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
     """
     resposta = _gerar_resposta_llm(provider, api_key, prompt, config)
 
-    if contexto and _tem_lacuna_numerica(resposta):
+    if contexto and tem_lacuna_numerica(resposta):
         prompt_reforcado = (
             prompt + "\n\nATENÇÃO: a resposta anterior a essa pergunta omitiu números, "
             "datas ou valores do contexto. Responda novamente preservando TODOS os "
@@ -1571,12 +1218,34 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
         )
         try:
             resposta_retry = _gerar_resposta_llm(provider, api_key, prompt_reforcado, config)
-            if not _tem_lacuna_numerica(resposta_retry):
+            if not tem_lacuna_numerica(resposta_retry):
                 resposta = resposta_retry
         except Exception:
             pass  # mantém a resposta original — retry é best-effort, nunca derruba o chat
 
     return resposta
+
+
+# ── Compartilhado entre chat() e chat_stream() ────────────────────────────────
+# Formato de "fontes" citadas — a decisão de roteamento em si (rotear(),
+# Rota) vive em agent/router.py desde a Fase 0 da formalização
+# ("Roteamento de Intenção — Spec de Implementação.md", 13/ago/2026).
+
+def _montar_fontes_de_contexto(contexto: list) -> list:
+    """Formato de 'fontes' citadas a partir dos chunks recuperados pelo BM25 —
+    consumido pelo frontend (ChatDrawer, link ▶ MM:SS)."""
+    return [{
+        'titulo':            c.get('titulo', ''),
+        'aba':               c.get('aba', 'youtube'),
+        'data':              c.get('data', ''),
+        'link':              c.get('link', ''),
+        'arquivo':           c.get('arquivo', ''),
+        'canal':             c.get('canal', ''),
+        'score':             c.get('score', 0.0),
+        'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
+        'video_id':          c.get('video_id', ''),
+        'timestamp_inicio':  c.get('timestamp_inicio', 0),
+    } for c in contexto]
 
 
 # ── Chat (sync) ───────────────────────────────────────────────────────────────
@@ -1595,46 +1264,59 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
     idioma        = config.get('idioma', 'pt')
 
     # Detecta trecho injetado: usa prompt especializado sem precisar do BM25
-    arq_injetado, trecho_injetado = _extrair_trecho_injetado(pergunta)
+    arq_injetado, trecho_injetado = extrair_trecho_injetado(pergunta)
     trecho_mode = bool(arq_injetado)
 
     if trecho_mode:
         contexto = []
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma, persona_custom)
     else:
+        # Fase 3 — CALCULO: expressão aritmética pura, resolvida por AST
+        # sandboxed (nunca eval/exec, ver agent/calculo.py) sobre números só
+        # do texto da pergunta — nunca do contexto recuperado. None = não é
+        # expressão aritmética (ou o avaliador rejeitou por segurança).
+        resposta_calculo = responder_calculo(pergunta, idioma)
+        if resposta_calculo is not None:
+            return {'resposta': resposta_calculo, 'fontes': [], 'sem_contexto': False}
+
+        # Fase 2 — METADADOS: pergunta sobre a própria base ("quantos vídeos",
+        # "qual o mais recente", "quando indexei") resolvida por arquivo real,
+        # nunca por LLM/BM25. None = não é pergunta de metadado (ou o executor
+        # não tem certeza do valor) — segue o fluxo normal abaixo.
+        resposta_metadados = responder_metadados(pergunta, projeto_nome, projeto_prefixo, idioma)
+        if resposta_metadados is not None:
+            return {'resposta': resposta_metadados, 'fontes': [], 'sem_contexto': False}
+
         from tusab_engine.state import state as _state
-
-        # Classifica intenção em paralelo com o BM25 — sem latência extra no caso BUSCA
-        intencao_future = _intent_executor.submit(_classificar_intencao, pergunta, historico or [], config)
-        n_chunks = 4 if config.get('provider') == 'ollama' else 6
-        try:
-            contexto_bm25 = _recuperar_contexto(
-                pergunta, projeto_nome, n=n_chunks, config=config,
-                projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
-                busca_ampla=busca_ampla, perfil=perfil,
-                trechos_fixados=trechos_fixados or [],
-            )
-        except Exception:
-            contexto_bm25 = []
-        try:
-            intencao = intencao_future.result(timeout=20)
-        except Exception:
-            intencao = 'BUSCA'
-
         ultima = _state.last_chat_response.get(projeto_prefixo, {})
 
-        if intencao == 'CONTEXTO' and not ultima:
-            intencao = 'BUSCA'
+        # Fase 1 — pré-roteamento determinístico: saudação conhecida resolve
+        # sem chamar o classificador LLM nem o BM25 (custo ~0ms vs. ~800ms
+        # percebidos no Ollama quando a rota final não é BUSCA).
+        rota_pre = pre_rotear(pergunta, sinais={'trechos_fixados': trechos_fixados})
+        if rota_pre is not None:
+            rota, contexto_bm25 = rota_pre, []
+        else:
+            # Classifica intenção em paralelo com o BM25 — sem latência extra no caso BUSCA
+            intencao_future = iniciar_classificacao_intencao(pergunta, historico, config)
+            n_chunks = 4 if config.get('provider') == 'ollama' else 6
+            try:
+                contexto_bm25 = _recuperar_contexto(
+                    pergunta, projeto_nome, n=n_chunks, config=config,
+                    projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
+                    busca_ampla=busca_ampla, perfil=perfil,
+                    trechos_fixados=trechos_fixados or [],
+                )
+            except Exception:
+                contexto_bm25 = []
 
-        # Saudações conhecidas são sempre CONVERSA — mesmo sem histórico o classificador
-        # retorna BUSCA por design, mas "oi"/"olá" nunca deve disparar BM25 nem mostrar fontes.
-        pergunta_lower_strip = pergunta.strip().lower().rstrip('!?.')
-        if pergunta_lower_strip in _SAUDACOES:
-            intencao = 'CONVERSA'
-
-        # Trechos fixados pelo usuário (@@): forçar BUSCA para não descartar o contexto
-        if trechos_fixados and intencao != 'CONTEXTO':
-            intencao = 'BUSCA'
+            rota = rotear(pergunta, historico, config, sinais={
+                'arq_injetado':     arq_injetado,
+                'intencao_future':  intencao_future,
+                'ultima_resposta':  ultima,
+                'trechos_fixados':  trechos_fixados,
+            })
+        intencao = rota.nome
 
         if intencao == 'CONTEXTO':
             # Bypass total do BM25 — opera sobre a resposta anterior
@@ -1646,7 +1328,25 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
             return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': False}
         else:
             contexto = contexto_bm25
-            if not contexto:
+            critica = avaliar_relevancia_contexto(contexto, busca_ampla_ja_tentada=busca_ampla)
+            if critica.acao == 'retry_busca_ampla':
+                # Fase 5 — antes de devolver sem_contexto, tenta 1x com busca
+                # ampla forçada (BM25 top-12 → CrossEncoder → top-6, +236ms
+                # medido), mesmo que o usuário não tenha ativado. Só entra
+                # aqui quando a Busca Restrita não achou NADA — o custo extra
+                # só é pago no pior caso, nunca no caminho feliz.
+                try:
+                    contexto = _recuperar_contexto(
+                        pergunta, projeto_nome, n=n_chunks, config=config,
+                        projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
+                        busca_ampla=True, perfil=perfil,
+                        trechos_fixados=trechos_fixados or [],
+                    )
+                except Exception:
+                    contexto = []
+                critica = avaliar_relevancia_contexto(contexto, busca_ampla_ja_tentada=True)
+
+            if critica.acao == 'sem_contexto':
                 resposta_vazia = _responder_sem_contexto(pergunta, config, projeto_nome)
                 return {'resposta': resposta_vazia, 'fontes': [], 'sem_contexto': True}
             prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo, persona_custom=persona_custom)
@@ -1656,30 +1356,19 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
 
     resposta = _gerar_com_fidelidade_numerica(provider, api_key, prompt, config, contexto)
 
-    resposta = _verificar_alucinacao(resposta, contexto, projeto_nome, trecho_injetado=trecho_mode)
+    resposta, _issup = verificar_alucinacao(resposta, contexto, projeto_nome, trecho_injetado=trecho_mode)
     resposta = _normalizar_markdown(resposta)
 
     # Confiança graduada por sentença (P1-e) — sinal visual opcional para o
     # frontend, não bloqueia nada. Mesma exceção do trecho injetado usada em
-    # _verificar_alucinacao(): vocabulário do usuário não bate com o corpus
+    # verificar_alucinacao(): vocabulário do usuário não bate com o corpus
     # por natureza, não é indício de alucinação.
-    confianca_sentencas = [] if trecho_mode else _calcular_confianca_por_sentenca(resposta, contexto)
+    confianca_sentencas = [] if trecho_mode else avaliar_confianca_por_sentenca(resposta, contexto)
 
     if not trecho_mode and intencao == 'CONTEXTO' and ultima:
         fontes = ultima.get('fontes', [])
     else:
-        fontes = [{
-            'titulo':            c.get('titulo', ''),
-            'aba':               c.get('aba', 'youtube'),
-            'data':              c.get('data', ''),
-            'link':              c.get('link', ''),
-            'arquivo':           c.get('arquivo', ''),
-            'canal':             c.get('canal', ''),
-            'score':             c.get('score', 0.0),
-            'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
-            'video_id':          c.get('video_id', ''),
-            'timestamp_inicio':  c.get('timestamp_inicio', 0),
-        } for c in contexto]
+        fontes = _montar_fontes_de_contexto(contexto)
 
     if trecho_mode and not fontes:
         fontes = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': projeto_nome, 'score': 1.0}]
@@ -1720,7 +1409,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
     idioma        = config.get('idioma', 'pt')
 
     # Detecta trecho injetado: bypass do BM25, prompt especializado de análise
-    arq_injetado, trecho_injetado = _extrair_trecho_injetado(pergunta)
+    arq_injetado, trecho_injetado = extrair_trecho_injetado(pergunta)
     trecho_mode = bool(arq_injetado)
 
     if trecho_mode:
@@ -1728,40 +1417,53 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         prompt   = _montar_prompt_trecho(arq_injetado, trecho_injetado, meta_canal, historico, persona, idioma, persona_custom)
         fontes   = [{'titulo': arq_injetado, 'aba': 'documento', 'data': '', 'link': '', 'arquivo': arq_injetado, 'canal': projeto_nome, 'score': 1.0}]
     else:
-        from tusab_engine.state import state as _state
-
-        # Classificação de intenção paralela ao BM25 — sem latência extra no caso BUSCA
-        intencao_future = _intent_executor.submit(_classificar_intencao, pergunta, historico or [], config)
-        n_chunks = 4 if config.get('provider') == 'ollama' else 6
-        try:
-            contexto_bm25 = _recuperar_contexto(
-                pergunta, projeto_nome, n=n_chunks, config=config,
-                projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
-                busca_ampla=busca_ampla, perfil=perfil,
-                trechos_fixados=trechos_fixados or [],
-            )
-        except Exception as e:
-            yield json.dumps({'error': str(e)})
+        # Fase 3 — CALCULO. Ver comentário equivalente em chat().
+        resposta_calculo = responder_calculo(pergunta, idioma)
+        if resposta_calculo is not None:
+            yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
+            yield resposta_calculo
+            yield json.dumps({'done': True})
             return
-        try:
-            intencao = intencao_future.result(timeout=20)
-        except Exception:
-            intencao = 'BUSCA'
 
+        # Fase 2 — METADADOS: pergunta sobre a própria base resolvida por
+        # arquivo real, sem LLM/BM25. Ver comentário equivalente em chat().
+        resposta_metadados = responder_metadados(pergunta, projeto_nome, projeto_prefixo, idioma)
+        if resposta_metadados is not None:
+            yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
+            yield resposta_metadados
+            yield json.dumps({'done': True})
+            return
+
+        from tusab_engine.state import state as _state
         ultima = _state.last_chat_response.get(projeto_prefixo, {})
 
-        if intencao == 'CONTEXTO' and not ultima:
-            intencao = 'BUSCA'
+        # Fase 1 — pré-roteamento determinístico: saudação conhecida resolve
+        # sem chamar o classificador LLM nem o BM25.
+        rota_pre = pre_rotear(pergunta, sinais={'trechos_fixados': trechos_fixados})
+        if rota_pre is not None:
+            rota, contexto_bm25 = rota_pre, []
+        else:
+            # Classificação de intenção paralela ao BM25 — sem latência extra no caso BUSCA
+            intencao_future = iniciar_classificacao_intencao(pergunta, historico, config)
+            n_chunks = 4 if config.get('provider') == 'ollama' else 6
+            try:
+                contexto_bm25 = _recuperar_contexto(
+                    pergunta, projeto_nome, n=n_chunks, config=config,
+                    projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
+                    busca_ampla=busca_ampla, perfil=perfil,
+                    trechos_fixados=trechos_fixados or [],
+                )
+            except Exception as e:
+                yield json.dumps({'error': str(e)})
+                return
 
-        # Saudações conhecidas são sempre CONVERSA — mesmo sem histórico o classificador
-        # retorna BUSCA por design, mas "oi"/"olá" nunca deve disparar BM25 nem mostrar fontes.
-        pergunta_lower_strip = pergunta.strip().lower().rstrip('!?.')
-        if pergunta_lower_strip in _SAUDACOES:
-            intencao = 'CONVERSA'
-
-        # Trechos fixados pelo usuário (@@): forçar BUSCA para não descartar o contexto
-        if trechos_fixados and intencao != 'CONTEXTO':
-            intencao = 'BUSCA'
+            rota = rotear(pergunta, historico, config, sinais={
+                'arq_injetado':     arq_injetado,
+                'intencao_future':  intencao_future,
+                'ultima_resposta':  ultima,
+                'trechos_fixados':  trechos_fixados,
+            })
+        intencao = rota.nome
 
         if intencao == 'CONTEXTO':
             contexto = []
@@ -1776,7 +1478,21 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             return
         else:
             contexto = contexto_bm25
-            if not contexto:
+            critica = avaliar_relevancia_contexto(contexto, busca_ampla_ja_tentada=busca_ampla)
+            if critica.acao == 'retry_busca_ampla':
+                # Fase 5 — mesmo retry de chat(), ver comentário lá.
+                try:
+                    contexto = _recuperar_contexto(
+                        pergunta, projeto_nome, n=n_chunks, config=config,
+                        projetos_extras=projetos_extras, fontes_fixadas=fontes_fixadas,
+                        busca_ampla=True, perfil=perfil,
+                        trechos_fixados=trechos_fixados or [],
+                    )
+                except Exception:
+                    contexto = []
+                critica = avaliar_relevancia_contexto(contexto, busca_ampla_ja_tentada=True)
+
+            if critica.acao == 'sem_contexto':
                 config_s = carregar_config()
                 resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
                 yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
@@ -1784,18 +1500,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 yield json.dumps({'done': True})
                 return
             prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo, persona_custom=persona_custom)
-            fontes = [{
-                'titulo':            c['titulo'],
-                'aba':               c.get('aba', 'youtube'),
-                'data':              c['data'],
-                'link':              c['link'],
-                'arquivo':           c.get('arquivo', ''),
-                'canal':             c.get('canal', ''),
-                'score':             c['score'],
-                'trecho':            (c.get('texto_original') or c.get('texto', ''))[:600],
-                'video_id':          c.get('video_id', ''),
-                'timestamp_inicio':  c.get('timestamp_inicio', 0),
-            } for c in contexto]
+            fontes = _montar_fontes_de_contexto(contexto)
 
     provider = config['provider']
     api_key  = config.get('api_key', '')

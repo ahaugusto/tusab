@@ -1,12 +1,12 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 """
 Testes da confiança graduada por sentença (P1-e) —
-tusab_engine/agent/chat.py::_calcular_confianca_por_sentenca().
+tusab_engine/agent/critique.py::avaliar_confianca_por_sentenca().
 
-Complementa _verificar_alucinacao() (binária) com um sinal graduado por
+Complementa verificar_alucinacao() (binária) com um sinal graduado por
 trecho — nunca substitui a checagem binária existente, só adiciona metadado.
 """
-from tusab_engine.agent.chat import _calcular_confianca_por_sentenca
+from tusab_engine.agent.critique import avaliar_confianca_por_sentenca as _calcular_confianca_por_sentenca
 
 
 def test_confianca_vazia_sem_resposta_ou_contexto():
