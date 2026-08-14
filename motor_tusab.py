@@ -21,7 +21,7 @@ from tusab_engine.storage import (                            # noqa: F401
     DADOS_DIR, ASSETS_DIR, DATA_DIR,
     NEURAL_DIR, CEREBRO_DIR, LOCAL_TXT_DIR, DOCUMENTOS_DIR, TEXTOS_DIR,
     GESTAO_DIR, TEMP_DIR, TOKEN_PATH, CREDENTIALS_PATH,
-    salvar_csv_atomico, salvar_json_atomico,
+    salvar_csv_atomico, salvar_json_atomico, salvar_texto_atomico,
     obter_caminho_dados, obter_caminho_assets,
     gestao_canal_dir, get_canal_youtube_dir,
 )
