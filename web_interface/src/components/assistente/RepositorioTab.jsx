@@ -241,7 +241,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
                 </span>
                 {semConteudo && (
                   <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Sem conteúdo — adicione arquivos ou extraia um canal
+                    {t('repo.no_content_hint')}
                   </span>
                 )}
               </div>
@@ -1063,7 +1063,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => { setForceSelecionarProjeto(true); setProjetoSel(''); }}
-                  title="Trocar projeto"
+                  title={t('repo.switch_project_title')}
                   className={`p-1 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                 </button>
@@ -1379,7 +1379,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                               )}
                               {onAnexarArquivo && (
                                 <button onClick={() => onAnexarArquivo(r.arquivo, r.tipo)}
-                                  title="Anexar arquivo ao chat"
+                                  title={t('chat.attach_file_to_chat_title')}
                                   className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap transition-colors ${darkMode ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}>
                                   {t('repo.inject_file_btn')}
                                 </button>

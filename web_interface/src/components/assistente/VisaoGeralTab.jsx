@@ -6,6 +6,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchRepositorio, fetchAgentStatus, fetchHistory, fetchChatStats } from '../../services/api';
+import { localeFor } from '../../utils/locale';
 import {
   Database, FileText, Brain, Play, BookOpen, AlignLeft,
   Search, RefreshCw, ChevronDown, ChevronUp, MessageSquare,
@@ -34,9 +35,9 @@ function descreverFiltro(uf, t) {
   return partes.join(' · ');
 }
 
-function fmtDate(str) {
+function fmtDate(str, lang) {
   if (!str) return '—';
-  if (typeof str === 'number') return new Date(str * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  if (typeof str === 'number') return new Date(str * 1000).toLocaleDateString(localeFor(lang), { day: '2-digit', month: '2-digit', year: '2-digit' });
   return str.length > 10 ? str.slice(0, 10) : str;
 }
 
@@ -67,7 +68,7 @@ function subtipoDoc(item) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function VisaoGeralTab({ darkMode, btnFocus }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [repo,       setRepo]       = React.useState(null);
   const [agent,      setAgent]      = React.useState(null);
   const [history,    setHistory]    = React.useState([]);
@@ -348,7 +349,7 @@ export default function VisaoGeralTab({ darkMode, btnFocus }) {
                         {idx ? (
                           <div className="flex flex-col items-center gap-0.5">
                             <Badge color="green">{idx.chunks} {t('overview.chunks_suffix')}</Badge>
-                            <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{fmtDate(idx.indexed_at)}</span>
+                            <span className={`text-[9px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{fmtDate(idx.indexed_at, i18n.language)}</span>
                           </div>
                         ) : (
                           <Badge color="amber">{t('overview.not_indexed')}</Badge>

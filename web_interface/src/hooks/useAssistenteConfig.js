@@ -240,7 +240,7 @@ export function useAssistenteConfig({ activeTab, showError }) {
     setUseCustomEndpoint(false);
     setAgentProvider('ollama');
     await saveAgentConfig({ provider: 'ollama', api_key: '', ollama_model: model, persona, idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio })
-      .catch(() => showError('Erro ao salvar modelo. Tente novamente.'));
+      .catch(() => showError(t('error.save_model')));
   };
 
   /** Saves persona immediately (no key required) */
@@ -269,7 +269,7 @@ export function useAssistenteConfig({ activeTab, showError }) {
     setMostrarRaciocinio(novoValor);
     const provider = useCustomEndpoint ? 'custom' : useExternalProvider ? agentProvider : 'ollama';
     await saveAgentConfig({ provider, api_key: '__keep__', persona, idioma: i18n.language, mostrar_raciocinio: novoValor })
-      .catch(() => { setMostrarRaciocinio(!novoValor); showError('Erro ao salvar preferência. Tente novamente.'); });
+      .catch(() => { setMostrarRaciocinio(!novoValor); showError(t('error.save_preference')); });
   };
 
   /** Clears external API key or endpoint customizado, resets provider to Ollama */
@@ -284,7 +284,7 @@ export function useAssistenteConfig({ activeTab, showError }) {
       window.tusab.deleteApiKey(providerAtual).catch(() => {});
     }
     await saveAgentConfig({ provider: 'ollama', api_key: '', idioma: i18n.language, mostrar_raciocinio: mostrarRaciocinio })
-      .catch(() => showError('Erro ao remover chave. Tente novamente.'));
+      .catch(() => showError(t('error.remove_key')));
     setUseExternalProvider(false);
     setUseCustomEndpoint(false);
     setCustomBaseUrl('');

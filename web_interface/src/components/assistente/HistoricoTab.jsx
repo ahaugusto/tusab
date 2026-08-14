@@ -9,12 +9,9 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Star, Trash2, MessageSquare, Search, RotateCcw, Download } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
+import { localeFor } from '../../utils/locale';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function localeFor(lang) {
-  return lang?.startsWith('en') ? 'en-US' : lang?.startsWith('es') ? 'es-ES' : 'pt-BR';
-}
 
 function fmtDate(ts, t, lang) {
   if (!ts) return '';
@@ -205,7 +202,7 @@ function HistoricoTab({ darkMode, conversations, onRetomar, onDelete, onToggleFa
             className={`flex-1 text-xs bg-transparent outline-none ${darkMode ? 'text-white placeholder:text-slate-600' : 'text-slate-800 placeholder:text-slate-400'}`}
           />
           {busca && (
-            <button onClick={() => setBusca('')} className={darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}>
+            <button onClick={() => setBusca('')} aria-label={t('repo.search_clear')} className={darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}>
               ×
             </button>
           )}
