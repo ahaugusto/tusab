@@ -125,7 +125,7 @@ export function useChatEngine({
     if (!fn) {
       setChatMessages(prev => [...prev,
         { role: 'user',  content: msgUsuario },
-        { role: 'error', content: 'Exportação não disponível nesta versão.' },
+        { role: 'error', content: t('chat.export_unavailable') },
       ]);
       return;
     }
@@ -155,7 +155,7 @@ export function useChatEngine({
     } catch {
       setChatMessages(prev => [...prev, {
         role:    'error',
-        content: 'Não foi possível gerar o arquivo. Verifique se o canal está indexado e com histórico.',
+        content: t('chat.export_generation_failed'),
       }]);
     } finally {
       setChatLoading(false);
@@ -269,7 +269,7 @@ export function useChatEngine({
       const msg = err?.message || '';
       const isModeloLento = /timeout|timed out/i.test(msg);
       setChatMessages(prev => prev.map(m =>
-        m._streamId === streamId ? { role: 'error', content: 'Erro ao conectar com o servidor.', modelo_lento: isModeloLento } : m
+        m._streamId === streamId ? { role: 'error', content: t('chat.connection_error'), modelo_lento: isModeloLento } : m
       ));
     }
     setChatLoading(false);

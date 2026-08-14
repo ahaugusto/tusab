@@ -72,7 +72,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
 
   const handleBaixarModelo = async (modelId) => {
     setPullingModel(modelId);
-    setPullProgress({ pct: 0, status: 'pulling', message: 'Iniciando…' });
+    setPullProgress({ pct: 0, status: 'pulling', message: t('onboarding.pull_starting') });
     setPullStartTime(Date.now());
     setPulling(true);
     await pullOllamaModel(modelId).catch(() => {});
@@ -163,7 +163,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
   // ── Step 0 — Profile picker ───────────────────────────────────────────────
   if (isProfileStep) {
     return (
-      <ModalWrapper onClose={skip} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex} skipAriaHidden={skipAriaHidden}>
+      <ModalWrapper onClose={skip} disableBackdrop disableEscape label={t('onboarding.intro_aria')} zIndex={zIndex} skipAriaHidden={skipAriaHidden}>
         <motion.div
           key="profile-step"
           initial={{ opacity: 0, y: 12 }}

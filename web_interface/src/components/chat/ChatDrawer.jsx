@@ -15,10 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
-
-function localeFor(lang) {
-  return lang?.startsWith('en') ? 'en-US' : lang?.startsWith('es') ? 'es-ES' : 'pt-BR';
-}
+import { localeFor } from '../../utils/locale';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 export const LOADING_PHRASES = [
@@ -1348,7 +1345,7 @@ function ChatDrawer({
                           <div className={`pt-2 border-t flex items-center gap-1 ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                             {/* Copiar */}
                             <button
-                              title="Copiar resposta com fontes"
+                              title={t('chat.copy_response_with_sources')}
                               onClick={() => {
                                 copiarComFontes(msg);
                                 setCopiedIdx(i);
@@ -1390,7 +1387,7 @@ function ChatDrawer({
                             {/* Salvar como Planilha — só quando resposta tem lista/tabela E conteúdo suficiente */}
                             {detectaLista(msg.content) && temConteudoSuficiente && (
                               <button
-                                title="Exportar tabela de vídeos do canal como planilha Excel"
+                                title={t('chat.export_video_table_title')}
                                 onClick={() => {
                                   if (!canal) return;
                                   triggerDownload(exportTabelaVideosXlsx(canal), `tusab_${canal}.xlsx`);
@@ -1399,7 +1396,7 @@ function ChatDrawer({
                                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all disabled:opacity-30
                                   ${darkMode ? 'hover:bg-white/10 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
                                 <Sheet size={11} />
-                                <span>Planilha</span>
+                                <span>{t('chat.spreadsheet_label')}</span>
                               </button>
                             )}
                           </div>
