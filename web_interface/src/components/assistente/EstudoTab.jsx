@@ -3,14 +3,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Layers, FileText, Trash2, Pencil, X, Search, Video } from 'lucide-react';
-import { listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, revisarFlashcard, buscarProgressoRevisao } from '../../services/api';
+import { listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, buscarProgressoRevisao } from '../../services/api';
 import EstudoArtefatoModal from './EstudoArtefatoModal';
 import AudioArtefatoPlayer from './AudioArtefatoPlayer';
+import FlashcardPlayer from './FlashcardPlayer';
 import PostIt from '../shared/PostIt';
 
 /**
  * EstudoTab — componente controlado: todo estado persistente vive no AgentTab pai.
- * Estado efêmero de navegação (currentIdx, flipped) é local — correto resetar ao voltar.
+ * Player de flashcards (navegação, virar carta, avaliação SM-2) vive em
+ * FlashcardPlayer.jsx, reutilizado aqui e em EstudoArtefatoModal.jsx.
  */
 export default function EstudoTab({
   darkMode,
@@ -33,9 +35,6 @@ export default function EstudoTab({
   onExportarAnki,
 }) {
   const { t } = useTranslation();
-  // Estado efêmero de navegação — pode resetar sem perder o resultado
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [flipped,    setFlipped]    = useState(false);
 
   // Filtro de busca do seletor "Itens específicos" — puramente local, não
   // precisa sobreviver a troca de aba/projeto como a seleção em si.
@@ -136,30 +135,9 @@ export default function EstudoTab({
   const flashcardsAlvo = modoRevisarHoje ? (flashcards || []).filter(c => isDue(c.id)) : (flashcards || []);
   const dueHojeTotal = (flashcards || []).filter(c => isDue(c.id)).length;
 
-  useEffect(() => { setCurrentIdx(0); setFlipped(false); }, [modoRevisarHoje]);
-
-  const card = flashcardsAlvo[currentIdx] ?? null;
   const semProjetos = projetosIndexados.length === 0;
 
-  const handleAnterior = () => { setCurrentIdx(i => Math.max(0, i - 1)); setFlipped(false); };
-  const handleProximo  = () => { setCurrentIdx(i => Math.min(flashcardsAlvo.length - 1, i + 1)); setFlipped(false); };
-
-  // Qualidade: 1 = "Não lembrei", 3 = "Difícil", 5 = "Fácil" — mapeamento
-  // simplificado da escala 0-5 do SM-2 pra 3 botões (granularidade fina
-  // demais seria fricção sem benefício real).
-  const handleQualidade = async (qualidade) => {
-    if (!card) return;
-    try {
-      const r = await revisarFlashcard(projeto, card.id, qualidade);
-      if (r.data?.ok) setProgressoRevisao(prev => ({ ...prev, [card.id]: r.data }));
-    } catch { /* revisão não persistida — segue a navegação normalmente */ }
-    if (currentIdx < flashcardsAlvo.length - 1) { setCurrentIdx(i => i + 1); setFlipped(false); }
-  };
-
-  const handleResetarLocal = () => {
-    setCurrentIdx(0); setFlipped(false);
-    onResetar?.();
-  };
+  const handleResetarLocal = () => { onResetar?.(); };
 
   // ── Estilos base ──────────────────────────────────────────────────────────
 
@@ -527,9 +505,6 @@ export default function EstudoTab({
               }}>
                 {t('estudo.revisar_hoje_btn', { count: dueHojeTotal })}
               </button>
-              <span style={{ fontSize: '11px', color: textSecond }}>
-                {flashcardsAlvo.length > 0 ? `${currentIdx + 1} / ${flashcardsAlvo.length}` : '0 / 0'}
-              </span>
               <button onClick={onExportarAnki} style={{
                 ...btnBase, padding: '5px 10px',
                 background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
@@ -547,99 +522,7 @@ export default function EstudoTab({
             </p>
           )}
 
-          {card && (
-            <div onClick={() => setFlipped(f => !f)} style={{ perspective: '1000px', cursor: 'pointer' }}>
-              <div style={{
-                position: 'relative', width: '100%', height: '180px',
-                transformStyle: 'preserve-3d', transition: 'transform 0.4s ease',
-                transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              }}>
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                  backfaceVisibility: 'hidden',
-                  background: darkMode ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)',
-                  border: `1px solid ${darkMode ? 'rgba(139,92,246,0.30)' : 'rgba(139,92,246,0.20)'}`,
-                  borderRadius: '14px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '20px', gap: '8px', textAlign: 'center',
-                }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.06em', color: darkMode ? '#a78bfa' : '#7c3aed' }}>{t('estudo.card_question_label')}</span>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: textPrimary, lineHeight: 1.5, margin: 0 }}>
-                    {card.pergunta}
-                  </p>
-                  <span style={{ fontSize: '10px', color: textSecond, marginTop: '4px' }}>{t('estudo.click_to_reveal')}</span>
-                </div>
-
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                  backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
-                  background: darkMode ? 'rgba(52,211,153,0.10)' : 'rgba(52,211,153,0.08)',
-                  border: `1px solid ${darkMode ? 'rgba(52,211,153,0.25)' : 'rgba(16,185,129,0.25)'}`,
-                  borderRadius: '14px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '20px', gap: '8px', textAlign: 'center',
-                }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.06em', color: darkMode ? '#34d399' : '#059669' }}>{t('estudo.card_answer_label')}</span>
-                  <p style={{ fontSize: '14px', color: textPrimary, lineHeight: 1.5, margin: 0 }}>{card.resposta}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleAnterior} disabled={currentIdx === 0} style={{
-              ...btnBase, padding: '8px 14px',
-              background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-              color: textSecond, border: `1px solid ${borderColor}`,
-              opacity: currentIdx === 0 ? 0.4 : 1,
-              cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
-            }}>{t('estudo.prev_btn')}</button>
-
-            {flipped && card && (
-              <>
-                <button onClick={() => handleQualidade(1)} style={{
-                  ...btnBase, flex: 1, padding: '8px 4px', fontSize: '11px',
-                  background: darkMode ? 'rgba(248,113,113,0.15)' : '#fef2f2',
-                  color: darkMode ? '#f87171' : '#dc2626',
-                  border: `1px solid ${darkMode ? 'rgba(248,113,113,0.30)' : '#fca5a5'}`,
-                }}>{t('estudo.qualidade_nao_lembrei')}</button>
-                <button onClick={() => handleQualidade(3)} style={{
-                  ...btnBase, flex: 1, padding: '8px 4px', fontSize: '11px',
-                  background: darkMode ? 'rgba(251,191,36,0.15)' : '#fffbeb',
-                  color: darkMode ? '#fbbf24' : '#92400e',
-                  border: `1px solid ${darkMode ? 'rgba(251,191,36,0.30)' : '#fde68a'}`,
-                }}>{t('estudo.qualidade_dificil')}</button>
-                <button onClick={() => handleQualidade(5)} style={{
-                  ...btnBase, flex: 1, padding: '8px 4px', fontSize: '11px',
-                  background: darkMode ? 'rgba(52,211,153,0.15)' : '#d1fae5',
-                  color: darkMode ? '#34d399' : '#065f46',
-                  border: `1px solid ${darkMode ? 'rgba(52,211,153,0.30)' : '#6ee7b7'}`,
-                }}>{t('estudo.qualidade_facil')}</button>
-              </>
-            )}
-
-            <button onClick={handleProximo} disabled={currentIdx === flashcardsAlvo.length - 1} style={{
-              ...btnBase, padding: '8px 14px',
-              background: darkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-              color: textSecond, border: `1px solid ${borderColor}`,
-              opacity: currentIdx === flashcardsAlvo.length - 1 ? 0.4 : 1,
-              cursor: currentIdx === flashcardsAlvo.length - 1 ? 'not-allowed' : 'pointer',
-            }}>{t('estudo.next_btn')}</button>
-          </div>
-
-          {flashcardsAlvo.length > 0 && (
-            <div style={{ height: '4px', background: darkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-              borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', borderRadius: '4px',
-                background: 'linear-gradient(90deg, #8b5cf6, #34d399)',
-                width: `${((currentIdx + 1) / flashcardsAlvo.length) * 100}%`,
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
-          )}
+          <FlashcardPlayer darkMode={darkMode} projeto={projeto} cards={flashcardsAlvo} />
         </div>
       )}
 
