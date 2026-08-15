@@ -747,6 +747,16 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [chatOpen, chatExpandido, setChatOpen, setChatExpandido, regras, handleOpenChat]);
 
+  /** Trocar de aba com o chat expandido volta o chat pro tamanho reduzido —
+   * o chat expandido ocupa boa parte da tela, disputando espaço visual com
+   * o conteúdo da aba nova que o usuário acabou de escolher ver. Depende só
+   * de activeTab de propósito: reage à TROCA de aba, não a toda mudança de
+   * chatExpandido (senão rodaria de novo sempre que o usuário expandisse
+   * manualmente, sem necessidade). */
+  useEffect(() => {
+    if (chatExpandido) setChatExpandido(false);
+  }, [activeTab]);
+
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
   /** Fallback: pede permissão de notificação se onboarding já foi concluído sem perguntar */
