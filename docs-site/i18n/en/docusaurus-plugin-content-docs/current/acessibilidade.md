@@ -32,18 +32,24 @@ Interface audited against **WCAG 2.1 level AA**.
 
 ## Keyboard shortcuts
 
-| Key | Action |
-|-------|------|
-| `C` | Open/close chat |
-| `Esc` | Close chat / collapse expanded chat |
-| `<` / `>` | Expand / collapse the side chat |
-| `B` | Repository tab |
-| `E` | Extraction tab |
-| `A` | Admin tab |
-| `I` | Assistant tab |
-| `M` | Monitor tab |
-| `V` | Overview |
-| `H` | History |
+| Key | macOS alternative | Action |
+|-----|--------------------|--------|
+| `Shift + C` | `⌘ + C` | Open chat |
+| `Esc` | `Esc` | Close chat / collapse expanded chat / back to Home |
+| `<` / `>` (with chat open) | `<` / `>` | Expand / collapse the side chat |
+| `Shift + B` | `⌘ + B` | Repository tab |
+| `Shift + E` | `⌘ + E` | Extraction tab |
+| `Shift + A` | `⌘ + A` | Admin tab |
+| `Shift + I` | `⌘ + I` | Assistant tab |
+| `Shift + M` | — | Monitor tab |
+| `Shift + V` | `⌘ + V` | Overview |
+| `Shift + H` | — | History |
+| `Shift + U` | `⌘ + U` | Study tab |
+| `Shift + R` | — | Report sub-tab (inside Extraction) |
+
+All `Shift` shortcuts are automatically disabled while a text field has focus, so they don't interfere with typing — on any system.
+
+On macOS, most shortcuts also accept `⌘` (Cmd) as a native alternative — `Shift` still works the same way, `⌘` is just an added option. **Three exceptions stay `Shift`-only even on Mac**: Monitor, History and Report use letters (`M`, `H`, `R`) that collide with system-level or Electron menu shortcuts (Minimize, Hide app, Reload) — those intercept the key before the app can ever see it, so `⌘` could never work reliably for these three.
 
 ## WCAG 2.1 AA checklist — summary by principle
 

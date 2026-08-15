@@ -32,22 +32,24 @@ Interface auditada contra **WCAG 2.1 nível AA**.
 
 ## Atalhos de teclado
 
-| Tecla | Ação |
-|-------|------|
-| `Shift + C` | Abrir chat |
-| `Esc` | Fechar chat / colapsar chat expandido / voltar à Home |
-| `<` / `>` (com chat aberto) | Expandir / recolher chat lateral |
-| `Shift + B` | Aba Repositório |
-| `Shift + E` | Aba Extração |
-| `Shift + A` | Aba Admin |
-| `Shift + I` | Aba Assistente |
-| `Shift + M` | Aba Monitor |
-| `Shift + V` | Visão Geral |
-| `Shift + H` | Histórico |
-| `Shift + U` | Aba Estudo |
-| `Shift + R` | Sub-aba Relatório (dentro de Extração) |
+| Tecla | Alternativa no macOS | Ação |
+|-------|----------------------|------|
+| `Shift + C` | `⌘ + C` | Abrir chat |
+| `Esc` | `Esc` | Fechar chat / colapsar chat expandido / voltar à Home |
+| `<` / `>` (com chat aberto) | `<` / `>` | Expandir / recolher chat lateral |
+| `Shift + B` | `⌘ + B` | Aba Repositório |
+| `Shift + E` | `⌘ + E` | Aba Extração |
+| `Shift + A` | `⌘ + A` | Aba Admin |
+| `Shift + I` | `⌘ + I` | Aba Assistente |
+| `Shift + M` | — | Aba Monitor |
+| `Shift + V` | `⌘ + V` | Visão Geral |
+| `Shift + H` | — | Histórico |
+| `Shift + U` | `⌘ + U` | Aba Estudo |
+| `Shift + R` | — | Sub-aba Relatório (dentro de Extração) |
 
-Todos os atalhos com `Shift` são desativados automaticamente enquanto o foco está num campo de texto, para não interferir com a digitação. No macOS, os atalhos usam a mesma tecla `Shift` — não é necessário substituir por `⌘` (Cmd).
+Todos os atalhos com `Shift` são desativados automaticamente enquanto o foco está num campo de texto, para não interferir com a digitação — em qualquer sistema.
+
+No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nativa — `Shift` continua funcionando igual, `⌘` é só uma opção a mais. **Três exceções ficam só em `Shift + tecla`, mesmo no Mac**: Monitor, Histórico e Relatório usam letras (`M`, `H`, `R`) que colidem com atalhos do próprio sistema operacional ou do menu do Electron (Minimizar, Ocultar app, Recarregar) — esses interceptam a tecla antes que o app consiga reconhecer o atalho, então usar `⌘` nesses três casos nunca funcionaria de forma confiável.
 
 ## Checklist WCAG 2.1 AA — resumo por princípio
 
