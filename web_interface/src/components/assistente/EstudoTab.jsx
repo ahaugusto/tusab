@@ -358,7 +358,7 @@ export default function EstudoTab({
                 const Icone = item.aba === 'youtube' ? Video : FileText;
                 const marcado = itensSelecionados.includes(item.arquivo);
                 return (
-                  <label key={item.arquivo} onClick={() => toggleItem(item.arquivo)} style={{
+                  <label key={item.arquivo} style={{
                     display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', cursor: 'pointer',
                     borderTop: i > 0 ? `1px solid ${borderColor}` : 'none',
                     background: marcado ? (darkMode ? 'rgba(139,92,246,0.10)' : 'rgba(139,92,246,0.06)') : 'transparent',
