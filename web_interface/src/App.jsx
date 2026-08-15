@@ -707,26 +707,41 @@ function App() {
   /** Syncs dark class on html element */
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); }, [darkMode]);
 
-  /** Keyboard shortcuts: Esc closes/collapses chat; Shift+key navigates tabs / opens chat */
+  /** Keyboard shortcuts: Esc closes/collapses chat; Shift+key (or ⌘+key on
+   * macOS, for most letters) navigates tabs / opens chat. macOS users expect
+   * ⌘ as the native shortcut modifier — Shift still works on macOS too, ⌘ is
+   * only an ADDED alternative. window.tusab.platform (Electron preload, see
+   * preload.js) is the reliable source; navigator.platform/userAgent is the
+   * fallback for the plain dev server (no window.tusab outside Electron).
+   *
+   * R, M, H are excluded from the ⌘ mapping on macOS: ⌘+R is already bound
+   * to "Reload" as an Electron menu accelerator (CmdOrCtrl+R, main.js) and
+   * fires before this handler ever runs; ⌘+M (minimize) and ⌘+H (hide app)
+   * are macOS window-manager shortcuts the app can't intercept even with
+   * preventDefault. Those three stay Shift-only on every platform. */
   useEffect(() => {
+    const isMac = window.tusab?.platform === 'darwin'
+      || /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
     const NAV_KEYS = { B: 'repositorio', E: 'extracao', A: 'admin', I: 'agente', M: 'monitor', V: 'visao-geral', H: 'historico', U: 'estudo' };
+    const SEM_CMD_NO_MAC = new Set(['R', 'M', 'H']); // colidem com atalhos do Electron/macOS — ver comentário acima
     const onKey = (e) => {
       if (e.key === 'Escape' && chatOpen) {
         if (chatExpandido) { setChatExpandido(false); return; }
         setChatOpen(false);
         return;
       }
-      if (!e.shiftKey) return;
+      const key = e.key.toUpperCase();
+      const cmdValido = isMac && e.metaKey && !SEM_CMD_NO_MAC.has(key);
+      if (!e.shiftKey && !cmdValido) return;
       const tag = document.activeElement?.tagName?.toLowerCase();
       const editable = document.activeElement?.isContentEditable;
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
-      const key = e.key.toUpperCase();
       if (e.key === '>' && chatOpen && chatExpandido) { setChatExpandido(false); return; }
       if (e.key === '<' && chatOpen && !chatExpandido) { setChatExpandido(true); return; }
       if (key === 'C' && !chatOpen) { e.preventDefault(); handleOpenChat(); return; }
-      if (key === 'R' && regras.abas?.includes('extracao')) { setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
+      if (key === 'R' && e.shiftKey && regras.abas?.includes('extracao')) { e.preventDefault(); setActiveTab('extracao'); setExtracaoSubTab('relatorio'); setShowHome(false); return; }
       const tab = NAV_KEYS[key];
-      if (tab && regras.abas?.includes(tab)) { setActiveTab(tab); setShowHome(false); }
+      if (tab && regras.abas?.includes(tab)) { e.preventDefault(); setActiveTab(tab); setShowHome(false); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
