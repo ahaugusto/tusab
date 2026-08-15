@@ -27,6 +27,8 @@ Generation uses BM25 to scope the material to a specific topic, combinable with 
 
 Generated artifacts are persisted and searchable in a per-project kanban board. Since they enter the BM25 index, they're also available via the [MCP Server](/funcionalidades/mcp-server). The listing validates that files actually exist on disk before displaying them — artifacts deleted outside the app don't show up as ghost cards.
 
+Clicking a card reopens the same interactive experience as the original generation — for flashcards, that includes flipping the card and rating the answer, with spaced-repetition progress preserved.
+
 ## Where it lives
 
 `neural/{project}/estudo/` — includes the artifacts and the cached audio of summaries.

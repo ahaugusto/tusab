@@ -27,6 +27,8 @@ A geração usa BM25 para restringir o material a um tema específico, combináv
 
 Os artefatos gerados ficam persistidos e pesquisáveis num kanban por projeto. Como entram no índice BM25, também ficam disponíveis via [MCP Server](/funcionalidades/mcp-server). A listagem valida a existência real dos arquivos em disco antes de exibir — artefatos apagados por fora do app não aparecem como cards fantasmas.
 
+Clicar num card reabre a mesma experiência interativa da geração original — para flashcards, isso inclui virar a carta e avaliar a resposta, com o progresso de repetição espaçada preservado.
+
 ## Onde fica
 
 `neural/{projeto}/estudo/` — inclui os artefatos e o áudio cacheado dos resumos.

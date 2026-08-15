@@ -7,6 +7,27 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.53] — 2026-08-14
+
+### Adicionado
+- **Atalhos de teclado com `⌘` (Cmd) no macOS** — a maioria dos atalhos de navegação (`B`, `E`, `A`, `I`, `V`, `U`, `C`) agora aceita `⌘+tecla` como alternativa nativa no Mac, além do `Shift+tecla` que já funcionava. Três atalhos (Monitor, Histórico, Relatório) continuam só em `Shift` porque as letras colidem com atalhos do próprio sistema (Minimizar, Ocultar app, Recarregar).
+- **Modal de flashcard salvo agora abre a experiência de revisão completa** — antes só listava pergunta/resposta em texto corrido; agora abre o mesmo player interativo da tela de geração (virar carta, Anterior/Próximo, avaliar Não lembrei/Difícil/Fácil), com o progresso de repetição espaçada gravado normalmente mesmo para cards de artefatos salvos antigos.
+
+### Corrigido
+- **Busca do chat ignorando o termo real da pergunta em favor de palavras comuns** — perguntas como "Me fale sobre X" podiam recuperar conteúdo sem relação com X quando a base tinha muito texto formal/repetitivo (ex: leis), porque palavras como "sobre" pontuavam mais alto no BM25 do que o termo específico da pergunta. A busca agora filtra essas palavras antes de comparar.
+- **Barra de progresso da indexação parecia travada e o botão de cancelar não funcionava** em bases com muitos vídeos/documentos — a barra só avançava a cada pasta inteira processada (podendo levar dezenas de minutos parada no mesmo número), e cancelar durante essa fase não tinha efeito algum. Agora o progresso avança por arquivo e cancelar interrompe de verdade a qualquer momento.
+- Trocar de aba pelo menu lateral com o chat expandido agora recolhe o chat automaticamente, em vez de deixá-lo ocupando a tela por cima do conteúdo da aba nova.
+- Clicar diretamente no checkbox de um item na aba Estudo (seleção de itens específicos para flashcards) não marcava a caixa — só clicar na linha funcionava. Os dois agora funcionam.
+- Interface com strings em português aparecendo mesmo com idioma EN/ES selecionado em alguns pontos do app; datas em `Visão Geral`/`Monitor` formatadas sempre em `pt-BR` independente do idioma escolhido.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- Fábrica única de cliente LLM (`llm_providers.py`) expandida para mais 4 pontos do backend (`scheduler.py`, `router_estudo.py`, `router_agent.py`, `summarize.py`) que ainda duplicavam a construção de cliente por provider.
+- Export/import do arquivo `.tusab` compartilhável corrigido — assumia formato de índice (`.pkl`) abandonado há tempo; usa o formato JSON real agora.
+- Removido código morto: hook `useStatus.js`, função `SidebarContent()` (só o sub-componente `DriveToggle` ainda em uso), `_contar_canais_indexados()`.
+- `.gitignore` passa a ignorar `data/config/` inteiro (não só 2 arquivos nomeados) e o cache local de uma ferramenta de análise de código.
+
+---
+
 ## [1.0.52] — 2026-08-14
 
 ### Adicionado

@@ -11,6 +11,12 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.53 (2026-08-14)** — Keyboard shortcuts with `⌘` (Cmd) on macOS; a saved flashcard modal now opens the full review experience (flip card, rate); fixed a chat search bug that ignored the actual question term in bases with a lot of formal text; per-file indexing progress with working cancellation; fixes to the expanded chat, a checkbox, and i18n.
+
+**v1.0.52 (2026-08-14)** — Intent routing in chat: questions about the base itself ("how many videos does this base have?", "when was it indexed?") answer with real data from disk, no LLM call; pure calculation questions ("what's 15+27?") are solved by a safe arithmetic evaluator, no LLM or search; automatic retry in Broad Search before showing "not found". macOS keyboard shortcuts documented in Help.
+
+**v1.0.51 (2026-08-12)** — YouTube video chapters longer than 3000 characters were being truncated in the search index and chat citation; now split into multiple parts, with continuity preserved.
+
 **v1.0.50 (2026-08-10)** — Single LLM client factory in chat (fixes a real drift in the Gemini fallback list); full reset now available to every profile, not just Specialist.
 
 **v1.0.49 (2026-08-10)** — Vector search (embeddings via Ollama `nomic-embed-text`) as a complement to BM25+FTS5+CrossEncoder in chat, active in Broad Search with optional one-click download.
