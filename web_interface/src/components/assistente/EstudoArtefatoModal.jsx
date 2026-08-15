@@ -6,6 +6,7 @@ import { X, Pencil, Check, Copy, FileText, FileDown, Trash2, Loader2 } from 'luc
 import ModalWrapper from '../shared/ModalWrapper';
 import PostIt from '../shared/PostIt';
 import AudioArtefatoPlayer from './AudioArtefatoPlayer';
+import FlashcardPlayer from './FlashcardPlayer';
 import { exportResumoCanalDocx, exportRelatorioPdf } from '../../services/api';
 
 /** Achata o conteúdo estruturado num texto corrido — usado por copiar/exportar. */
@@ -157,18 +158,7 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
           )}
 
           {artefato.tipo === 'flashcards' && Array.isArray(dados) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {dados.map((c, i) => (
-                <div key={i} style={{ border: `1px solid ${borderColor}`, borderRadius: '12px', padding: '12px 14px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                    color: darkMode ? '#a78bfa' : '#7c3aed', margin: '0 0 4px' }}>{t('estudo.card_question_label')}</p>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: textPrimary, margin: '0 0 10px' }}>{c.pergunta}</p>
-                  <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                    color: darkMode ? '#34d399' : '#059669', margin: '0 0 4px' }}>{t('estudo.card_answer_label')}</p>
-                  <p style={{ fontSize: '13px', color: textPrimary, margin: 0 }}>{c.resposta}</p>
-                </div>
-              ))}
-            </div>
+            <FlashcardPlayer darkMode={darkMode} projeto={artefato.projeto} cards={dados} />
           )}
 
           {artefato.tipo === 'postits' && Array.isArray(dados) && (
