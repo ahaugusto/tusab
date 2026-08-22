@@ -42,6 +42,68 @@ def test_calibrar_corpus_n_candidatos_cresce_com_tamanho():
     assert pequeno["n_candidatos_bm25"] < medio["n_candidatos_bm25"] < grande["n_candidatos_bm25"]
 
 
+# ─── Ajuste por feedback negativo (👎) ──────────────────────────────────────────
+
+def test_registrar_feedback_negativo_incrementa_contador(tmp_path, monkeypatch):
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    calibration.registrar_feedback_negativo("projeto_fb")
+    calibration.registrar_feedback_negativo("projeto_fb")
+    stats = calibration._carregar_feedback_stats("projeto_fb")
+    assert stats["negativos_total"] == 2
+
+
+def test_registrar_feedback_negativo_isolado_por_projeto(tmp_path, monkeypatch):
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    calibration.registrar_feedback_negativo("projeto_a")
+    assert calibration._carregar_feedback_stats("projeto_b") == {}
+
+
+def test_feedback_stats_ausente_retorna_dict_vazio(tmp_path, monkeypatch):
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    assert calibration._carregar_feedback_stats("projeto_sem_feedback") == {}
+
+
+def test_calibrar_corpus_sem_feedback_nao_altera_n_candidatos(tmp_path, monkeypatch):
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    perfil = calibration._calibrar_corpus("projeto_sem_fb", [_chunk() for _ in range(100)])
+    assert perfil["ajuste_por_feedback"] == 0
+    assert perfil["n_candidatos_bm25"] == 12
+
+
+def test_calibrar_corpus_aplica_ajuste_por_marco_de_10_negativos(tmp_path, monkeypatch):
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    for _ in range(23):  # 23 // 10 = 2 marcos
+        calibration.registrar_feedback_negativo("projeto_fb2")
+
+    perfil = calibration._calibrar_corpus("projeto_fb2", [_chunk() for _ in range(100)])
+    assert perfil["feedback_negativos"] == 23
+    assert perfil["ajuste_por_feedback"] == 16  # 2 marcos * 8
+    assert perfil["n_candidatos_bm25"] == 12 + 16
+
+
+def test_calibrar_corpus_ajuste_por_feedback_tem_teto(tmp_path, monkeypatch):
+    # Muitos marcos não devem ultrapassar o teto de +24, mesmo com centenas de 👎.
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    stats_path = calibration._feedback_stats_path("projeto_muitos_fb")
+    os.makedirs(os.path.dirname(stats_path), exist_ok=True)
+    from tusab_engine.storage import salvar_json_atomico
+    salvar_json_atomico({"negativos_total": 500}, stats_path, indent=2)
+
+    perfil = calibration._calibrar_corpus("projeto_muitos_fb", [_chunk() for _ in range(100)])
+    assert perfil["ajuste_por_feedback"] == 24
+
+
+def test_ajuste_por_feedback_nunca_reduz_n_candidatos(tmp_path, monkeypatch):
+    """Invariante: feedback negativo só amplia o pool do CrossEncoder, nunca
+    reduz — não pode reintroduzir o padrão de corte já descartado (score_minimo)."""
+    monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
+    sem_feedback = calibration._calibrar_corpus("p_a", [_chunk() for _ in range(100)])
+    for _ in range(50):
+        calibration.registrar_feedback_negativo("p_b")
+    com_feedback = calibration._calibrar_corpus("p_b", [_chunk() for _ in range(100)])
+    assert com_feedback["n_candidatos_bm25"] >= sem_feedback["n_candidatos_bm25"]
+
+
 def test_salvar_e_carregar_profile_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setattr(calibration, "NEURAL_DIR", str(tmp_path))
     chunks = [_chunk() for _ in range(50)]
@@ -97,3 +159,38 @@ def test_indexar_persiste_corpus_profile_de_verdade():
     perfil = calibration._carregar_profile(prefixo)
     assert perfil.get("n_chunks_total", 0) >= 1
     assert "score_minimo" not in perfil
+
+
+# ─── Integração: POST /agent/feedback com util=False alimenta a calibragem ─────
+
+def test_endpoint_feedback_negativo_incrementa_stats_do_projeto(client):
+    """Ponta a ponta: POST /agent/feedback (util=False) precisa deixar o
+    contador em disco no formato que _calibrar_corpus() espera consumir."""
+    projeto = "projeto_feedback_endpoint"
+
+    r = client.post("/agent/feedback", json={
+        "projeto_nome": projeto,
+        "pergunta": "pergunta de teste",
+        "resposta": "resposta de teste",
+        "util": False,
+    })
+    assert r.status_code == 200
+    assert r.json() == {"ok": True, "action": "discarded"}
+
+    stats = calibration._carregar_feedback_stats(projeto)
+    assert stats["negativos_total"] == 1
+
+
+def test_endpoint_feedback_util_true_nao_mexe_no_contador_negativo(client):
+    projeto = "projeto_feedback_positivo"
+
+    r = client.post("/agent/feedback", json={
+        "projeto_nome": projeto,
+        "pergunta": "pergunta de teste",
+        "resposta": "resposta de teste",
+        "util": True,
+    })
+    assert r.status_code == 200
+    assert r.json().get("action") == "saved"
+
+    assert calibration._carregar_feedback_stats(projeto) == {}
