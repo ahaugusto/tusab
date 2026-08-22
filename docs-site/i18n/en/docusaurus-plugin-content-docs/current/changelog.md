@@ -11,6 +11,8 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.54 (2026-08-22)** — Thumbs-down in chat now has a real effect: it accumulates a per-project counter that widens the search instead of just discarding the response.
+
 **v1.0.53 (2026-08-14)** — Keyboard shortcuts with `⌘` (Cmd) on macOS; a saved flashcard modal now opens the full review experience (flip card, rate); fixed a chat search bug that ignored the actual question term in bases with a lot of formal text; per-file indexing progress with working cancellation; fixes to the expanded chat, a checkbox, and i18n.
 
 **v1.0.52 (2026-08-14)** — Intent routing in chat: questions about the base itself ("how many videos does this base have?", "when was it indexed?") answer with real data from disk, no LLM call; pure calculation questions ("what's 15+27?") are solved by a safe arithmetic evaluator, no LLM or search; automatic retry in Broad Search before showing "not found". macOS keyboard shortcuts documented in Help.

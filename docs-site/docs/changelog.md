@@ -11,6 +11,8 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 ## Destaques recentes
 
+**v1.0.54 (2026-08-22)** — 👎 no chat agora tem efeito real: acumula um contador por projeto que amplia a busca em vez de só descartar a resposta.
+
 **v1.0.53 (2026-08-14)** — Atalhos de teclado com `⌘` (Cmd) no macOS; modal de flashcard salvo abre a experiência de revisão completa (virar carta, avaliar); fix de busca do chat que ignorava o termo real da pergunta em bases com muito texto formal; barra de progresso de indexação granular por arquivo com cancelamento funcional; correções de chat expandido, checkbox e i18n.
 
 **v1.0.52 (2026-08-14)** — Roteamento de intenção no chat: perguntas sobre a própria base ("quantos vídeos tem essa base?", "quando foi indexada?") respondem com dado real do disco, sem chamada de LLM; perguntas de cálculo puro ("quanto é 15+27?") são resolvidas por um avaliador aritmético seguro, sem LLM nem busca; retry automático em Busca Ampla antes de mostrar "não encontrei". Atalhos de teclado para macOS documentados na Ajuda.
