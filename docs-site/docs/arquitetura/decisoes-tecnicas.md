@@ -44,6 +44,12 @@ GraphRAG segue descartado — o corpus atual (transcrições de YouTube, PDFs av
 
 **Anthropic usa dois modelos por finalidade:** Claude Haiku para chamadas auxiliares de baixo risco (expandir query, classificar intenção da mensagem, gerar resposta de fallback sem contexto) e Claude Sonnet só na resposta final que o usuário lê — Haiku é mais rápido e mais barato, e a qualidade extra do Sonnet importa onde o usuário realmente vê o resultado. Os demais provedores (OpenAI, Gemini, Groq) usam o mesmo modelo padrão nas duas categorias.
 
+## Calibragem dinâmica do número de candidatos por corpus
+
+O número de candidatos que o BM25 entrega ao CrossEncoder na Busca Ampla não é fixo — cresce com o tamanho do corpus (12 em bases pequenas, 20 acima de 1.000 chunks, 30 acima de 5.000): corpus maior tem IDF menor por termo, então mais candidatos dão ao CrossEncoder mais chance de achar o chunk certo. Recalculado a cada indexação e persistido em `management/corpus_profile.json`.
+
+Feedback negativo (👎) no chat some ao mesmo cálculo: a cada marco de 10 avaliações negativas acumuladas no projeto, o número de candidatos ganha +8, com teto em +24. A regra nunca reduz nem descarta um resultado — só amplia o quanto o CrossEncoder considera antes de responder. Um threshold de corte adaptativo (score mínimo por corpus ou por feedback) foi deliberadamente descartado — já foi tentado e cortava resultados legítimos em corpus grande.
+
 ## Chunking
 
 Documentos longos usam janelas de 2.000 caracteres com overlap de 200 — evita cortar uma ideia na borda e garante que frases-chave na fronteira apareçam em dois candidatos BM25. Vídeos sem capítulos são divididos em janelas temporais de 120s com overlap de 15s (passo efetivo de 105s) — um vídeo de 12 minutos gera cerca de 7 chunks com timestamps distribuídos.

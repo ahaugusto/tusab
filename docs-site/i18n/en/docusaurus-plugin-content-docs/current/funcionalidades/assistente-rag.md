@@ -48,7 +48,7 @@ Every answer cites the title, date, and origin link. Clicking a source opens the
 
 ## Feedback (local RLHF)
 
-👍 on an answer saves the question/answer pair to `neural/{project}/texts/feedback_{timestamp}.txt` — on the next indexing run, that content enters the BM25 corpus and becomes retrievable for similar questions. 👎 silently discards it. This isn't model training — it improves retrieval, not the LLM's weights.
+👍 on an answer saves the question/answer pair to `neural/{project}/texts/feedback_{timestamp}.txt` — on the next indexing run, that content enters the BM25 corpus and becomes retrievable for similar questions. 👎 no longer just discards it silently: it accumulates a per-project counter that widens the number of candidates considered in Broad Search (never reduces, never discards a result — it only gives the search a better chance of finding the right excerpt). Neither is model training — they improve retrieval, not the LLM's weights.
 
 ## Referencing excerpts
 

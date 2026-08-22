@@ -7,6 +7,13 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.54] — 2026-08-22
+
+### Adicionado
+- **Feedback negativo (👎) no chat agora tem efeito real na qualidade da busca** — antes o 👎 só descartava a resposta silenciosamente; agora acumula um contador por projeto que amplia o número de candidatos que a Busca Ampla considera antes de responder, dando mais chance de achar o trecho certo em projetos onde o usuário sinalizou repetidamente que as respostas não estavam boas. Nunca reduz nem descarta resultado nenhum — só amplia a busca.
+
+---
+
 ## [1.0.53] — 2026-08-14
 
 ### Adicionado
