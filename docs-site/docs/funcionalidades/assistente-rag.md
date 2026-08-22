@@ -60,7 +60,7 @@ Toda resposta cita título, data e link de origem. Clicar na fonte abre o vídeo
 
 ## Feedback (RLHF local)
 
-👍 numa resposta salva o par pergunta/resposta em `neural/{projeto}/texts/feedback_{timestamp}.txt` — na próxima indexação, esse conteúdo entra no corpus BM25 e passa a ser recuperável para perguntas parecidas. 👎 descarta silenciosamente. Não é treino de modelo — melhora a recuperação, não os pesos do LLM.
+👍 numa resposta salva o par pergunta/resposta em `neural/{projeto}/texts/feedback_{timestamp}.txt` — na próxima indexação, esse conteúdo entra no corpus BM25 e passa a ser recuperável para perguntas parecidas. 👎 não descarta mais silenciosamente: acumula um contador por projeto que amplia o número de candidatos considerados na Busca Ampla (nunca reduz, nunca descarta um resultado — só dá mais chance de achar o trecho certo). Nenhum dos dois é treino de modelo — melhoram a recuperação, não os pesos do LLM.
 
 ## Referenciar trechos
 
