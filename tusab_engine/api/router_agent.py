@@ -1058,13 +1058,19 @@ def agent_feedback(req: FeedbackRequest):
 
     util=True  → salva o par pergunta+resposta em texts/ do canal como corpus BM25.
                  Entra na base na próxima indexação — RLHF local.
-    util=False → descarta silenciosamente (sem side-effects no corpus).
+    util=False → incrementa o contador de negativos do projeto (management/
+                 feedback_stats.json) — consumido por calibration.py na
+                 próxima indexação pra ampliar n_candidatos_bm25 (nunca corta
+                 candidato, só dá mais chance ao CrossEncoder). Sem outro
+                 side-effect no corpus.
     """
     import time as _time
     from tusab_engine.storage import NEURAL_DIR, salvar_texto_atomico
+    from tusab_engine.agent.calibration import registrar_feedback_negativo
     projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', req.projeto_nome).strip('_')
 
     if not req.util:
+        registrar_feedback_negativo(projeto_prefixo)
         return {"ok": True, "action": "discarded"}
 
     texts_dir = os.path.join(NEURAL_DIR, projeto_prefixo, 'texts')
