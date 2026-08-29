@@ -317,45 +317,44 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             </div>
           </div>
 
-          {/* ── Talk section (só aparece com base indexada — chat sem contexto não tem valor) ── */}
+          {/* ── Talk + Study section, lado a lado (mesmo gate — ambos precisam de base indexada) ── */}
           {indexed && (
-            <div>
-              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                {t('home.section_talk')}
-              </p>
-              <button
-                onClick={onOpenChatExpandido}
-                className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${agentReady ? highlightBase : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl shrink-0">💬</span>
-                  <div>
-                    <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_chat_title')}</p>
-                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {agentReady ? t('home.card_chat_ready') : t('home.card_chat_desc')}
-                    </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t('home.section_talk')}
+                </p>
+                <button
+                  onClick={onOpenChatExpandido}
+                  className={`relative w-full h-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${agentReady ? highlightBase : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xl shrink-0">💬</span>
+                    <div>
+                      <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_chat_title')}</p>
+                      <p className={`text-[10px] mt-0.5 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {agentReady ? t('home.card_chat_ready') : t('home.card_chat_desc')}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </button>
-            </div>
-          )}
+                </button>
+              </div>
 
-          {/* ── Study section (mesmo gate — Estudo também precisa de base indexada) ── */}
-          {indexed && (
-            <div>
-              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                {t('home.section_study')}
-              </p>
-              <button
-                onClick={() => onNavigate('estudo')}
-                className={`relative w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl shrink-0">🎓</span>
-                  <div>
-                    <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_estudo_title')}</p>
-                    <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('home.card_estudo_desc')}</p>
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t('home.section_study')}
+                </p>
+                <button
+                  onClick={() => onNavigate('estudo')}
+                  className={`relative w-full h-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xl shrink-0">🎓</span>
+                    <div>
+                      <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_estudo_title')}</p>
+                      <p className={`text-[10px] mt-0.5 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('home.card_estudo_desc')}</p>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+              </div>
             </div>
           )}
 
