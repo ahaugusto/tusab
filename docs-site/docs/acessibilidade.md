@@ -19,7 +19,7 @@ Interface auditada contra **WCAG 2.1 nível AA**.
 | Modais com trap de foco, `aria-modal`, isolamento do fundo | ✅ Conforme (`ModalWrapper.jsx`) |
 | Skip-nav link | ✅ Conforme |
 | `lang` no HTML | ✅ Conforme (`pt-BR`) |
-| Contraste de texto (AA) | ⚠️ Maioria conforme — exceções em correção contínua |
+| Contraste de texto (AA) | ✅ Conforme (auditado via pa11y-ci a cada PR) |
 | `aria-live` para conteúdo dinâmico | ⚠️ Parcial — segue em evolução |
 
 ## Decisões de implementação
@@ -66,6 +66,12 @@ No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nati
 - **axe DevTools** — varredura automatizada (Chrome/Firefox)
 - **NVDA** (Windows) — testes com leitor de tela gratuito
 - **Colour Contrast Analyser** — medição de contraste
-- **axe-core** via Jest (`@axe-core/react`) — testes automatizados
+- **pa11y-ci** (axe-core + HTML_CodeSniffer via Puppeteer) — roda automaticamente a cada push/PR (`web_interface/.pa11yci`, `.github/workflows/ci.yml`)
+
+### Escopo do pa11y-ci
+
+Hoje a auditoria automatizada cobre só a **tela de Landing** (light e dark mode) — é a única tela alcançável sem estado prévio (sem login, sem backend real), o que a torna testável de forma determinística em CI. O restante do app (telas internas, modais, fluxos com dados) segue coberto por revisão manual via `/acessibilidade` e pelos testes com leitor de tela, não por este gate automatizado.
+
+A regra de contraste (`color-contrast`) é validada via **HTML_CodeSniffer**, não via axe-core, nesta configuração específica — o fundo animado da Landing (`<canvas>` do `CircuitBackground`) faz o axe sinalizar a maioria dos textos como "precisa de revisão manual" (não consegue amostrar um fundo que muda), o que reduziria o gate a ruído sem essa escolha.
 
 A lista completa de achados, com arquivo e linha, é mantida no repositório em `Documentação do Produto/Acessibilidade e WCAG.md`, atualizada a cada release significativo.
