@@ -24,17 +24,29 @@ def _api_key_valida(config: dict) -> bool:
     return bool(key) and key != SENTINEL_KEY
 
 
+_MODELO_OPENROUTER = 'meta-llama/llama-3.3-70b-instruct:free'
+
+
 def _client_openai_compat(provider: str, api_key: str, config: dict):
     """Retorna (client, modelo) para provedores que falam o protocolo OpenAI
-    (Groq e endpoint customizado — ex: 9router, github.com/decolua/9router).
-    Centraliza a escolha de base_url pra não duplicar o padrão em cada um
-    dos pontos de dispatch por provider.
+    (Groq, OpenRouter e endpoint customizado — ex: 9router,
+    github.com/decolua/9router). Centraliza a escolha de base_url pra não
+    duplicar o padrão em cada um dos pontos de dispatch por provider.
+
+    Kimi (Moonshot AI), xAI (Grok) e Together AI também falam esse mesmo
+    protocolo — não têm card dedicado porque OpenRouter já os cobre como
+    agregador (mesma chave, catálogo com todos), mas seguem acessíveis via
+    endpoint customizado (ver custom_base_url em AssistenteTab.jsx) para
+    quem já tem conta direta com um deles.
     """
     from openai import OpenAI
     if provider == 'custom':
         base_url = config.get('custom_base_url', '').rstrip('/')
         modelo   = config.get('custom_model', '')
         return OpenAI(api_key=api_key or 'local', base_url=base_url), modelo
+    if provider == 'openrouter':
+        modelo = config.get('openrouter_model', _MODELO_OPENROUTER)
+        return OpenAI(api_key=api_key, base_url='https://openrouter.ai/api/v1'), modelo
     modelo = config.get('groq_model', 'llama-3.1-8b-instant')
     return OpenAI(api_key=api_key, base_url='https://api.groq.com/openai/v1'), modelo
 
@@ -93,7 +105,7 @@ def _get_llm_client(provider: str, api_key: str, config: dict, principal: bool =
         modelo = next((m for m in _GEMINI_CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
         return _genai, modelo
 
-    if provider in ('groq', 'custom'):
+    if provider in ('groq', 'openrouter', 'custom'):
         return _client_openai_compat(provider, api_key, config)
 
     raise ValueError(f"Provedor desconhecido: {provider}")

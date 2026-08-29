@@ -256,10 +256,11 @@ export default function AssistenteTab({
                             className="space-y-3">
                             <div className="grid grid-cols-2 gap-2">
                               {[
-                                { id: 'gemini',    label: t('assistente.provider_gemini')    },
-                                { id: 'openai',    label: t('assistente.provider_openai')    },
-                                { id: 'anthropic', label: t('assistente.provider_anthropic') },
-                                { id: 'groq',      label: t('assistente.provider_groq')      },
+                                { id: 'gemini',     label: t('assistente.provider_gemini')     },
+                                { id: 'openai',     label: t('assistente.provider_openai')     },
+                                { id: 'anthropic',  label: t('assistente.provider_anthropic')  },
+                                { id: 'groq',       label: t('assistente.provider_groq')       },
+                                { id: 'openrouter', label: t('assistente.provider_openrouter') },
                               ].map(({ id, label }) => (
                                 <button key={id} onClick={() => { setAgentProvider(id); setTestKeyResult(null); setKeyTested(false); }}
                                   className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${BTN_FOCUS}
@@ -276,6 +277,7 @@ export default function AssistenteTab({
                               {agentProvider === 'openai'    && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_openai')} <ExternalLink size={9} /></a>}
                               {agentProvider === 'anthropic' && <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_anthropic')} <ExternalLink size={9} /></a>}
                               {agentProvider === 'groq'      && <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_groq')} <ExternalLink size={9} /></a>}
+                              {agentProvider === 'openrouter' && <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="underline underline-offset-2 flex items-center gap-1">{t('assistente.get_key_openrouter')} <ExternalLink size={9} /></a>}
                             </div>
                             <div className={`flex items-start gap-2 rounded-xl p-2.5 text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/8 border border-amber-500/20 text-amber-300/70' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
                               <Info size={11} className="shrink-0 mt-0.5" />
@@ -350,9 +352,12 @@ export default function AssistenteTab({
                       </AnimatePresence>
 
                       {/* Endpoint customizado — servidor OpenAI-compatible self-hosted
-                          (ex: 9router). Posicionado como opção grátis/local (como o
-                          Ollama), não como mais um provider de chave paga — mas
-                          tecnicamente reaproveita o mesmo protocolo OpenAI do Groq. */}
+                          (ex: 9router) ou de terceiros sem card dedicado (Kimi/Moonshot,
+                          xAI/Grok, Together AI — todos falam o mesmo protocolo). Posicionado
+                          como opção grátis/local (como o Ollama), não como mais um provider
+                          de chave paga — mas tecnicamente reaproveita o mesmo protocolo
+                          OpenAI do Groq/OpenRouter. OpenRouter tem card dedicado (grid acima)
+                          por ser agregador — cobre esses provedores com uma chave só. */}
                       <div className={`flex items-center justify-between py-3 border-t ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
                         <div>
                           <p className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>{t('assistente.custom_toggle_title')}</p>
@@ -393,6 +398,7 @@ export default function AssistenteTab({
                               ${darkMode ? 'bg-white/5 border-white/20' : 'bg-white border-slate-300'}`}>
                               <input type="text"
                                 placeholder="http://localhost:20128/v1"
+                                title="Kimi: api.moonshot.ai/v1 · xAI: api.x.ai/v1 · Together AI: api.together.xyz/v1"
                                 value={customBaseUrl}
                                 onChange={e => { setCustomBaseUrl(e.target.value); setTestKeyResult(null); setKeyTested(false); }}
                                 className={`flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />

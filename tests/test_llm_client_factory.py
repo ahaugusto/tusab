@@ -49,6 +49,17 @@ def test_get_llm_client_custom_usa_base_url_e_modelo_do_config():
     assert str(client.base_url).startswith('http://localhost:20128')
 
 
+def test_get_llm_client_openrouter_delega_para_client_openai_compat():
+    client, modelo = chat_mod._get_llm_client('openrouter', 'sk-or-fake', {})
+    assert modelo == 'meta-llama/llama-3.3-70b-instruct:free'
+    assert str(client.base_url).startswith('https://openrouter.ai/api/v1')
+
+
+def test_get_llm_client_openrouter_usa_modelo_customizado_do_config():
+    client, modelo = chat_mod._get_llm_client('openrouter', 'sk-or-fake', {'openrouter_model': 'anthropic/claude-3.5-sonnet'})
+    assert modelo == 'anthropic/claude-3.5-sonnet'
+
+
 def test_get_llm_client_gemini_resolve_modelo_da_lista_de_candidatos():
     # patch.object sobre o módulo já importado — não patch('google.generativeai.x') por
     # string: pkgutil.resolve_name (usado pelo unittest.mock pra resolver strings) exige
