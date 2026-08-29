@@ -442,20 +442,10 @@ def agent_study(req: StudyRequest):
     if not canal_prefixo:
         return {"error": True, "message": "Projeto não especificado."}
 
-    from tusab_engine.agent.index import _index_path
-    idx_path = _index_path(canal_prefixo)
-    if not os.path.exists(idx_path):
-        return {"error": True, "message": f"Índice não encontrado para '{req.projeto_nome}'. Indexe a base primeiro."}
-
-    try:
-        with open(idx_path, 'r', encoding='utf-8') as f:
-            idx_data = json.load(f)
-    except Exception as e:
-        return {"error": True, "message": f"Erro ao carregar índice: {e}"}
-
-    chunks = idx_data.get("chunks", [])
+    from tusab_engine.agent import lance_store
+    chunks = lance_store.carregar_chunks(canal_prefixo)
     if not chunks:
-        return {"error": True, "message": "Índice vazio. Adicione conteúdo e indexe novamente."}
+        return {"error": True, "message": f"Índice não encontrado para '{req.projeto_nome}'. Indexe a base primeiro."}
 
     # Restringe o universo a itens específicos escolhidos pelo usuário (ex.:
     # 2 vídeos e 1 documento, não o projeto inteiro) — o tema (se também
@@ -605,20 +595,14 @@ def agent_study_itens(projeto_nome: str):
     if not canal_prefixo:
         return {"error": True, "message": "Projeto não especificado."}
 
-    from tusab_engine.agent.index import _index_path
+    from tusab_engine.agent import lance_store
 
-    idx_path = _index_path(canal_prefixo)
-    if not os.path.exists(idx_path):
+    chunks = lance_store.carregar_chunks(canal_prefixo)
+    if not chunks:
         return {"error": True, "message": f"Índice não encontrado para '{projeto_nome}'. Indexe a base primeiro."}
 
-    try:
-        with open(idx_path, "r", encoding="utf-8") as f:
-            idx_data = json.load(f)
-    except Exception as e:
-        return {"error": True, "message": f"Erro ao carregar índice: {e}"}
-
     agregados = {}
-    for c in idx_data.get("chunks", []):
+    for c in chunks:
         arquivo = c.get("arquivo") or ""
         if not arquivo:
             continue
