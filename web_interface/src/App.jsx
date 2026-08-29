@@ -132,7 +132,7 @@ function ChatFloatButton({ darkMode, indexed, configured, msgCount, onClick, tit
             ${darkMode ? 'border-[#0C1122]' : 'border-white'}`} />
       )}
       {msgCount > 0 && (
-        <span className={`absolute top-0 left-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[9px] font-bold text-white border-2
+        <span className={`absolute top-0 left-0 w-5 h-5 rounded-full bg-primary-button flex items-center justify-center text-[9px] font-bold text-white border-2
           ${darkMode ? 'border-[#0C1122]' : 'border-white'}`}>
           {msgCount}
         </span>
@@ -1355,7 +1355,7 @@ function App() {
       {/* Landing screen — shown only on first-ever visit (not yet onboarded) */}
       <AnimatePresence>
         {showLanding && (
-          <motion.div key="landing-screen" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
+          <motion.div key="landing-screen" id="landing-root" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
             className="fixed inset-0 z-[9999]">
             <LandingScreen darkMode={darkMode} appUpdateInfo={appUpdateInfo} onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('tusab_theme', next ? 'dark' : 'light'); }} onEnter={() => {
               // Fluxo: landing → onboarding → consent → home
@@ -1373,7 +1373,7 @@ function App() {
 
       {/* WCAG 2.4.1 — Skip navigation link */}
       <a href="#main-content"
-        className={`sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-xs focus:font-bold focus:bg-primary focus:text-white ${BTN_FOCUS}`}>
+        className={`sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-xs focus:font-bold focus:bg-primary-button focus:text-white ${BTN_FOCUS}`}>
         {t('common.skip_to_content')}
       </a>
 
@@ -1855,7 +1855,7 @@ function App() {
         </AnimatePresence>
 
         {/* ── Main ── */}
-        <main id="main-content" aria-label={t('nav.main_area')} className="flex-1 flex flex-col overflow-hidden relative min-w-0">
+        <main id="main-content" aria-label={t('nav.main_area')} inert={showLanding || undefined} className="flex-1 flex flex-col overflow-hidden relative min-w-0">
 
           {/* Home screen */}
           {showHome && (

@@ -4,12 +4,22 @@
 
 /* Paleta Tusab — primary por modo
    Light: #1558B0 (azul-lapis)  — contraste 5.2:1 sobre branco   ✓ WCAG AA
-   Dark:  #4B9FE8 (azul-céu)    — contraste 5.0:1 sobre #080C18  ✓ WCAG AA */
+   Dark:  #4B9FE8 (azul-céu)    — contraste 5.0:1 sobre #080C18  ✓ WCAG AA
+
+   --color-primary é calibrado como TEXTO/ícone sobre fundo escuro — não serve
+   como fundo de botão com texto branco em cima (#4B9FE8 vs branco = 2.83:1,
+   achado real via pa11y em 14/ago/2026). --color-primary-button existe só
+   pra esse segundo uso: fundo sólido com texto claro por cima. No light mode
+   os dois tokens são o mesmo tom (nunca houve o problema ali). No dark, usa
+   o azul do light mode — já validado como legível em fundo claro OU escuro
+   por trás de texto branco, sem precisar de um terceiro tom novo. */
 :root {
   --color-primary: #1558B0;
+  --color-primary-button: #1558B0;
 }
 .dark {
   --color-primary: #4B9FE8;
+  --color-primary-button: #1558B0;
 }
 
 @layer base {

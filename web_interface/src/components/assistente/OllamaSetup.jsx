@@ -384,7 +384,7 @@ function OllamaSetup({
                             ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
                             : darkMode
                               ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30'
-                              : 'bg-primary text-white border border-primary shadow-sm hover:bg-primary/90'}`}>
+                              : 'bg-primary-button text-white border border-primary-button shadow-sm hover:bg-primary-button/90'}`}>
                         {isAtivo ? t('ollama.badge_active_full') : t('ollama.use_btn')}
                       </button>
                       <button

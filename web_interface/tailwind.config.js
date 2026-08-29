@@ -13,6 +13,7 @@ export default {
         card: "#111827",
         border: "#1E2A40",
         primary: "var(--color-primary)",
+        "primary-button": "var(--color-primary-button)",
         secondary: "#10B981",
         accent: "#06B6D4",
         warning: "#F59E0B",

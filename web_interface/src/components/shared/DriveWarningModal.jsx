@@ -113,7 +113,7 @@ function DriveWarningModal({ open, darkMode, onConfirm, onCancel }) {
               </button>
               <button
                 onClick={onConfirm}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors">
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary-button text-white hover:bg-primary-button/90 transition-colors">
                 {t('drive_warning.confirm')} <ArrowRight size={12} />
               </button>
             </div>

@@ -1661,7 +1661,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                   } catch { /* ignore */ }
                   setCriandoProj(false);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-40 bg-primary text-white hover:bg-primary/85 ${btnFocus}`}>
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-40 bg-primary-button text-white hover:bg-primary-button/85 ${btnFocus}`}>
                 {criandoProj ? t('repo.creating') : t('repo.create_project_btn')}
               </button>
             </div>

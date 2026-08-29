@@ -74,7 +74,7 @@ export default function UpdateSuccessModal({ version, darkMode, onClose }) {
           </a>
           <button
             onClick={onClose}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-white hover:bg-primary/90 transition-colors ${BTN_FOCUS}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold bg-primary-button text-white hover:bg-primary-button/90 transition-colors ${BTN_FOCUS}`}>
             {t('update_success.confirm', 'Continuar')}
           </button>
         </div>

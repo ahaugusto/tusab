@@ -83,7 +83,7 @@ function PersonaCustomModal({ open, darkMode, valorInicial, onSave, onClose }) {
               <button
                 onClick={handleSalvar}
                 disabled={!podeSalvar}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-primary-button text-white hover:bg-primary-button/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 {t('persona.custom_save')}
               </button>
             </div>

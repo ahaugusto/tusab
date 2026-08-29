@@ -70,7 +70,7 @@ function LanguageNoticeModal({ open, darkMode, onClose }) {
 
             <button
               onClick={handleCiente}
-              className="w-full py-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors">
+              className="w-full py-2.5 rounded-xl text-xs font-bold bg-primary-button text-white hover:bg-primary-button/90 transition-colors">
               {t('language_notice.ciente')}
             </button>
 
