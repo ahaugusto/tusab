@@ -107,10 +107,13 @@ border-b border-zinc-700
 
 ## Roadmap visual — o que preparar conforme features chegam
 
-| Feature | Desafio visual |
-|---------|---------------|
-| P0-c: corpus_profile.json | Card "Perfil do corpus" — como exibir `score_minimo`, `chunk_size`, `tipo` para não-técnicos sem parecer debugging |
-| P0-d: Quiz SM-2 | Três botões flip (Difícil/OK/Fácil) — cores claras e distintas sem serem alarmistas; badge "X cards hoje" motivacional |
-| P0-e: Mapa de conceitos | Primeiro grafo no app — zoom/pan via scroll/drag; nós com `text-xs` e elipses para nomes longos; aresta com label |
-| P1-b: Citações navegáveis | Painel lateral que abre sobre o chat — `w-80` fixo no layout ou drawer sobreposto? Estado de abertura deve persistir ao navegar entre fontes |
-| P4: Landing page | Above the fold em 1280px: logo + tagline + CTA download + demo GIF; paleta violet/blue consistente com o app |
+**Atualizado em 28/ago/2026** — itens ✅ já foram entregues; auditar o resultado real antes de propor desenho novo.
+
+| Feature | Status | Desafio visual |
+|---------|--------|---------------|
+| P0-c: corpus_profile.json (calibragem dinâmica) | ✅ Entregue | Card "Perfil do corpus" — auditar contra a implementação real antes de propor mudança |
+| P0-d: Quiz SM-2 | ✅ Entregue (v1.0.42) | Três botões flip (Difícil/OK/Fácil) + badge "X cards hoje" — auditar visual real antes de propor mudança |
+| P0-e: Mapa de conceitos | ❌ Removido (v1.0.43) | Não desenhar — feature não existe mais no produto |
+| P1-b: Citações navegáveis | ✅ Entregue desde v1.0.10 | Painel lateral já existe — auditar visual real antes de propor mudança |
+| P4: Landing page | Verificar estado atual antes de assumir pendente | Auditoria de contraste WCAG já feita via pa11y-ci (CI); above the fold em 1280px ainda cabe avaliação de UI se landing pública (tusab.solutions) for construída |
+| — LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real | Sem impacto visual direto — troca de storage por trás do RAG |

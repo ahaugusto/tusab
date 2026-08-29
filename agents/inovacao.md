@@ -54,17 +54,18 @@ data/indexes/{prefixo}.pkl ← índices BM25 serializados
 
 ## Roadmap de inovação técnica
 
-### Próximas apostas confirmadas
-1. **LanceDB (Sprint 5 — PLANEJADO, ~5 dias)**: indexação incremental + armazenamento columnar Arrow; substitui `rank_bm25` + ChromaDB; schema Arrow já definido; elimina reload completo do índice a cada arquivo novo
-2. **Embeddings Ollama (nomic-embed-text) + LanceDB (Sprint 6)**: vetor na mesma tabela dos chunks; habilita busca semântica densa sem dependência de API externa
-3. **Mapa de cobertura pré-extração**: análise rápida de títulos/descrições antes de baixar transcrições; reduz extração desnecessária
-4. **Extração multimodal (Sprint 7+)**: Whisper.cpp (áudio de vídeos sem transcrição) + LLaVA (contexto visual); chunks com timestamp visual + temporal
-5. **Export/import .tusab (Pro)**: fluxo professor→aluno; comprime base indexada em arquivo portátil
+**Atualizado em 28/ago/2026** — Embeddings Ollama já saíram (v1.0.49, sem depender de LanceDB — usa `.npy` local); Calibragem dinâmica e Quiz SM-2 já saíram; Mapa de conceitos foi implementado e removido. Ver `agents/backend.md` pro roadmap técnico corrigido por completo.
 
-### Apostas a investigar (sem decisão ainda)
-- **Calibragem dinâmica do perfil Especialista** (corpus_profile.json): calibra threshold BM25, tamanho de chunk e número de resultados com base nas características do corpus (densidade, variância)
-- **Quiz SM-2**: spaced repetition baseada nos flashcards do Modo Estudo
-- **Mapa de conceitos**: grafo de entidades extraídas dos chunks — requer densidade relacional que o LanceDB + embeddings habilitarão
+### Próximas apostas confirmadas
+1. **LanceDB (Sprint 5 — PLANEJADO, ~5 dias)**: indexação incremental + armazenamento columnar Arrow; substitui `rank_bm25` + pickle; schema Arrow já definido; elimina reload completo do índice a cada arquivo novo. Benchmark real (jul/2026) já confirma ~12x mais rápido em append incremental; pelo menos um projeto de usuário real já ultrapassou o limite confortável do `rank_bm25` puro (<5k docs) — é a aposta de maior urgência real hoje
+2. **Mapa de cobertura pré-extração**: análise rápida de títulos/descrições antes de baixar transcrições; reduz extração desnecessária
+3. **Extração multimodal (Sprint 7+)**: Whisper.cpp (áudio de vídeos sem transcrição) + LLaVA (contexto visual); chunks com timestamp visual + temporal
+4. **Export/import .tusab (Pro)**: fluxo professor→aluno; comprime base indexada em arquivo portátil
+
+### Descartadas/entregues (não reabrir sem revisar o motivo)
+- **Calibragem dinâmica do perfil Especialista** — ✅ entregue (`tusab_engine/agent/calibration.py`); `score_minimo` foi deliberadamente excluído do escopo (invariante documentado no próprio arquivo)
+- **Quiz SM-2** — ✅ entregue (v1.0.42)
+- **Mapa de conceitos** — ❌ implementado e removido (v1.0.43): timeout de geração de Quiz + bug real de PDF (perda de espaçamento em texto com notação matemática). Densidade relacional do corpus também segue como questão aberta — fontes recentes (Crossref/EuropePMC) já carregam DOI, mas o Tusab não faz parsing de citação entre documentos; experimento Graphify (30/jul/2026) nunca teve resultado registrado
 
 ## Landscape competitivo e janela estratégica
 - **NotebookLM**: principal ameaça. RAG superior (Gemini 1.5 Pro), citações. Fraco: vídeos individuais, sem privacidade, sem MCP. **Janela: 12–18 meses** para adicionar extração de canal completo.
@@ -73,16 +74,16 @@ data/indexes/{prefixo}.pkl ← índices BM25 serializados
 
 ## Roadmap de inovação — sequência planejada e o que está no horizonte
 
-### Sequência confirmada (não alterar a ordem sem boa razão)
+### Sequência real — atualizado 28/ago/2026 (a maioria já saiu, verificar CHANGELOG.md antes de propor algo daqui como novo)
 ```
-P0-c: corpus_profile.json (calibragem dinâmica)   ← 2 dias, sem dependência
-P0-d: Quiz SM-2 (spaced repetition)               ← 3-4 dias, pure Python
-P0-e: Mapa de conceitos + índice de tópicos       ← 5+2+1 dias
-P1:   RAG híbrido (BM25 + nomic-embed-text)       ← depende de Ollama disponível
-P1-b: Citações navegáveis                          ← chunk_id já está no backend
-P2:   Scheduler de auto-update                     ← APScheduler + infra de notif já pronta
-P5:   LanceDB                                      ← substitui rank_bm25 + pkl (~5 dias)
-P6:   Embeddings na mesma tabela LanceDB           ← depende do P5
+P0-c: corpus_profile.json (calibragem dinâmica)   ← ✅ entregue
+P0-d: Quiz SM-2 (spaced repetition)               ← ✅ entregue (v1.0.42)
+P0-e: Mapa de conceitos + índice de tópicos       ← ❌ implementado e removido (v1.0.43)
+P1:   RAG híbrido (BM25 + nomic-embed-text)       ← ✅ entregue (v1.0.49), sem depender de LanceDB
+P1-b: Citações navegáveis                          ← ✅ entregue desde v1.0.10
+P2:   Scheduler de auto-update                     ← ✅ entregue desde v1.0.10
+P5:   LanceDB                                      ← 🔵 PRÓXIMA PRIORIDADE REAL — substitui rank_bm25 + pkl (~5 dias)
+P6:   Embeddings na mesma tabela LanceDB           ← depende do P5 (embeddings hoje já existem via .npy separado, ver P1)
 ```
 
 ### O que o mercado está movendo e como antecipar
@@ -92,15 +93,15 @@ P6:   Embeddings na mesma tabela LanceDB           ← depende do P5
 - Quantizações Q4_K_M vs Q8_0: o Tusab deve sugerir o modelo certo por caso de uso (velocidade vs. qualidade) — OllamaSetup pode exibir "recomendado para seu hardware"
 
 **Modelos de embedding locais:**
-- `nomic-embed-text` (768 dim, 500M params, CPU) — já planejado para P1/P6
-- `mxbai-embed-large` (1024 dim, qualidade superior) — alternativa quando RAM disponível
+- `nomic-embed-text` (768 dim, 500M params, CPU) — ✅ entregue (v1.0.49), armazenado em `.npy` próprio, não depende de LanceDB
+- `mxbai-embed-large` (1024 dim, qualidade superior) — alternativa quando RAM disponível, não avaliada ainda
 - Arquitetura: detectar qual modelo de embedding está disponível via `GET /api/tags` do Ollama; usar o melhor disponível com fallback gracioso
 
-**LanceDB como substituto do pickle BM25:**
+**LanceDB como substituto do pickle BM25 (P5, próxima prioridade real):**
 - Armazenamento Arrow columnar — mmap, sem carregar o índice inteiro na RAM
 - Indexação incremental: adicionar 1 documento não reconstrói o índice inteiro
-- Busca vetorial nativa na mesma tabela — elimina ChromaDB como dependência separada
-- ETA: ~5 dias de refatoração; migração dos `.pkl` existentes deve ser idempotente
+- Busca vetorial nativa na mesma tabela — permitiria unificar os embeddings (hoje em `.npy` separado) na mesma tabela dos chunks
+- ETA: ~5 dias de refatoração; migração dos `.pkl` existentes deve ser idempotente; benchmark real já confirma ~12x mais rápido em append incremental
 
 **MCP como superfície de extensão:**
 - O protocolo está amadurecendo rapidamente (Anthropic + OpenAI + Microsoft adotando)
@@ -115,12 +116,11 @@ P6:   Embeddings na mesma tabela LanceDB           ← depende do P5
 **Grafo de conhecimento (Graph RAG):**
 - Microsoft GraphRAG mostrou ganhos em raciocínio multi-hop vs. RAG flat
 - Para o Tusab: relevante quando corpus tem alta densidade relacional (ex: base com muitas reuniões onde os mesmos nomes e projetos se repetem)
-- **Não agora**: corpus atual (YouTube + PDFs avulsos) tem baixa densidade relacional; esperar LanceDB + embeddings para ter a base necessária
+- **Ainda não** — mas a premissa original ("corpus atual tem baixa densidade relacional") está parcialmente desatualizada: fontes públicas recentes (`crossref.py`, `europepmc.py`) já carregam DOI/citação por item, mas o Tusab não faz parsing de relação entre documentos. Um experimento real (Graphify, 30/jul/2026) testou isso contra um projeto real e nunca teve resultado registrado — fechar esse experimento antes de reabrir a discussão, não depende de LanceDB/embeddings terminarem primeiro
 
 ## O que avaliar em toda proposta de inovação
 1. **Viabilidade imediata**: funciona com Python + Electron + CPU-only? Dependência nova é aceitável no bundle?
 2. **Alinhamento local-first**: os dados do usuário saem da máquina? Se sim, deve ser opt-in explícito com provider externo
 3. **Impacto antes da janela**: contribui para criar barreira defensável nos próximos 12–18 meses?
-4. **Já foi descartado?**: verificar tabela de descartados acima antes de propor
-5. **Sequência correta**: LanceDB (S5) habilita embeddings (S6); embeddings habilitam mapa de conceitos e quiz semântico — propor na ordem certa
-6. **Esforço estimado**: dias de desenvolvimento com 1 engenheiro full-stack
+4. **Já foi descartado ou já foi entregue?**: verificar `CHANGELOG.md` e a tabela de descartados acima antes de propor — vários itens deste arquivo já saíram ou foram testados e revertidos
+5. **Esforço estimado**: dias de desenvolvimento com 1 engenheiro full-stack

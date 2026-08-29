@@ -110,15 +110,18 @@ electron/
 
 ## Roadmap de segurança — o que monitorar conforme o produto cresce
 
-| Feature futura | Implicação de segurança |
-|---------------|------------------------|
-| P0-c: corpus_profile.json | Novo arquivo em `management/`; escrita atômica obrigatória; não expor via API sem autenticação |
-| P1: RAG híbrido (embedding) | Modelo de embedding roda local — sem dado enviado à rede. Verificar que `nomic-embed-text` não faz telemetria |
-| P2: Scheduler | APScheduler executa código periodicamente sem ação do usuário — verificar que não pode ser injetado via `agent_config.json` malicioso |
-| P3: OAuth Google Drive público | Revisão de segurança pelo Google; `credentials.json` nunca no bundle; `token.json` com permissão mínima (`drive.file`) |
-| P4: Landing page | Se landing coleta email, LGPD/GDPR entra em cena — fora do escopo do app, mas coordenar política de privacidade |
-| P5: LanceDB | Novo formato de arquivo em disco; verificar que path de abertura do banco não é controlável pelo usuário sem sanitização |
-| MCP tools adicionais | Cada nova tool é uma superfície de ataque — `add_document` deve validar tamanho, tipo e sanitizar path |
+**Atualizado em 28/ago/2026** — itens ✅ já foram entregues; auditoria vira verificação de regressão, não revisão de design.
+
+| Feature | Status | Implicação de segurança |
+|---------|--------|------------------------|
+| P0-c: corpus_profile.json (calibragem dinâmica) | ✅ Entregue | Arquivo em `management/`; escrita atômica confirmada; feedback negativo (👎, v1.0.54) só amplia `n_candidatos_bm25` — nunca reduz corte, verificar que esse invariante persiste em mudanças futuras |
+| P1: RAG híbrido (embeddings Ollama) | ✅ Entregue (v1.0.49), via `.npy` próprio | Modelo de embedding roda local — sem dado enviado à rede. Verificar que `nomic-embed-text` não faz telemetria |
+| P2: Scheduler | ✅ Entregue desde v1.0.10 | APScheduler executa código periodicamente sem ação do usuário — verificar que não pode ser injetado via `agent_config.json` malicioso |
+| P3: OAuth Google Drive público | Verificar estado atual antes de assumir pendente | Revisão de segurança pelo Google; `credentials.json` nunca no bundle; `token.json` com permissão mínima (`drive.file`) |
+| P4: Landing page | Verificar estado atual antes de assumir pendente | Se landing coleta email, LGPD/GDPR entra em cena — fora do escopo do app, mas coordenar política de privacidade |
+| P5 (Pro): Sistema de licença | Verificar estado atual antes de assumir pendente | — |
+| — LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real | Novo formato de arquivo em disco; verificar que path de abertura do banco não é controlável pelo usuário sem sanitização |
+| MCP tools adicionais | Ainda não implementadas | Cada nova tool é uma superfície de ataque — `add_document` deve validar tamanho, tipo e sanitizar path |
 
 **Tendências de segurança que o Tusab deve antecipar:**
 - **Prompt injection via corpus**: usuário mal-intencionado pode fazer upload de arquivo contendo instruções para o LLM ("Ignore as instruções anteriores e..."). Mitigação: separar claramente o corpus do sistema prompt; não injetar conteúdo do usuário sem delimitação explícita no prompt.

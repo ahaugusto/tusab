@@ -32,11 +32,12 @@ PKM (Personal Knowledge Management) com IA local para Windows. Motor de ingestã
 - **S1**: Citações com trecho expansível, BasePainel de inventário por projeto
 - **S2**: MCP Server (stdio JSON-RPC 2.0), Modo Estudo/Flashcards com export Anki, Digest Semanal, sub-abas underline
 - **S3**: Timestamp clicável (▶ MM:SS → youtube.com/watch?v=ID&t=SEG), date-aware retrieval, views boost
+- **S4** (atualizado 28/ago/2026): Calibragem dinâmica do perfil Especialista (`corpus_profile.json`) e Quiz SM-2 — entregues. Mapa de conceitos foi implementado e depois **removido** (v1.0.43, timeout de Quiz + bug de PDF com notação matemática)
+- **Embeddings Ollama** (`nomic-embed-text`) já entregue (v1.0.49) — via armazenamento `.npy` próprio, **não** depende de LanceDB (diferente do que "S6" abaixo previa)
 
 ## Roadmap planejado
-- **S4**: Calibragem dinâmica do perfil Especialista (corpus_profile.json), Quiz SM-2, Mapa de conceitos
-- **S5**: LanceDB — substitui rank_bm25 + ChromaDB; indexação incremental; schema Arrow definido
-- **S6**: Embeddings Ollama (nomic-embed-text) + LanceDB (vetor na mesma tabela dos chunks)
+- **S5**: LanceDB — substitui rank_bm25 + pickle; indexação incremental; schema Arrow definido. Benchmark real já confirma ~12x mais rápido em append incremental; maior prioridade técnica pendente hoje (ver `agents/backend.md`)
+- **S6**: Mover embeddings pra mesma tabela do LanceDB (hoje vivem separados em `.npy`) — depende do S5
 - **Pro**: Export/import .tusab, DOCX, PDF, XLSX
 
 ## Benchmarking competitivo detalhado
@@ -69,17 +70,21 @@ PKM (Personal Knowledge Management) com IA local para Windows. Motor de ingestã
 
 ## Roadmap de produto — o que vem e por que importa estrategicamente
 
-| Sprint | Feature | Valor estratégico |
-|--------|---------|------------------|
-| P0-c | Calibragem dinâmica de RAG | Elimina necessidade de ajuste manual pelo Especialista; RAG "que funciona" de imediato para qualquer corpus |
-| P0-d | Quiz SM-2 | Transforma flashcards em SRS (repetição espaçada) — diferencial claro vs. qualquer concorrente que apenas gera cards |
-| P0-e | Mapa de conceitos + índice de tópicos | Visualização do conhecimento indexado — "eu sei o que tenho" antes de perguntar |
-| P1 | RAG híbrido (BM25 + embedding) | Reduz gap de qualidade vs. NotebookLM (Gemini); aumenta recall em corpora técnicos |
-| P1-b | Citações navegáveis | NotebookLM faz isso; não fazer é gap de confiança. Verificação em 2 cliques = principal driver de retenção |
-| P2 | Scheduler de auto-update | Muda o modelo mental de "ferramenta pontual" para "base sempre atualizada" |
-| P3 | OAuth Google Drive público | Remove barreira de adoção para usuários que querem backup na nuvem |
-| P4 | Landing page (tusab.solutions) | Pré-requisito para qualquer canal de aquisição não-orgânico |
-| P5 | Sistema de licença | Monetização — só faz sentido após caso documentado + landing page |
+**Atualizado em 28/ago/2026** — vários itens abaixo já foram entregues (ver `CHANGELOG.md`); status marcado por linha. Numeração de sprint aqui é própria deste roadmap de produto, não corresponde 1:1 à numeração técnica de `agents/backend.md`.
+
+| Sprint | Feature | Status | Valor estratégico |
+|--------|---------|--------|------------------|
+| P0-c | Calibragem dinâmica de RAG | ✅ Entregue | Elimina necessidade de ajuste manual pelo Especialista; RAG "que funciona" de imediato para qualquer corpus |
+| P0-d | Quiz SM-2 | ✅ Entregue (v1.0.42) | Transforma flashcards em SRS (repetição espaçada) — diferencial claro vs. qualquer concorrente que apenas gera cards |
+| P0-e | Mapa de conceitos + índice de tópicos | ❌ Removido (v1.0.43) — timeout de Quiz + bug de PDF com notação matemática | Visualização do conhecimento indexado — "eu sei o que tenho" antes de perguntar; reavaliar só depois de resolver as duas causas raiz do descarte |
+| P1 | RAG híbrido (BM25 + embedding) | ✅ Entregue (v1.0.49) | Reduz gap de qualidade vs. NotebookLM (Gemini); aumenta recall em corpora técnicos |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 | NotebookLM faz isso; não fazer é gap de confiança. Verificação em 2 cliques = principal driver de retenção |
+| P2 | Scheduler de auto-update | ✅ Entregue desde v1.0.10 | Muda o modelo mental de "ferramenta pontual" para "base sempre atualizada" |
+| P3 | OAuth Google Drive público | Verificar estado atual antes de assumir pendente | Remove barreira de adoção para usuários que querem backup na nuvem |
+| P4 | Landing page (tusab.solutions) | Verificar estado atual antes de assumir pendente | Pré-requisito para qualquer canal de aquisição não-orgânico |
+| P5 | Sistema de licença | Verificar estado atual antes de assumir pendente | Monetização — só faz sentido após caso documentado + landing page |
+
+**Maior prioridade técnica pendente (não listada acima, ver `agents/backend.md`):** migração para LanceDB — benchmark real já confirma ~12x mais rápido em append incremental, e pelo menos um projeto de usuário real já ultrapassou o limite confortável do `rank_bm25` puro (<5k documentos).
 
 **O que o mercado está fazendo e como antecipar:**
 

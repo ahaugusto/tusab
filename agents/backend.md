@@ -104,19 +104,21 @@ data/config/     ← agent_config.json, credentials.json, token.json
 
 ## Roadmap técnico — o que vem pela frente
 
-| Sprint | Feature | Impacto técnico |
-|--------|---------|----------------|
-| P0-c | Calibragem dinâmica de RAG (`corpus_profile.json`) | `_calibrar_corpus(prefixo)` em `index.py`; `score_minimo`, `chunk_size`, `overlap`, `n_candidatos_bm25` calculados por corpus; lido em `_recuperar_contexto()` com fallback para constantes hardcoded |
-| P0-d | Quiz SM-2 (spaced repetition) | `srs_state.json` em `management/`; algoritmo SM-2 pure Python; endpoint `POST /agent/study/review` |
-| P0-e | Mapa de conceitos + índice de tópicos | Extração de entidades via LLM + clustering BM25; grafo `{ nodes, edges }` persistido em `management/` |
-| P1 | RAG híbrido (BM25 + embedding Ollama) | `nomic-embed-text` via Ollama; fusão de scores BM25 + vetorial; degradação graciosa se modelo ausente |
-| P1-b | Citações navegáveis | `chunk_id` + offset já retornados por `_recuperar_contexto()`; adicionar ao payload do chat |
-| P2 | Scheduler de auto-update de canais | APScheduler; agenda por canal em `agent_config.json`; enfileira extração incremental no startup |
-| P5 | LanceDB | Substitui `rank_bm25` + pkl; indexação incremental; schema Arrow; elimina reload completo do índice |
+**Atualizado em 28/ago/2026 — a tabela abaixo listava itens já entregues como pendentes.** Confira sempre `CHANGELOG.md` antes de propor reimplementar algo daqui.
+
+| Sprint | Feature | Status |
+|--------|---------|--------|
+| P0-c | Calibragem dinâmica de RAG | ✅ Entregue — `tusab_engine/agent/calibration.py::_calibrar_corpus()`. `score_minimo` deliberadamente excluído (ver invariante no topo do arquivo); único parâmetro efetivamente consumido em retrieval é `n_candidatos_bm25`, agora também ajustado por feedback negativo (v1.0.54) |
+| P0-d | Quiz SM-2 (spaced repetition) | ✅ Entregue (v1.0.42) — `router_estudo.py::_aplicar_sm2()` |
+| P0-e | Mapa de conceitos + índice de tópicos | ❌ Implementado e depois **removido** (v1.0.43) — timeout de geração de Quiz e bug real de extração de PDF (perda de espaçamento em texto com notação matemática) poluíam os resultados de "Tópicos". Não reabrir sem resolver essas duas causas raiz primeiro |
+| P1 | RAG híbrido (BM25 + embedding Ollama) | ✅ Entregue (v1.0.49) — `tusab_engine/agent/embeddings.py`, `nomic-embed-text` |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 — timestamp clicável (`&t=${ts}`) + "Ver trecho original" em `ChatDrawer.jsx` |
+| P2 | Scheduler de auto-update de canais | ✅ Entregue desde v1.0.10 — `tusab_engine/scheduler.py` |
+| **P5** | **LanceDB** (substitui `rank_bm25` + pkl) | **🔵 Próxima prioridade real, não implementada.** Benchmark real já feito (jul/2026, ver `agents/_historia.md`): ~12x mais rápido em append incremental a 10k chunks; `create_fts_index()` do plano original está deprecada, API atual é `tbl.create_index(coluna, config=FTS())`. Pelo menos um projeto de usuário real já passou de 10k chunks num único `BM25Okapi` — acima do limite confortável de <5k documentado nesta mesma seção |
+| — | GraphRAG | Descartado por baixa densidade relacional do corpus — mas a premissa está desatualizada: fontes públicas recentes (`crossref.py`, `europepmc.py`) já carregam DOI/citação, sem parsing de relação implementado ainda. Experimento aberto (Graphify, 30/jul/2026) nunca teve resultado registrado — fechar isso antes de reabrir a discussão |
 
 **Tendências que o backend deve antecipar:**
-- Modelos de embedding locais (`nomic-embed-text`, `mxbai-embed-large`) ficando menores e mais rápidos — arquitetura híbrida BM25 + vetor já prevista
-- LanceDB como padrão de facto para RAG local (Rust + Arrow, incremental, sem servidor) — substituição planejada do pkl
+- LanceDB como padrão de facto para RAG local (Rust + Arrow, incremental, sem servidor) — é a próxima migração real, ver P5 acima
 - MCP como protocolo dominante de integração entre agentes e fontes de dados — `mcp_server.py` já implementado; expandir tools (`add_document`, `get_chunk_by_id`) conforme o protocolo amadurece
 - Ollama ganhando novos modelos de embedding semanalmente — polling `GET /api/tags` já existe; backend deve listar e sugerir automaticamente
 

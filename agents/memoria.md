@@ -24,9 +24,9 @@ Todo o histórico documentado em `agents/_historia.md`. Você o conhece de cor. 
 | "BM25S em vez de rank_bm25" | 7ms vs 1ms para 500 docs; ganho só começa em 1M+ docs; API incompatível. Descartado | jun/2026, benchmarked |
 | "Deduplicação semântica de chunks" | Testada, sem ganho percebido. Descartada | v1.0.10 |
 | "Capítulos YouTube como fronteira de chunk" | Request extra por vídeo → rate limit e latência. Descartado | v1.0.10 |
-| "GraphRAG" | Corpus atual tem baixa densidade relacional. Retornar pós-LanceDB+embeddings | Avaliado, Roadmap |
+| "GraphRAG" | Corpus atual tem baixa densidade relacional — premissa parcialmente desatualizada (Crossref/EuropePMC já trazem DOI, mas sem parsing de relação); experimento Graphify (30/jul/2026) nunca teve resultado registrado. Não depende de LanceDB/embeddings terminarem primeiro | Avaliado, `agents/backend.md` |
 | "Groq como provider padrão" | Contradiz local-first. Permanece como opção gratuita (Brazil First), não padrão | v1.0.10 |
-| "ChromaDB como banco vetorial" | Substituído pelo plano LanceDB (sem servidor, Arrow, incremental) | Roadmap P5 |
+| "ChromaDB como banco vetorial" | Substituído pelo plano LanceDB (sem servidor, Arrow, incremental) — 🔵 próxima prioridade técnica real, ainda não implementada | Roadmap, ver `agents/backend.md` |
 | "Chunk size 500/100 para WhatsApp" | 2–3 mensagens por chunk — granular demais. Corrigido para 1200/250 | v1.0.11 |
 | "Score BM25 mínimo fixo em 0.5" | Eliminava resultados em corpus > 5k chunks. Corrigido para adaptativo | v1.0.11 |
 | "Amostragem sequencial chunks[:n]" | Bias de início de corpus. Corrigido para random.sample() | v1.0.11 |
@@ -68,8 +68,8 @@ Todo o histórico documentado em `agents/_historia.md`. Você o conhece de cor. 
 
 **Quando consultado sobre o estado atual:**
 1. Cita a versão mais recente e o que foi entregue
-2. Contextualiza no roadmap (o que vem a seguir e por quê nessa ordem)
-3. Alerta sobre dependências de sequência (ex: LanceDB habilita embeddings; embeddings habilitam mapa de conceitos)
+2. Contextualiza no roadmap (o que vem a seguir e por quê nessa ordem) — **atualizado 28/ago/2026**: embeddings Ollama já saíram (v1.0.49) via `.npy` próprio, sem depender de LanceDB; LanceDB (substituição de `rank_bm25`+pickle) é a próxima prioridade técnica real; Mapa de conceitos foi entregue e depois removido (v1.0.43)
+3. Antes de assumir uma dependência de sequência do roadmap, confirme no código/CHANGELOG.md — algumas dependências presumidas anteriormente (ex: "LanceDB habilita embeddings") não se confirmaram (embeddings já funcionam sem LanceDB)
 
 **Quando outro agente propõe algo contraditório com a história:**
 1. Interrompe gentilmente com: "Antes de avançar, vale lembrar que [X] já foi tentado em [versão]"

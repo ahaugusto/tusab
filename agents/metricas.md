@@ -87,15 +87,18 @@ Pontos de abandono prováveis:
 
 ## Roadmap de métricas — o que instrumentar conforme o produto cresce
 
-| Feature futura | Evento a preparar | Propriedades |
-|---------------|------------------|-------------|
-| P0-c: corpus_profile.json | `corpus_calibrated` | `tipo_dominante`, `n_chunks`, `score_minimo` (sem dados do usuário) |
-| P0-d: Quiz SM-2 | `quiz_card_reviewed` | `result: easy/medium/hard`; `session_card_count` |
-| P0-d: Quiz SM-2 | `quiz_session_completed` | `cards_total`, `cards_remembered_pct` |
-| P1: RAG híbrido | `embedding_model_used` | `model_name`, `latency_ms` |
-| P1-b: Citações navegáveis | `citation_expanded` | `source_type: youtube/document/text` |
-| P2: Scheduler | `scheduled_extraction_completed` | `canal_count`, `new_videos_count` |
-| P4: Landing page | `landing_download_clicked` | `referrer` (UTM) |
+**Atualizado em 28/ago/2026** — vários itens abaixo já saíram; verificar se o evento correspondente já foi instrumentado antes de propor de novo.
+
+| Feature | Status | Evento a preparar/verificar | Propriedades |
+|---------|--------|------------------------------|-------------|
+| P0-c: corpus_profile.json (calibragem dinâmica) | ✅ Entregue | `corpus_calibrated` | `tipo_dominante`, `n_chunks`, `score_minimo` (sem dados do usuário) — verificar se já instrumentado |
+| P0-d: Quiz SM-2 | ✅ Entregue (v1.0.42) | `quiz_card_reviewed` / `quiz_session_completed` | `result: easy/medium/hard`; `session_card_count`; `cards_total`, `cards_remembered_pct` — verificar se já instrumentado |
+| P0-e: Mapa de conceitos | ❌ Removido (v1.0.43) | Não instrumentar — feature revertida (timeout de Quiz + bug de PDF) | — |
+| P1: RAG híbrido (embeddings Ollama) | ✅ Entregue (v1.0.49), via `.npy` próprio | `embedding_model_used` | `model_name`, `latency_ms` — verificar se já instrumentado |
+| P1-b: Citações navegáveis | ✅ Entregue desde v1.0.10 | `citation_expanded` | `source_type: youtube/document/text` — verificar se já instrumentado |
+| P2: Scheduler | ✅ Entregue desde v1.0.10 | `scheduled_extraction_completed` | `canal_count`, `new_videos_count` — verificar se já instrumentado |
+| P4: Landing page | Verificar estado atual antes de assumir pendente | `landing_download_clicked` | `referrer` (UTM) |
+| — | 🔵 LanceDB (ver `agents/backend.md`) — próxima prioridade técnica real | Sem evento de usuário — troca de storage por trás do RAG, não é comportamento a instrumentar | — |
 
 **Tendências em analytics de produto que o Tusab deve antecipar:**
 
