@@ -116,14 +116,17 @@ Estado de download (`pullProgress`, `pulling`, `pullingModel`, `pullStartTime`) 
 
 ## Roadmap de frontend — o que vem pela frente
 
-| Sprint | Feature | Impacto no frontend |
-|--------|---------|-------------------|
-| P0-c | Calibragem dinâmica (corpus_profile.json) | Card "Perfil do corpus" no Repositório; botão "Recalibrar"; exibir parâmetros calibrados |
-| P0-d | Quiz SM-2 | Três botões pós-flip (Difícil/OK/Fácil); badge "X cards para revisar hoje" em EstudoTab |
-| P0-e | Mapa de conceitos | Renderização com `react-force-graph` ou D3; modal de grafo; índice de tópicos como lista |
-| P1-b | Citações navegáveis | Clique na citação → modal com trecho original; `chunk_id` no payload já planejado |
-| P2 | Scheduler de auto-update | Toggle por canal no accordion do Repositório; seletor de frequência |
-| P4 | Landing page (tusab.solutions) | Componentes de marketing separados do app principal |
+**Atualizado em 28/ago/2026** — vários itens abaixo já saíram (ver `CHANGELOG.md` e `agents/backend.md` pro roadmap técnico corrigido).
+
+| Sprint | Feature | Status | Impacto no frontend |
+|--------|---------|--------|-------------------|
+| P0-c | Calibragem dinâmica (corpus_profile.json) | ✅ Entregue | Card "Perfil do corpus" no Repositório; botão "Recalibrar"; exibir parâmetros calibrados |
+| P0-d | Quiz SM-2 | ✅ Entregue (v1.0.42) | Três botões pós-flip (Difícil/OK/Fácil); badge "X cards para revisar hoje" em EstudoTab |
+| P0-e | Mapa de conceitos | ❌ Removido (v1.0.43) | Renderização com `react-force-graph` ou D3; modal de grafo; índice de tópicos como lista — não reabrir sem resolver as causas raiz do descarte (timeout de Quiz + bug de PDF) |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 | Clique na citação → timestamp clicável / "Ver trecho original" em `ChatDrawer.jsx` |
+| P2 | Scheduler de auto-update | ✅ Entregue desde v1.0.10 | Toggle por canal, seletor de frequência |
+| P4 | Landing page (tusab.solutions) | Verificar estado atual antes de assumir pendente | Componentes de marketing separados do app principal |
+| **P5** | **LanceDB** | **🔵 Próxima prioridade técnica real** (ver `agents/backend.md`) | Sem impacto direto de UI esperado — troca de storage por trás de `_recuperar_contexto()` |
 
 **Tendências que o frontend deve antecipar:**
 - **Acessibilidade como requisito, não feature**: WCAG 2.2 (AAA em elementos interativos) é o próximo nível; modais e focus trap já corretos, mas contraste e motion preferences ainda podem melhorar

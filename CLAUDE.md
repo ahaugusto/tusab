@@ -33,6 +33,7 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/produto-b2b` | Product Manager B2B | roadmap da edição institucional, escopo mínimo vendável, priorização por contrato |
 | `/memoria` | Memória Institucional | "isso já foi tentado?", "por que X foi descartado?", "quais invariantes não podem ser violados?" |
 | `/memoria-atualizar` | Atualização da Memória | após cada release ou decisão relevante — propõe adições ao `_historia.md` para aprovação |
+| `/roadmap-sincronizar` | Sincronização de Roadmap | após feature entregue/removida/reordenada — corrige o status desatualizado nas tabelas de roadmap de `agents/*.md` (não confundir com `_historia.md`, que é memória histórica, não status corrente) |
 | `/documentacao` | Especialista em Documentação | mantém `docs-site/` (Docusaurus, site público) e `README.md` sincronizados com o código — audita, propõe atualizações, publica com aprovação |
 
 Os prompts completos ficam em [`agents/`](agents/) e são referenciados pelos comandos em [`.claude/commands/`](.claude/commands/).

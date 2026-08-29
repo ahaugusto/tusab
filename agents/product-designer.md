@@ -82,15 +82,20 @@ Você não entrega diagnóstico de UX separado de diagnóstico de UI. Você entr
 
 ## Roadmap — onde o design tem mais alavancagem
 
-| Sprint | Feature | Papel do Product Designer |
-|--------|---------|--------------------------|
-| P0-c | corpus_profile.json | Traduzir parâmetros técnicos (`score_minimo`, `chunk_size`) em linguagem de produto. Card "Perfil do corpus" — o usuário entende sem saber o que é BM25 |
-| P0-d | Quiz SM-2 | Projetar o loop de repetição espaçada: flip do card → três botões → feedback motivacional → próximo card. Definir a métrica de engajamento do Modo Estudo |
-| P0-e | Mapa de conceitos | Primeiro grafo interativo — tutorial inline obrigatório; definir interação de zoom/pan acessível; decidir densidade de nós para cada tamanho de corpus |
-| P1-b | Citações navegáveis | Projetar o painel lateral de citação — onde fica, como abre, como fecha, como persiste ao navegar entre fontes |
-| P2 | Scheduler | Toggle simples por canal + seletor de frequência + notificação discreta ao concluir. Decisão: notificação do SO ou toast in-app? |
-| P4 | Landing page | Above the fold em 1280px: proposta de valor em 3 segundos + demo GIF de 15s do timestamp clicável + botão de download. SEO como restrição de copy. |
-| P5 (Pro) | Sistema de licença | Projetar o gate de funcionalidade Pro sem arruinar a experiência de quem é gratuito. Regra: funcionalidade bloqueada deve ser visível com explicação do que desbloqueia, nunca invisível. |
+**Atualizado em 28/ago/2026** — vários itens abaixo já foram entregues; ver `CHANGELOG.md` antes de propor design para algo já lançado.
+
+| Sprint | Feature | Status | Papel do Product Designer |
+|--------|---------|--------|--------------------------|
+| P0-c | corpus_profile.json (calibragem dinâmica) | ✅ Entregue | Traduzir parâmetros técnicos (`score_minimo`, `chunk_size`) em linguagem de produto. Card "Perfil do corpus" — verificar se já existe no código antes de redesenhar |
+| P0-d | Quiz SM-2 | ✅ Entregue (v1.0.42) | Loop de repetição espaçada já implementado — auditar contra o desenho original antes de propor mudança |
+| P0-e | Mapa de conceitos | ❌ Removido (v1.0.43) — timeout de Quiz + bug de PDF com notação matemática | Não redesenhar sem resolver as duas causas raiz do descarte primeiro |
+| P1 | RAG híbrido (embeddings Ollama) | ✅ Entregue (v1.0.49), via `.npy` próprio | Sem impacto direto de UX — mudança de recall no chat, não de interface |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 | Painel de citação já existe — auditar UX real antes de propor mudança |
+| P2 | Scheduler | ✅ Entregue desde v1.0.10 | Toggle + frequência já existem — auditar antes de propor mudança |
+| P3 | OAuth Google Drive público | Verificar estado atual antes de assumir pendente | — |
+| P4 | Landing page | Verificar estado atual antes de assumir pendente | Above the fold em 1280px: proposta de valor em 3 segundos + demo GIF de 15s do timestamp clicável + botão de download. SEO como restrição de copy. |
+| P5 (Pro) | Sistema de licença | Verificar estado atual antes de assumir pendente | Projetar o gate de funcionalidade Pro sem arruinar a experiência de quem é gratuito. Regra: funcionalidade bloqueada deve ser visível com explicação do que desbloqueia, nunca invisível. |
+| — | LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real | Sem impacto direto de UX — troca de storage por trás do RAG |
 
 ## O que o Product Designer sabe que UX e UI sozinhos não sabem
 

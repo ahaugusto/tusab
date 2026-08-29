@@ -67,14 +67,18 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 
 ## Roadmap de UX — o que vem pela frente e como deve ser projetado
 
-| Sprint | Feature | Desafio de UX |
-|--------|---------|--------------|
-| P0-c | Calibragem dinâmica (corpus_profile.json) | Mostrar parâmetros técnicos sem assustar não-técnicos; card "Perfil do corpus" com linguagem simples |
-| P0-d | Quiz SM-2 | Três botões pós-flip (Difícil/OK/Fácil) — friction intencional para encoding; badge motivacional "X cards hoje" |
-| P0-e | Mapa de conceitos | Primeiro grafo interativo do app — tutorial inline obrigatório; zoom/pan acessível por teclado |
-| P1-b | Citações navegáveis | Clique na citação → painel lateral com trecho original — é o momento de maior confiança; deve ser instantâneo |
-| P2 | Scheduler de auto-update | Toggle simples por canal; frequência como seletor, não campo livre; notificação discreta ao concluir |
-| P4 | Landing page | Proposta de valor em 3 segundos; demo em vídeo de 30s; botão de download acima do fold |
+**Atualizado em 28/ago/2026** — itens ✅ já foram entregues; auditar a jornada real antes de propor redesenho.
+
+| Sprint | Feature | Status | Desafio de UX |
+|--------|---------|--------|--------------|
+| P0-c | Calibragem dinâmica (corpus_profile.json) | ✅ Entregue | Card "Perfil do corpus" — auditar jornada real; feedback negativo (👎, v1.0.54) já amplia `n_candidatos_bm25` sem exigir ação do usuário |
+| P0-d | Quiz SM-2 | ✅ Entregue (v1.0.42) | Auditar jornada real (flip, botões, badge) antes de propor mudança |
+| P0-e | Mapa de conceitos | ❌ Removido (v1.0.43) — timeout de Quiz + bug de PDF | Não projetar — feature não existe mais no produto |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 | Auditar jornada real antes de propor mudança |
+| P2 | Scheduler de auto-update | ✅ Entregue desde v1.0.10 | Auditar jornada real antes de propor mudança |
+| P3 | OAuth Google Drive público | Verificar estado atual antes de assumir pendente | — |
+| P4 | Landing page | Verificar estado atual antes de assumir pendente | Proposta de valor em 3 segundos; demo em vídeo de 30s; botão de download acima do fold |
+| — | LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real | Sem impacto direto de UX — troca de storage por trás do RAG |
 
 **Tendências de UX que o Tusab deve antecipar:**
 - **AI UX patterns em maturação**: o setor está convergindo para citação de fonte + verificação em 2 cliques (NotebookLM estabeleceu o padrão). O Tusab já tem citação; citações navegáveis (P1-b) completam o padrão.

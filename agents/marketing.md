@@ -130,15 +130,18 @@ PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcriç
 
 ## Roadmap de produto — o que comunicar conforme as features chegam
 
-| Sprint | Feature | Ângulo de comunicação |
-|--------|---------|----------------------|
-| P0-d | Quiz SM-2 | "Tusab agora tem repetição espaçada. Estude como o Anki, mas com o conteúdo que você escolheu." |
-| P0-e | Mapa de conceitos | "Veja o mapa do que você sabe — literalmente." Demo visual com grafo animado |
-| P1-b | Citações navegáveis | "Clique na fonte e vá direto ao trecho. Como o NotebookLM, mas com sua própria base." |
-| P2 | Scheduler de auto-update | "Sua base se atualiza sozinha. Você só conversa." |
-| P3 | OAuth Google Drive público | "Backup automático no Drive. Com 1 clique." |
-| P4 | Landing page | Primeiro canal de aquisição escalável — pré-requisito para Product Hunt e SEO |
-| P5 (Pro) | Sistema de licença | "Você já usa. Agora é oficial." — ativação de usuários existentes como primeiros pagantes |
+**Atualizado em 28/ago/2026** — itens ✅ já saíram e já deveriam ter sido comunicados (verificar se o post/anúncio correspondente já aconteceu antes de propor de novo).
+
+| Sprint | Feature | Status | Ângulo de comunicação |
+|--------|---------|--------|----------------------|
+| P0-d | Quiz SM-2 | ✅ Entregue (v1.0.42) | "Tusab agora tem repetição espaçada. Estude como o Anki, mas com o conteúdo que você escolheu." |
+| P0-e | Mapa de conceitos | ❌ Removido (v1.0.43) | Não comunicar — feature foi revertida por bug real (timeout de Quiz + bug de PDF) |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 | "Clique na fonte e vá direto ao trecho. Como o NotebookLM, mas com sua própria base." |
+| P2 | Scheduler de auto-update | ✅ Entregue desde v1.0.10 | "Sua base se atualiza sozinha. Você só conversa." |
+| P3 | OAuth Google Drive público | Verificar estado atual antes de assumir pendente | "Backup automático no Drive. Com 1 clique." |
+| P4 | Landing page | Verificar estado atual antes de assumir pendente | Primeiro canal de aquisição escalável — pré-requisito para Product Hunt e SEO |
+| P5 (Pro) | Sistema de licença | Verificar estado atual antes de assumir pendente | "Você já usa. Agora é oficial." — ativação de usuários existentes como primeiros pagantes |
+| — | LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real, sem impacto direto de UX | Não é feature comunicável ao usuário final — troca de storage por trás do RAG |
 
 **O que antecipar no mercado para se posicionar antes:**
 

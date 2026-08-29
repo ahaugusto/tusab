@@ -258,14 +258,20 @@ Mapeamento completo — testar cada atalho com perfil que tem a aba permitida:
 
 ## Roadmap — o que você vai testar nas próximas versões
 
-| Sprint | Feature | O que testar |
-|--------|---------|-------------|
-| P0-c | corpus_profile.json | Card "Perfil do corpus" aparece após indexação? Botão "Recalibrar" reconstrói? Parâmetros mudam para corpus denso? |
-| P0-d | Quiz SM-2 | Botões Difícil/OK/Fácil aparecem pós-flip? Badge "X cards hoje" na sub-aba? `srs_state.json` criado em `management/`? |
-| P0-e | Mapa de conceitos | Grafo renderiza? Zoom/pan funciona? Acessível por teclado? |
-| P1-b | Citações navegáveis | Clique na fonte → painel com trecho original? Funciona para YouTube, PDF e texto? |
-| P2 | Scheduler | Toggle por canal aparece? Extração roda automaticamente após `proxima_execucao` no passado? |
-| P4 | Landing page | Proposta de valor em 3 segundos? Download funciona? CTAs claros? |
+**Atualizado em 28/ago/2026** — vários itens abaixo já foram entregues (ver `CHANGELOG.md`); nesses casos, o "o que testar" vira checklist de regressão, não de feature nova.
+
+| Sprint | Feature | Status | O que testar |
+|--------|---------|--------|-------------|
+| P0-c | corpus_profile.json (calibragem dinâmica) | ✅ Entregue | Regressão: card "Perfil do corpus" aparece após indexação? Botão "Recalibrar" reconstrói? Parâmetros mudam para corpus denso? Feedback negativo (👎) amplia `n_candidatos_bm25` (v1.0.54)? |
+| P0-d | Quiz SM-2 | ✅ Entregue (v1.0.42) | Regressão: botões Difícil/OK/Fácil aparecem pós-flip? Badge "X cards hoje" na sub-aba? `srs_state.json` criado em `management/`? |
+| P0-e | Mapa de conceitos | ❌ Removido (v1.0.43) — timeout de Quiz + bug de PDF | Não testar — feature não existe mais no produto |
+| P1 | RAG híbrido (embeddings Ollama) | ✅ Entregue (v1.0.49), via `.npy` próprio | Regressão: Busca Ampla recupera chunk por sinônimo/paráfrase que BM25 puro não acharia? Degradação graciosa sem Ollama/modelo? |
+| P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 | Regressão: clique na fonte → painel com trecho original? Funciona para YouTube, PDF e texto? |
+| P2 | Scheduler | ✅ Entregue desde v1.0.10 | Regressão: toggle por canal aparece? Extração roda automaticamente após `proxima_execucao` no passado? |
+| P3 | OAuth Google Drive público | Verificar estado atual antes de assumir pendente | — |
+| P4 | Landing page | Verificar estado atual antes de assumir pendente | Proposta de valor em 3 segundos? Download funciona? CTAs claros? |
+| P5 (Pro) | Sistema de licença | Verificar estado atual antes de assumir pendente | — |
+| — | LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real | Migração idempotente de `.pkl`; busca retorna resultados equivalentes (± margem de reranking) |
 
 > **P3 concluído (jul/2026):** o consent screen do Google foi publicado — OAuth Drive funciona para qualquer conta, sem autorização manual de test users. Falhas de auth no Drive em máquinas de usuários com v1.0.30 eram o bug do preload/CORS (invariante 13 da `_historia.md`), não o OAuth.
 

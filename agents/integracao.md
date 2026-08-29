@@ -145,14 +145,16 @@ Ao final: lista ordenada por severidade de impacto.
 
 ## Roadmap de integração — novos contratos que vêm pela frente
 
-| Feature futura | Novo contrato a verificar |
-|---------------|--------------------------|
-| P0-c: corpus_profile.json | `POST /agent/index` → resposta inclui `corpus_profile`? Frontend exibe parâmetros calibrados? |
-| P0-d: Quiz SM-2 | `POST /agent/study/review` recebe `{ card_id, resultado: 'facil'|'medio'|'dificil' }`; retorna próxima revisão |
-| P1-b: Citações navegáveis | Cada fonte em `POST /agent/chat` passa a incluir `chunk_id` e `offset`; novo endpoint `GET /agent/chunk/{chunk_id}` |
-| P2: Scheduler | `POST /agent/config` passa a incluir `{ agenda: { canal, frequencia_dias, fontes, proxima_execucao } }` |
-| P5: LanceDB | Índice em `.lancedb/` em vez de `.pkl`; verificar que `prefixo` é consistente entre o novo `indexar()` e `_recuperar_contexto()` |
-| MCP tools adicionais | `add_document`, `get_chunk_by_id`, `list_recent` — verificar schema JSON-RPC de cada tool |
+**Atualizado em 28/ago/2026** — itens marcados ✅ já têm contrato real em produção, verificar contra o código atual em vez do texto abaixo.
+
+| Feature futura | Status | Novo contrato a verificar |
+|---------------|--------|--------------------------|
+| P0-c: corpus_profile.json | ✅ Entregue | `management/corpus_profile.json` por projeto, lido por `chat.py::_recuperar_contexto()` via `calibration.py::_carregar_profile()` |
+| P0-d: Quiz SM-2 | ✅ Entregue (v1.0.42) | `router_estudo.py` — verificar payload real de review antes de assumir o formato abaixo |
+| P1-b: Citações navegáveis | ✅ Entregue desde v1.0.10 | Timestamp clicável + "Ver trecho original" já implementados em `ChatDrawer.jsx` — verificar payload real de fontes no chat |
+| P2: Scheduler | ✅ Entregue desde v1.0.10 | `tusab_engine/scheduler.py` — verificar schema real de `agent_config.json` antes de assumir o formato abaixo |
+| **P5: LanceDB** | **🔵 Próxima prioridade real, não implementada** (ver `agents/backend.md`) | Índice em `.lancedb/` em vez de `.pkl`; verificar que `prefixo` é consistente entre o novo `indexar()` e `_recuperar_contexto()` |
+| MCP tools adicionais | Não confirmado — verificar `mcp_server.py` atual | `add_document`, `get_chunk_by_id`, `list_recent` — verificar schema JSON-RPC de cada tool antes de assumir que não existem |
 
 **Tendências de integração que o Tusab deve antecipar:**
 - **MCP como protocolo de integração padrão**: Claude Code, Cursor, Windsurf e outros editores estão adotando MCP. O contrato das tools do Tusab deve seguir exatamente o schema MCP (JSON-RPC 2.0, `tools/list`, `tools/call`) — qualquer desvio quebra a integração silenciosamente.

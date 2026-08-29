@@ -125,15 +125,21 @@ def test_set_channel_url_invalida_retorna_422(client):
 
 ## Roadmap de testes — o que preparar conforme o produto cresce
 
-| Feature futura | O que testar |
-|---------------|-------------|
-| P0-c: corpus_profile.json | `_calibrar_corpus(prefixo)`: corpus de 5001 chunks → `score_minimo=0.15`; corpus tipo `texts` → `chunk_size=1200`; idempotência (calibrar duas vezes = mesmo resultado) |
-| P0-d: Quiz SM-2 | `sm2(facilidade, intervalo, qualidade)`: tabela de verdade com qualidade 0–5; `srs_state.json` atualizado atomicamente após cada review |
-| P1: RAG híbrido | Degradação graciosa: sem `sentence-transformers` instalado → BM25 puro funciona; com modelo ausente → fallback sem erro |
-| P1-b: Citações navegáveis | `POST /agent/chat` retorna `chunk_id` e `offset` em cada fonte; clique na citação → `GET /agent/chunk/{chunk_id}` retorna trecho correto |
-| P2: Scheduler | `proxima_execucao` persistida em `agent_config.json`; ao subir o app com `proxima_execucao` no passado → enfileira extração |
-| P5: LanceDB | Migração de `.pkl` para LanceDB é idempotente; busca retorna mesmos resultados (± margem de reranking) que a implementação BM25Okapi atual |
-| MCP tools novas | `add_document` via MCP: documento aparece no corpus; `list_recent` retorna apenas documentos dos últimos N dias |
+**Atualizado em 28/ago/2026** — itens ✅ já entregues têm suite real (ver `tests/`); confirmar cobertura existente antes de propor teste novo do zero.
+
+| Feature | Status | O que testar |
+|---------|--------|-------------|
+| P0-c: corpus_profile.json (calibragem dinâmica) | ✅ Entregue (`tusab_engine/agent/calibration.py`) | `_calibrar_corpus(prefixo)`: corpus de 5001 chunks → `n_candidatos_bm25` ajustado; idempotência (calibrar duas vezes = mesmo resultado); feedback negativo (v1.0.54, `tests/test_calibration.py`) amplia `n_candidatos_bm25` por marco de 10 negativos, nunca reduz |
+| P0-d: Quiz SM-2 | ✅ Entregue (v1.0.42) | `sm2(facilidade, intervalo, qualidade)`: tabela de verdade com qualidade 0–5; `srs_state.json` atualizado atomicamente após cada review — confirmar cobertura existente |
+| P0-e: Mapa de conceitos | ❌ Removido (v1.0.43) | Não escrever teste novo — feature não existe mais |
+| P1: RAG híbrido (embeddings Ollama) | ✅ Entregue (v1.0.49), via `.npy` próprio | Degradação graciosa: sem Ollama/modelo disponível → BM25 puro funciona, sem `.npy` gerado; ver `tests/test_embeddings.py` |
+| P1-b: Citações navegáveis | ✅ Entregue desde v1.0.10 | Confirmar cobertura existente antes de propor teste novo |
+| P2: Scheduler | ✅ Entregue desde v1.0.10 | `proxima_execucao` persistida em `agent_config.json`; ao subir o app com `proxima_execucao` no passado → enfileira extração — confirmar cobertura existente |
+| P3: OAuth Google Drive público | Verificar estado atual antes de assumir pendente | — |
+| P4: Landing page | Verificar estado atual antes de assumir pendente | pa11y-ci já cobre acessibilidade da Landing via CI (`.github/workflows/ci.yml`) |
+| P5 (Pro): Sistema de licença | Verificar estado atual antes de assumir pendente | — |
+| — LanceDB (ver `agents/backend.md`) | 🔵 Próxima prioridade técnica real, ainda não implementada | Migração de `.pkl` para LanceDB é idempotente; busca retorna mesmos resultados (± margem de reranking) que a implementação BM25Okapi atual |
+| MCP tools novas | Ainda não implementadas | `add_document` via MCP: documento aparece no corpus; `list_recent` retorna apenas documentos dos últimos N dias |
 
 **Tendências em testes que o Tusab deve antecipar:**
 - **Property-based testing (Hypothesis)**: para parsers como `_parsear_whatsapp()` e `sanitizar_nome()`, testes baseados em propriedades geram muito mais casos de borda do que testes manuais. `pip install hypothesis` — sem dependência pesada.
