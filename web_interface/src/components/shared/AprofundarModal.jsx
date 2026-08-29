@@ -134,7 +134,7 @@ function AprofundarModal({ open, darkMode, totalPendente, canais = [], rodando, 
                   </button>
                   <button
                     onClick={onConfirm}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors">
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary-button text-white hover:bg-primary-button/90 transition-colors">
                     <Sparkles size={12} />
                     {t('aprofundar.confirm')}
                   </button>

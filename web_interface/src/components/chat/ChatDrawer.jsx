@@ -2176,7 +2176,7 @@ function ChatDrawer({
                           baseModalDismissedRef.current = true;
                           setShowBaseModal(false);
                         }}
-                        className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
+                        className="shrink-0 px-4 py-2 rounded-xl bg-primary-button text-white text-xs font-bold hover:bg-primary-button/90 transition-colors">
                         {t('chat.confirm_bases')}
                       </button>
                     </div>
@@ -2354,7 +2354,7 @@ function ChatDrawer({
                     setShowBaseModal(false);
                     trocaBaseAlvoRef.current = null;
                   }}
-                  className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors">
+                  className="w-full py-2.5 rounded-xl bg-primary-button text-white text-xs font-bold hover:bg-primary-button/90 transition-colors">
                   {t('chat.switch_base_start_new', { base: trocaBaseAlvoRef.current })}
                 </button>
               )}

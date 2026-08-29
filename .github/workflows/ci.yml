@@ -56,3 +56,19 @@ jobs:
 
       - name: Build de produção
         run: npx vite build
+
+      # pa11y-ci só consegue testar telas alcançáveis sem interação real com o
+      # backend (sem login/estado) — hoje isso é só a LandingScreen (primeira
+      # carga, sem localStorage). rootElement em .pa11yci restringe a
+      # auditoria a #landing-root porque o resto do app shell continua no DOM
+      # (inert, não desmontado) atrás dela — testar o documento inteiro
+      # reportaria falsos positivos de conteúdo que não está nem visível.
+      # A regra color-contrast do axe é ignorada de propósito: o fundo é um
+      # <canvas> animado (CircuitBackground) que o axe não consegue amostrar
+      # com certeza (sinaliza "needsFurtherReview", que pa11y-ci não sabe
+      # rebaixar a warning) — htmlcs continua validando contraste de verdade.
+      - name: Acessibilidade (pa11y-ci contra a Landing, light + dark)
+        run: |
+          npx vite preview --port 4173 --host 127.0.0.1 &
+          npx wait-on -t 30000 http://127.0.0.1:4173/
+          npx pa11y-ci

@@ -222,6 +222,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
           </svg>
           <select value={currentLang} onChange={e => onChangeLang(e.target.value)}
+            aria-label={t('common.select_language')}
             className={`text-[11px] font-bold bg-transparent border-none outline-none cursor-pointer pr-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             <option value="pt" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>PT</option>
             <option value="en" className={darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>EN</option>
@@ -238,7 +239,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
           }
         </button>
       </div>
-      <p className={`text-[11px] ${darkMode ? 'text-slate-700' : 'text-slate-400'}`}>
+      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
         {t('home.by')}
       </p>
     </div>
@@ -256,7 +257,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
           className="w-full max-w-xs lg:max-w-sm object-contain object-top"
           onError={e => { e.target.style.display = 'none'; }}
         />
-        <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+        <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
           {t('home.tagline')}
         </p>
         {footerControls}
@@ -273,7 +274,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             className="w-32 h-32 object-contain"
             onError={e => { e.target.style.display = 'none'; }}
           />
-          <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+          <p className={`mt-2 text-sm text-center max-w-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
             {t('home.tagline')}
           </p>
           {footerControls}
@@ -283,7 +284,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
 
           {/* ── Source section ── */}
           <div>
-            <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+            <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
               {isEstudante ? t('home.section_source_estudante') : t('home.section_source')}
             </p>
             <div className={`grid gap-3 ${sourceCards.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -319,7 +320,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
           {/* ── Talk section (só aparece com base indexada — chat sem contexto não tem valor) ── */}
           {indexed && (
             <div>
-              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 {t('home.section_talk')}
               </p>
               <button
@@ -341,7 +342,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
           {/* ── Study section (mesmo gate — Estudo também precisa de base indexada) ── */}
           {indexed && (
             <div>
-              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 {t('home.section_study')}
               </p>
               <button
@@ -360,7 +361,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
 
           {/* ── Utility section ── */}
           <div>
-            <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+            <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
               {t('home.section_manage')}
             </p>
             <div className="space-y-2">
@@ -373,7 +374,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                       ? darkMode ? 'bg-[#0C1122]/95 border-amber-500/40 hover:bg-[#0E1428]/95 hover:border-amber-500/60' : 'bg-white border-amber-200 hover:border-amber-300 shadow-sm'
                       : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
                   {card.alert && (
-                    <span className={`absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                    <span className={`absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${darkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-800'}`}>
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                       {t('home.card_configure')}
                     </span>
@@ -387,7 +388,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                     <span className="text-xl shrink-0">{card.icon}</span>
                     <div>
                       <p className={`text-xs font-bold ${card.alert ? darkMode ? 'text-amber-300' : 'text-amber-800' : darkMode ? 'text-white' : 'text-slate-800'}`}>{card.title}</p>
-                      <p className={`text-[10px] mt-0.5 ${card.alert ? darkMode ? 'text-amber-500/80' : 'text-amber-600' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
+                      <p className={`text-[10px] mt-0.5 ${card.alert ? darkMode ? 'text-amber-500/80' : 'text-amber-800' : darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{card.desc}</p>
                     </div>
                   </div>
                 </button>
