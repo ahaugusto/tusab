@@ -46,10 +46,17 @@ tests/
 ## Smoke tests
 
 ```powershell
-python smoke_test.py
+powershell -ExecutionPolicy Bypass -File ".claude\skills\run-tusab\smoke.ps1" -Suite full
 ```
 
 Runs against a real backend on port 8001 — covers yt-dlp, status/repository/queue/assistant endpoints, key validation, path traversal blocking, and serving `index.html`. Configured as a pre-commit hook.
+
+## Automated CI
+
+`.github/workflows/ci.yml` runs on every push/PR to `main`, with two jobs:
+
+- **`backend-tests`** — full `pytest` suite against a minimal `dist/` (doesn't build the whole frontend in this job).
+- **`frontend-build`** — production `vite build`, followed by an automated accessibility audit (`pa11y-ci`) against the Landing screen served via `vite preview` — see [Accessibility](/acessibilidade#pa11y-ci-scope) for the exact scope of this coverage.
 
 ## Minimum gate for any PR
 

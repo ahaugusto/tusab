@@ -19,7 +19,7 @@ Interface audited against **WCAG 2.1 level AA**.
 | Modals with focus trap, `aria-modal`, background isolation | ✅ Compliant (`ModalWrapper.jsx`) |
 | Skip-nav link | ✅ Compliant |
 | `lang` on the HTML element | ✅ Compliant (`pt-BR`) |
-| Text contrast (AA) | ⚠️ Mostly compliant — exceptions under ongoing fixes |
+| Text contrast (AA) | ✅ Compliant (audited via pa11y-ci on every PR) |
 | `aria-live` for dynamic content | ⚠️ Partial — still evolving |
 
 ## Implementation decisions
@@ -66,6 +66,12 @@ On macOS, most shortcuts also accept `⌘` (Cmd) as a native alternative — `Sh
 - **axe DevTools** — automated scanning (Chrome/Firefox)
 - **NVDA** (Windows) — testing with the free screen reader
 - **Colour Contrast Analyser** — contrast measurement
-- **axe-core** via Jest (`@axe-core/react`) — automated tests
+- **pa11y-ci** (axe-core + HTML_CodeSniffer via Puppeteer) — runs automatically on every push/PR (`web_interface/.pa11yci`, `.github/workflows/ci.yml`)
+
+### pa11y-ci scope
+
+Today the automated audit covers only the **Landing screen** (light and dark mode) — it's the only screen reachable without prior state (no login, no real backend), which makes it deterministically testable in CI. The rest of the app (internal screens, modals, data-driven flows) remains covered by manual review via `/acessibilidade` and screen-reader testing, not by this automated gate.
+
+The contrast rule (`color-contrast`) is validated via **HTML_CodeSniffer**, not axe-core, in this specific configuration — the Landing's animated background (`<canvas>` from `CircuitBackground`) makes axe flag most text as "needs manual review" (it can't sample a background that keeps changing), which would reduce the gate to noise without this choice.
 
 The complete list of findings, with file and line, is kept in the repository at `Documentação do Produto/Acessibilidade e WCAG.md`, updated at every significant release.
