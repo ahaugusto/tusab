@@ -7,16 +7,16 @@ Sem chamada de rede real — Ollama é mockado (gerar_embedding_query). O .npy �
 real (numpy em tmp_path), o índice BM25 é real (JSON em tmp_path) — mesmo
 padrão de tests/test_fidelidade_identificador.py.
 """
-import json
 import os
 from unittest.mock import patch
 
 from tusab_engine.agent import index as index_mod
 from tusab_engine.agent import embeddings as embeddings_mod
+from tusab_engine.agent import lance_store
 
 
 def _construir_indice_real(index_dir, prefixo, docs):
-    """docs: lista de (titulo, texto). Constrói um _index.json real."""
+    """docs: lista de (titulo, texto). Constrói uma tabela LanceDB real."""
     os.makedirs(index_dir, exist_ok=True)
     chunks = [
         {"texto": texto, "texto_original": texto, "titulo": titulo, "aba": "documento",
@@ -24,9 +24,7 @@ def _construir_indice_real(index_dir, prefixo, docs):
          "canal": prefixo, "timestamp_inicio": 0}
         for i, (titulo, texto) in enumerate(docs)
     ]
-    idx_path = os.path.join(index_dir, f"{prefixo}_index.json")
-    with open(idx_path, "w", encoding="utf-8") as f:
-        json.dump({"projeto_nome": prefixo, "chunks": chunks, "indexed_at": 0}, f)
+    assert lance_store.gravar_chunks(prefixo, chunks)
     return chunks
 
 
@@ -36,6 +34,7 @@ def _preparar(tmp_path, monkeypatch, prefixo, docs):
     index_dir = str(tmp_path / "indexes")
     monkeypatch.setattr(index_mod, "INDEX_DIR", index_dir, raising=False)
     monkeypatch.setattr(embeddings_mod, "INDEX_DIR", index_dir, raising=False)
+    monkeypatch.setattr(lance_store, "INDEX_DIR", index_dir, raising=False)
     _bm25_cache.clear()
     embeddings_mod._matriz_cache.clear()
     return _construir_indice_real(index_dir, prefixo, docs)

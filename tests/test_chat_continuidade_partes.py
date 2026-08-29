@@ -6,10 +6,10 @@ tem só uma de suas partes recuperada pelo BM25, a parte seguinte deve entrar
 no contexto do LLM mesmo sem pontuar bem sozinha, pra não perder a continuidade
 da explicação.
 """
-import json
 import os
 
 from tusab_engine.agent import index as index_mod
+from tusab_engine.agent import lance_store
 
 
 def _construir_indice_com_partes(index_dir, prefixo):
@@ -43,9 +43,7 @@ def _construir_indice_com_partes(index_dir, prefixo):
             "parte": 1, "total_partes": 1, "timestamp_aproximado": False,
         },
     ]
-    idx_path = os.path.join(index_dir, f"{prefixo}_index.json")
-    with open(idx_path, "w", encoding="utf-8") as f:
-        json.dump({"projeto_nome": prefixo, "chunks": chunks, "indexed_at": 0}, f)
+    assert lance_store.gravar_chunks(prefixo, chunks)
     return chunks
 
 
@@ -53,6 +51,7 @@ def _preparar(tmp_path, monkeypatch, prefixo):
     from tusab_engine.agent.chat import _bm25_cache
     index_dir = str(tmp_path / "indexes")
     monkeypatch.setattr(index_mod, "INDEX_DIR", index_dir, raising=False)
+    monkeypatch.setattr(lance_store, "INDEX_DIR", index_dir, raising=False)
     _bm25_cache.clear()
     return _construir_indice_com_partes(index_dir, prefixo)
 

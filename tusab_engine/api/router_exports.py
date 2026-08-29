@@ -24,7 +24,6 @@ from pydantic import BaseModel, Field, model_validator
 import motor_tusab
 from tusab_engine.state import state
 from tusab_engine.storage import NEURAL_DIR, GESTAO_DIR, DATA_DIR, INDEX_DIR, gestao_canal_dir, salvar_json_atomico
-from tusab_engine.agent.index import _index_path
 
 router = APIRouter()
 
@@ -403,7 +402,8 @@ def export_base_compartilhavel(projeto: str):
         return JSONResponse({"error": True, "message": "Nome do projeto não informado."})
 
     neural_path = os.path.join(NEURAL_DIR, projeto)
-    index_path  = _index_path(projeto)
+    from tusab_engine.agent import lance_store
+    lancedb_path = lance_store.caminho_tabela(projeto)
 
     if not os.path.exists(neural_path):
         return JSONResponse({"error": True, "message": f"Projeto '{projeto}' não encontrado."})
@@ -425,9 +425,15 @@ def export_base_compartilhavel(projeto: str):
                     if fname.endswith('.txt'):
                         chunk_count += 1
 
-        # Índice BM25 serializado (aluno não precisa reindexar)
-        if os.path.exists(index_path):
-            zf.write(index_path, os.path.join('agent_index', f"{projeto}_index.json"))
+        # Índice BM25 serializado (aluno não precisa reindexar) — LanceDB é um
+        # diretório (dataset Arrow), não um arquivo único: percorre recursivamente.
+        tem_indice = os.path.isdir(lancedb_path)
+        if tem_indice:
+            for root, _, files in os.walk(lancedb_path):
+                for fname in files:
+                    fpath = os.path.join(root, fname)
+                    arcname = os.path.join('agent_index', f"{projeto}.lancedb", os.path.relpath(fpath, lancedb_path))
+                    zf.write(fpath, arcname)
 
         # Manifest — somente_leitura: True marca a base como recebida/protegida no destino
         manifest = {
@@ -436,7 +442,7 @@ def export_base_compartilhavel(projeto: str):
             "projeto": projeto,
             "exportado_em": datetime.now().isoformat(),
             "chunks": chunk_count,
-            "tem_indice": os.path.exists(index_path),
+            "tem_indice": tem_indice,
             "somente_leitura": True,
         }
         zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
