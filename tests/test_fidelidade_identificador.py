@@ -15,10 +15,10 @@ Duas partes da correção:
 Sem chamada de rede real — tudo com arquivos reais em tmp_path (BM25 e
 índice são estado interno do próprio módulo, não filesystem externo).
 """
-import json
 import os
 
 from tusab_engine.agent import index as index_mod
+from tusab_engine.agent import lance_store
 
 
 def _criar_documento(base_dir, prefixo, nome, titulo, texto, fonte="senado_leis", data="28/07/2026", url=""):
@@ -74,7 +74,7 @@ def test_parsear_todos_chunks_usa_nome_arquivo_se_sem_cabecalho(tmp_path, monkey
 # ── Filtro por identificador literal em _recuperar_contexto ──────────────────
 
 def _construir_indice_real(tmp_path, index_dir, prefixo, docs):
-    """docs: lista de (titulo, texto). Constrói um _index.json real e aponta
+    """docs: lista de (titulo, texto). Constrói uma tabela LanceDB real e aponta
     INDEX_DIR pra lá — _recuperar_contexto lê do disco de verdade."""
     os.makedirs(index_dir, exist_ok=True)
     chunks = [
@@ -82,9 +82,7 @@ def _construir_indice_real(tmp_path, index_dir, prefixo, docs):
          "data": "", "link": "", "tags": [], "descricao": "", "arquivo": f"{i}.txt", "canal": prefixo}
         for i, (titulo, texto) in enumerate(docs)
     ]
-    idx_path = os.path.join(index_dir, f"{prefixo}_index.json")
-    with open(idx_path, "w", encoding="utf-8") as f:
-        json.dump({"canal_nome": prefixo, "chunks": chunks, "indexed_at": 0}, f)
+    assert lance_store.gravar_chunks(prefixo, chunks)
 
 
 def test_filtro_identificador_restringe_a_documento_com_titulo_correspondente(tmp_path, monkeypatch):
@@ -92,6 +90,7 @@ def test_filtro_identificador_restringe_a_documento_com_titulo_correspondente(tm
 
     index_dir = str(tmp_path / "indexes")
     monkeypatch.setattr(index_mod, "INDEX_DIR", index_dir, raising=False)
+    monkeypatch.setattr(lance_store, "INDEX_DIR", index_dir, raising=False)
     _bm25_cache.clear()
 
     _construir_indice_real(tmp_path, index_dir, "projeto_teste", [

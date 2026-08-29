@@ -20,9 +20,10 @@ from tusab_engine.storage import INDEX_DIR, NEURAL_DIR
 from tusab_engine.agent.config import carregar_config, SENTINEL_KEY
 from tusab_engine.agent.index import (
     _bm25_cache, _bm25_lock,
-    _enriquecer_documento, _index_path,
+    _enriquecer_documento,
     _carregar_meta_canal, _STOPWORDS,
 )
+from tusab_engine.agent import lance_store
 from tusab_engine.agent.llm_providers import (
     _api_key_valida, _client_openai_compat, _get_llm_client,
     _GEMINI_CANDIDATOS, _MODELO_ANTHROPIC_AUXILIAR, _MODELO_ANTHROPIC_PRINCIPAL, _MODELO_OPENAI,
@@ -327,25 +328,24 @@ _merged_lock = __import__('threading').Lock()
 
 
 def _carregar_projeto_cache(prefixo: str) -> dict | None:
-    """Carrega (ou retorna do cache) o índice de um projeto. Retorna None se não existir."""
+    """Carrega (ou retorna do cache) o índice de um projeto. Retorna None se não existir.
+
+    [BETA LanceDB] Chunks vêm de lance_store.carregar_chunks() em vez do JSON —
+    o ranking continua 100% BM25Okapi em memória, reconstruído sempre que o
+    mtime da tabela muda (mesmo contrato de invalidação de antes, só trocando
+    a fonte do mtime: diretório .lancedb em vez de arquivo _index.json)."""
     from rank_bm25 import BM25Okapi
-    idx_path = _index_path(prefixo)
-    if not os.path.exists(idx_path):
+    idx_mtime = lance_store.mtime(prefixo)
+    if idx_mtime is None:
         return None
-    mtime = os.path.getmtime(idx_path)
     with _bm25_lock:
         cached = _bm25_cache.get(prefixo)
-        if cached is None or cached['mtime'] != mtime:
-            try:
-                with open(idx_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                chunks = data['chunks']
-                if not isinstance(chunks, list) or not chunks:
-                    return None
-            except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+        if cached is None or cached['mtime'] != idx_mtime:
+            chunks = lance_store.carregar_chunks(prefixo)
+            if not chunks:
                 return None
             corpus = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', '')) for c in chunks]
-            _bm25_cache[prefixo] = {'chunks': chunks, 'bm25': BM25Okapi(corpus), 'mtime': mtime}
+            _bm25_cache[prefixo] = {'chunks': chunks, 'bm25': BM25Okapi(corpus), 'mtime': idx_mtime}
         return _bm25_cache[prefixo]
 
 
