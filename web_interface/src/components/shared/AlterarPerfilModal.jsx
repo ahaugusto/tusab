@@ -201,7 +201,7 @@ function AlterarPerfilModal({ darkMode, btnFocus = BTN_FOCUS, perfilAtual, onCon
               disabled={selecionado === perfilAtual}
               className={`w-full py-2.5 rounded-xl text-xs font-bold transition-colors ${btnFocus}
                 disabled:opacity-40 disabled:cursor-not-allowed
-                ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/35 disabled:hover:bg-primary/20' : 'bg-primary text-white hover:bg-primary/85 disabled:hover:bg-primary'}`}>
+                ${darkMode ? 'bg-primary/20 text-primary hover:bg-primary/35 disabled:hover:bg-primary/20' : 'bg-primary-button text-white hover:bg-primary-button/85 disabled:hover:bg-primary-button'}`}>
               {t('perfil.alerta_confirmar')}
             </button>
           </div>

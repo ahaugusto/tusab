@@ -386,14 +386,14 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               <button
                 onClick={() => setSourceType('youtube')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                  ${sourceType === 'youtube' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                  ${sourceType === 'youtube' ? 'bg-primary-button text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
                 🎬 {t('extraction.source_youtube')}
               </button>
               {podeUsarFontesPublicas && (
                 <button
                   onClick={() => setSourceType('fonte-publica')}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-colors ${BTN_FOCUS}
-                    ${sourceType === 'fonte-publica' ? 'bg-primary text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                    ${sourceType === 'fonte-publica' ? 'bg-primary-button text-white shadow-sm' : darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
                   <Search size={12} aria-hidden="true" /> {t('extraction.source_public')}
                 </button>
               )}
@@ -486,7 +486,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               <button
                 onClick={avancar}
                 disabled={!podeAvancarFonteQuery}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary-button text-white hover:bg-primary-button/85 shadow-lg shadow-primary-button/25 ${BTN_FOCUS}`}>
                 {t('extraction.next')}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
@@ -546,7 +546,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
               <button
                 onClick={avancar}
                 disabled={!podeAvancarUrl}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary-button text-white hover:bg-primary-button/85 shadow-lg shadow-primary-button/25 ${BTN_FOCUS}`}>
                 {t('extraction.next')}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
@@ -642,7 +642,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                               onClick={() => { setProjetoNome(p.nome); setNomeEditadoManual(true); setProjetoExistenteSelecionado(true); }}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${BTN_FOCUS}
                                 ${ativo
-                                  ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.03]'
+                                  ? 'bg-primary-button border-primary-button text-white shadow-md shadow-primary-button/30 scale-[1.03]'
                                   : darkMode ? 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30 hover:bg-white/8' : 'bg-white border-slate-200 text-slate-600 hover:border-primary/40 hover:bg-primary/5'}`}>
                               {ativo && (
                                 <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -668,7 +668,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 <button
                   onClick={avancar}
                   disabled={!podeAvancarProjeto}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 bg-primary-button text-white hover:bg-primary-button/85 shadow-lg shadow-primary-button/25 ${BTN_FOCUS}`}>
                   {t('extraction.next')}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
@@ -707,7 +707,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 </button>
                 <button
                   onClick={handleConfirmFontePublica} disabled={criandoProjetoBusca}
-                  className={`flex-[2] flex items-center justify-center gap-2 px-4 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  className={`flex-[2] flex items-center justify-center gap-2 px-4 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-60 bg-primary-button text-white hover:bg-primary-button/85 shadow-lg shadow-primary-button/25 ${BTN_FOCUS}`}>
                   {criandoProjetoBusca ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Search size={15} aria-hidden="true" />}
                   {t('extraction.fonte_start_confirm')}
                 </button>
@@ -1011,7 +1011,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className={`flex-[2] flex items-center justify-center gap-2 px-4 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary text-white hover:bg-primary/85 shadow-lg shadow-primary/25 ${BTN_FOCUS}`}>
+                  className={`flex-[2] flex items-center justify-center gap-2 px-4 min-h-[48px] py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] bg-primary-button text-white hover:bg-primary-button/85 shadow-lg shadow-primary-button/25 ${BTN_FOCUS}`}>
                   <Zap size={15} aria-hidden="true" />
                   {t('ops.start_confirm')}
                 </button>

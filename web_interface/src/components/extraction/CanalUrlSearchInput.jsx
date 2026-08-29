@@ -86,6 +86,7 @@ function CanalUrlSearchInput({ darkMode, value, onChange, onEnter, onSelectCanal
             : <Search size={inputSize} className="text-slate-400 shrink-0" aria-hidden="true" />)
           : <Link2 size={inputSize} className="text-slate-400 shrink-0" aria-hidden="true" />}
         <input type="text" placeholder={placeholder || t('channel.input_placeholder')} value={value} autoFocus={autoFocus}
+          aria-label={t('channel.title')}
           onChange={e => onChange(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !modoBusca) onEnter?.(); }}
           className={`flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 ${darkMode ? 'text-white' : 'text-slate-800'}`} />

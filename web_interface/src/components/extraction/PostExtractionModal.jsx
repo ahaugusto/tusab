@@ -123,7 +123,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, agentIndex
                     <span>{t('modal.assistente_not_configured')}</span>
                   </p>}
               <button onClick={() => { onGoToAgent(); onClose(); }}
-                className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors bg-primary text-white hover:bg-primary/85 shadow-sm ${BTN_FOCUS}`}>
+                className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors bg-primary-button text-white hover:bg-primary-button/85 shadow-sm ${BTN_FOCUS}`}>
                 <Bot size={12} aria-hidden="true" /> {t('modal.assistente_btn')}
               </button>
             </div>

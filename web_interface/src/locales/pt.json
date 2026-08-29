@@ -1260,6 +1260,7 @@
   "language_notice.chat_follows_input": "O chat responde no idioma em que você escreve, não no idioma da interface — se você escrever em inglês, ele responde em inglês, independente do idioma selecionado aqui.",
   "language_notice.ciente": "Ciente",
   "common.skip_to_content": "Ir para o conteúdo principal",
+  "common.select_language": "Selecionar idioma",
   "home.create_first_project": "Criar primeiro projeto",
   "home.new_project_placeholder": "Nome do projeto...",
   "home.open_project_folder_title": "Abrir pasta do projeto",

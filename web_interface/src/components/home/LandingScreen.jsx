@@ -55,8 +55,8 @@ function LandingScreen({ darkMode, onToggleDark, onEnter, appUpdateInfo }) {
                   i18n.language?.startsWith(lng)
                     ? 'bg-primary/20 text-primary'
                     : darkMode
-                      ? 'text-slate-500 hover:text-slate-300'
-                      : 'text-slate-400 hover:text-slate-600'
+                      ? 'text-slate-400 hover:text-slate-300'
+                      : 'text-slate-600 hover:text-slate-700'
                 }`}
               >
                 {lng}
@@ -69,8 +69,8 @@ function LandingScreen({ darkMode, onToggleDark, onEnter, appUpdateInfo }) {
             aria-label={darkMode ? 'Modo claro' : 'Modo escuro'}
             className={`p-1 rounded-lg transition-colors ${BTN_FOCUS} ${
               darkMode
-                ? 'text-slate-500 hover:text-slate-300 hover:bg-white/8'
-                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'
+                ? 'text-slate-400 hover:text-slate-300 hover:bg-white/8'
+                : 'text-slate-600 hover:text-slate-700 hover:bg-slate-200'
             }`}
           >
             {darkMode ? <Sun size={13} /> : <Moon size={13} />}
@@ -98,15 +98,15 @@ function LandingScreen({ darkMode, onToggleDark, onEnter, appUpdateInfo }) {
           />
         </div>
 
-        <p className={`text-sm max-w-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+        <p className={`text-sm max-w-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
           {t('home.tagline')}
         </p>
         <button
           onClick={onEnter}
           className={`mt-1 px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary
             ${darkMode
-              ? 'bg-primary text-white hover:bg-primary/90 focus-visible:ring-offset-[#080C18]'
-              : 'bg-primary text-white hover:bg-primary/90 focus-visible:ring-offset-slate-100'}`}
+              ? 'bg-primary-button text-white hover:bg-primary-button/90 focus-visible:ring-offset-[#080C18]'
+              : 'bg-primary-button text-white hover:bg-primary-button/90 focus-visible:ring-offset-slate-100'}`}
         >
           {t('landing.enter')}
         </button>
@@ -126,7 +126,7 @@ function LandingScreen({ darkMode, onToggleDark, onEnter, appUpdateInfo }) {
         )}
       </div>
 
-      <p className={`absolute bottom-6 z-10 text-[11px] ${darkMode ? 'text-slate-700' : 'text-slate-400'}`}>
+      <p className={`absolute bottom-6 z-10 text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
         {t('home.by')}
       </p>
     </div>

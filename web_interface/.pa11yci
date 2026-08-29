@@ -1,0 +1,22 @@
+{
+    "defaults": {
+        "timeout": 15000,
+        "standard": "WCAG2AA",
+        "runners": ["axe", "htmlcs"],
+        "rootElement": "#landing-root",
+        "ignore": [
+            "color-contrast"
+        ]
+    },
+    "urls": [
+        "http://127.0.0.1:4173/",
+        {
+            "url": "http://127.0.0.1:4173/",
+            "actions": [
+                "wait for element button[aria-label='Modo escuro'] to be visible",
+                "click element button[aria-label='Modo escuro']"
+            ],
+            "wait": 800
+        }
+    ]
+}
