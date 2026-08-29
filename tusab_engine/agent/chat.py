@@ -112,10 +112,11 @@ def _rerankar(pergunta: str, chunks: list) -> list:
 # original — o chat nunca é bloqueado por falha na expansão.
 
 # Provedores rápidos o suficiente para query expansion sem degradar UX
-# 'custom' entra aqui porque fala o mesmo protocolo síncrono OpenAI-compatible
-# do Groq — a latência real depende do que está atrás do endpoint, mas o
-# público dessa opção (perfil técnico, servidor próprio) já assume esse risco.
-PROVEDORES_COM_EXPANSION = {'groq', 'openai', 'anthropic', 'gemini', 'google', 'custom'}
+# 'custom'/'openrouter' entram aqui porque falam o mesmo protocolo síncrono
+# OpenAI-compatible do Groq — a latência real depende do que está atrás do
+# endpoint, mas o público dessa opção (perfil técnico, servidor próprio,
+# ou catálogo de terceiros via OpenRouter) já assume esse risco.
+PROVEDORES_COM_EXPANSION = {'groq', 'openrouter', 'openai', 'anthropic', 'gemini', 'google', 'custom'}
 
 # Providers que não exigem api_key real — Ollama roda sem chave por natureza;
 # 'custom' cobre servidores locais tipo 9router que tipicamente não pedem chave.
@@ -242,7 +243,7 @@ def _expandir_query(pergunta: str, config: dict) -> list:
             linhas = msg.content[0].text.strip().splitlines()
             variacoes = [l.strip() for l in linhas if l.strip()][:2]
 
-        elif provider in ('groq', 'custom'):
+        elif provider in ('groq', 'openrouter', 'custom'):
             client, modelo = _get_llm_client(provider, api_key, config)
             resp = client.chat.completions.create(
                 model=modelo,
@@ -1123,7 +1124,7 @@ def _responder_sem_contexto(pergunta: str, config: dict, projeto_nome: str) -> s
             )
             return msg.content[0].text.strip()
 
-        elif provider in ('groq', 'custom'):
+        elif provider in ('groq', 'openrouter', 'custom'):
             client, modelo = _get_llm_client(provider, api_key, config)
             resp = client.chat.completions.create(
                 model=modelo,
@@ -1184,7 +1185,7 @@ def _gerar_resposta_llm(provider: str, api_key: str, prompt: str, config: dict) 
         resp = client.GenerativeModel(modelo).generate_content(prompt)
         return resp.text
 
-    if provider in ('groq', 'custom'):
+    if provider in ('groq', 'openrouter', 'custom'):
         client, modelo = _get_llm_client(provider, api_key, config, principal=True)
         resp = client.chat.completions.create(
             model=modelo,
@@ -1629,7 +1630,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                     if chunk.text:
                         yield chunk.text
 
-        elif provider in ('groq', 'custom'):
+        elif provider in ('groq', 'openrouter', 'custom'):
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
             stream = client.chat.completions.create(
                 model=modelo,

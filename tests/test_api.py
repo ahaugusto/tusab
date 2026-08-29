@@ -64,6 +64,12 @@ def test_test_key_rejeita_chave_invalida(client):
     assert r.json().get("error") is True
 
 
+def test_test_key_openrouter_rejeita_chave_invalida(client):
+    r = client.post("/agent/test-key", json={"provider": "openrouter", "api_key": "sk-or-chave-invalida-teste"})
+    assert r.status_code == 200
+    assert r.json().get("error") is True
+
+
 # ─── Endpoint customizado (provider='custom' — ex: 9router self-hosted) ──────
 
 def test_agent_config_custom_bloqueia_url_sem_scheme(client):

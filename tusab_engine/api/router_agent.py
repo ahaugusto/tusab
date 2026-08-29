@@ -841,6 +841,15 @@ def agent_test_key(req: TestKeyRequest = None):
                 max_tokens=1,
             )
             return {"ok": True, "message": f"Groq ativo! Modelo: {modelo}"}
+        if provider == "openrouter":
+            from tusab_engine.agent.llm_providers import _get_llm_client
+            client, modelo = _get_llm_client(provider, api_key, config)
+            client.chat.completions.create(
+                model=modelo,
+                messages=[{"role": "user", "content": "ok"}],
+                max_tokens=1,
+            )
+            return {"ok": True, "message": f"OpenRouter ativo! Modelo: {modelo}"}
         if provider == "openai":
             from tusab_engine.agent.llm_providers import _get_llm_client
             client, modelo = _get_llm_client(provider, api_key, config)
