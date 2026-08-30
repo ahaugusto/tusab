@@ -23,7 +23,7 @@ function StatusChip({ indexado, desatualizado, darkMode, t }) {
   if (!indexado) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border
-        ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+        ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
         {t('chat.not_indexed')}
       </span>
     );
