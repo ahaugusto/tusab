@@ -96,3 +96,6 @@ Apple/
 *.p12
 *.p8
 *.cer
+# Auditoria de segurança — venv isolado do gerador de PDF (recriar via python -m venv)
+docs/security-audit/.venv-report/
+docs/security-audit/__pycache__/
