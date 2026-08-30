@@ -16,6 +16,7 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
 import { localeFor } from '../../utils/locale';
+import { BTN_FOCUS } from '../../constants';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 export const LOADING_PHRASES = [
@@ -681,14 +682,14 @@ function ChatDrawer({
       })()}
       {/* Busca Ampla toggle */}
       <div className="flex items-center gap-1 shrink-0">
-        <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
+        <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-500')}`}>
           {buscaAmpla ? t('chat.search_broad_label') : t('chat.search_restricted_label')}
         </span>
         <button
           role="switch"
           aria-checked={buscaAmpla}
           onClick={() => setBuscaAmpla(v => !v)}
-          className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+          className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 ${BTN_FOCUS} ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
           <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
         </button>
         <button
@@ -1596,7 +1597,7 @@ function ChatDrawer({
         <button
           onClick={onSend}
           disabled={!chatHabilitado || !chatInput.trim() || ollamaSemModelo}
-          className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+          className={`p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0 ${BTN_FOCUS}`}
           aria-label={t('assistente.send')}>
           <Send size={13} />
         </button>
@@ -1948,7 +1949,7 @@ function ChatDrawer({
               </button>
               <div className="flex-1 min-w-0">
                 <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.base_modal_title')}</h3>
-                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{t('chat.base_modal_desc')}</p>
+                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('chat.base_modal_desc')}</p>
               </div>
             </div>
 
@@ -2080,7 +2081,7 @@ function ChatDrawer({
                           )}
                         </div>
                       ) : (
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('chat.not_indexed')}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-500'}`}>{t('chat.not_indexed')}</p>
                       )}
                     </div>
                     {/* Ações — ocultas durante fila */}
@@ -2221,7 +2222,7 @@ function ChatDrawer({
                     )}
                   </div>
                   {agentStatus.index_progress?.total > 0 && (
-                    <p className={`text-[10px] text-center -mt-1.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] text-center -mt-1.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                       {t('chat.indexing_progress_count', {
                         processed: agentStatus.index_progress.processed,
                         total: agentStatus.index_progress.total,
@@ -2233,9 +2234,9 @@ function ChatDrawer({
                       ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-100'}`}>
                       {[...(agentStatus.index_logs || [])].reverse().map((log, i) => (
                         <p key={i} className={`text-[10px] font-mono leading-relaxed ${
-                          i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'
+                          i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-500'
                         }`}>
-                          <span className={`mr-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>{log.timestamp}</span>
+                          <span className={`mr-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-500'}`}>{log.timestamp}</span>
                           {log.message}
                         </p>
                       ))}
