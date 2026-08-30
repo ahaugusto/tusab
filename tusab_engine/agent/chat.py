@@ -1249,6 +1249,49 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
     return resposta
 
 
+def _fatiar_para_pseudo_stream(texto: str, tamanho_grupo: int = 4):
+    """Divide texto já pronto em pedaços por grupos de palavras, preservando
+    espaços e quebras de linha — usado para simular a cadência do streaming
+    real do Ollama quando a resposta precisa ser gerada por completo antes de
+    ser exibida (ver _gerar_stream_com_fidelidade_numerica). Cada pedaço
+    inclui o espaço/quebra de linha que o precede, exceto o primeiro."""
+    if not texto:
+        return
+    partes = re.split(r'(\s+)', texto)  # mantém os separadores como itens da lista
+    buffer = ''
+    contagem_palavras = 0
+    for parte in partes:
+        buffer += parte
+        if parte.strip():
+            contagem_palavras += 1
+        if contagem_palavras >= tamanho_grupo and parte.strip():
+            yield buffer
+            buffer = ''
+            contagem_palavras = 0
+    if buffer:
+        yield buffer
+
+
+def _gerar_stream_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, config: dict, contexto: list):
+    """Para Ollama sem 'mostrar_raciocinio': gera a resposta completa (não-
+    streaming, via _gerar_com_fidelidade_numerica — mesmo retry de fidelidade
+    numérica já usado por chat()) e re-emite em pedaços artificiais para
+    preservar o contrato de streaming que chat_stream()/frontend esperam.
+
+    Existe porque tem_lacuna_numerica() só é avaliável sobre o texto completo
+    — não há como detectar a assinatura estrutural da lacuna (regex 'de de'/
+    'nº.' truncado, ver critique.py) em um token isolado do stream real; um
+    usuário real já viu esse bug (números somem ao parafrasear contexto denso
+    em modelos locais pequenos) chegar à tela porque o retry síncrono de
+    chat() nunca era chamado no caminho de streaming. Trade-off aceito: perde
+    a latência de "primeiro token" do streaming real, mas Ollama já é local
+    (sem custo de rede por token) e o usuário já tolera esse tipo de espera
+    em geração de modelo pequeno.
+    """
+    resposta = _gerar_com_fidelidade_numerica(provider, api_key, prompt, config, contexto)
+    yield from _fatiar_para_pseudo_stream(resposta)
+
+
 # ── Compartilhado entre chat() e chat_stream() ────────────────────────────────
 # Formato de "fontes" citadas — a decisão de roteamento em si (rotear(),
 # Rota) vive em agent/router.py desde a Fase 0 da formalização
@@ -1549,79 +1592,93 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             # caber na mesma janela de contexto.
             num_predict = 2048 if mostrar_raciocinio else 512
             num_ctx     = 4096 if mostrar_raciocinio else 2048
-            with _req.post('http://localhost:11434/api/generate',
-                    json={
-                        'model':   modelo,
-                        'prompt':  prompt,
-                        'stream':  True,
-                        'think':   mostrar_raciocinio,
-                        'options': {
-                            'num_ctx':     num_ctx,
-                            'num_predict': num_predict,
-                            'num_thread':  8,
-                            'temperature': 0.3,
-                        },
-                    },
-                    stream=True, timeout=300) as r:
-                import time as _time
-                _ultimo_check_recursos = 0.0
-                _alerta_recursos_emitido = False
-                _teve_resposta = False
-                for line in r.iter_lines():
-                    if line:
-                        data = json.loads(line)
-                        # thinking chega separado de response — repassa como
-                        # controle JSON (mesmo padrão de 'fontes'/'done') pra
-                        # não confundir com texto puro da resposta final.
-                        pensando = data.get('thinking', '')
-                        if pensando:
-                            yield json.dumps({'thinking': pensando})
-                        chunk = data.get('response', '')
-                        if chunk:
-                            _teve_resposta = True
-                            yield chunk
-                        # Checagem throttled (a cada ~4s, não por linha) — no
-                        # máximo 1 alerta por resposta, pra não spammar o chat
-                        # numa geração longa que já está sob sobrecarga.
-                        if not _alerta_recursos_emitido:
-                            _agora = _time.time()
-                            if _agora - _ultimo_check_recursos >= 4:
-                                _ultimo_check_recursos = _agora
-                                _alerta = _checar_sobrecarga_recursos()
-                                if _alerta:
-                                    _alerta_recursos_emitido = True
-                                    yield json.dumps({'alerta_recursos': _alerta})
-                        if data.get('done'):
-                            break
 
-            # Modelos pequenos com thinking (ex.: qwen3:4b) às vezes "pensam"
-            # e terminam a geração sem nunca escrever a resposta em si — não é
-            # só estouro de num_predict, o modelo pode parar naturalmente logo
-            # depois do raciocínio. Repete a chamada sem think pra garantir uma
-            # resposta de verdade em vez de deixar o usuário só com o raciocínio.
-            if not _teve_resposta and mostrar_raciocinio:
+            if not mostrar_raciocinio:
+                # Buffer completo + retry de fidelidade numérica (achado real:
+                # usuário viu resposta com números apagados — o retry síncrono
+                # de _gerar_com_fidelidade_numerica() nunca rodava aqui porque
+                # o streaming real emitia token a token direto do Ollama, sem
+                # chance de detectar a lacuna antes de já estar na tela). Só
+                # se aplica quando NÃO há thinking — ver _gerar_stream_com_fidelidade_numerica.
+                _alerta = _checar_sobrecarga_recursos()
+                if _alerta:
+                    yield json.dumps({'alerta_recursos': _alerta})
+                for pedaco in _gerar_stream_com_fidelidade_numerica(provider, api_key, prompt, config, contexto):
+                    yield pedaco
+            else:
                 with _req.post('http://localhost:11434/api/generate',
                         json={
                             'model':   modelo,
                             'prompt':  prompt,
                             'stream':  True,
-                            'think':   False,
+                            'think':   mostrar_raciocinio,
                             'options': {
-                                'num_ctx':     2048,
-                                'num_predict': 512,
+                                'num_ctx':     num_ctx,
+                                'num_predict': num_predict,
                                 'num_thread':  8,
                                 'temperature': 0.3,
                             },
                         },
-                        stream=True, timeout=300) as r2:
-                    for line in r2.iter_lines():
+                        stream=True, timeout=300) as r:
+                    import time as _time
+                    _ultimo_check_recursos = 0.0
+                    _alerta_recursos_emitido = False
+                    _teve_resposta = False
+                    for line in r.iter_lines():
                         if line:
-                            data2 = json.loads(line)
-                            chunk2 = data2.get('response', '')
-                            if chunk2:
-                                yield chunk2
-                            if data2.get('done'):
+                            data = json.loads(line)
+                            # thinking chega separado de response — repassa como
+                            # controle JSON (mesmo padrão de 'fontes'/'done') pra
+                            # não confundir com texto puro da resposta final.
+                            pensando = data.get('thinking', '')
+                            if pensando:
+                                yield json.dumps({'thinking': pensando})
+                            chunk = data.get('response', '')
+                            if chunk:
+                                _teve_resposta = True
+                                yield chunk
+                            # Checagem throttled (a cada ~4s, não por linha) — no
+                            # máximo 1 alerta por resposta, pra não spammar o chat
+                            # numa geração longa que já está sob sobrecarga.
+                            if not _alerta_recursos_emitido:
+                                _agora = _time.time()
+                                if _agora - _ultimo_check_recursos >= 4:
+                                    _ultimo_check_recursos = _agora
+                                    _alerta = _checar_sobrecarga_recursos()
+                                    if _alerta:
+                                        _alerta_recursos_emitido = True
+                                        yield json.dumps({'alerta_recursos': _alerta})
+                            if data.get('done'):
                                 break
+
+                # Modelos pequenos com thinking (ex.: qwen3:4b) às vezes "pensam"
+                # e terminam a geração sem nunca escrever a resposta em si — não é
+                # só estouro de num_predict, o modelo pode parar naturalmente logo
+                # depois do raciocínio. Repete a chamada sem think pra garantir uma
+                # resposta de verdade em vez de deixar o usuário só com o raciocínio.
+                if not _teve_resposta:
+                    with _req.post('http://localhost:11434/api/generate',
+                            json={
+                                'model':   modelo,
+                                'prompt':  prompt,
+                                'stream':  True,
+                                'think':   False,
+                                'options': {
+                                    'num_ctx':     2048,
+                                    'num_predict': 512,
+                                    'num_thread':  8,
+                                    'temperature': 0.3,
+                                },
+                            },
+                            stream=True, timeout=300) as r2:
+                        for line in r2.iter_lines():
+                            if line:
+                                data2 = json.loads(line)
+                                chunk2 = data2.get('response', '')
+                                if chunk2:
+                                    yield chunk2
+                                if data2.get('done'):
+                                    break
 
         elif provider in ('gemini', 'google'):
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)

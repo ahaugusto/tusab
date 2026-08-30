@@ -95,3 +95,61 @@ def test_nao_derruba_chat_se_retry_lancar_excecao():
         resposta = _gerar_com_fidelidade_numerica("ollama", "", "prompt", {}, contexto)
 
     assert resposta == "Decreto-Lei nº., de de outubro."
+
+
+# ── _fatiar_para_pseudo_stream ────────────────────────────────────────────────
+# Achado real (30/ago/2026): _gerar_com_fidelidade_numerica() nunca era chamada
+# no caminho de streaming (chat_stream() emitia token a token direto do
+# Ollama), então o retry de fidelidade numérica nunca corrigia o que o usuário
+# via na tela. _gerar_stream_com_fidelidade_numerica() fecha esse gap: gera a
+# resposta completa (com retry) e re-emite em pedaços — só pra Ollama sem
+# 'mostrar_raciocinio', ver chat_stream().
+
+def test_fatiar_para_pseudo_stream_preserva_texto_completo():
+    texto = "A Lei nº 14.688, de 20 de setembro de 2023 altera o Código Penal Militar."
+    pedacos = list(chat_mod._fatiar_para_pseudo_stream(texto))
+    assert "".join(pedacos) == texto
+
+
+def test_fatiar_para_pseudo_stream_gera_mais_de_um_pedaco_para_texto_longo():
+    texto = " ".join(f"palavra{i}" for i in range(20))
+    pedacos = list(chat_mod._fatiar_para_pseudo_stream(texto))
+    assert len(pedacos) > 1
+
+
+def test_fatiar_para_pseudo_stream_texto_vazio_nao_gera_pedacos():
+    assert list(chat_mod._fatiar_para_pseudo_stream("")) == []
+
+
+def test_fatiar_para_pseudo_stream_texto_curto_gera_um_pedaco():
+    texto = "Oi tudo bem"
+    pedacos = list(chat_mod._fatiar_para_pseudo_stream(texto, tamanho_grupo=10))
+    assert len(pedacos) == 1
+    assert pedacos[0] == texto
+
+
+# ── _gerar_stream_com_fidelidade_numerica ─────────────────────────────────────
+
+def test_gerar_stream_com_fidelidade_numerica_corrige_lacuna_antes_de_emitir():
+    contexto = [{"texto": "Decreto-Lei nº 1.001, de 21 de outubro de 1969"}]
+    respostas = iter([
+        "Decreto-Lei nº., de de outubro de 1969.",          # 1a tentativa: com lacuna
+        "Decreto-Lei nº 1.001, de 21 de outubro de 1969.",  # retry: corrigida
+    ])
+
+    with patch.object(chat_mod, "_gerar_resposta_llm", side_effect=lambda *a, **k: next(respostas)):
+        pedacos = list(chat_mod._gerar_stream_com_fidelidade_numerica("ollama", "", "prompt", {}, contexto))
+
+    texto_emitido = "".join(pedacos)
+    assert texto_emitido == "Decreto-Lei nº 1.001, de 21 de outubro de 1969."
+    # A lacuna nunca deve aparecer em NENHUM pedaço emitido — é exatamente o
+    # bug real que o usuário via na tela antes desta correção.
+    assert not chat_mod.tem_lacuna_numerica(texto_emitido)
+
+
+def test_gerar_stream_com_fidelidade_numerica_sem_contexto_nao_retenta():
+    with patch.object(chat_mod, "_gerar_resposta_llm", return_value="Resposta direta.") as mock_gerar:
+        pedacos = list(chat_mod._gerar_stream_com_fidelidade_numerica("ollama", "", "prompt", {}, []))
+
+    assert mock_gerar.call_count == 1
+    assert "".join(pedacos) == "Resposta direta."
