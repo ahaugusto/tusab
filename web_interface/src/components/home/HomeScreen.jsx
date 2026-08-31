@@ -5,9 +5,16 @@
  * @author CriAugu <tusab@tusab.solutions>
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { X } from 'lucide-react';
 import CircuitBackground from './CircuitBackground';
+
+// Preferência só do perfil Especialista — Estudo é menos central pra esse
+// perfil (poder/velocidade > pedagogia), então ele pode ocultar o card na
+// Home sem afetar Estudante/Pesquisador. Persistida por ser uma escolha
+// deliberada do usuário, não estado efêmero de sessão.
+const CHAVE_ESTUDO_OCULTO = 'tusab_home_estudo_oculto';
 
 function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus, btnFocus, onNavigate, onNavigatePesquisaAcademica, onAddFiles, onToggleTheme, onChangeLang, onImportBase, onOpenChatExpandido, regras }) {
   const { t, i18n: homeI18n } = useTranslation();
@@ -25,6 +32,20 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
   const isEstudante   = perfil === 'estudante';
   const isProfessor   = perfil === 'professor';
   const isPesquisador = perfil === 'pesquisador';
+  const isEspecialista = perfil === 'profissional';
+
+  const [estudoOcultoPref, setEstudoOcultoPref] = useState(
+    () => localStorage.getItem(CHAVE_ESTUDO_OCULTO) === '1'
+  );
+  const ocultarCardEstudo = isEspecialista && estudoOcultoPref;
+  const handleOcultarEstudo = () => {
+    try { localStorage.setItem(CHAVE_ESTUDO_OCULTO, '1'); } catch {}
+    setEstudoOcultoPref(true);
+  };
+  const handleMostrarEstudo = () => {
+    try { localStorage.removeItem(CHAVE_ESTUDO_OCULTO); } catch {}
+    setEstudoOcultoPref(false);
+  };
 
   // ── Source cards (top, side-by-side) ──────────────────────────────────────
   const sourceBase = darkMode
@@ -317,16 +338,18 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
             </div>
           </div>
 
-          {/* ── Talk + Study section, lado a lado (mesmo gate — ambos precisam de base indexada) ── */}
+          {/* ── Talk + Study section, lado a lado (mesmo gate — ambos precisam de base indexada) ──
+               Especialista pode ocultar o card de Estudo (menos central pra esse perfil) — quando
+               oculto, Chat ocupa a largura inteira em vez de deixar metade vazia. */}
           {indexed && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className={ocultarCardEstudo ? '' : 'grid grid-cols-2 gap-3 items-stretch'}>
+              <div className="flex flex-col">
                 <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   {t('home.section_talk')}
                 </p>
                 <button
                   onClick={onOpenChatExpandido}
-                  className={`relative w-full h-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${agentReady ? highlightBase : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                  className={`relative flex-1 w-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${agentReady ? highlightBase : darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
                   <div className="flex flex-col gap-2">
                     <span className="text-xl shrink-0">💬</span>
                     <div>
@@ -337,24 +360,44 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                     </div>
                   </div>
                 </button>
+                {ocultarCardEstudo && (
+                  <button
+                    onClick={handleMostrarEstudo}
+                    className={`w-full mt-1.5 text-[10px] text-center underline-offset-2 hover:underline ${btnFocus} ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                    {t('home.card_estudo_mostrar')}
+                  </button>
+                )}
               </div>
 
-              <div>
-                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  {t('home.section_study')}
-                </p>
-                <button
-                  onClick={() => onNavigate('estudo')}
-                  className={`relative w-full h-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-xl shrink-0">🎓</span>
-                    <div>
-                      <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_estudo_title')}</p>
-                      <p className={`text-[10px] mt-0.5 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('home.card_estudo_desc')}</p>
-                    </div>
+              {!ocultarCardEstudo && (
+                <div className="flex flex-col">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {t('home.section_study')}
+                  </p>
+                  <div className="relative flex-1">
+                    <button
+                      onClick={() => onNavigate('estudo')}
+                      className={`relative w-full h-full p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${btnFocus} ${darkMode ? 'bg-[#0C1122]/95 border-white/10 hover:bg-[#0E1428]/95 hover:border-white/20' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xl shrink-0">🎓</span>
+                        <div>
+                          <p className={`text-xs font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.card_estudo_title')}</p>
+                          <p className={`text-[10px] mt-0.5 leading-tight ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('home.card_estudo_desc')}</p>
+                        </div>
+                      </div>
+                    </button>
+                    {isEspecialista && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleOcultarEstudo(); }}
+                        aria-label={t('home.card_estudo_ocultar')}
+                        title={t('home.card_estudo_ocultar')}
+                        className={`absolute top-2 right-2 p-1 rounded-full transition-colors ${btnFocus} ${darkMode ? 'text-slate-500 hover:text-slate-200 hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/60'}`}>
+                        <X size={12} />
+                      </button>
+                    )}
                   </div>
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           )}
 

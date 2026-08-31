@@ -20,9 +20,10 @@ from tusab_engine.storage import INDEX_DIR, NEURAL_DIR
 from tusab_engine.agent.config import carregar_config, SENTINEL_KEY
 from tusab_engine.agent.index import (
     _bm25_cache, _bm25_lock,
-    _enriquecer_documento, _index_path,
+    _enriquecer_documento,
     _carregar_meta_canal, _STOPWORDS,
 )
+from tusab_engine.agent import lance_store
 from tusab_engine.agent.llm_providers import (
     _api_key_valida, _client_openai_compat, _get_llm_client,
     _GEMINI_CANDIDATOS, _MODELO_ANTHROPIC_AUXILIAR, _MODELO_ANTHROPIC_PRINCIPAL, _MODELO_OPENAI,
@@ -327,25 +328,24 @@ _merged_lock = __import__('threading').Lock()
 
 
 def _carregar_projeto_cache(prefixo: str) -> dict | None:
-    """Carrega (ou retorna do cache) o índice de um projeto. Retorna None se não existir."""
+    """Carrega (ou retorna do cache) o índice de um projeto. Retorna None se não existir.
+
+    [BETA LanceDB] Chunks vêm de lance_store.carregar_chunks() em vez do JSON —
+    o ranking continua 100% BM25Okapi em memória, reconstruído sempre que o
+    mtime da tabela muda (mesmo contrato de invalidação de antes, só trocando
+    a fonte do mtime: diretório .lancedb em vez de arquivo _index.json)."""
     from rank_bm25 import BM25Okapi
-    idx_path = _index_path(prefixo)
-    if not os.path.exists(idx_path):
+    idx_mtime = lance_store.mtime(prefixo)
+    if idx_mtime is None:
         return None
-    mtime = os.path.getmtime(idx_path)
     with _bm25_lock:
         cached = _bm25_cache.get(prefixo)
-        if cached is None or cached['mtime'] != mtime:
-            try:
-                with open(idx_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                chunks = data['chunks']
-                if not isinstance(chunks, list) or not chunks:
-                    return None
-            except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+        if cached is None or cached['mtime'] != idx_mtime:
+            chunks = lance_store.carregar_chunks(prefixo)
+            if not chunks:
                 return None
             corpus = [_enriquecer_documento(c['texto'], c.get('tags', []), c.get('descricao', ''), titulo=c.get('titulo', '')) for c in chunks]
-            _bm25_cache[prefixo] = {'chunks': chunks, 'bm25': BM25Okapi(corpus), 'mtime': mtime}
+            _bm25_cache[prefixo] = {'chunks': chunks, 'bm25': BM25Okapi(corpus), 'mtime': idx_mtime}
         return _bm25_cache[prefixo]
 
 
@@ -874,7 +874,38 @@ _RE_DOISPONTOS_PONTO    = re.compile(r':\s*\.')
 # "texto.- **Tópico**" ou "texto.**Tópico**" → quebra antes do bold (padrão Ollama)
 _RE_BOLD_COLADO         = re.compile(r'([.!?,;])\s*-?\s*(?=\*\*)', re.UNICODE)
 # "- **Tópico**: texto **OutroTópico**:" na mesma linha → quebra antes do segundo bold com ":"
-_RE_BOLD_INLINE         = re.compile(r'(?<=\S)\s+(?=\*\*[^*\n]+\*\*\s*:)', re.UNICODE)
+# Lookbehind exclui '-' (não só espaço): sem isso, um bullet já formatado como
+# "- **Tópico**: ..." batia de novo aqui (o '-' do próprio bullet conta como
+# não-espaço) e duplicava o marcador ("-\n- **Tópico**...") — achado real,
+# 31/ago/2026, resposta sobre Lei nº 14.344 saindo com "-\n\n- **Lei...**".
+_RE_BOLD_INLINE         = re.compile(r'(?<=[^\s\-])\s+(?=\*\*[^*\n]+\*\*\s*:)', re.UNICODE)
+
+# Tabelas GFM coladas — mesmo padrão de bullets colados, mas em tabela: o
+# modelo gera "| A | B || --- | --- || 1 | 2 |" sem \n entre as linhas.
+# remark-gfm exige cada linha de tabela em uma linha própria pra reconhecer
+# como tabela; sem isso vira texto corrido com "|" literais na tela (achado
+# real, 31/ago/2026). Ordem de aplicação importa: 1) quebra dupla antes do
+# bloco de tabela cru (separa de texto normal antes dele); 2) quebra simples
+# entre linhas coladas ("|" que fecha uma célula e imediatamente abre outra);
+# 3) quebra dupla depois da última linha (separa de texto normal depois).
+_RE_TEXTO_ANTES_TABELA    = re.compile(r'(?<=[^\s|\n])(\|[^|\n]+\|)')
+_RE_LINHAS_TABELA_COLADAS = re.compile(r'\|(?=\|[^|\n]+\|)')
+_RE_FIM_TABELA            = re.compile(r'\|(?!\n)(?=[A-Za-zÀ-ú0-9])')
+
+
+def _normalizar_tabelas(resposta: str) -> str:
+    if '|' not in resposta:
+        return resposta
+    # Só a primeira ocorrência de bloco "| ... |" cru precisa da quebra dupla
+    # de abertura — as demais linhas já saem separadas pelo passo seguinte.
+    resposta = _RE_TEXTO_ANTES_TABELA.sub(lambda m: '\n\n' + m.group(1), resposta, count=1)
+    anterior = None
+    while anterior != resposta:
+        anterior = resposta
+        resposta = _RE_LINHAS_TABELA_COLADAS.sub('|\n', resposta)
+    resposta = _RE_FIM_TABELA.sub('|\n\n', resposta)
+    return resposta
+
 
 def _normalizar_markdown(resposta: str) -> str:
     resposta = _RE_DOISPONTOS_PONTO.sub(':', resposta)
@@ -886,6 +917,7 @@ def _normalizar_markdown(resposta: str) -> str:
     resposta = re.sub(r'([^\n])\n(- )', r'\1\n\n\2', resposta)
     # Fecha ** não fechado no final de linha (modelo às vezes esquece o fechamento)
     resposta = re.sub(r'\*\*([^*\n]+)\n-\s\*\*', r'**\1**\n- ', resposta)
+    resposta = _normalizar_tabelas(resposta)
     return resposta
 
 
@@ -1249,6 +1281,74 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
     return resposta
 
 
+_PSEUDO_STREAM_DELAY_SEGUNDOS = 0.045  # ~4 palavras a cada 45ms ≈ ritmo de leitura confortável
+
+
+def _fatiar_para_pseudo_stream(texto: str, tamanho_grupo: int = 4):
+    """Divide texto já pronto em pedaços por grupos de palavras, preservando
+    espaços e quebras de linha — usado para simular a cadência do streaming
+    real do Ollama quando a resposta precisa ser gerada por completo antes de
+    ser exibida (ver _gerar_stream_com_fidelidade_numerica). Cada pedaço
+    inclui o espaço/quebra de linha que o precede, exceto o primeiro.
+
+    Inclui um pequeno atraso entre pedaços (time.sleep) — achado real,
+    31/ago/2026: sem ele, o gerador é consumido pela rede em milissegundos e
+    a resposta inteira "aparece de uma vez" na tela, exatamente o efeito que
+    esta função existe para evitar. O primeiro pedaço sai sem atraso (o
+    usuário já esperou o buffer completo ser gerado; não faz sentido atrasar
+    ainda mais o primeiro texto visível)."""
+    if not texto:
+        return
+    import time as _time
+    partes = re.split(r'(\s+)', texto)  # mantém os separadores como itens da lista
+    buffer = ''
+    contagem_palavras = 0
+    primeiro = True
+    for parte in partes:
+        buffer += parte
+        if parte.strip():
+            contagem_palavras += 1
+        if contagem_palavras >= tamanho_grupo and parte.strip():
+            if not primeiro:
+                _time.sleep(_PSEUDO_STREAM_DELAY_SEGUNDOS)
+            primeiro = False
+            yield buffer
+            buffer = ''
+            contagem_palavras = 0
+    if buffer:
+        if not primeiro:
+            _time.sleep(_PSEUDO_STREAM_DELAY_SEGUNDOS)
+        yield buffer
+
+
+def _gerar_stream_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, config: dict, contexto: list):
+    """Para Ollama sem 'mostrar_raciocinio': gera a resposta completa (não-
+    streaming, via _gerar_com_fidelidade_numerica — mesmo retry de fidelidade
+    numérica já usado por chat()) e re-emite em pedaços artificiais para
+    preservar o contrato de streaming que chat_stream()/frontend esperam.
+
+    Existe porque tem_lacuna_numerica() só é avaliável sobre o texto completo
+    — não há como detectar a assinatura estrutural da lacuna (regex 'de de'/
+    'nº.' truncado, ver critique.py) em um token isolado do stream real; um
+    usuário real já viu esse bug (números somem ao parafrasear contexto denso
+    em modelos locais pequenos) chegar à tela porque o retry síncrono de
+    chat() nunca era chamado no caminho de streaming. Trade-off aceito: perde
+    a latência de "primeiro token" do streaming real, mas Ollama já é local
+    (sem custo de rede por token) e o usuário já tolera esse tipo de espera
+    em geração de modelo pequeno.
+
+    Mesma lógica se aplica a _normalizar_markdown() (bullets "- **Tópico**:"
+    colados sem quebra de linha, achado real 31/ago/2026): ela só era chamada
+    em chat() síncrono, nunca em chat_stream(). Aplicada aqui, no texto
+    completo, antes do fatiamento — reprocessar markdown token a token não
+    seria possível (a assinatura de "bullet colado" só é visível olhando o
+    texto inteiro).
+    """
+    resposta = _gerar_com_fidelidade_numerica(provider, api_key, prompt, config, contexto)
+    resposta = _normalizar_markdown(resposta)
+    yield from _fatiar_para_pseudo_stream(resposta)
+
+
 # ── Compartilhado entre chat() e chat_stream() ────────────────────────────────
 # Formato de "fontes" citadas — a decisão de roteamento em si (rotear(),
 # Rota) vive em agent/router.py desde a Fase 0 da formalização
@@ -1418,7 +1518,20 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
 # ── Chat (streaming) ──────────────────────────────────────────────────────────
 
 def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None):
-    """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
+    """Yields chunks JSON: {'texto': ...} para cada pedaço de resposta, além
+    dos eventos de controle já existentes (fontes/thinking/alerta_recursos/
+    confianca_sentencas/done/error).
+
+    Achado real (30/ago/2026): chunks de texto já foram emitidos como texto
+    puro (não-JSON) — mas o router (router_agent.py::_gen) delimita mensagens
+    por '\\n', e o frontend faz buffer.split('\\n') pra separar eventos. Um
+    chunk de texto puro contendo '\\n' embutido (ex: tabela/bullets recém-
+    normalizados por _normalizar_markdown) quebrava em múltiplas "linhas"
+    falsas, e o '\\n' original se perdia ao reconstituir — tabela chegava
+    colada na tela mesmo com a normalização correta no backend. Envolver
+    sempre em JSON elimina a ambiguidade: o '\\n' fica protegido dentro da
+    string JSON, delimitação por linha volta a ser inequívoca.
+    """
     projetos_extras = projetos_extras or []
     config = carregar_config()
     if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') not in _PROVEDORES_SEM_CHAVE_OBRIGATORIA):
@@ -1444,7 +1557,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         resposta_calculo = responder_calculo(pergunta, idioma)
         if resposta_calculo is not None:
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
-            yield resposta_calculo
+            yield json.dumps({'texto': resposta_calculo})
             yield json.dumps({'done': True})
             return
 
@@ -1453,7 +1566,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         resposta_metadados = responder_metadados(pergunta, projeto_nome, projeto_prefixo, idioma)
         if resposta_metadados is not None:
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
-            yield resposta_metadados
+            yield json.dumps({'texto': resposta_metadados})
             yield json.dumps({'done': True})
             return
 
@@ -1496,7 +1609,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             config_s = carregar_config()
             resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
-            yield resposta_vazia
+            yield json.dumps({'texto': resposta_vazia})
             yield json.dumps({'done': True})
             return
         else:
@@ -1519,7 +1632,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 config_s = carregar_config()
                 resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
                 yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
-                yield resposta_vazia
+                yield json.dumps({'texto': resposta_vazia})
                 yield json.dumps({'done': True})
                 return
             prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo, persona_custom=persona_custom)
@@ -1549,86 +1662,100 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             # caber na mesma janela de contexto.
             num_predict = 2048 if mostrar_raciocinio else 512
             num_ctx     = 4096 if mostrar_raciocinio else 2048
-            with _req.post('http://localhost:11434/api/generate',
-                    json={
-                        'model':   modelo,
-                        'prompt':  prompt,
-                        'stream':  True,
-                        'think':   mostrar_raciocinio,
-                        'options': {
-                            'num_ctx':     num_ctx,
-                            'num_predict': num_predict,
-                            'num_thread':  8,
-                            'temperature': 0.3,
-                        },
-                    },
-                    stream=True, timeout=300) as r:
-                import time as _time
-                _ultimo_check_recursos = 0.0
-                _alerta_recursos_emitido = False
-                _teve_resposta = False
-                for line in r.iter_lines():
-                    if line:
-                        data = json.loads(line)
-                        # thinking chega separado de response — repassa como
-                        # controle JSON (mesmo padrão de 'fontes'/'done') pra
-                        # não confundir com texto puro da resposta final.
-                        pensando = data.get('thinking', '')
-                        if pensando:
-                            yield json.dumps({'thinking': pensando})
-                        chunk = data.get('response', '')
-                        if chunk:
-                            _teve_resposta = True
-                            yield chunk
-                        # Checagem throttled (a cada ~4s, não por linha) — no
-                        # máximo 1 alerta por resposta, pra não spammar o chat
-                        # numa geração longa que já está sob sobrecarga.
-                        if not _alerta_recursos_emitido:
-                            _agora = _time.time()
-                            if _agora - _ultimo_check_recursos >= 4:
-                                _ultimo_check_recursos = _agora
-                                _alerta = _checar_sobrecarga_recursos()
-                                if _alerta:
-                                    _alerta_recursos_emitido = True
-                                    yield json.dumps({'alerta_recursos': _alerta})
-                        if data.get('done'):
-                            break
 
-            # Modelos pequenos com thinking (ex.: qwen3:4b) às vezes "pensam"
-            # e terminam a geração sem nunca escrever a resposta em si — não é
-            # só estouro de num_predict, o modelo pode parar naturalmente logo
-            # depois do raciocínio. Repete a chamada sem think pra garantir uma
-            # resposta de verdade em vez de deixar o usuário só com o raciocínio.
-            if not _teve_resposta and mostrar_raciocinio:
+            if not mostrar_raciocinio:
+                # Buffer completo + retry de fidelidade numérica (achado real:
+                # usuário viu resposta com números apagados — o retry síncrono
+                # de _gerar_com_fidelidade_numerica() nunca rodava aqui porque
+                # o streaming real emitia token a token direto do Ollama, sem
+                # chance de detectar a lacuna antes de já estar na tela). Só
+                # se aplica quando NÃO há thinking — ver _gerar_stream_com_fidelidade_numerica.
+                _alerta = _checar_sobrecarga_recursos()
+                if _alerta:
+                    yield json.dumps({'alerta_recursos': _alerta})
+                for pedaco in _gerar_stream_com_fidelidade_numerica(provider, api_key, prompt, config, contexto):
+                    yield json.dumps({'texto': pedaco})
+            else:
                 with _req.post('http://localhost:11434/api/generate',
                         json={
                             'model':   modelo,
                             'prompt':  prompt,
                             'stream':  True,
-                            'think':   False,
+                            'think':   mostrar_raciocinio,
                             'options': {
-                                'num_ctx':     2048,
-                                'num_predict': 512,
+                                'num_ctx':     num_ctx,
+                                'num_predict': num_predict,
                                 'num_thread':  8,
                                 'temperature': 0.3,
                             },
                         },
-                        stream=True, timeout=300) as r2:
-                    for line in r2.iter_lines():
+                        stream=True, timeout=300) as r:
+                    import time as _time
+                    _ultimo_check_recursos = 0.0
+                    _alerta_recursos_emitido = False
+                    _teve_resposta = False
+                    for line in r.iter_lines():
                         if line:
-                            data2 = json.loads(line)
-                            chunk2 = data2.get('response', '')
-                            if chunk2:
-                                yield chunk2
-                            if data2.get('done'):
+                            data = json.loads(line)
+                            # thinking chega separado de response — repassa como
+                            # controle JSON (mesmo padrão de 'fontes'/'done') pra
+                            # não confundir com texto puro da resposta final.
+                            pensando = data.get('thinking', '')
+                            if pensando:
+                                yield json.dumps({'thinking': pensando})
+                            chunk = data.get('response', '')
+                            if chunk:
+                                _teve_resposta = True
+                                yield json.dumps({'texto': chunk})
+                            # Checagem throttled (a cada ~4s, não por linha) — no
+                            # máximo 1 alerta por resposta, pra não spammar o chat
+                            # numa geração longa que já está sob sobrecarga.
+                            if not _alerta_recursos_emitido:
+                                _agora = _time.time()
+                                if _agora - _ultimo_check_recursos >= 4:
+                                    _ultimo_check_recursos = _agora
+                                    _alerta = _checar_sobrecarga_recursos()
+                                    if _alerta:
+                                        _alerta_recursos_emitido = True
+                                        yield json.dumps({'alerta_recursos': _alerta})
+                            if data.get('done'):
                                 break
+
+                # Modelos pequenos com thinking (ex.: qwen3:4b) às vezes "pensam"
+                # e terminam a geração sem nunca escrever a resposta em si — não é
+                # só estouro de num_predict, o modelo pode parar naturalmente logo
+                # depois do raciocínio. Repete a chamada sem think pra garantir uma
+                # resposta de verdade em vez de deixar o usuário só com o raciocínio.
+                if not _teve_resposta:
+                    with _req.post('http://localhost:11434/api/generate',
+                            json={
+                                'model':   modelo,
+                                'prompt':  prompt,
+                                'stream':  True,
+                                'think':   False,
+                                'options': {
+                                    'num_ctx':     2048,
+                                    'num_predict': 512,
+                                    'num_thread':  8,
+                                    'temperature': 0.3,
+                                },
+                            },
+                            stream=True, timeout=300) as r2:
+                        for line in r2.iter_lines():
+                            if line:
+                                data2 = json.loads(line)
+                                chunk2 = data2.get('response', '')
+                                if chunk2:
+                                    yield json.dumps({'texto': chunk2})
+                                if data2.get('done'):
+                                    break
 
         elif provider in ('gemini', 'google'):
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
             if modelo:
                 for chunk in client.GenerativeModel(modelo).generate_content(prompt, stream=True):
                     if chunk.text:
-                        yield chunk.text
+                        yield json.dumps({'texto': chunk.text})
 
         elif provider in ('groq', 'openrouter', 'custom'):
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
@@ -1641,7 +1768,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             for chunk in stream:
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    yield delta
+                    yield json.dumps({'texto': delta})
 
         elif provider == 'openai':
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
@@ -1654,7 +1781,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             for chunk in stream:
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    yield delta
+                    yield json.dumps({'texto': delta})
 
         elif provider == 'anthropic':
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
@@ -1664,7 +1791,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 messages=[{'role': 'user', 'content': prompt}],
             ) as stream:
                 for text in stream.text_stream:
-                    yield text
+                    yield json.dumps({'texto': text})
 
     except Exception as e:
         yield json.dumps({'error': str(e)})
