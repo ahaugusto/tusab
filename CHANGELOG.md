@@ -7,6 +7,27 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.55] — 2026-08-30
+
+### Adicionado
+- **OpenRouter como novo provider de chat RAG** — mais uma opção de provedor pago/nuvem ao lado de Groq, OpenAI, Gemini e Anthropic.
+- **Design System documentado no repositório** (`docs/design-system/`) — tokens, tipografia, espaçamento, componentes canônicos e anti-padrões passam a ser a fonte de verdade versionada para qualquer mudança visual futura.
+- **Auditoria automatizada de acessibilidade (pa11y-ci) no CI** — roda a cada push/PR contra a tela inicial (light + dark), além da revisão manual já existente.
+- **Especialista pode ocultar o card de Estudo na tela inicial** — perfil configurável, card de Estudo não é essencial para todos os fluxos desse perfil; preferência persiste e é reversível a qualquer momento.
+
+### Alterado
+- **Armazenamento do índice de busca migrado de JSON para LanceDB** (beta) — o ranqueamento continua 100% BM25 em memória, só a camada de armazenamento em disco muda; sem impacto perceptível na qualidade das respostas.
+- **Cards "Conversar" e "Estudar" na tela inicial agora lado a lado, com a mesma altura.**
+
+### Corrigido
+- **Tabelas e listas com marcadores (`-`) geradas pelo assistente apareciam coladas, sem quebra de linha**, tanto na resposta final quanto durante a digitação — corrigido tanto na normalização do texto quanto no protocolo de streaming, que perdia as quebras de linha internas da resposta.
+- **Respostas do assistente com números e datas podiam "sumir" ao serem reformuladas** — corrigido o mesmo tipo de lacuna, aplicando a checagem de fidelidade numérica também durante a digitação da resposta.
+- **A resposta do assistente aparecia toda de uma vez, sem efeito de digitação**, e o balão de "carregando" ficava duplicado com o balão da resposta em construção — agora há só um balão, e o texto é exibido gradualmente enquanto é gerado.
+- **Selecionar uma segunda base de conhecimento no chat sem indexá-la primeiro** podia deixar o chat sem contexto algum — agora, ao marcar uma base ainda não indexada, a indexação é disparada automaticamente e o botão de confirmar espera terminar.
+- **Contraste insuficiente e foco de teclado ausente em textos e controles do chat e da tela inicial** (`Não indexado`, seletor de idioma, campo de URL de extração, botões da tela inicial) — corrigidos conforme WCAG AA, com um novo token de cor dedicado a botões para evitar a mesma classe de erro se repetir.
+
+---
+
 ## [1.0.54] — 2026-08-22
 
 ### Adicionado
