@@ -15,6 +15,7 @@ quando o bullet já vinha formatado como "- **Tópico**: ...".
 Sem chamada de rede real — _gerar_resposta_llm é mockado.
 """
 import importlib
+import json
 from unittest.mock import patch
 
 chat_mod = importlib.import_module("tusab_engine.agent.chat")
@@ -59,6 +60,45 @@ def test_normalizar_markdown_idempotente_em_texto_ja_bem_formatado():
     assert resultado == texto
 
 
+# ── Tabelas GFM coladas ────────────────────────────────────────────────────────
+# Achado real (31/ago/2026): mesmo padrão de bullets colados, mas em tabelas —
+# "| A | B || --- | --- || 1 | 2 |" sem quebra de linha entre as linhas da
+# tabela. remark-gfm exige cada linha em uma linha própria; sem isso vira
+# texto corrido com "|" literais em vez de tabela renderizada.
+
+def test_normalizar_markdown_separa_linhas_de_tabela_coladas():
+    texto = (
+        "Aqui estão os resultados:"
+        "| Dataset | RAG | Auxiliar |"
+        "| --- | --- | --- |"
+        "| COVID-19 | 74,3% | 92,1% |"
+        "| Notícias | 72,1% | 89,6% |"
+        "Os resultados mostram uma melhoria."
+    )
+    resultado = chat_mod._normalizar_markdown(texto)
+
+    linhas_tabela = [l for l in resultado.split('\n') if l.strip().startswith('|')]
+    assert len(linhas_tabela) == 4
+    assert linhas_tabela[0] == "| Dataset | RAG | Auxiliar |"
+    assert linhas_tabela[1] == "| --- | --- | --- |"
+    assert linhas_tabela[2] == "| COVID-19 | 74,3% | 92,1% |"
+    assert linhas_tabela[3] == "| Notícias | 72,1% | 89,6% |"
+    # Texto antes/depois da tabela permanece fora dela, separado por linha em branco
+    assert "resultados:\n\n|" in resultado
+    assert "89,6% |\n\nOs resultados" in resultado
+
+
+def test_normalizar_markdown_tabela_ja_formatada_e_idempotente():
+    texto = "Resultado:\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nFim."
+    assert chat_mod._normalizar_markdown(texto) == texto
+
+
+def test_normalizar_markdown_sem_pipe_nao_e_afetado():
+    texto = "- **Tópico**: valor sem barra vertical nenhuma no meio do texto."
+    resultado = chat_mod._normalizar_markdown(texto)
+    assert "|" not in resultado
+
+
 # ── Integração com o streaming ────────────────────────────────────────────────
 
 def test_gerar_stream_com_fidelidade_numerica_tambem_normaliza_bullets_colados():
@@ -74,3 +114,31 @@ def test_gerar_stream_com_fidelidade_numerica_tambem_normaliza_bullets_colados()
     texto_emitido = "".join(pedacos)
     assert "\n\n- **Segundo tópico**" in texto_emitido
     assert not texto_emitido.startswith("-\n")
+
+
+# ── Protocolo NDJSON do chat_stream() preserva '\n' embutido ──────────────────
+# Achado real (30/ago/2026): chat_stream() emitia pedaços de resposta como
+# TEXTO PURO (não-JSON). O router (router_agent.py::_gen) delimita mensagens
+# por '\n', e o frontend faz buffer.split('\n') pra separar eventos — um
+# chunk de texto puro com '\n' embutido (tabela/bullets já normalizados por
+# _normalizar_markdown) quebrava em "linhas" falsas, perdendo a quebra
+# original: a tabela chegava colada na tela mesmo com o backend corrigido.
+# Todo yield de texto em chat_stream() agora é json.dumps({'texto': ...}) —
+# o '\n' fica protegido dentro da string JSON.
+
+def test_chat_stream_calculo_emite_texto_como_json_preservando_quebra_de_linha():
+    texto_multilinha = "Resultado:\n\n| A | B |\n| --- | --- |\n| 1 | 2 |"
+
+    with patch.object(chat_mod, "responder_calculo", return_value=texto_multilinha), \
+         patch.object(chat_mod, "carregar_config", return_value={"provider": "ollama"}):
+        pedacos = list(chat_mod.chat_stream("quanto é 1+1", "ProjetoTeste"))
+
+    # Nenhum yield de texto pode ser a string crua — todos devem ser JSON válido.
+    textos_json = []
+    for p in pedacos:
+        obj = json.loads(p)  # levanta JSONDecodeError se algum yield voltar a ser texto puro
+        if "texto" in obj:
+            textos_json.append(obj["texto"])
+
+    assert "".join(textos_json) == texto_multilinha
+    assert "\n\n|" in "".join(textos_json)
