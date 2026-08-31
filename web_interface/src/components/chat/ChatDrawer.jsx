@@ -991,7 +991,18 @@ function ChatDrawer({
                 </div>
               ) : (
                 <>
-                  {chatMessages.map((msg, i) => (
+                  {chatMessages.map((msg, i) => {
+                    // Bolha do assistente totalmente vazia (nenhum texto e nenhum
+                    // thinking ainda) fica redundante com a bolha de "pensando"
+                    // abaixo (pontinhos + dica) — as duas apareciam juntas desde o
+                    // instante do envio, mostrando dois indicadores de "esperando"
+                    // ao mesmo tempo (achado real, 31/ago/2026). Não renderiza
+                    // nada aqui até chegar o primeiro texto/thinking real; a
+                    // mensagem passa a existir visualmente só quando tem conteúdo.
+                    if (msg.role === 'assistant' && msg.streaming && !msg.content && !msg.thinking) {
+                      return null;
+                    }
+                    return (
                     <div key={i} className={`flex ${msg.role === 'user' || msg.role === 'queued' ? 'justify-end' : 'justify-start'}`}>
                       {/* Mensagem de sistema (upload de anexo, re-indexação) */}
                       {msg.role === 'system' ? (
@@ -1406,15 +1417,26 @@ function ChatDrawer({
                       </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {/* Bolhas de "pensando" do Tusab (pontinhos + dica rotativa) ficam
                       redundantes quando o próprio modelo já está mostrando o
                       raciocínio dele — o bloco de raciocínio já cumpre esse papel
-                      de indicador de progresso. Suprime só quando a mensagem em
+                      de indicador de progresso. Suprime também assim que a bolha
+                      de resposta (abaixo) já tem texto real — achado real
+                      (31/ago/2026): com a resposta do Ollama bufferizada por
+                      completo antes de reemitir (ver _gerar_stream_com_fidelidade_numerica
+                      no backend), "chatLoading" fica true durante TODO o
+                      pseudo-streaming, não só até o primeiro token — as duas
+                      bolhas (esta e o cursor piscando da bolha de resposta)
+                      ficavam simultâneas do início ao fim da resposta, não só
+                      no instante inicial. Suprime só quando a mensagem em
                       streaming JÁ tem thinking chegando (não pelo toggle global —
                       um modelo sem thinking nativo com o toggle ligado não produz
                       nada, e nesse caso o loading genérico ainda precisa aparecer). */}
-                  {chatLoading && !chatMessages[chatMessages.length - 1]?.thinking && (
+                  {chatLoading
+                    && !chatMessages[chatMessages.length - 1]?.thinking
+                    && !chatMessages[chatMessages.length - 1]?.content && (
                     <div className="flex justify-start max-w-[85%]">
                       <div className={`px-4 py-3 rounded-2xl rounded-bl-sm border space-y-2 ${darkMode ? 'bg-white/8 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                         <div className="flex items-center gap-1.5">
