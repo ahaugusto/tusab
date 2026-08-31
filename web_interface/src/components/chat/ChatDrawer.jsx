@@ -2006,6 +2006,35 @@ function ChatDrawer({
                         : selecionado
                           ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
                           : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300';
+                // Marca a base (principal ou extra) e, se ela ainda não estiver
+                // indexada, dispara a indexação automaticamente — achado real
+                // (31/ago/2026): antes disso, uma base não-indexada podia ser
+                // marcada como se já fosse consultável, e ao desmarcar a
+                // principal ela era promovida a nova principal sem nunca ter
+                // conteúdo pra responder. Agora marcar = pedir indexação
+                // quando necessário; o botão Confirmar espera essa indexação
+                // terminar (ver bloco do rodapé, `algoIndexando`).
+                const marcarBase = (nomeBase, jaIndexado) => {
+                  const principal = projetoAtualAtivo;
+                  if (!principal) {
+                    baseModalDismissedRef.current = true;
+                    onSelectProjeto?.(nomeBase);
+                  } else {
+                    setProjetosExtras?.(prev => [...(prev || []), nomeBase]);
+                  }
+                  if (!jaIndexado) {
+                    setFilaStatusChat(prev => ({ ...prev, [nomeBase]: 'indexando' }));
+                    onIndexar?.([nomeBase], (nome, status) =>
+                      setFilaStatusChat(prev => ({ ...prev, [nome]: status }))
+                    ).then(() => {
+                      setTimeout(() => setFilaStatusChat(prev => {
+                        const { [nomeBase]: _omit, ...resto } = prev;
+                        return resto;
+                      }), 2000);
+                    });
+                  }
+                };
+
                 return (
                   <div key={base.nome}
                     onClick={() => {
@@ -2029,14 +2058,8 @@ function ChatDrawer({
                         setProjetosExtras?.(extras.filter(c => c !== base.nome));
                         return;
                       }
-                      // Não selecionada: se não há principal, vira a principal; senão vai para extras
-                      const principal = projetoAtualAtivo;
-                      if (!principal) {
-                        baseModalDismissedRef.current = true;
-                        onSelectProjeto?.(base.nome);
-                      } else {
-                        setProjetosExtras?.(prev => [...(prev || []), base.nome]);
-                      }
+                      // Não selecionada: marca (vira principal ou extra) e indexa se preciso
+                      marcarBase(base.nome, base.indexado);
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${emFila ? 'cursor-default' : 'cursor-pointer'} ${cardClass}`}>
                     {/* Avatar */}
@@ -2109,12 +2132,19 @@ function ChatDrawer({
                           onClick={e => {
                             e.stopPropagation();
                             if (isAtivo) {
-                              onSelectProjeto?.('');
-                              setProjetosExtras?.([]);
+                              const extras = projetosExtras || [];
+                              if (extras.length > 0) {
+                                const [novaP, ...restExtras] = extras;
+                                onSelectProjeto?.(novaP);
+                                setProjetosExtras?.(restExtras);
+                              } else {
+                                onSelectProjeto?.('');
+                                setProjetosExtras?.([]);
+                              }
+                            } else if (isExtra) {
+                              setProjetosExtras?.(prev => prev.filter(c => c !== base.nome));
                             } else {
-                              setProjetosExtras?.(prev =>
-                                isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
-                              );
+                              marcarBase(base.nome, base.indexado);
                             }
                           }}
                           className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 cursor-pointer
@@ -2134,6 +2164,13 @@ function ChatDrawer({
             {!agentStatus.indexing && todasBases.length > 0 && (() => {
               const nenhumaSelecionada = !projetoAtualAtivo && (projetosExtras || []).length === 0;
               const selecionadasNomes = [projetoAtualAtivo, ...(projetosExtras || [])].filter(Boolean);
+              // Base selecionada mas ainda não-indexada dispara indexação automática
+              // (ver marcarBase acima) — Confirmar espera terminar, pra não abrir o
+              // chat com uma base sem conteúdo pra consultar ainda.
+              const algoIndexando = selecionadasNomes.some(nome => {
+                const st = filaStatusChat[nome];
+                return st === 'indexando' || st === 'aguardando';
+              });
               return (
                 <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
                   {nenhumaSelecionada ? (
@@ -2152,8 +2189,10 @@ function ChatDrawer({
                   ) : (
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className={`text-[10px] font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {selecionadasNomes.length > 1 ? t('chat.bases_selected', { count: selecionadasNomes.length }) : t('chat.base_selected_one')}
+                        <p className={`text-[10px] font-semibold ${algoIndexando ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
+                          {algoIndexando
+                            ? t('chat.waiting_index_to_confirm')
+                            : selecionadasNomes.length > 1 ? t('chat.bases_selected', { count: selecionadasNomes.length }) : t('chat.base_selected_one')}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selecionadasNomes.map(nome => (
@@ -2177,8 +2216,10 @@ function ChatDrawer({
                           baseModalDismissedRef.current = true;
                           setShowBaseModal(false);
                         }}
-                        className="shrink-0 px-4 py-2 rounded-xl bg-primary-button text-white text-xs font-bold hover:bg-primary-button/90 transition-colors">
-                        {t('chat.confirm_bases')}
+                        disabled={algoIndexando}
+                        title={algoIndexando ? t('chat.waiting_index_to_confirm') : undefined}
+                        className="shrink-0 px-4 py-2 rounded-xl bg-primary-button text-white text-xs font-bold hover:bg-primary-button/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary-button">
+                        {algoIndexando ? <Loader2 size={12} className="animate-spin" /> : t('chat.confirm_bases')}
                       </button>
                     </div>
                   )}
