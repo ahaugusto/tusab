@@ -874,7 +874,11 @@ _RE_DOISPONTOS_PONTO    = re.compile(r':\s*\.')
 # "texto.- **Tópico**" ou "texto.**Tópico**" → quebra antes do bold (padrão Ollama)
 _RE_BOLD_COLADO         = re.compile(r'([.!?,;])\s*-?\s*(?=\*\*)', re.UNICODE)
 # "- **Tópico**: texto **OutroTópico**:" na mesma linha → quebra antes do segundo bold com ":"
-_RE_BOLD_INLINE         = re.compile(r'(?<=\S)\s+(?=\*\*[^*\n]+\*\*\s*:)', re.UNICODE)
+# Lookbehind exclui '-' (não só espaço): sem isso, um bullet já formatado como
+# "- **Tópico**: ..." batia de novo aqui (o '-' do próprio bullet conta como
+# não-espaço) e duplicava o marcador ("-\n- **Tópico**...") — achado real,
+# 31/ago/2026, resposta sobre Lei nº 14.344 saindo com "-\n\n- **Lei...**".
+_RE_BOLD_INLINE         = re.compile(r'(?<=[^\s\-])\s+(?=\*\*[^*\n]+\*\*\s*:)', re.UNICODE)
 
 def _normalizar_markdown(resposta: str) -> str:
     resposta = _RE_DOISPONTOS_PONTO.sub(':', resposta)
@@ -1287,8 +1291,16 @@ def _gerar_stream_com_fidelidade_numerica(provider: str, api_key: str, prompt: s
     a latência de "primeiro token" do streaming real, mas Ollama já é local
     (sem custo de rede por token) e o usuário já tolera esse tipo de espera
     em geração de modelo pequeno.
+
+    Mesma lógica se aplica a _normalizar_markdown() (bullets "- **Tópico**:"
+    colados sem quebra de linha, achado real 31/ago/2026): ela só era chamada
+    em chat() síncrono, nunca em chat_stream(). Aplicada aqui, no texto
+    completo, antes do fatiamento — reprocessar markdown token a token não
+    seria possível (a assinatura de "bullet colado" só é visível olhando o
+    texto inteiro).
     """
     resposta = _gerar_com_fidelidade_numerica(provider, api_key, prompt, config, contexto)
+    resposta = _normalizar_markdown(resposta)
     yield from _fatiar_para_pseudo_stream(resposta)
 
 
