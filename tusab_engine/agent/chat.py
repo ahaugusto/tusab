@@ -880,6 +880,33 @@ _RE_BOLD_COLADO         = re.compile(r'([.!?,;])\s*-?\s*(?=\*\*)', re.UNICODE)
 # 31/ago/2026, resposta sobre Lei nº 14.344 saindo com "-\n\n- **Lei...**".
 _RE_BOLD_INLINE         = re.compile(r'(?<=[^\s\-])\s+(?=\*\*[^*\n]+\*\*\s*:)', re.UNICODE)
 
+# Tabelas GFM coladas — mesmo padrão de bullets colados, mas em tabela: o
+# modelo gera "| A | B || --- | --- || 1 | 2 |" sem \n entre as linhas.
+# remark-gfm exige cada linha de tabela em uma linha própria pra reconhecer
+# como tabela; sem isso vira texto corrido com "|" literais na tela (achado
+# real, 31/ago/2026). Ordem de aplicação importa: 1) quebra dupla antes do
+# bloco de tabela cru (separa de texto normal antes dele); 2) quebra simples
+# entre linhas coladas ("|" que fecha uma célula e imediatamente abre outra);
+# 3) quebra dupla depois da última linha (separa de texto normal depois).
+_RE_TEXTO_ANTES_TABELA    = re.compile(r'(?<=[^\s|\n])(\|[^|\n]+\|)')
+_RE_LINHAS_TABELA_COLADAS = re.compile(r'\|(?=\|[^|\n]+\|)')
+_RE_FIM_TABELA            = re.compile(r'\|(?!\n)(?=[A-Za-zÀ-ú0-9])')
+
+
+def _normalizar_tabelas(resposta: str) -> str:
+    if '|' not in resposta:
+        return resposta
+    # Só a primeira ocorrência de bloco "| ... |" cru precisa da quebra dupla
+    # de abertura — as demais linhas já saem separadas pelo passo seguinte.
+    resposta = _RE_TEXTO_ANTES_TABELA.sub(lambda m: '\n\n' + m.group(1), resposta, count=1)
+    anterior = None
+    while anterior != resposta:
+        anterior = resposta
+        resposta = _RE_LINHAS_TABELA_COLADAS.sub('|\n', resposta)
+    resposta = _RE_FIM_TABELA.sub('|\n\n', resposta)
+    return resposta
+
+
 def _normalizar_markdown(resposta: str) -> str:
     resposta = _RE_DOISPONTOS_PONTO.sub(':', resposta)
     resposta = _RE_PONTUACAO_DUPLICADA.sub(r'\1', resposta)
@@ -890,6 +917,7 @@ def _normalizar_markdown(resposta: str) -> str:
     resposta = re.sub(r'([^\n])\n(- )', r'\1\n\n\2', resposta)
     # Fecha ** não fechado no final de linha (modelo às vezes esquece o fechamento)
     resposta = re.sub(r'\*\*([^*\n]+)\n-\s\*\*', r'**\1**\n- ', resposta)
+    resposta = _normalizar_tabelas(resposta)
     return resposta
 
 
@@ -1490,7 +1518,20 @@ def chat(pergunta: str, projeto_nome: str, historico: list = None, projetos_extr
 # ── Chat (streaming) ──────────────────────────────────────────────────────────
 
 def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projetos_extras: list = None, busca_ampla: bool = False, fontes_fixadas: list = None, perfil: str = '', trechos_fixados: list = None):
-    """Yields chunks de texto. Primeiro yield: JSON com fontes; demais: texto puro."""
+    """Yields chunks JSON: {'texto': ...} para cada pedaço de resposta, além
+    dos eventos de controle já existentes (fontes/thinking/alerta_recursos/
+    confianca_sentencas/done/error).
+
+    Achado real (30/ago/2026): chunks de texto já foram emitidos como texto
+    puro (não-JSON) — mas o router (router_agent.py::_gen) delimita mensagens
+    por '\\n', e o frontend faz buffer.split('\\n') pra separar eventos. Um
+    chunk de texto puro contendo '\\n' embutido (ex: tabela/bullets recém-
+    normalizados por _normalizar_markdown) quebrava em múltiplas "linhas"
+    falsas, e o '\\n' original se perdia ao reconstituir — tabela chegava
+    colada na tela mesmo com a normalização correta no backend. Envolver
+    sempre em JSON elimina a ambiguidade: o '\\n' fica protegido dentro da
+    string JSON, delimitação por linha volta a ser inequívoca.
+    """
     projetos_extras = projetos_extras or []
     config = carregar_config()
     if not config.get('provider') or (not _api_key_valida(config) and config.get('provider') not in _PROVEDORES_SEM_CHAVE_OBRIGATORIA):
@@ -1516,7 +1557,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         resposta_calculo = responder_calculo(pergunta, idioma)
         if resposta_calculo is not None:
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
-            yield resposta_calculo
+            yield json.dumps({'texto': resposta_calculo})
             yield json.dumps({'done': True})
             return
 
@@ -1525,7 +1566,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
         resposta_metadados = responder_metadados(pergunta, projeto_nome, projeto_prefixo, idioma)
         if resposta_metadados is not None:
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
-            yield resposta_metadados
+            yield json.dumps({'texto': resposta_metadados})
             yield json.dumps({'done': True})
             return
 
@@ -1568,7 +1609,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             config_s = carregar_config()
             resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
             yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': False})
-            yield resposta_vazia
+            yield json.dumps({'texto': resposta_vazia})
             yield json.dumps({'done': True})
             return
         else:
@@ -1591,7 +1632,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 config_s = carregar_config()
                 resposta_vazia = _responder_sem_contexto(pergunta, config_s, projeto_nome)
                 yield json.dumps({'fontes': [], 'done': False, 'sem_contexto': True})
-                yield resposta_vazia
+                yield json.dumps({'texto': resposta_vazia})
                 yield json.dumps({'done': True})
                 return
             prompt = _montar_prompt(pergunta, contexto, meta_canal, historico, busca_ampla, persona, idioma, projeto_prefixo=projeto_prefixo, persona_custom=persona_custom)
@@ -1633,7 +1674,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 if _alerta:
                     yield json.dumps({'alerta_recursos': _alerta})
                 for pedaco in _gerar_stream_com_fidelidade_numerica(provider, api_key, prompt, config, contexto):
-                    yield pedaco
+                    yield json.dumps({'texto': pedaco})
             else:
                 with _req.post('http://localhost:11434/api/generate',
                         json={
@@ -1665,7 +1706,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                             chunk = data.get('response', '')
                             if chunk:
                                 _teve_resposta = True
-                                yield chunk
+                                yield json.dumps({'texto': chunk})
                             # Checagem throttled (a cada ~4s, não por linha) — no
                             # máximo 1 alerta por resposta, pra não spammar o chat
                             # numa geração longa que já está sob sobrecarga.
@@ -1705,7 +1746,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                                 data2 = json.loads(line)
                                 chunk2 = data2.get('response', '')
                                 if chunk2:
-                                    yield chunk2
+                                    yield json.dumps({'texto': chunk2})
                                 if data2.get('done'):
                                     break
 
@@ -1714,7 +1755,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             if modelo:
                 for chunk in client.GenerativeModel(modelo).generate_content(prompt, stream=True):
                     if chunk.text:
-                        yield chunk.text
+                        yield json.dumps({'texto': chunk.text})
 
         elif provider in ('groq', 'openrouter', 'custom'):
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
@@ -1727,7 +1768,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             for chunk in stream:
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    yield delta
+                    yield json.dumps({'texto': delta})
 
         elif provider == 'openai':
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
@@ -1740,7 +1781,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
             for chunk in stream:
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    yield delta
+                    yield json.dumps({'texto': delta})
 
         elif provider == 'anthropic':
             client, modelo = _get_llm_client(provider, api_key, config, principal=True)
@@ -1750,7 +1791,7 @@ def chat_stream(pergunta: str, projeto_nome: str, historico: list = None, projet
                 messages=[{'role': 'user', 'content': prompt}],
             ) as stream:
                 for text in stream.text_stream:
-                    yield text
+                    yield json.dumps({'texto': text})
 
     except Exception as e:
         yield json.dumps({'error': str(e)})
