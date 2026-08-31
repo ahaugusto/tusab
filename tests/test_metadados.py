@@ -106,12 +106,16 @@ def test_responder_metadados_recencia_com_dado_real():
 
 
 def test_responder_metadados_indexacao_com_indice_real():
+    from tusab_engine.agent import lance_store
+    import time
+
     prefixo = 'proj_indexacao_real'
     _criar_projeto_com_csv(prefixo, n_sucesso=2)
     os.makedirs(INDEX_DIR, exist_ok=True)
-    idx_path = os.path.join(INDEX_DIR, f'{prefixo}_index.json')
-    with open(idx_path, 'w', encoding='utf-8') as f:
-        json.dump({'projeto_nome': prefixo, 'chunks': []}, f)
+    chunk = {"texto": "conteudo", "texto_original": "conteudo", "titulo": "t", "aba": "documento",
+             "data": "", "link": "", "tags": [], "descricao": "", "arquivo": "a.txt", "canal": prefixo}
+    assert lance_store.gravar_chunks(prefixo, [chunk])
+    lance_store.salvar_meta(prefixo, prefixo, int(time.time()))
 
     resposta = responder_metadados("quando essa base foi indexada?", prefixo, prefixo, "pt")
     assert resposta is not None

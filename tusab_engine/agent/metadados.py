@@ -23,7 +23,7 @@ import re
 import time
 
 from tusab_engine.storage import NEURAL_DIR, resumir_projetos_youtube
-from tusab_engine.agent.index import _index_path, _carregar_meta_canal
+from tusab_engine.agent.index import _carregar_meta_canal
 from tusab_engine.agent.calibration import _carregar_profile
 
 
@@ -127,12 +127,9 @@ def responder_metadados(pergunta: str, projeto_nome: str, projeto_prefixo: str, 
             return _template('recencia', idioma, projeto=projeto_nome, data=resumo['ultima_extracao'])
 
         if categoria == 'INDEXACAO':
-            idx_path = _index_path(projeto_prefixo)
-            if not os.path.exists(idx_path):
-                return None
-            try:
-                indexed_at = os.path.getmtime(idx_path)
-            except OSError:
+            from tusab_engine.agent import lance_store
+            indexed_at = lance_store.mtime(projeto_prefixo)
+            if indexed_at is None:
                 return None
             dias_atras = int((time.time() - indexed_at) // 86400)
             data_str = time.strftime('%d/%m/%Y %H:%M', time.localtime(indexed_at))

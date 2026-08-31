@@ -9,6 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress } from '../../services/api';
+import { BTN_FOCUS } from '../../constants';
 
 const EMBED_MODEL = 'nomic-embed-text';
 
@@ -23,7 +24,7 @@ function temModeloEmbedding(models) {
 // fluxo de escolha de modelo de chat. O backend só tem UM slot global de
 // progresso (state.ollama_pull_progress) — o filtro por data.model abaixo
 // evita que este card mostre progresso de um pull de modelo de chat alheio.
-export default function EmbeddingsStatus({ darkMode, ollamaStatus, setOllamaStatus, btnFocus = '' }) {
+export default function EmbeddingsStatus({ darkMode, ollamaStatus, setOllamaStatus, btnFocus = BTN_FOCUS }) {
   const { t } = useTranslation();
   const [pulling, setPulling] = React.useState(false);
   const [progress, setProgress] = React.useState(null);

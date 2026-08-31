@@ -35,18 +35,12 @@ def _fix_encoding(texto: str) -> str:
 def _gerar_perguntas_sugeridas(projeto_prefixo: str, n: int = 3) -> list:
     """Gera até n perguntas sugeridas a partir dos títulos dos chunks indexados."""
     import random
-    from tusab_engine.agent.index import _index_path
-    from tusab_engine.storage import INDEX_DIR
+    from tusab_engine.agent import lance_store
 
-    idx_path = _index_path(projeto_prefixo)
-    if not os.path.exists(idx_path):
+    chunks = lance_store.carregar_chunks(projeto_prefixo)
+    if not chunks:
         return []
     try:
-        with open(idx_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        chunks = data.get('chunks', [])
-        if not chunks:
-            return []
 
         # Extrai títulos únicos não vazios
         titulos = list({c['titulo'] for c in chunks if c.get('titulo') and len(c['titulo']) > 10})
@@ -357,13 +351,9 @@ def agent_base_summary():
             if total == 0:
                 continue
 
-            from tusab_engine.agent.index import _index_path
-            idx_path = _index_path(prefixo)
-            idx_mtime = None
-            try:
-                idx_mtime = int(os.path.getmtime(idx_path))
-            except OSError:
-                pass
+            from tusab_engine.agent import lance_store
+            idx_mtime_raw = lance_store.mtime(prefixo)
+            idx_mtime = int(idx_mtime_raw) if idx_mtime_raw else None
 
             nome_canal = next(
                 (n for n in canais_indexados if re.sub(r'[<>:"/\\|?*\s]', '_', n).strip('_') == prefixo),
@@ -1555,13 +1545,9 @@ def agent_canal_delete(projeto_nome: str):
     import re as _re
     projeto_prefixo = _re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
     agent_tusab._invalidar_cache(projeto_prefixo)
-    # Remove índice BM25 se existir
-    idx_path = agent_tusab._index_path(projeto_prefixo)
-    if os.path.exists(idx_path):
-        try:
-            os.remove(idx_path)
-        except Exception:
-            pass
+    # Remove tabela LanceDB (índice BM25/chunks) se existir
+    from tusab_engine.agent import lance_store
+    lance_store.remover_tabela(projeto_prefixo)
     # Remove banco FTS5 se existir
     from tusab_engine.agent.fts import _fts_path, _sanitizar_prefixo
     fts_path = _fts_path(projeto_prefixo)

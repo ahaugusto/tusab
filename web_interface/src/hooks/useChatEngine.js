@@ -210,6 +210,16 @@ export function useChatEngine({
               setChatMessages(prev => prev.map(m =>
                 m._streamId === streamId ? { role: 'error', content: parsed.error, modelo_lento: isModeloLento, erro_provider: isErroProvider } : m
               ));
+            } else if (parsed.texto !== undefined) {
+              // Achado real (30/ago/2026): chunks de resposta agora sempre
+              // chegam como {"texto": "..."} (backend não emite mais texto
+              // puro) — um '\n' embutido no chunk (tabela/bullets já
+              // normalizados) fica protegido dentro da string JSON, então
+              // buffer.split('\n') não o confunde com um delimitador de
+              // evento. Concatena direto, sem passar pelo catch de texto puro.
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, content: (m.content || '') + parsed.texto } : m
+              ));
             } else if (parsed.fontes !== undefined) {
               const fontes = parsed.fontes;
               const semCtx = !!parsed.sem_contexto;

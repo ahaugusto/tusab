@@ -1089,12 +1089,15 @@ def reset_total():
             except Exception:
                 pass
 
-    # 2. Índices BM25
+    # 2. Índices BM25 (LanceDB é diretório — .lancedb/ — os demais são arquivos)
     if os.path.exists(index_dir):
         for fname in os.listdir(index_dir):
             fpath = os.path.join(index_dir, fname)
             try:
-                os.remove(fpath)
+                if os.path.isdir(fpath):
+                    shutil.rmtree(fpath)
+                else:
+                    os.remove(fpath)
                 removidos["indices"] += 1
             except Exception:
                 pass
