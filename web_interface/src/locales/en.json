@@ -434,6 +434,7 @@
   "chat.confirm_bases": "Confirm",
   "chat.bases_selected": "{{count}} bases selected",
   "chat.base_selected_one": "1 base selected",
+  "chat.waiting_index_to_confirm": "Indexing selected base — wait to confirm",
   "chat.tone_btn_aria": "Configure response tone",
   "chat.tone_btn": "Tone",
   "chat.persona_modal_desc": "Choose how the assistant should communicate",
