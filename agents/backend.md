@@ -68,7 +68,7 @@ data/config/     ← agent_config.json, credentials.json, token.json
 - `_bm25_cache: dict` + `_bm25_lock (threading.Lock)` — evita dupla reconstrução quando dois chats usam o mesmo canal
 - Chunking de docs com overlap: janelas de 2.000 chars com 200 chars de overlap
 - Corpus: YouTube (`neural/{prefixo}/youtube/`) + docs + textos + legado (`neural/youtube/`)
-- **BM25S descartado** (jun/2026): 7x mais lento para 500 docs; próximo passo é LanceDB (Sprint 5)
+- **BM25S descartado** (jun/2026): 7x mais lento para 500 docs; armazenamento migrado para LanceDB em P5 (v1.0.55, beta) — algoritmo de ranking continua `rank_bm25`
 
 ### tusab_engine/agent/chat.py
 - Pipeline: `_expandir_query` → `_recuperar_contexto` (BM25 lookup) → reranking CrossEncoder → `_montar_prompt` → LLM → `_verificar_alucinacao`
@@ -104,7 +104,7 @@ data/config/     ← agent_config.json, credentials.json, token.json
 
 ## Roadmap técnico — o que vem pela frente
 
-**Atualizado em 28/ago/2026 — a tabela abaixo listava itens já entregues como pendentes.** Confira sempre `CHANGELOG.md` antes de propor reimplementar algo daqui.
+**Atualizado em 30/ago/2026 — a tabela abaixo listava itens já entregues como pendentes.** Confira sempre `CHANGELOG.md` antes de propor reimplementar algo daqui.
 
 | Sprint | Feature | Status |
 |--------|---------|--------|
@@ -114,11 +114,12 @@ data/config/     ← agent_config.json, credentials.json, token.json
 | P1 | RAG híbrido (BM25 + embedding Ollama) | ✅ Entregue (v1.0.49) — `tusab_engine/agent/embeddings.py`, `nomic-embed-text` |
 | P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 — timestamp clicável (`&t=${ts}`) + "Ver trecho original" em `ChatDrawer.jsx` |
 | P2 | Scheduler de auto-update de canais | ✅ Entregue desde v1.0.10 — `tusab_engine/scheduler.py` |
-| **P5** | **LanceDB** (substitui `rank_bm25` + pkl) | **🔵 Próxima prioridade real, não implementada.** Benchmark real já feito (jul/2026, ver `agents/_historia.md`): ~12x mais rápido em append incremental a 10k chunks; `create_fts_index()` do plano original está deprecada, API atual é `tbl.create_index(coluna, config=FTS())`. Pelo menos um projeto de usuário real já passou de 10k chunks num único `BM25Okapi` — acima do limite confortável de <5k documentado nesta mesma seção |
-| — | GraphRAG | Descartado por baixa densidade relacional do corpus — mas a premissa está desatualizada: fontes públicas recentes (`crossref.py`, `europepmc.py`) já carregam DOI/citação, sem parsing de relação implementado ainda. Experimento aberto (Graphify, 30/jul/2026) nunca teve resultado registrado — fechar isso antes de reabrir a discussão |
+| P5 | **LanceDB** (substitui pkl como armazenamento; `rank_bm25` continua o ranking) | ✅ Entregue (v1.0.55, beta) — `tusab_engine/agent/lance_store.py`. ~12x mais rápido em append incremental medido (jul/2026, ver `agents/_historia.md`). Decisão deliberada: troca só onde os chunks vivem em disco, não o algoritmo de busca — FTS nativo do LanceDB avaliado e não adotado, para não arriscar divergência do scoring já tunado (boost de título 5x, KeyBERT, corte por lacuna relativa) |
+| **—** | **GraphRAG (produto genérico)** | Descartado por baixa densidade relacional do corpus — mas a premissa está desatualizada: fontes públicas recentes (`crossref.py`, `europepmc.py`) já carregam DOI/citação, sem parsing de relação implementado ainda. Experimento aberto (Graphify, 30/jul/2026) é ferramenta de dev tooling sobre o próprio código-fonte do Tusab, não sobre corpus de usuário — não responde nada sobre esta linha, apesar de ter sido citado por engano numa consulta anterior. Fechar essa lacuna (parsing de DOI→grafo) antes de reabrir a discussão geral |
+| **—** | **GraphRAG opt-in — base curada do Especialista** | 🔵 Hipótese registrada, **condicional a validação, sem código ainda** (30/ago/2026, ver `agents/_historia.md`). Terceiro eixo de reabertura, distinto do genérico acima: base pequena mas curada manualmente (não corpus bruto) pode ter densidade relacional real suficiente. Ganho de acurácia só existe para pergunta multi-hop relacional (conectar fato A de doc X com fato B de doc Y) — para recuperação direta, BM25/embeddings já resolvem e o ganho é indiferente. Não implementar sem antes: (1) medir densidade relacional real em bases de Especialista reais (DOI compartilhado, overlap de entidades), (2) medir proporção de perguntas multi-hop vs. diretas nos logs de chat desse perfil. NetworkX em memória (não Neo4j) é a rota técnica viável se validado |
 
 **Tendências que o backend deve antecipar:**
-- LanceDB como padrão de facto para RAG local (Rust + Arrow, incremental, sem servidor) — é a próxima migração real, ver P5 acima
+- LanceDB como padrão de facto para RAG local (Rust + Arrow, incremental, sem servidor) — armazenamento já migrado (P5, v1.0.55 beta); avaliar promoção de beta pra padrão definitivo conforme validação em uso real
 - MCP como protocolo dominante de integração entre agentes e fontes de dados — `mcp_server.py` já implementado; expandir tools (`add_document`, `get_chunk_by_id`) conforme o protocolo amadurece
 - Ollama ganhando novos modelos de embedding semanalmente — polling `GET /api/tags` já existe; backend deve listar e sugerir automaticamente
 
