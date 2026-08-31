@@ -31,6 +31,7 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 | `/implantacao-b2b` | Engenheiro de Implantação B2B | build variant institucional, licenciamento offline, silent install/GPO, EDR, LTS |
 | `/dev-b2b` | Engenheiro de Desenvolvimento B2B | features enterprise no código: licença offline, feature flags, auditoria, permissões por base |
 | `/produto-b2b` | Product Manager B2B | roadmap da edição institucional, escopo mínimo vendável, priorização por contrato |
+| `/investidor` | Investidor Anjo / Analista de Mercado | avaliar viabilidade de negócio com frieza, TAM/SAM/SOM, tendências e concorrência |
 | `/memoria` | Memória Institucional | "isso já foi tentado?", "por que X foi descartado?", "quais invariantes não podem ser violados?" |
 | `/memoria-atualizar` | Atualização da Memória | após cada release ou decisão relevante — propõe adições ao `_historia.md` para aprovação |
 | `/roadmap-sincronizar` | Sincronização de Roadmap | após feature entregue/removida/reordenada — corrige o status desatualizado nas tabelas de roadmap de `agents/*.md` (não confundir com `_historia.md`, que é memória histórica, não status corrente) |
@@ -39,6 +40,8 @@ Slash commands disponíveis nesta sessão — cada um carrega o contexto do espe
 Os prompts completos ficam em [`agents/`](agents/) e são referenciados pelos comandos em [`.claude/commands/`](.claude/commands/).
 
 **Base de memória compartilhada:** [`agents/_historia.md`](agents/_historia.md) — todos os agentes injetam este arquivo como contexto histórico. Contém: experimentos que falharam (com versão e motivo), padrões que funcionaram, decisões estratégicas permanentes e invariantes técnicas.
+
+**Triagem de agentes:** [`agents/_triagem.md`](agents/_triagem.md) — quando uma tarefa chega em linguagem natural (sem `/comando` explícito) e mais de um agente poderia se aplicar, este arquivo documenta o processo de decidir qual(is) especialista(s) acionar. Modelo: a triagem é decidida e só informada (nunca pausa pedindo aprovação de "qual agente usar"), a execução roda autônoma, e o único ponto de aval humano obrigatório é quando nenhum agente existente cobre o domínio da tarefa — aí sim perguntar antes de criar um agente novo (decisão de investimento de longo prazo, não de execução pontual).
 
 **Documentação pública:** site em [docs-site/](docs-site/) (Docusaurus, publicado em https://ahaugusto.github.io/tusab/ via `.github/workflows/deploy-docs.yml` a cada push em `main` que toque `docs-site/**`). **Sempre que uma sessão terminar um trabalho que muda comportamento visível ao usuário** (feature nova, mudança de UI, correção de bug perceptível, nova versão no `CHANGELOG.md`) — rode `/documentacao` antes de considerar o trabalho fechado, do mesmo jeito que `/memoria-atualizar` roda após decisões relevantes. Mudanças puramente internas (refactor sem mudança de comportamento, testes, CI) não precisam.
 
