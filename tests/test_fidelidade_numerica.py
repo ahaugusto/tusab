@@ -128,6 +128,30 @@ def test_fatiar_para_pseudo_stream_texto_curto_gera_um_pedaco():
     assert pedacos[0] == texto
 
 
+def test_fatiar_para_pseudo_stream_espera_entre_pedacos_mas_nao_antes_do_primeiro():
+    """Achado real (31/ago/2026): sem atraso entre pedaços, o gerador é
+    consumido pela rede em milissegundos e a resposta 'aparece de uma vez'
+    em vez de parecer sendo digitada — exatamente o efeito que o pseudo-
+    stream deveria evitar. time.sleep mockado para não gastar tempo real
+    de execução da suíte."""
+    texto = " ".join(f"palavra{i}" for i in range(12))  # 3 pedaços de 4 palavras
+    with patch("time.sleep") as mock_sleep:
+        pedacos = list(chat_mod._fatiar_para_pseudo_stream(texto))
+
+    assert len(pedacos) == 3
+    # 2 esperas entre os 3 pedaços — nunca antes do primeiro
+    assert mock_sleep.call_count == 2
+    for chamada in mock_sleep.call_args_list:
+        assert chamada.args[0] == chat_mod._PSEUDO_STREAM_DELAY_SEGUNDOS
+
+
+def test_fatiar_para_pseudo_stream_texto_com_um_pedaco_nao_espera():
+    texto = "Oi tudo bem"
+    with patch("time.sleep") as mock_sleep:
+        list(chat_mod._fatiar_para_pseudo_stream(texto, tamanho_grupo=10))
+    mock_sleep.assert_not_called()
+
+
 # ── _gerar_stream_com_fidelidade_numerica ─────────────────────────────────────
 
 def test_gerar_stream_com_fidelidade_numerica_corrige_lacuna_antes_de_emitir():

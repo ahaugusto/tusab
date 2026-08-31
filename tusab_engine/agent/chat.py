@@ -1253,26 +1253,43 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
     return resposta
 
 
+_PSEUDO_STREAM_DELAY_SEGUNDOS = 0.045  # ~4 palavras a cada 45ms ≈ ritmo de leitura confortável
+
+
 def _fatiar_para_pseudo_stream(texto: str, tamanho_grupo: int = 4):
     """Divide texto já pronto em pedaços por grupos de palavras, preservando
     espaços e quebras de linha — usado para simular a cadência do streaming
     real do Ollama quando a resposta precisa ser gerada por completo antes de
     ser exibida (ver _gerar_stream_com_fidelidade_numerica). Cada pedaço
-    inclui o espaço/quebra de linha que o precede, exceto o primeiro."""
+    inclui o espaço/quebra de linha que o precede, exceto o primeiro.
+
+    Inclui um pequeno atraso entre pedaços (time.sleep) — achado real,
+    31/ago/2026: sem ele, o gerador é consumido pela rede em milissegundos e
+    a resposta inteira "aparece de uma vez" na tela, exatamente o efeito que
+    esta função existe para evitar. O primeiro pedaço sai sem atraso (o
+    usuário já esperou o buffer completo ser gerado; não faz sentido atrasar
+    ainda mais o primeiro texto visível)."""
     if not texto:
         return
+    import time as _time
     partes = re.split(r'(\s+)', texto)  # mantém os separadores como itens da lista
     buffer = ''
     contagem_palavras = 0
+    primeiro = True
     for parte in partes:
         buffer += parte
         if parte.strip():
             contagem_palavras += 1
         if contagem_palavras >= tamanho_grupo and parte.strip():
+            if not primeiro:
+                _time.sleep(_PSEUDO_STREAM_DELAY_SEGUNDOS)
+            primeiro = False
             yield buffer
             buffer = ''
             contagem_palavras = 0
     if buffer:
+        if not primeiro:
+            _time.sleep(_PSEUDO_STREAM_DELAY_SEGUNDOS)
         yield buffer
 
 
