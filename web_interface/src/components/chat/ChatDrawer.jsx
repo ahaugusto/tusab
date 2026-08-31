@@ -16,6 +16,7 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
 import { localeFor } from '../../utils/locale';
+import { BTN_FOCUS } from '../../constants';
 
 // ─── Loading phrases ─────────────────────────────────────────────────────────
 export const LOADING_PHRASES = [
@@ -681,14 +682,14 @@ function ChatDrawer({
       })()}
       {/* Busca Ampla toggle */}
       <div className="flex items-center gap-1 shrink-0">
-        <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
+        <span className={`text-[10px] font-medium ${buscaAmpla ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-500' : 'text-slate-500')}`}>
           {buscaAmpla ? t('chat.search_broad_label') : t('chat.search_restricted_label')}
         </span>
         <button
           role="switch"
           aria-checked={buscaAmpla}
           onClick={() => setBuscaAmpla(v => !v)}
-          className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
+          className={`relative shrink-0 inline-flex h-5 w-9 rounded-full transition-colors duration-200 ${BTN_FOCUS} ${buscaAmpla ? 'bg-accent' : darkMode ? 'bg-white/15' : 'bg-slate-200'}`}>
           <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${buscaAmpla ? 'translate-x-4' : 'translate-x-0'}`} />
         </button>
         <button
@@ -990,7 +991,18 @@ function ChatDrawer({
                 </div>
               ) : (
                 <>
-                  {chatMessages.map((msg, i) => (
+                  {chatMessages.map((msg, i) => {
+                    // Bolha do assistente totalmente vazia (nenhum texto e nenhum
+                    // thinking ainda) fica redundante com a bolha de "pensando"
+                    // abaixo (pontinhos + dica) — as duas apareciam juntas desde o
+                    // instante do envio, mostrando dois indicadores de "esperando"
+                    // ao mesmo tempo (achado real, 31/ago/2026). Não renderiza
+                    // nada aqui até chegar o primeiro texto/thinking real; a
+                    // mensagem passa a existir visualmente só quando tem conteúdo.
+                    if (msg.role === 'assistant' && msg.streaming && !msg.content && !msg.thinking) {
+                      return null;
+                    }
+                    return (
                     <div key={i} className={`flex ${msg.role === 'user' || msg.role === 'queued' ? 'justify-end' : 'justify-start'}`}>
                       {/* Mensagem de sistema (upload de anexo, re-indexação) */}
                       {msg.role === 'system' ? (
@@ -1405,15 +1417,26 @@ function ChatDrawer({
                       </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {/* Bolhas de "pensando" do Tusab (pontinhos + dica rotativa) ficam
                       redundantes quando o próprio modelo já está mostrando o
                       raciocínio dele — o bloco de raciocínio já cumpre esse papel
-                      de indicador de progresso. Suprime só quando a mensagem em
+                      de indicador de progresso. Suprime também assim que a bolha
+                      de resposta (abaixo) já tem texto real — achado real
+                      (31/ago/2026): com a resposta do Ollama bufferizada por
+                      completo antes de reemitir (ver _gerar_stream_com_fidelidade_numerica
+                      no backend), "chatLoading" fica true durante TODO o
+                      pseudo-streaming, não só até o primeiro token — as duas
+                      bolhas (esta e o cursor piscando da bolha de resposta)
+                      ficavam simultâneas do início ao fim da resposta, não só
+                      no instante inicial. Suprime só quando a mensagem em
                       streaming JÁ tem thinking chegando (não pelo toggle global —
                       um modelo sem thinking nativo com o toggle ligado não produz
                       nada, e nesse caso o loading genérico ainda precisa aparecer). */}
-                  {chatLoading && !chatMessages[chatMessages.length - 1]?.thinking && (
+                  {chatLoading
+                    && !chatMessages[chatMessages.length - 1]?.thinking
+                    && !chatMessages[chatMessages.length - 1]?.content && (
                     <div className="flex justify-start max-w-[85%]">
                       <div className={`px-4 py-3 rounded-2xl rounded-bl-sm border space-y-2 ${darkMode ? 'bg-white/8 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                         <div className="flex items-center gap-1.5">
@@ -1596,7 +1619,7 @@ function ChatDrawer({
         <button
           onClick={onSend}
           disabled={!chatHabilitado || !chatInput.trim() || ollamaSemModelo}
-          className="p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+          className={`p-2.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0 ${BTN_FOCUS}`}
           aria-label={t('assistente.send')}>
           <Send size={13} />
         </button>
@@ -1948,7 +1971,7 @@ function ChatDrawer({
               </button>
               <div className="flex-1 min-w-0">
                 <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('chat.base_modal_title')}</h3>
-                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{t('chat.base_modal_desc')}</p>
+                <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('chat.base_modal_desc')}</p>
               </div>
             </div>
 
@@ -2005,6 +2028,35 @@ function ChatDrawer({
                         : selecionado
                           ? darkMode ? 'bg-primary/15 border-primary/40' : 'bg-violet-50 border-violet-300'
                           : darkMode ? 'bg-white/4 border-white/10 hover:border-white/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300';
+                // Marca a base (principal ou extra) e, se ela ainda não estiver
+                // indexada, dispara a indexação automaticamente — achado real
+                // (31/ago/2026): antes disso, uma base não-indexada podia ser
+                // marcada como se já fosse consultável, e ao desmarcar a
+                // principal ela era promovida a nova principal sem nunca ter
+                // conteúdo pra responder. Agora marcar = pedir indexação
+                // quando necessário; o botão Confirmar espera essa indexação
+                // terminar (ver bloco do rodapé, `algoIndexando`).
+                const marcarBase = (nomeBase, jaIndexado) => {
+                  const principal = projetoAtualAtivo;
+                  if (!principal) {
+                    baseModalDismissedRef.current = true;
+                    onSelectProjeto?.(nomeBase);
+                  } else {
+                    setProjetosExtras?.(prev => [...(prev || []), nomeBase]);
+                  }
+                  if (!jaIndexado) {
+                    setFilaStatusChat(prev => ({ ...prev, [nomeBase]: 'indexando' }));
+                    onIndexar?.([nomeBase], (nome, status) =>
+                      setFilaStatusChat(prev => ({ ...prev, [nome]: status }))
+                    ).then(() => {
+                      setTimeout(() => setFilaStatusChat(prev => {
+                        const { [nomeBase]: _omit, ...resto } = prev;
+                        return resto;
+                      }), 2000);
+                    });
+                  }
+                };
+
                 return (
                   <div key={base.nome}
                     onClick={() => {
@@ -2028,14 +2080,8 @@ function ChatDrawer({
                         setProjetosExtras?.(extras.filter(c => c !== base.nome));
                         return;
                       }
-                      // Não selecionada: se não há principal, vira a principal; senão vai para extras
-                      const principal = projetoAtualAtivo;
-                      if (!principal) {
-                        baseModalDismissedRef.current = true;
-                        onSelectProjeto?.(base.nome);
-                      } else {
-                        setProjetosExtras?.(prev => [...(prev || []), base.nome]);
-                      }
+                      // Não selecionada: marca (vira principal ou extra) e indexa se preciso
+                      marcarBase(base.nome, base.indexado);
                     }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${emFila ? 'cursor-default' : 'cursor-pointer'} ${cardClass}`}>
                     {/* Avatar */}
@@ -2080,7 +2126,7 @@ function ChatDrawer({
                           )}
                         </div>
                       ) : (
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{t('chat.not_indexed')}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-600' : 'text-slate-500'}`}>{t('chat.not_indexed')}</p>
                       )}
                     </div>
                     {/* Ações — ocultas durante fila */}
@@ -2108,12 +2154,19 @@ function ChatDrawer({
                           onClick={e => {
                             e.stopPropagation();
                             if (isAtivo) {
-                              onSelectProjeto?.('');
-                              setProjetosExtras?.([]);
+                              const extras = projetosExtras || [];
+                              if (extras.length > 0) {
+                                const [novaP, ...restExtras] = extras;
+                                onSelectProjeto?.(novaP);
+                                setProjetosExtras?.(restExtras);
+                              } else {
+                                onSelectProjeto?.('');
+                                setProjetosExtras?.([]);
+                              }
+                            } else if (isExtra) {
+                              setProjetosExtras?.(prev => prev.filter(c => c !== base.nome));
                             } else {
-                              setProjetosExtras?.(prev =>
-                                isExtra ? prev.filter(c => c !== base.nome) : [...prev, base.nome]
-                              );
+                              marcarBase(base.nome, base.indexado);
                             }
                           }}
                           className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 cursor-pointer
@@ -2133,6 +2186,13 @@ function ChatDrawer({
             {!agentStatus.indexing && todasBases.length > 0 && (() => {
               const nenhumaSelecionada = !projetoAtualAtivo && (projetosExtras || []).length === 0;
               const selecionadasNomes = [projetoAtualAtivo, ...(projetosExtras || [])].filter(Boolean);
+              // Base selecionada mas ainda não-indexada dispara indexação automática
+              // (ver marcarBase acima) — Confirmar espera terminar, pra não abrir o
+              // chat com uma base sem conteúdo pra consultar ainda.
+              const algoIndexando = selecionadasNomes.some(nome => {
+                const st = filaStatusChat[nome];
+                return st === 'indexando' || st === 'aguardando';
+              });
               return (
                 <div className={`px-4 py-3 border-t shrink-0 ${darkMode ? 'border-white/10 bg-white/3' : 'border-slate-100 bg-slate-50'}`}>
                   {nenhumaSelecionada ? (
@@ -2151,8 +2211,10 @@ function ChatDrawer({
                   ) : (
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className={`text-[10px] font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {selecionadasNomes.length > 1 ? t('chat.bases_selected', { count: selecionadasNomes.length }) : t('chat.base_selected_one')}
+                        <p className={`text-[10px] font-semibold ${algoIndexando ? (darkMode ? 'text-accent' : 'text-cyan-600') : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
+                          {algoIndexando
+                            ? t('chat.waiting_index_to_confirm')
+                            : selecionadasNomes.length > 1 ? t('chat.bases_selected', { count: selecionadasNomes.length }) : t('chat.base_selected_one')}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selecionadasNomes.map(nome => (
@@ -2176,8 +2238,10 @@ function ChatDrawer({
                           baseModalDismissedRef.current = true;
                           setShowBaseModal(false);
                         }}
-                        className="shrink-0 px-4 py-2 rounded-xl bg-primary-button text-white text-xs font-bold hover:bg-primary-button/90 transition-colors">
-                        {t('chat.confirm_bases')}
+                        disabled={algoIndexando}
+                        title={algoIndexando ? t('chat.waiting_index_to_confirm') : undefined}
+                        className="shrink-0 px-4 py-2 rounded-xl bg-primary-button text-white text-xs font-bold hover:bg-primary-button/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary-button">
+                        {algoIndexando ? <Loader2 size={12} className="animate-spin" /> : t('chat.confirm_bases')}
                       </button>
                     </div>
                   )}
@@ -2221,7 +2285,7 @@ function ChatDrawer({
                     )}
                   </div>
                   {agentStatus.index_progress?.total > 0 && (
-                    <p className={`text-[10px] text-center -mt-1.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] text-center -mt-1.5 shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                       {t('chat.indexing_progress_count', {
                         processed: agentStatus.index_progress.processed,
                         total: agentStatus.index_progress.total,
@@ -2233,9 +2297,9 @@ function ChatDrawer({
                       ${darkMode ? 'bg-black/30' : 'bg-slate-50 border border-slate-100'}`}>
                       {[...(agentStatus.index_logs || [])].reverse().map((log, i) => (
                         <p key={i} className={`text-[10px] font-mono leading-relaxed ${
-                          i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-400'
+                          i === 0 ? darkMode ? 'text-accent' : 'text-cyan-700' : darkMode ? 'text-slate-500' : 'text-slate-500'
                         }`}>
-                          <span className={`mr-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>{log.timestamp}</span>
+                          <span className={`mr-1.5 ${darkMode ? 'text-slate-600' : 'text-slate-500'}`}>{log.timestamp}</span>
                           {log.message}
                         </p>
                       ))}

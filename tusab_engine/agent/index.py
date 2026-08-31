@@ -2,10 +2,16 @@
 """
 Indexação BM25 local — sem dependência de chave de API.
 
+[BETA — branch feature/lancedb-beta] Chunks são persistidos via lance_store.py
+(LanceDB, armazenamento columnar) em vez de {prefixo}_index.json. O ranking
+continua 100% BM25Okapi em memória (rank_bm25) — LanceDB troca só onde os
+chunks vivem em disco, não o algoritmo de busca. Ver lance_store.py para o
+raciocínio completo da decisão de escopo.
+
 Responsabilidades:
   - _parsear_chunks / _parsear_todos_chunks : lê corpus do cerebro
   - _enriquecer_documento                  : prepara tokens para BM25
-  - indexar()                              : constrói e persiste o índice
+  - indexar()                              : constrói e persiste o índice (LanceDB)
   - _recuperar_... / cache                 : gerencia _bm25_cache com lock
   - get_agent_status()                     : snapshot do estado do agente
 """
@@ -42,6 +48,10 @@ def _get_canal_doc_dirs(prefixo: str) -> list:
 
 
 def _index_path(projeto_prefixo: str) -> str:
+    """[LEGADO — beta LanceDB] Não é mais usado por indexar()/_carregar_projeto_cache
+    (ver lance_store.py). Mantido só porque _get_agent_status_uncached() ainda
+    varre INDEX_DIR por '*_index.json' pra listar canais indexados — ver TODO
+    nessa função sobre migrar a listagem pra '*.lancedb'."""
     return os.path.join(INDEX_DIR, f"{projeto_prefixo}_index.json")
 
 
@@ -158,23 +168,21 @@ def _get_agent_status_uncached() -> dict:
 
     if os.path.exists(INDEX_DIR):
         for fname in os.listdir(INDEX_DIR):
-            if fname.endswith('_index.json'):
-                fpath = os.path.join(INDEX_DIR, fname)
+            if fname.endswith('.lancedb'):
+                prefixo = fname[:-len('.lancedb')]
                 try:
-                    with open(fpath, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    chunks = data.get('chunks', [])
-                    if not isinstance(chunks, list):
-                        raise ValueError("chunks inválidos")
-                    # 'projeto_nome' é o campo atual; 'canal_nome' é lido como fallback
-                    # pra índices gerados antes da migração de nomenclatura (29/jul/2026)
-                    # — sem isso, projetos já indexados perderiam o nome de exibição
-                    # até serem reindexados.
-                    nome  = data.get('projeto_nome', data.get('canal_nome', fname.replace('_index.json', '')))
+                    from tusab_engine.agent import lance_store
+                    chunks = lance_store.carregar_chunks(prefixo)
+                    if chunks is None:
+                        raise ValueError("tabela LanceDB vazia ou corrompida")
+                    # Nome de exibição: sidecar {prefixo}.lancedb_meta.json guarda o
+                    # 'projeto_nome' original (pode ter espaços/acentos que o prefixo
+                    # sanitizado não preserva) — ver lance_store.salvar_meta(), chamado
+                    # por indexar() logo após gravar a tabela.
+                    meta = lance_store.carregar_meta(prefixo)
+                    nome = meta.get('projeto_nome') or prefixo
                     count = len(chunks)
-                    indexed_at = data.get('indexed_at', None)
-                    # Conta arquivos fonte para detectar índices órfãos
-                    prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', nome).strip('_')
+                    indexed_at = meta.get('indexed_at')
                     import glob as _glob
                     # Conta todos os .txt em neural/{prefixo}/youtube/** (qualquer subcanal)
                     youtube_base = os.path.join(NEURAL_DIR, prefixo, 'youtube')
@@ -190,13 +198,12 @@ def _get_agent_status_uncached() -> dict:
                     canais_indexados.append({'nome': nome, 'chunks': count, 'arquivo': fname, 'indexed_at': indexed_at, 'n_arquivos_fonte': n_fonte, 'embeddings_disponivel': embeddings_disponivel})
                     if nome == projeto_nome:
                         index_count = count
-                except (json.JSONDecodeError, ValueError):
-                    # Índice corrompido (JSON inválido) — remove e invalida cache
+                except ValueError:
+                    # Tabela corrompida/vazia — remove e invalida cache
                     try:
-                        os.remove(fpath)
-                        canal_corrompido = fname.replace('_index.json', '')
-                        _invalidar_cache(canal_corrompido)
-                        indices_corrompidos.append(canal_corrompido)
+                        lance_store.remover_tabela(prefixo)
+                        _invalidar_cache(prefixo)
+                        indices_corrompidos.append(prefixo)
                     except Exception:
                         pass
                 except Exception:
@@ -213,10 +220,10 @@ def _get_agent_status_uncached() -> dict:
     novos_desde_indexacao = 0
     if projeto_nome and os.path.exists(INDEX_DIR):
         try:
+            from tusab_engine.agent import lance_store
             projeto_prefixo = re.sub(r'[<>:"/\\|?*\s]', '_', projeto_nome).strip('_')
-            idx_path = _index_path(projeto_prefixo)
-            if os.path.exists(idx_path):
-                idx_mtime = os.path.getmtime(idx_path)
+            idx_mtime = lance_store.mtime(projeto_prefixo)
+            if idx_mtime:
                 # Nova estrutura: varrer todos os subcanais de neural/{projeto}/youtube/
                 youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
                 dirs_a_verificar = []
@@ -859,14 +866,17 @@ def indexar(projeto_nome: str, projeto_prefixo: str, callback=None, stop_event=N
         raise ValueError(f"Nenhum conteúdo encontrado para '{projeto_prefixo}'. Faça a extração ou adicione documentos.")
         return 0
 
-    if callback: callback(f"📦 {len(chunks)} chunks encontrados. Salvando índice local...")
+    if callback: callback(f"📦 {len(chunks)} chunks encontrados. Salvando índice local (LanceDB)...")
 
     os.makedirs(INDEX_DIR, exist_ok=True)
     import time as _time
-    # Campo 'projeto_nome' (não mais 'canal_nome') — ver leitura retrocompatível
-    # em _get_agent_status_uncached() acima, que ainda aceita o campo legado
-    # pra índices gerados antes de 29/jul/2026.
-    salvar_json_atomico({'projeto_nome': projeto_nome, 'chunks': chunks, 'indexed_at': int(_time.time())}, _index_path(projeto_prefixo))
+    from tusab_engine.agent import lance_store
+    if not lance_store.gravar_chunks(projeto_prefixo, chunks):
+        raise RuntimeError(
+            "Não foi possível salvar o índice (LanceDB indisponível ou falha de escrita em disco). "
+            "Verifique se a dependência 'lancedb' está instalada e se há espaço em disco."
+        )
+    lance_store.salvar_meta(projeto_prefixo, projeto_nome, int(_time.time()))
 
     if callback: callback("🗄️ Construindo índice FTS5 para busca exata...")
     try:
