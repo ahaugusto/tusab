@@ -7,6 +7,19 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.56] — 2026-09-02
+
+### Corrigido
+- **Auditoria automatizada de acessibilidade (pa11y-ci) falhando no CI** desde a integração em v1.0.55 — o runner do GitHub Actions passou a bloquear o sandbox padrão do navegador usado na verificação; corrigido sem reduzir a cobertura da auditoria.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- Esteira de release ganhou automação: PRs de patch de dependências (Dependabot) com testes verdes agora fazem merge sozinhos; releases passam a sair automaticamente quando há mudanças pendentes documentadas, sem depender de alguém lembrar de gerar a versão manualmente.
+- Cada release passa a listar os PRs/commits técnicos que a compõem, complementando as notas já existentes.
+- Avaliação e descarte formal (com teste comparativo real) de trocar o algoritmo de busca por uma alternativa nativa do armazenamento adotado em v1.0.55 — mantido o algoritmo atual por ter se mostrado mais preciso na prática.
+- Registro de uma possível evolução futura de busca (conectar informações entre diferentes documentos de uma mesma base) para avaliação em versões futuras, sem compromisso de prazo.
+
+---
+
 ## [1.0.55] — 2026-08-30
 
 ### Adicionado
