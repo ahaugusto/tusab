@@ -80,6 +80,7 @@ O histórico de conversa é mantido no servidor (`state.chat_histories`), limita
 |----------|--------------|-------|-------------------|
 | Ollama (padrão) | llama3.2:1b | Grátis | Não |
 | Groq | llama-3.1-8b-instant | Camada gratuita | Sim |
+| OpenRouter | meta-llama/llama-3.3-70b-instruct:free (configurável) | Camada gratuita | Sim |
 | OpenAI | gpt-4o-mini | Pago | Sim |
 | Anthropic | claude-haiku-4-5 (auxiliar) / claude-sonnet-4-6 (resposta principal) | Pago | Sim |
 | Google Gemini | gemini-1.5-flash | Pago | Sim |

@@ -68,6 +68,7 @@ Conversation history is kept on the server (`state.chat_histories`), limited to 
 |----------|--------------|-------|-------------------|
 | Ollama (default) | llama3.2:1b | Free | No |
 | Groq | llama-3.1-8b-instant | Free tier | Yes |
+| OpenRouter | meta-llama/llama-3.3-70b-instruct:free (configurable) | Free tier | Yes |
 | OpenAI | gpt-4o-mini | Paid | Yes |
 | Anthropic | claude-haiku-4-5 (auxiliary) / claude-sonnet-4-6 (main answer) | Paid | Yes |
 | Google Gemini | gemini-1.5-flash | Paid | Yes |

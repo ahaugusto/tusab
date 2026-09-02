@@ -11,6 +11,10 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 ## Destaques recentes
 
+**v1.0.56 (2026-09-02)** — Correção da auditoria automatizada de acessibilidade no CI, que estava falhando desde a v1.0.55.
+
+**v1.0.55 (2026-08-30)** — OpenRouter como novo provedor de chat gratuito; armazenamento do índice de busca migrado para LanceDB (ranqueamento continua BM25, sem mudança perceptível na qualidade das respostas); Especialista pode ocultar o card de Estudo na tela inicial; tabelas e listas do assistente não aparecem mais coladas na tela; melhorias de contraste e foco de teclado.
+
 **v1.0.54 (2026-08-22)** — 👎 no chat agora tem efeito real: acumula um contador por projeto que amplia a busca em vez de só descartar a resposta.
 
 **v1.0.53 (2026-08-14)** — Atalhos de teclado com `⌘` (Cmd) no macOS; modal de flashcard salvo abre a experiência de revisão completa (virar carta, avaliar); fix de busca do chat que ignorava o termo real da pergunta em bases com muito texto formal; barra de progresso de indexação granular por arquivo com cancelamento funcional; correções de chat expandido, checkbox e i18n.
