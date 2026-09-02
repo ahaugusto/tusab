@@ -1,0 +1,116 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Release automática agrupada: em vez de disparar a cada push (caro — build
+# macOS de notarização real leva ~1h, ver release.yml) ou depender só de
+# alguém lembrar de taggear manualmente, este workflow roda semanalmente e
+# só cria uma tag nova SE (a) houver commits novos em main desde a última
+# tag E (b) já existir uma entrada correspondente em CHANGELOG.md — ou seja,
+# o CHANGELOG continua 100% curado à mão; isto só automatiza o "empacotar em
+# tag e publicar", nunca o "decidir o que vale a pena documentar".
+#
+# Se as condições não forem atendidas, o job termina cedo sem criar nada —
+# rodar em vão não gasta minutos de macOS/Windows (o release.yml só é
+# disparado de fato quando a tag é criada e empurrada).
+
+name: Auto-release semanal
+
+on:
+  schedule:
+    # Segunda 09:00 BRT (12:00 UTC) — depois da janela do Dependabot
+    # (dependabot.yml roda toda segunda também, sem horário fixo documentado
+    # pelo GitHub; folga de algumas horas é aceitável, o gate real é CI verde)
+    - cron: '0 12 * * 1'
+  workflow_dispatch: {}   # disparo manual pra antecipar uma release fora do ciclo
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    name: Verificar pendências e criar tag
+    runs-on: ubuntu-latest
+    steps:
+      # GITHUB_TOKEN padrão não dispara outros workflows quando usado pra dar
+      # push/tag (limitação deliberada do GitHub, evita loop de Action
+      # disparando Action) — sem isso, a tag seria criada mas release.yml
+      # NUNCA rodaria, quebrando o propósito inteiro deste workflow em
+      # silêncio. Mesmo RELEASE_PAT (PAT real) já usado em release.yml pelo
+      # mesmo motivo (ver comentário lá, job build-windows).
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # precisa do histórico completo pra git describe/git log
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Configurar git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Checar se há commits pendentes desde a última tag
+        id: pending
+        run: |
+          ULTIMA_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')
+          echo "ultima-tag=$ULTIMA_TAG" >> "$GITHUB_OUTPUT"
+          PENDENTES=$(git log "$ULTIMA_TAG"..HEAD --oneline | wc -l)
+          echo "Última tag: $ULTIMA_TAG — commits pendentes: $PENDENTES"
+          if [ "$PENDENTES" -eq 0 ]; then
+            echo "tem-pendencia=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tem-pendencia=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Calcular próxima versão (patch-only, ver agents/_historia.md)
+        if: steps.pending.outputs.tem-pendencia == 'true'
+        id: versao
+        run: |
+          ULTIMA="${{ steps.pending.outputs.ultima-tag }}"
+          SEM_V="${ULTIMA#v}"
+          PATCH_ATUAL="${SEM_V##*.}"
+          BASE="${SEM_V%.*}"
+          PROXIMA="${BASE}.$((PATCH_ATUAL + 1))"
+          echo "proxima=$PROXIMA" >> "$GITHUB_OUTPUT"
+          echo "Próxima versão: $PROXIMA"
+
+      # Gate real desta automação: nunca cria release sem CHANGELOG.md
+      # correspondente já escrito por alguém. Se a entrada não existir, o job
+      # falha com mensagem clara em vez de taggear uma versão sem notas —
+      # preserva a curadoria manual como pré-requisito, não como formalidade.
+      - name: Exigir entrada correspondente em CHANGELOG.md
+        if: steps.pending.outputs.tem-pendencia == 'true'
+        run: |
+          VERSAO="${{ steps.versao.outputs.proxima }}"
+          if ! grep -q "^## \[$VERSAO\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md não tem entrada para a versão $VERSAO ainda."
+            echo "::error::Adicione '## [$VERSAO] — $(date +%Y-%m-%d)' com as mudanças desta leva antes que a próxima execução deste workflow possa taggear."
+            exit 1
+          fi
+          echo "CHANGELOG.md já tem entrada para $VERSAO — prosseguindo."
+
+      # release.yml já sincroniza electron/package.json a partir da tag na hora
+      # de buildar (nenhum build depende deste passo) — isto é só pra manter
+      # main consistente entre uma release e outra, sem ficar mostrando a
+      # versão antiga pra quem abrir o arquivo no meio do caminho.
+      - name: Sincronizar electron/package.json e commitar
+        if: steps.pending.outputs.tem-pendencia == 'true'
+        run: |
+          VERSAO="${{ steps.versao.outputs.proxima }}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('electron/package.json', 'utf8'));
+            pkg.version = '$VERSAO';
+            fs.writeFileSync('electron/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          git add electron/package.json
+          git commit -m "chore(release): v$VERSAO"
+          git push origin main
+
+      - name: Criar e enviar tag
+        if: steps.pending.outputs.tem-pendencia == 'true'
+        run: |
+          VERSAO="${{ steps.versao.outputs.proxima }}"
+          git tag -a "v$VERSAO" -m "v$VERSAO"
+          git push origin "v$VERSAO"

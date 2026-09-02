@@ -1,0 +1,25 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Categorização das release notes geradas nativamente pelo GitHub
+# (POST /repos/.../releases/generate-notes). Usado só como seção anexada
+# e colapsável no final do corpo da release — o corpo principal continua
+# sendo o CHANGELOG.md curado à mão via scripts/generate-release-notes.js.
+# Ver agents/_historia.md para o porquê dessa separação.
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Dependências
+      labels: [dependencies]
+    - title: Backend
+      labels: [backend]
+    - title: Frontend
+      labels: [frontend]
+    - title: Electron / Empacotamento
+      labels: [electron]
+    - title: CI/Infra
+      labels: [ci]
+    - title: Outros
+      labels: ["*"]
