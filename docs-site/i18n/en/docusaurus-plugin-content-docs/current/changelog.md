@@ -11,6 +11,10 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.56 (2026-09-02)** — Fixed the automated accessibility audit in CI, which had been failing since v1.0.55.
+
+**v1.0.55 (2026-08-30)** — OpenRouter as a new free chat provider; search index storage migrated to LanceDB (ranking is still BM25, no perceptible change in answer quality); Especialista profile can hide the Study Mode card on the home screen; tables and lists in assistant replies no longer render glued together on screen; contrast and keyboard focus improvements.
+
 **v1.0.54 (2026-08-22)** — Thumbs-down in chat now has a real effect: it accumulates a per-project counter that widens the search instead of just discarding the response.
 
 **v1.0.53 (2026-08-14)** — Keyboard shortcuts with `⌘` (Cmd) on macOS; a saved flashcard modal now opens the full review experience (flip card, rate); fixed a chat search bug that ignored the actual question term in bases with a lot of formal text; per-file indexing progress with working cancellation; fixes to the expanded chat, a checkbox, and i18n.

@@ -57,6 +57,7 @@ Full access — includes system monitoring and administration. Aimed at business
 **Differences from Researcher:**
 - **Monitor** panel — real-time system status (extraction ETA, resource usage)
 - Automatic recognition of legal documents (petitions, contracts, opinions)
+- Can hide the Study Mode card on the home screen — a persisted, reversible preference for those who don't use flashcards/summaries day to day
 
 **Full reset** (complete base wipe — a global hard reset, not per-project) is available to every profile, in the Admin tab.
 
