@@ -2,20 +2,19 @@
 """
 LanceDB — armazenamento columnar dos chunks indexados (substitui {prefixo}_index.json).
 
-[BETA — branch feature/lancedb-beta] Sem usuários reais em produção ainda: esta
-versão troca o backend de armazenamento DIRETO, sem migração de dado legado nem
-fallback para o JSON antigo. Se a beta for descartada, esta branch é descartada
-inteira — não há caminho de retrocompatibilidade a manter.
+Arquitetura definitiva desde v1.0.55: troca o backend de armazenamento DIRETO,
+sem migração de dado legado nem fallback para o JSON antigo.
 
 Responsabilidade: só armazenamento. O ranking continua 100% BM25Okapi (rank_bm25,
 Python, em memória) — chat.py::_carregar_projeto_cache lê os chunks desta tabela
-em vez do JSON e reconstrói o BM25Okapi exatamente como antes. Decisão deliberada
-(ver `agents/backend.md`/discussão de escopo): o FTS nativo do LanceDB
-(`tbl.search(query, query_type='fts')`) NÃO é usado aqui — trocaria o algoritmo de
-scoring que já está tunado em produção (boost de título 5x, KeyBERT, corte por
-lacuna relativa em chat.py) por um novo, sem o mesmo histórico de ajuste. Ganho
-real desta migração: append incremental sem reescrever o corpus inteiro, leitura
-columnar (mmap) em vez de carregar um JSON gigante pra RAM a cada rebuild de cache.
+em vez do JSON e reconstrói o BM25Okapi exatamente como antes. Decisão validada
+com benchmark real de qualidade (01-02/set/2026, ver `agents/_historia.md`): o
+FTS nativo do LanceDB (`tbl.search(query, query_type='fts')`) foi testado contra
+20 perguntas reais e perdeu em título exato (8/11 vs 10/11 do BM25 atual) sem
+ganhar em paráfrase (0/6 em ambos) — não usar aqui não é cautela teórica, é
+resultado medido. Ganho real desta migração de armazenamento: append incremental
+sem reescrever o corpus inteiro, leitura columnar (mmap) em vez de carregar um
+JSON gigante pra RAM a cada rebuild de cache.
 
 Armazenamento: data/agent_index/{prefixo}.lancedb/ (diretório — dataset Lance).
 Escrita atômica: grava em {prefixo}.lancedb.tmp e promove via os.replace() do
