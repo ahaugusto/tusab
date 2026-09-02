@@ -57,6 +57,7 @@ Acesso completo — inclui monitoramento do sistema e administração. Voltado a
 **Diferenciais em relação ao Pesquisador:**
 - Painel **Monitor** — status do sistema em tempo real (ETA de extração, uso de recursos)
 - Reconhecimento automático de documentos jurídicos (petição, contrato, parecer)
+- Pode ocultar o card de Modo Estudo na tela inicial — preferência persistida e reversível a qualquer momento, útil para quem não usa flashcards/resumos no dia a dia
 
 **Reset total** (limpeza completa da base — hard-reset global, não por projeto) está disponível para todos os perfis, na aba Admin.
 

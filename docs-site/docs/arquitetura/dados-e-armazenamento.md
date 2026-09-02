@@ -25,10 +25,14 @@ data/neural/{projeto}/
   estudo/        artefatos do Modo Estudo + áudio cacheado
   management/    CSVs de gestão, summary.json, README, relatório
 
-data/indexes/    índices BM25 serializados por projeto ({prefixo}_index.json)
-data/config/     agent_config.json, credentials.json, token.json, keystore.json
-data/temp/       VTTs temporários (removidos automaticamente)
+data/agent_index/  chunks indexados por projeto ({prefixo}.lancedb/) — armazenamento colunar
+data/config/       agent_config.json, credentials.json, token.json, keystore.json
+data/temp/         VTTs temporários (removidos automaticamente)
 ```
+
+:::info Armazenamento e ranqueamento são coisas diferentes
+Desde a v1.0.55, os chunks indexados são armazenados em formato colunar (LanceDB) em vez de um arquivo `.json` único por projeto — ganho de ~12x em indexação incremental, sem precisar recarregar o índice inteiro na memória a cada atualização. O algoritmo que decide qual trecho responde sua pergunta continua sendo BM25 em memória (ver [Decisões técnicas](/arquitetura/decisoes-tecnicas)): a mudança foi deliberadamente só de armazenamento, não de ranqueamento — testado formalmente e mantido assim depois de um benchmark real mostrar que a alternativa nativa do LanceDB perdia precisão exatamente onde o Tusab é mais forte hoje.
+:::
 
 ## Naming de projetos
 
