@@ -1,0 +1,60 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Auto-merge condicional de PRs do Dependabot: só patch, nunca minor/major,
+# e nunca dependências do empacotamento Electron (mesmo em patch) — ver
+# tabela de risco abaixo. Requer branch protection em main com required
+# status checks (Backend (pytest), Frontend (vite build)) já configurada,
+# senão isto mergearia sem esperar o CI terminar.
+#
+# Trigger é `pull_request` comum, não `pull_request_target` — PRs abertos
+# pelo Dependabot já rodam com GITHUB_TOKEN somente leitura por padrão do
+# GitHub (mudança de 2021), e o approve/merge aqui usa apenas permissão de
+# escrita em PR/conteúdo, nunca secrets de build. `pull_request_target`
+# rodaria com o contexto do branch base mesmo pra PR externo — desnecessário
+# e pior postura de segurança pra este caso.
+#
+# Risco específico deste projeto (app desktop assinado): o release.yml só
+# builda o instalador de verdade na tag — ci.yml nunca testa electron-builder
+# nem o processo de assinatura/notarização. Um patch quebrado em dependência
+# de empacotamento passaria no CI comum e só quebraria na hora do release,
+# tarde demais. Por isso todo o grupo "npm electron" fica fora do auto-merge,
+# não só o próprio pacote `electron` (que o dependabot.yml já exclui em major).
+
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Metadados do Dependabot
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Aprovar automaticamente
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Só patch, e nunca no diretório electron/ (empacotamento/assinatura) —
+      # esse diretório fica só aprovado automaticamente acima, merge continua
+      # manual pra qualquer dependência dele, patch ou não.
+      - name: Habilitar auto-merge (somente patch, fora do empacotamento Electron)
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' &&
+          steps.metadata.outputs.directory != '/electron'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

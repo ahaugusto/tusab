@@ -41,6 +41,21 @@ macOS Intel não é suportado. Ignore os arquivos \`.blockmap\` e \`.yml\` — s
 
 const rodape = '\n\n---\n\nVer [CHANGELOG.md](https://github.com/ahaugusto/tusab/blob/main/CHANGELOG.md) para o historico completo.';
 
+// Seção opcional anexada ao final: PRs/commits desta versão, gerados pela API
+// nativa do GitHub (releases/generate-notes) e categorizados por label via
+// .github/release.yml. O workflow release.yml grava isso em auto_notes.md
+// ANTES de chamar este script -- se o arquivo não existir (execução manual,
+// local, ou a chamada à API falhar), a seção some sem quebrar nada. Fica
+// deliberadamente colapsada (<details>) para não competir com o CHANGELOG.md
+// curado à mão, que continua sendo o corpo principal da release.
+function lerNotasAutomaticas() {
+  const autoPath = path.join(repoRoot, 'auto_notes.md');
+  if (!fs.existsSync(autoPath)) return '';
+  const conteudo = fs.readFileSync(autoPath, 'utf8').trim();
+  if (!conteudo) return '';
+  return `\n\n<details>\n<summary>PRs e commits incluídos nesta versão</summary>\n\n${conteudo}\n\n</details>`;
+}
+
 // Seção "### Interno (...)" é conteúdo de desenvolvimento (CI, infra,
 // processo) sem valor pra quem baixa o app -- fica documentada no
 // CHANGELOG.md do repo, mas nunca vai pro corpo da release publicada.
@@ -49,15 +64,17 @@ function removerSecaoInterna(corpo) {
   return corpo.replace(/### Interno\b[^\n]*\n[\s\S]*?(?=\n### |\n---|$)/, '').trim();
 }
 
+const notasAutomaticas = lerNotasAutomaticas();
+
 let notas;
 if (!headerMatch) {
-  notas = cabecalho + `_Notas de versao nao encontradas no CHANGELOG.md para ${version}._${rodape}`;
+  notas = cabecalho + `_Notas de versao nao encontradas no CHANGELOG.md para ${version}._${rodape}${notasAutomaticas}`;
 } else {
   const start = headerMatch.index + headerMatch[0].length;
   const resto = changelog.slice(start);
   const proximoMatch = /\n## \[|\n---/.exec(resto);
   const corpo = proximoMatch ? resto.slice(0, proximoMatch.index) : resto;
-  notas = cabecalho + removerSecaoInterna(corpo.trim()) + rodape;
+  notas = cabecalho + removerSecaoInterna(corpo.trim()) + rodape + notasAutomaticas;
 }
 
 const outPath = path.join(repoRoot, 'release_notes.md');
