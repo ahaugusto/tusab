@@ -104,7 +104,7 @@ data/config/     ← agent_config.json, credentials.json, token.json
 
 ## Roadmap técnico — o que vem pela frente
 
-**Atualizado em 30/ago/2026 — a tabela abaixo listava itens já entregues como pendentes.** Confira sempre `CHANGELOG.md` antes de propor reimplementar algo daqui.
+**Atualizado em 02/set/2026 — a tabela abaixo listava itens já entregues como pendentes.** Confira sempre `CHANGELOG.md` antes de propor reimplementar algo daqui.
 
 | Sprint | Feature | Status |
 |--------|---------|--------|
@@ -114,12 +114,12 @@ data/config/     ← agent_config.json, credentials.json, token.json
 | P1 | RAG híbrido (BM25 + embedding Ollama) | ✅ Entregue (v1.0.49) — `tusab_engine/agent/embeddings.py`, `nomic-embed-text` |
 | P1-b | Citações navegáveis | ✅ Entregue desde v1.0.10 — timestamp clicável (`&t=${ts}`) + "Ver trecho original" em `ChatDrawer.jsx` |
 | P2 | Scheduler de auto-update de canais | ✅ Entregue desde v1.0.10 — `tusab_engine/scheduler.py` |
-| P5 | **LanceDB** (substitui pkl como armazenamento; `rank_bm25` continua o ranking) | ✅ Entregue (v1.0.55, beta) — `tusab_engine/agent/lance_store.py`. ~12x mais rápido em append incremental medido (jul/2026, ver `agents/_historia.md`). Decisão deliberada: troca só onde os chunks vivem em disco, não o algoritmo de busca — FTS nativo do LanceDB avaliado e não adotado, para não arriscar divergência do scoring já tunado (boost de título 5x, KeyBERT, corte por lacuna relativa) |
+| P5 | **LanceDB** (armazenamento; `rank_bm25` é o ranking definitivo) | ✅ **Entregue e definitivo** (v1.0.55) — `tusab_engine/agent/lance_store.py`. ~12x mais rápido em append incremental medido (jul/2026). Migração de ranking para FTS nativo do LanceDB **avaliada com benchmark real de qualidade (01-02/set/2026, ver `agents/_historia.md`) e descartada**: FTS nativo perdeu em título exato (8/11 vs 10/11 do BM25 atual) sem ganhar em paráfrase (0/6 em ambos) — trade-off líquido negativo, não incerto. Arquitetura fecha aqui: LanceDB só armazenamento, BM25Okapi só ranking, sem etapa pendente |
 | **—** | **GraphRAG (produto genérico)** | Descartado por baixa densidade relacional do corpus — mas a premissa está desatualizada: fontes públicas recentes (`crossref.py`, `europepmc.py`) já carregam DOI/citação, sem parsing de relação implementado ainda. Experimento aberto (Graphify, 30/jul/2026) é ferramenta de dev tooling sobre o próprio código-fonte do Tusab, não sobre corpus de usuário — não responde nada sobre esta linha, apesar de ter sido citado por engano numa consulta anterior. Fechar essa lacuna (parsing de DOI→grafo) antes de reabrir a discussão geral |
 | **—** | **GraphRAG opt-in — base curada do Especialista** | 🔵 Hipótese registrada, **condicional a validação, sem código ainda** (30/ago/2026, ver `agents/_historia.md`). Terceiro eixo de reabertura, distinto do genérico acima: base pequena mas curada manualmente (não corpus bruto) pode ter densidade relacional real suficiente. Ganho de acurácia só existe para pergunta multi-hop relacional (conectar fato A de doc X com fato B de doc Y) — para recuperação direta, BM25/embeddings já resolvem e o ganho é indiferente. Não implementar sem antes: (1) medir densidade relacional real em bases de Especialista reais (DOI compartilhado, overlap de entidades), (2) medir proporção de perguntas multi-hop vs. diretas nos logs de chat desse perfil. NetworkX em memória (não Neo4j) é a rota técnica viável se validado |
 
 **Tendências que o backend deve antecipar:**
-- LanceDB como padrão de facto para RAG local (Rust + Arrow, incremental, sem servidor) — armazenamento já migrado (P5, v1.0.55 beta); avaliar promoção de beta pra padrão definitivo conforme validação em uso real
+- LanceDB como padrão de facto de armazenamento pra RAG local (Rust + Arrow, incremental, sem servidor) — migração completa e definitiva (P5, v1.0.55). Ranking permanece BM25Okapi por decisão validada com benchmark real, não repropor migração de ranking sem evidência nova (ver `agents/_historia.md`)
 - MCP como protocolo dominante de integração entre agentes e fontes de dados — `mcp_server.py` já implementado; expandir tools (`add_document`, `get_chunk_by_id`) conforme o protocolo amadurece
 - Ollama ganhando novos modelos de embedding semanalmente — polling `GET /api/tags` já existe; backend deve listar e sugerir automaticamente
 

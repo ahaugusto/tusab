@@ -793,3 +793,29 @@ Não repropor GraphRAG sem essa medição — nem para o produto genérico (já 
 **Achado real de infraestrutura, sem relação com o pedido original:** durante a implementação, dois pushes falharam por causa da conta ativa do `gh`/Git Credential Manager estar trocando entre `ahaugusto` (dono do repo) e `aab-foton` (outra conta do mesmo usuário, sem permissão de escrita) — 403/404 aparentemente aleatórios eram na real sempre isso. Resolvido com `gh auth switch --hostname github.com --user ahaugusto` + `gh auth setup-git` antes de qualquer operação de push. Vale checar `gh auth status` primeiro sempre que um push falhar com 403/404 sem motivo aparente nesta máquina.
 
 Suite completa (377/377) e sintaxe YAML dos 3 workflows/1 config validadas antes do commit. Smoke 16/16.
+
+### Migração de ranking BM25Okapi → FTS nativo LanceDB — benchmark real de qualidade, não migrar (01-02/set/2026)
+
+**Contexto:** a v1.0.55 (ver entrada "LanceDB — benchmark real antes de migrar") trocou só o armazenamento do índice (JSON → Arrow), mantendo deliberadamente o ranking em BM25Okapi — decisão explícita de não misturar duas mudanças de risco na mesma migração. Augusto perguntou se valia "finalizar" trocando também o ranking pelo FTS nativo do LanceDB. Confirmado explicitamente com ele: migrar só com benchmark real de **qualidade** primeiro (não velocidade, que o benchmark de jul/2026 já tinha resolvido a favor do LanceDB) — decisão de fazer ou não depende do resultado, não é compromisso prévio.
+
+**Fase 1 — leitura de API real (`/backend`, antes de qualquer código):** confirmado contra a documentação oficial do LanceDB (`docs.lancedb.com/indexing/fts-index`) que o FTS nativo **não tem boost de campo, K1/B configurável, nem ponderação cruzada entre colunas** — os dois mecanismos mais críticos do tuning atual (boost de título 5x em `index.py::_enriquecer_documento`, enriquecimento KeyBERT) não têm equivalente configurável direto; só dá pra tentar recriar por fora (múltiplos índices + combinação manual de score), o que anula boa parte do ganho de simplicidade da troca. Achado positivo isolado: `language="Portuguese"` com `stem=True` é nativo e provavelmente muito mais barato que a lematização via spaCy já descartada em jul/2026 por custo de indexação 651x maior (`agents/_historia.md`, "Lematização em português").
+
+**Fase 2 — benchmark real de qualidade, dado real:** corpus do projeto "RAG" já indexado em dev (1033 chunks, 64 documentos: ~28 leis brasileiras + ~28 papers acadêmicos de RAG + repositórios GitHub — títulos variados o suficiente pra testar boost de título de verdade). 20 perguntas com gabarito manual em 3 categorias (título_exato, paráfrase, ambígua), reutilizando as funções REAIS de produção (`index.py::_enriquecer_documento`, `chat.py::_tokenizar_query`) — nunca reimplementadas no script de benchmark, pra garantir que o "BM25 atual" testado é fiel ao que roda de verdade. FTS nativo testado **puro** (sem tentar recriar boost), sobre `texto_original`, com `language='Portuguese', stem=True, remove_stop_words=True`.
+
+**Achado colateral no processo:** a primeira rodada do benchmark usou `pergunta.lower().split()` em vez da função real `_tokenizar_query()` — reproduziu ao vivo o mesmo bug já corrigido em produção (14/ago/2026, "Me fale sobre self-rag" recuperando leis porque "sobre" pontuava mais que o termo real). Corrigido antes de aceitar qualquer resultado. Lição: benchmark que reimplementa lógica "parecida" em vez de importar a função real de produção mede o bug errado, não o comportamento real — mesma armadilha, categoria diferente, do já registrado sobre nunca reimplementar `_recuperar_contexto` fora do pipeline real.
+
+**Resultado (17 perguntas com gabarito; 3 "ambíguas" sem gabarito, só observadas):**
+
+| Categoria | BM25Okapi (produção) | FTS nativo LanceDB (pt, stem) |
+|---|---|---|
+| título_exato (11) | top1: 10/11 · top3: 11/11 | top1: 8/11 · top3: 10/11 |
+| paráfrase (6) | top1: 0/6 · top3: 0/6 | top1: 0/6 · top3: 1/6 |
+| **Total (17)** | **top1: 10/17 · top3: 11/17** | **top1: 8/17 · top3: 11/17** |
+
+Concordância de top-1 entre os dois motores: 9/20 (quase metade das perguntas diverge).
+
+**Interpretação:** confirma com dado real a previsão da leitura de API — BM25 atual vence claramente onde já era forte (título exato: boost de 5x funcionando), e o stemming nativo do FTS **não** resolveu paráfrase/sinônimo real como a hipótese levantava (0/6 em ambos) — "domain adaptation" ≠ "adaptar modelo pra domínio diferente" é sinônimo semântico, não variação morfológica; stemming não alcança esse tipo de gap, só embeddings (já presente como camada complementar em Busca Ampla, fora do escopo desta migração). Achado adicional sobre o desenho do experimento: arquivos `estudo_resumo_*.txt`/`estudo_flashcards_*.txt` (resumos gerados por LLM sobre o corpus inteiro) venceram várias perguntas de paráfrase em ambos os motores — não é bug de nenhum dos dois, é overlap de vocabulário genérico esperado desse tipo de conteúdo competindo no mesmo corpus dos documentos originais.
+
+**Decisão:** não migrar o ranking. FTS nativo perde no cenário mais forte do produto atual (título exato) sem ganhar no mais fraco (paráfrase) — trade-off líquido negativo, não apenas incerto. Arquitetura fica definitiva como está: **armazenamento LanceDB (v1.0.55) + ranking BM25Okapi**, sem "segunda etapa" pendente. Reabrir só com evidência nova e específica — ex.: se algum dia migrar `texto` (já enriquecido com KeyBERT) para o índice FTS em vez de `texto_original` mudar o resultado de paráfrase (não testado nesta rodada, hipótese não descartada por falta de teste, só não prioritária o suficiente para testar agora dado que título exato já reprova a migração sozinho).
+
+Scripts de benchmark isolados em diretório de scratchpad, fora de `tusab_engine/` — não versionados no repositório.
