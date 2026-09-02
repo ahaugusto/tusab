@@ -81,6 +81,18 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
+      # Seção anexada e colapsável de PRs/commits desta versão, categorizada
+      # por label via .github/release.yml — não substitui o CHANGELOG.md
+      # curado, só complementa com rastreabilidade de origem. Falha graciosa:
+      # se a API não retornar nada, generate-release-notes.js segue sem essa
+      # seção (auto_notes.md ausente ou vazio).
+      - name: Gerar notas automáticas do GitHub (PRs/commits desta versão)
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            --jq .body > auto_notes.md || true
       - name: Gerar notas de release a partir do CHANGELOG.md
         run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"
       - name: Criar release vazia
@@ -133,6 +145,19 @@ jobs:
       - name: Instalar dependências Electron
         working-directory: electron
         run: npm ci
+
+      # Mesma seção anexada do job create-release (ver comentário lá) — gerada
+      # de novo aqui porque electron-builder sobrescreve o corpo da release com
+      # este release_notes.md regenerado; sem repetir o passo, a seção de
+      # PRs/commits desapareceria assim que este job publicasse.
+      - name: Gerar notas automáticas do GitHub (PRs/commits desta versão)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            --jq .body > auto_notes.md || true
 
       # Extrai a seção do CHANGELOG.md da versão atual pra usar como corpo da
       # release (releaseInfo.releaseNotesFile em electron/package.json) — sem
@@ -294,6 +319,17 @@ jobs:
 
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" build.keychain
           security find-identity -v -p codesigning build.keychain
+
+      # Mesma seção anexada do job create-release/build-windows (ver comentário
+      # em create-release) — repetida aqui pelo mesmo motivo: electron-builder
+      # sobrescreve o corpo da release com o release_notes.md regenerado.
+      - name: Gerar notas automáticas do GitHub (PRs/commits desta versão)
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            --jq .body > auto_notes.md || true
 
       # Mesma extração do job build-windows — os dois jobs publicam na MESMA
       # release (ahaugusto/tusab), então geramos as notas idênticas aqui também
