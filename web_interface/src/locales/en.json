@@ -458,6 +458,7 @@
   "chat.indexing_base_label": "Indexing base…",
   "chat.indexing_progress_count": "{{processed}} of {{total}} sources processed",
   "chat.low_confidence_hint": "Part of this answer has weak direct support in the sources — worth double-checking",
+  "chat.possible_injection_hint": "This answer may have been influenced by a hidden instruction in a base document instead of answering your question — worth checking the sources",
   "chat.back_to_list": "Back to list",
   "chat.no_history": "No saved conversations yet.",
   "chat.no_history_hint": "Click \"New conversation\" to save the current one.",

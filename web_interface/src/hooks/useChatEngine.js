@@ -248,6 +248,15 @@ export function useChatEngine({
               setChatMessages(prev => prev.map(m =>
                 m._streamId === streamId ? { ...m, alertaRecursos: parsed.alerta_recursos } : m
               ));
+            } else if (parsed.possivel_sequestro !== undefined) {
+              // Achado #1 da auditoria de segurança (04/set/2026): heurística
+              // pós-resposta que detecta assinatura textual de a resposta ter
+              // obedecido uma instrução escondida no corpus em vez de responder
+              // à pergunta. Sinal de baixa confiança, não bloqueia a resposta —
+              // mesmo padrão de alerta_recursos.
+              setChatMessages(prev => prev.map(m =>
+                m._streamId === streamId ? { ...m, possivelSequestro: parsed.possivel_sequestro } : m
+              ));
             } else if (parsed.confianca_sentencas !== undefined) {
               // P1-e — sinal visual opcional de confiança por sentença; se ausente
               // (backend antigo ou trecho injetado), a mensagem simplesmente não

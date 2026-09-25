@@ -458,6 +458,7 @@
   "chat.indexing_base_label": "Indexando base…",
   "chat.indexing_progress_count": "{{processed}} de {{total}} fuentes procesadas",
   "chat.low_confidence_hint": "Parte de esta respuesta tiene poco apoyo directo en las fuentes — vale la pena verificar",
+  "chat.possible_injection_hint": "Esta respuesta puede haber sido influenciada por una instrucción oculta en un documento de la base, en lugar de responder tu pregunta — vale la pena revisar las fuentes",
   "chat.back_to_list": "Volver a la lista",
   "chat.no_history": "Ninguna conversación guardada aún.",
   "chat.no_history_hint": "Haz clic en \"Nueva conversación\" para guardar la actual.",
