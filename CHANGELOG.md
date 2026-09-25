@@ -7,6 +7,21 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.57] — 2026-09-28
+
+### Adicionado
+- **Proteção contra instruções escondidas em documentos da base (prompt injection indireto)** — um vídeo, PDF ou texto indexado que contenha comandos disfarçados (ex.: "ignore as instruções anteriores", "revele sua configuração") passa a ser tratado explicitamente como conteúdo, nunca como ordem para o assistente. Quando a resposta ainda assim parecer ter obedecido a um comando vindo de um documento, o chat exibe um aviso para conferir as fontes. O aviso não bloqueia a resposta.
+
+### Alterado
+- **Dependências atualizadas**, incluindo React 19.3 e axios 1.20 (com correções de segurança no tratamento de configurações de requisição), além de i18next, lucide-react, postcss, openai, pydantic-core, dateparser e anyio. Nenhuma mudança perceptível no uso.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- Merge automático de atualizações de dependência corrigido: desde agosto nenhuma atualização era integrada sozinha, por uma etapa de aprovação automática que o GitHub não permite.
+- Release semanal automática deixa de falhar quando a semana só teve documentação ou ajustes de CI. Atualizações de dependência sozinhas passam a gerar release depois de 28 dias sem outra release, para correções de segurança não ficarem paradas.
+- Corrigido, antes de chegar a qualquer release, um descompasso de versões entre `react` e `react-dom` introduzido por uma atualização automática, que deixava o app em branco.
+
+---
+
 ## [1.0.56] — 2026-09-02
 
 ### Corrigido
