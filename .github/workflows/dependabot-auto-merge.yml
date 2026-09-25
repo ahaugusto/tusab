@@ -2,16 +2,27 @@
 #
 # Auto-merge condicional de PRs do Dependabot: só patch, nunca minor/major,
 # e nunca dependências do empacotamento Electron (mesmo em patch) — ver
-# tabela de risco abaixo. Requer branch protection em main com required
-# status checks (Backend (pytest), Frontend (vite build)) já configurada,
-# senão isto mergearia sem esperar o CI terminar.
+# tabela de risco abaixo. `gh pr merge --auto` já espera os status checks
+# (Backend (pytest), Frontend (vite build)) terminarem antes de mesclar,
+# mesmo sem branch protection formal em main (confirmado: main não tem
+# nenhuma regra de proteção hoje) — não depende dela para funcionar.
+#
+# NÃO adicionar um step de "aprovar automaticamente" (gh pr review --approve):
+# GITHUB_TOKEN nunca pode aprovar PR, em nenhuma configuração — é restrição
+# de identidade do GitHub (o ator github-actions[bot] não pode se
+# auto-aprovar), não uma questão de permissão do workflow. Uma versão
+# anterior deste arquivo tinha esse step antes do merge condicional; ele
+# falhava sempre (GraphQL: "GitHub Actions is not permitted to approve pull
+# requests"), o que interrompia o job ANTES do step de merge — resultado:
+# nenhum PR do Dependabot foi mesclado automaticamente entre 03/ago e
+# 02/set/2026, apesar do workflow "existir". Ver agents/_historia.md.
 #
 # Trigger é `pull_request` comum, não `pull_request_target` — PRs abertos
 # pelo Dependabot já rodam com GITHUB_TOKEN somente leitura por padrão do
-# GitHub (mudança de 2021), e o approve/merge aqui usa apenas permissão de
-# escrita em PR/conteúdo, nunca secrets de build. `pull_request_target`
-# rodaria com o contexto do branch base mesmo pra PR externo — desnecessário
-# e pior postura de segurança pra este caso.
+# GitHub (mudança de 2021), e o merge aqui usa apenas permissão de escrita
+# em PR/conteúdo, nunca secrets de build. `pull_request_target` rodaria com
+# o contexto do branch base mesmo pra PR externo — desnecessário e pior
+# postura de segurança pra este caso.
 #
 # Risco específico deste projeto (app desktop assinado): o release.yml só
 # builda o instalador de verdade na tag — ci.yml nunca testa electron-builder
@@ -41,15 +52,8 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Aprovar automaticamente
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # Só patch, e nunca no diretório electron/ (empacotamento/assinatura) —
-      # esse diretório fica só aprovado automaticamente acima, merge continua
-      # manual pra qualquer dependência dele, patch ou não.
+      # merge continua manual pra qualquer dependência dele, patch ou não.
       - name: Habilitar auto-merge (somente patch, fora do empacotamento Electron)
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' &&
