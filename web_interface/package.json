@@ -16,7 +16,7 @@
     "lucide-react": "^1.47.0",
     "posthog-js": "^1.409.4",
     "react": "^19.3.0",
-    "react-dom": "^19.2.6",
+    "react-dom": "^19.3.0",
     "react-i18next": "^17.0.11",
     "react-markdown": "^10.1.0",
     "remark-breaks": "^4.0.0",
@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.2.3",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.4",
     "pa11y-ci": "^4.1.1",
