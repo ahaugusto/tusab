@@ -1155,6 +1155,18 @@ function ChatDrawer({
                               <span>{t('chat.resource_overload_hint', { ram: msg.alertaRecursos.ram_pct })}</span>
                             </div>
                           )}
+                          {/* Achado #1 da auditoria de segurança (04/set/2026) — heurística
+                              pós-resposta: a resposta contém a assinatura textual de ter
+                              obedecido a uma instrução escondida num chunk do corpus (prompt
+                              injection indireto) em vez de responder à pergunta do usuário.
+                              Sinal de baixa confiança, não bloqueia nem substitui a resposta —
+                              falso positivo é aceitável, falso negativo é esperado (heurística). */}
+                          {!msg.streaming && msg.role === 'assistant' && msg.possivelSequestro && (
+                            <div className={`mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded-lg border text-[10px] leading-relaxed ${darkMode ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                              <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+                              <span>{t('chat.possible_injection_hint')}</span>
+                            </div>
+                          )}
                           {/* Feedback de resposta — só aparece após streaming concluído */}
                           {!msg.streaming && msg.role === 'assistant' && (
                             <div className="mt-2 flex items-center gap-1">
