@@ -3,14 +3,19 @@
 # Release automática agrupada: em vez de disparar a cada push (caro — build
 # macOS de notarização real leva ~1h, ver release.yml) ou depender só de
 # alguém lembrar de taggear manualmente, este workflow roda semanalmente e
-# só cria uma tag nova SE (a) houver commits novos em main desde a última
-# tag E (b) já existir uma entrada correspondente em CHANGELOG.md — ou seja,
-# o CHANGELOG continua 100% curado à mão; isto só automatiza o "empacotar em
-# tag e publicar", nunca o "decidir o que vale a pena documentar".
+# só cria uma tag nova SE (a) houver commits desde a última tag que mudam o
+# app entregue (regra em .github/scripts/release-pendente.sh) E (b) já
+# existir uma entrada correspondente em CHANGELOG.md — ou seja, o CHANGELOG
+# continua 100% curado à mão; isto só automatiza o "empacotar em tag e
+# publicar", nunca o "decidir o que vale a pena documentar".
 #
-# Se as condições não forem atendidas, o job termina cedo sem criar nada —
-# rodar em vão não gasta minutos de macOS/Windows (o release.yml só é
-# disparado de fato quando a tag é criada e empurrada).
+# Sem mudança que justifique release (só docs/ci/test/refactor, ou só bumps
+# de dependência com menos de 28 dias): o job termina VERDE sem criar nada.
+# Com mudança real mas sem CHANGELOG: o job FALHA de propósito — é o único
+# caso que pede ação humana. Antes dessa distinção, semanas só com docs
+# ficavam vermelhas toda segunda (07, 14 e 21/set/2026) sem haver nada a
+# lançar. Rodar em vão não gasta minutos de macOS/Windows (o release.yml só
+# é disparado de fato quando a tag é criada e empurrada).
 
 name: Auto-release semanal
 
@@ -50,17 +55,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Checar se há commits pendentes desde a última tag
+      - name: Checar se há mudanças que justificam release
         id: pending
         run: |
           ULTIMA_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')
           echo "ultima-tag=$ULTIMA_TAG" >> "$GITHUB_OUTPUT"
-          PENDENTES=$(git log "$ULTIMA_TAG"..HEAD --oneline | wc -l)
-          echo "Última tag: $ULTIMA_TAG — commits pendentes: $PENDENTES"
-          if [ "$PENDENTES" -eq 0 ]; then
-            echo "tem-pendencia=false" >> "$GITHUB_OUTPUT"
-          else
+          echo "Última tag: $ULTIMA_TAG — commits desde então: $(git log "$ULTIMA_TAG"..HEAD --oneline | wc -l)"
+          DECISAO=$(bash .github/scripts/release-pendente.sh "$ULTIMA_TAG")
+          if [ "$DECISAO" = "publicar" ]; then
             echo "tem-pendencia=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tem-pendencia=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nada a publicar desde $ULTIMA_TAG — job encerrado sem criar tag."
           fi
 
       - name: Calcular próxima versão (patch-only, ver agents/_historia.md)
