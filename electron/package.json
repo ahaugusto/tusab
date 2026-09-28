@@ -1,6 +1,6 @@
 {
   "name": "tusab",
-  "version": "1.0.56",
+  "version": "1.0.57",
   "description": "Tusab — Index.Augment.Chat",
   "main": "main.js",
   "author": {
@@ -60,7 +60,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "../assets/logo.ico",
@@ -81,11 +83,15 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "extraResources": [
@@ -113,7 +119,11 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Tusab",
       "license": "build_resources/license.txt",
-      "installerLanguages": ["pt_BR", "en", "es"],
+      "installerLanguages": [
+        "pt_BR",
+        "en",
+        "es"
+      ],
       "language": "1046"
     },
     "publish": {
