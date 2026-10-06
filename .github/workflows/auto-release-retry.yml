@@ -1,0 +1,55 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Retry automático do "Auto-release semanal" quando a falha for de
+# infraestrutura (runner cancelado/travado na fila do GitHub antes de rodar
+# qualquer step), nunca quando for falha de lógica do próprio workflow.
+#
+# Achado real (05/out/2026): a run daquela semana ficou presa 15 min na fila
+# de provisionamento do runner `ubuntu-latest` e foi cancelada pelo GitHub
+# sem executar nenhum step (`gh api .../jobs` → `steps: []`; `.../timing` →
+# `total_ms: 0`, zero tempo faturado) — nenhum outro workflow teve problema
+# no mesmo horário, então não era instabilidade geral da plataforma, só uma
+# fila específica daquele job. auto-release.yml ganhou `timeout-minutes: 3`
+# pra detectar isso rápido; este workflow cobre o resto: tentar de novo
+# sozinho em vez de esperar alguém notar o e-mail de falha.
+#
+# Por que `workflow_run` e não um retry dentro do próprio auto-release.yml:
+# um job que falha não pode re-disparar a si mesmo de dentro do mesmo run —
+# precisa de um workflow separado reagindo à conclusão do primeiro.
+#
+# Por que só 1 retry, nunca em loop: se a causa for uma falha real de lógica
+# (ex: CHANGELOG.md sem entrada, erro de sintaxe no script), re-rodar não
+# muda o resultado — só gastaria minutos de Actions repetindo o mesmo erro
+# indefinidamente. `cancelled` é especificamente o sintoma de fila/timeout
+# de infra, não de erro de lógica (que sempre aparece como `failure` com
+# steps executados) — por isso o gate abaixo checa só esse conclusion.
+#
+# Proteção contra loop: a documentação do GitHub não deixa claro se um
+# `gh run rerun` dispara um novo evento `workflow_run: completed` (o que
+# recriaria este próprio gatilho). Em vez de confiar nisso, o gate usa
+# `run_attempt == 1` — só re-executa a PRIMEIRA tentativa cancelada; se o
+# retry também for cancelado (run_attempt 2), este workflow não dispara de
+# novo, e a falha fica visível normalmente (e-mail do GitHub) em vez de
+# tentar indefinidamente.
+
+name: Auto-release — retry em falha de infra
+
+on:
+  workflow_run:
+    workflows: ["Auto-release semanal"]
+    types: [completed]
+
+permissions:
+  actions: write
+
+jobs:
+  retry-se-cancelado:
+    if: |
+      github.event.workflow_run.conclusion == 'cancelled' &&
+      github.event.workflow_run.run_attempt == 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-executar a run cancelada (1x, sem loop)
+        run: gh run rerun "${{ github.event.workflow_run.id }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
