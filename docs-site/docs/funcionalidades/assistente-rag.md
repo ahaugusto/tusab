@@ -20,7 +20,7 @@ Na interface o recurso se chama **"Assistente"** — termo mais preciso, já que
 3. **Recuperação de contexto** — BM25Okapi no índice do(s) projeto(s) selecionado(s), sempre mesclado com FTS5 (exact-match, garante recall de termos literais como nomes próprios e siglas) e, em Busca Ampla com o modelo de embeddings instalado, também com busca vetorial por significado (ver "Busca vetorial" abaixo)
 4. **Montagem do prompt** — cada fonte recuperada é envolvida em tags XML semânticas (`<source id="N">`) para mitigar prompt injection
 5. **Geração** — modelo local (Ollama) ou provedor externo configurado
-6. **Verificação pós-geração** — checagem por sobreposição de palavras-chave contra as fontes recuperadas
+6. **Verificação pós-geração** — duas checagens independentes: cobertura de vocabulário contra as fontes recuperadas (mede alucinação) e uma heurística que sinaliza se a resposta parece ter obedecido a uma instrução escondida num documento da base (prompt injection indireto) em vez de responder à pergunta
 
 ## Roteamento de intenção
 
@@ -45,6 +45,7 @@ Saudações ("oi", "obrigado") e trechos referenciados (`[arquivo]`) também res
 - Threshold de relevância calibrado dinamicamente por corpus (não um valor fixo — um corpus pequeno e um corpus com milhares de chunks têm distribuições de score muito diferentes) determina se há contexto suficiente para responder
 - Quando a Busca Restrita não encontra nada, o chat tenta automaticamente a Busca Ampla (BM25+CrossEncoder) antes de desistir — só depois disso, se ainda não houver contexto, retorna `sem_contexto: true` e a interface mostra o botão **"Indexar agora"** em vez de uma mensagem genérica
 - Confiança graduada por sentença: quando parte da resposta tem baixo apoio direto nas fontes, um indicador âmbar aparece sob a mensagem — sem suprimir a resposta inteira
+- Sinal separado de possível sequestro de instrução: se a resposta parecer ter obedecido um comando escondido num documento da base, um aviso é exibido — não é o mesmo mecanismo da confiança por sentença, e não bloqueia a resposta
 
 ## Busca vetorial (embeddings)
 

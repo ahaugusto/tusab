@@ -11,6 +11,8 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 ## Destaques recentes
 
+**v1.0.57 (2026-09-28)** — Proteção contra instruções escondidas em documentos indexados (prompt injection indireto): conteúdo malicioso num vídeo, PDF ou texto não é mais obedecido como comando pelo assistente; quando a resposta parece ter sido influenciada mesmo assim, um aviso aparece no chat. Dependências atualizadas, incluindo React e axios (com correção de segurança).
+
 **v1.0.56 (2026-09-02)** — Correção da auditoria automatizada de acessibilidade no CI, que estava falhando desde a v1.0.55.
 
 **v1.0.55 (2026-08-30)** — OpenRouter como novo provedor de chat gratuito; armazenamento do índice de busca migrado para LanceDB (ranqueamento continua BM25, sem mudança perceptível na qualidade das respostas); Especialista pode ocultar o card de Estudo na tela inicial; tabelas e listas do assistente não aparecem mais coladas na tela; melhorias de contraste e foco de teclado.
