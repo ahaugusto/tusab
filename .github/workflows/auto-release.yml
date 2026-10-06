@@ -16,6 +16,18 @@
 # ficavam vermelhas toda segunda (07, 14 e 21/set/2026) sem haver nada a
 # lançar. Rodar em vão não gasta minutos de macOS/Windows (o release.yml só
 # é disparado de fato quando a tag é criada e empurrada).
+#
+# `timeout-minutes` curto é deliberado: achado real em 05/out/2026 — a run
+# daquele dia ficou presa 15 minutos na fila de provisionamento do runner
+# `ubuntu-latest` (fila do próprio GitHub, não deste repositório) e foi
+# cancelada pelo GitHub sem executar um único step (confirmado via
+# `gh api .../jobs` — `steps: []` — e `.../timing` — `total_ms: 0`, zero
+# tempo faturado). Sem outro workflow afetado no mesmo horário — não era
+# instabilidade geral do GitHub, foi uma fila específica desse job. Um job
+# deste workflow nunca passa de ~1 min de execução real (não builda nada),
+# então esperar 15 min por runner antes de desistir é tempo perdido sem
+# benefício — 3 min é folga generosa e ainda assim falha rápido o bastante
+# pra virar notificação de e-mail no mesmo dia, não só na semana seguinte.
 
 name: Auto-release semanal
 
@@ -34,6 +46,7 @@ jobs:
   auto-tag:
     name: Verificar pendências e criar tag
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       # GITHUB_TOKEN padrão não dispara outros workflows quando usado pra dar
       # push/tag (limitação deliberada do GitHub, evita loop de Action
