@@ -834,3 +834,32 @@ Scripts de benchmark isolados em diretório de scratchpad, fora de `tusab_engine
 **Decisão:** MCP remoto da Adversal não adotado — contradiz local-first, avaliação encerrada, sem necessidade de reabrir a menos que o produto deles mude de arquitetura (processamento local em vez de remoto). Captura de frame/visão de vídeo **como capacidade própria e local** fica registrada como possível evolução futura, não priorizada agora: sem dado de que a maioria dos vídeos técnicos realmente perde informação crítica não-verbalizada, e o custo de infraestrutura (baixar vídeo, mesmo que parcial) é desproporcional a um ganho ainda hipotético. Se algum dia justificar investigação, a rota tecnicamente alinhada ao que o projeto já é: capturar só 1 frame por fronteira de capítulo (reaproveitando `capitulos`/`_vtt_por_capitulo()` já existentes em `extraction.py`, muito mais barato que baixar o vídeo inteiro), gated por sinal ou opt-in explícito por canal (nunca padrão), processado pelo pipeline de visão local já existente (`_extrair_imagem()`) — zero dependência nova, zero dado saindo da máquina.
 
 Não existe ainda critério formal documentado para tratar outreach comercial de vendor em geral — este é o primeiro caso registrado; tratado com o mesmo rigor de qualquer avaliação técnica (código real lido, memória institucional consultada) antes de responder ou decidir.
+
+### [DECISÃO ESTRATÉGICA] Avaliação de 12 ferramentas de scraping/automação vindas de post do LinkedIn — duas candidatas reais, pendente de teste (25/set/2026)
+
+**Contexto:** post do LinkedIn listou 12 ferramentas de scraping/automação/parsing. Cada uma foi verificada contra o repositório real (licença, atividade, estrelas via `gh api`), não contra a descrição do post.
+
+**O que foi encontrado:** duas identificadas como candidatas reais de uso no Tusab — **MarkItDown** (microsoft/markitdown, MIT, ativo) cobre formatos que o upload hoje não aceita (PPTX, EPUB, HTML salvo) — PPTX em particular é material central de Professor/Estudante; **llmfit** (AlexsJones/llmfit, MIT, Rust) resolve lacuna real de recomendação de modelo Ollama por hardware (hoje o Tusab sempre sugere `llama3.2:1b` fixo, só reage a sobrecarga via alerta de RAM ≥88%, nunca recomenda proativamente). Crawl4AI permanece candidato futuro já registrado (28/jul/2026, entrada do leitor de página web via trafilatura) — nada mudou nessa avaliação. Firecrawl (AGPL-3.0), Crawlee/Scrapling/curl-impersonate (essência é evasão de bot/anti-detecção, contradiz o mesmo princípio que já descartou o Anakin), Scrapy (rastreamento em massa, fora de escopo) e browser-use (agente que clica/loga como humano, risco de credencial) descartados. AutoScraper (nicho, frágil) e scrcpy (espelhamento de tela de Android, não é scraper — o post classificou errado) irrelevantes.
+
+**Por que importa:** nenhuma das duas candidatas foi implementada nem testada ao vivo ainda — é levantamento técnico, não decisão de adoção. Próximo passo do MarkItDown: extrair um PPTX real e medir impacto de tamanho no instalador PyInstaller (protocolo de update de stacks exige chamada funcional real, nunca só ler documentação da lib). Próximo passo do llmfit: prototipar heurística simples em Python (RAM/VRAM via `psutil`, já dependência do projeto) mapeada para faixas 1b/3b/8b antes de considerar empacotar o binário Rust (que exigiria assinatura/notarização no macOS).
+
+**Evidência:** licenças/atividade conferidas via `gh api repos/{owner}/{repo}` e `gh search repos`.
+
+### [DECISÃO ESTRATÉGICA] JEV (TypeSafe AI) descartado por violar local-first; LAYA (ConvAI, aberto) registrado como alternativa não adotada (25/set/2026)
+
+**Contexto:** JEV é um modelo de classificação estruturada rápida ("System One Model"), lançado em acesso antecipado pela TypeSafe AI — API paga, só nuvem (Costa Oeste dos EUA), sem informação de licença/dados de treino/LGPD. Descartado por violar local-first (mesmo princípio que já reprovou Groq como padrão e a Adversal.ai, ver entrada acima). Post relacionado citou **LAYA** (ConvAI Innovations, Apache-2.0, pesos no HuggingFace) como alternativa aberta ao mesmo nicho — não adotado agora: benchmarks contestados nos comentários do próprio post (vêm do fundador do LAYA, não de terceiro), nenhum repositório oficial localizado (só wrappers/conversões de terceiros no GitHub), e a pré-rota determinística atual do chat (saudação, metadados, cálculo) já resolve sem LLM os casos onde um classificador rápido ajudaria.
+
+**Por que importa:** onde a ideia (classificação estruturada rápida e local) encaixaria no Tusab é real — o roteamento de intenção do chat custa ~800ms no Ollama por chamar um LLM para classificar. Vale reavaliar LAYA (ou equivalente) só se essa latência virar queixa real de usuário — não antes.
+
+**Evidência:** https://typesafe.ai/blog/introducing-system-one-models-and-jev; posts do LinkedIn linkados na conversa de 25/set/2026.
+
+### [PADRÃO CONFIRMADO] Próximos passos pendentes — documentação da v1.0.57 aguardando aprovação de publicação, MarkItDown/llmfit sem teste ao vivo (25/set/2026)
+
+**O que ficou em aberto:** três pendências explícitas deixadas a pedido do usuário ("documente tudo como próximos passos, vou retomar depois"):
+1. Documentação pública (`docs-site/`, pt-BR + en) já editada para v1.0.57 — `seguranca.md`, `funcionalidades/assistente-rag.md`, `changelog.md` cobrindo a defesa contra prompt injection indireto (commit `324588c`) — build validado (`npm run build` sem erro nos dois locales), mas **ainda não commitada nem publicada**. Falta aprovação explícita separada antes do commit+push, que dispara `deploy-docs.yml` para o site público.
+2. MarkItDown não testado ao vivo — ver entrada acima.
+3. llmfit não testado — ver entrada acima.
+
+**Por que importa:** evita que uma sessão futura comece do zero ou publique a documentação sem essa aprovação explícita ter sido dada.
+
+**Evidência:** commit `324588c` (feat prompt injection) e edições não commitadas em `docs-site/`.
