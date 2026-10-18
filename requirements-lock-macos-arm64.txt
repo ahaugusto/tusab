@@ -6,7 +6,7 @@ babel==2.18.0
 certifi==2026.7.22
 cffi==2.1.0
 charset-normalizer==3.4.9
-click==8.4.2
+click==8.5.0
 courlan==1.4.0
 cryptography==49.0.0
 dateparser==1.4.3
