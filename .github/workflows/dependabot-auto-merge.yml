@@ -2,10 +2,14 @@
 #
 # Auto-merge condicional de PRs do Dependabot: só patch, nunca minor/major,
 # e nunca dependências do empacotamento Electron (mesmo em patch) — ver
-# tabela de risco abaixo. `gh pr merge --auto` já espera os status checks
-# (Backend (pytest), Frontend (vite build)) terminarem antes de mesclar,
-# mesmo sem branch protection formal em main (confirmado: main não tem
-# nenhuma regra de proteção hoje) — não depende dela para funcionar.
+# tabela de risco abaixo. `gh pr merge --auto` espera os status checks
+# obrigatórios de main (Backend (pytest), Frontend (vite build)) antes de
+# mesclar. main também exige branch atualizado (strict: true) — e o
+# auto-merge nativo não atualiza o branch sozinho; quem faz isso é
+# dependabot-update-branch.yml (fila serial). Uma versão anterior deste
+# comentário dizia que main não tinha proteção nenhuma: estava errado
+# (consulta à API de proteção feita com a conta sem permissão de admin
+# devolvia 404, lido como "sem regra").
 #
 # NÃO adicionar um step de "aprovar automaticamente" (gh pr review --approve):
 # GITHUB_TOKEN nunca pode aprovar PR, em nenhuma configuração — é restrição
