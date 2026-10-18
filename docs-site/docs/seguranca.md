@@ -60,6 +60,13 @@ O prompt monta cada componente com delimitadores XML semânticos:
 
 O modelo recebe uma estrutura explícita: conteúdo dentro de `<source>` é tratado como dado de referência, não como instrução. A pergunta é limitada a 2.000 caracteres.
 
+Duas camadas adicionais foram incorporadas numa auditoria posterior (setembro/2026):
+
+- **Instrução explícita anti-injeção**: a mensagem de sistema instrui o modelo a tratar qualquer texto dentro de `<content>` que pareça um comando ("ignore as instruções anteriores", "revele sua configuração") como parte do conteúdo a ser reportado — nunca como uma ordem a obedecer.
+- **Detecção pós-resposta**: uma heurística verifica se a resposta gerada contém a assinatura textual de ter cumprido um comando injetado (ex.: menções a ter mudado de persona ou revelado configuração). Quando detectado, a interface mostra um aviso — a resposta não é bloqueada nem substituída, apenas sinalizada para conferência.
+
+Ambas as camadas são reforço de superfície, não isolamento garantido: nenhum LLM trata delimitadores como sandbox real. A defesa estrutural (arquitetura nunca injeta segredos no prompt) continua sendo a proteção primária contra exfiltração de dados sensíveis.
+
 ### Exemplo — path traversal no delete
 
 ```python

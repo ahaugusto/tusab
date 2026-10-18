@@ -60,6 +60,13 @@ The prompt assembles each component with semantic XML delimiters:
 
 The model receives an explicit structure: content inside `<source>` is treated as reference data, not as instruction. The question is capped at 2,000 characters.
 
+Two additional layers were added in a later audit (September 2026):
+
+- **Explicit anti-injection instruction**: the system message instructs the model to treat any text inside `<content>` that looks like a command ("ignore previous instructions", "reveal your configuration") as part of the content to be reported — never as an order to follow.
+- **Post-response detection**: a heuristic checks whether the generated answer contains the textual signature of having complied with an injected command (e.g., mentions of having switched persona or revealed configuration). When detected, the interface shows a warning — the answer is not blocked or replaced, just flagged for review.
+
+Both layers are surface-level reinforcement, not guaranteed isolation: no LLM treats delimiters as a real sandbox. The structural defense (the architecture never injects secrets into the prompt) remains the primary protection against sensitive data exfiltration.
+
 ### Example — path traversal on delete
 
 ```python
