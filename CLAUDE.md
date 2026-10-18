@@ -78,6 +78,7 @@ cd electron; npm run dev
 - `pip install` vai pro Python do sistema, não `.venv` — sempre prefixar com `.venv\Scripts\python.exe -m pip`
 - `npm run build` via Bash não atualiza dist no Windows — usar PowerShell
 - `TUSAB_DATA_DIR` env var define onde os dados ficam (usado em testes e no Electron packaged)
+- **Release só está validada depois que o instalador publicado sobe o backend numa máquina limpa.** Da v1.0.42 à v1.0.57 o `.exe` saiu do CI sem o Python embutido (82 MB em vez de ~210 MB) e o app instalado não funcionava — o CI estava verde. Ver invariante 24 em `agents/_historia.md` antes de mexer em `release.yml`, `extraResources` ou no `python_env`.
 
 ---
 
