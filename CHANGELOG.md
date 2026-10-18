@@ -7,6 +7,22 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.58] — 2026-10-18
+
+### Corrigido
+- **O instalador para Windows das versões 1.0.42 a 1.0.57 saiu sem o motor do app** (o Python embutido e o componente de download do YouTube). Nessas versões, o Tusab abria no Windows, mas a extração de canais, o chat e o repositório não funcionavam. A versão 1.0.58 volta a incluir tudo. Se você instalou o Tusab no Windows desde agosto e ele não funcionou, baixe e instale esta versão.
+- **Correções de segurança** em componentes usados pela atualização automática e pela telemetria opcional.
+
+### Alterado
+- **Instalador para macOS menor.** A reordenação semântica avançada da Busca Ampla e o enriquecimento automático de palavras-chave voltam a ficar fora da versão padrão, como já era no Windows. A Busca Ampla continua funcionando com busca por palavras, busca exata e busca por significado via Ollama.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- O build do Windows passa a montar o Python embutido e a testar o próprio pacote antes de publicar: se o motor do app não subir de dentro do instalador, a release não sai.
+- Validação do instalador Windows, sem publicar, a cada mudança no backend ou no empacotamento e toda semana.
+- Atualizações de dependência que ficavam paradas esperando o branch ser atualizado agora são mescladas uma por vez, automaticamente.
+
+---
+
 ## [1.0.57] — 2026-09-28
 
 ### Adicionado
