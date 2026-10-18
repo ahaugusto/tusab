@@ -856,10 +856,36 @@ Não existe ainda critério formal documentado para tratar outreach comercial de
 ### [PADRÃO CONFIRMADO] Próximos passos pendentes — documentação da v1.0.57 aguardando aprovação de publicação, MarkItDown/llmfit sem teste ao vivo (25/set/2026)
 
 **O que ficou em aberto:** três pendências explícitas deixadas a pedido do usuário ("documente tudo como próximos passos, vou retomar depois"):
-1. Documentação pública (`docs-site/`, pt-BR + en) já editada para v1.0.57 — `seguranca.md`, `funcionalidades/assistente-rag.md`, `changelog.md` cobrindo a defesa contra prompt injection indireto (commit `324588c`) — build validado (`npm run build` sem erro nos dois locales), mas **ainda não commitada nem publicada**. Falta aprovação explícita separada antes do commit+push, que dispara `deploy-docs.yml` para o site público.
+1. Documentação pública (`docs-site/`, pt-BR + en) já editada para v1.0.57 — `seguranca.md`, `funcionalidades/assistente-rag.md`, `changelog.md` cobrindo a defesa contra prompt injection indireto (commit `324588c`) — build validado (`npm run build` sem erro nos dois locales). **Resolvido em 05/out/2026** (commit `d98f958`, site publicado). Achado no deploy: o gatilho `push` com filtro `paths: docs-site/**` do `deploy-docs.yml` não disparou para esse commit, mesmo com o path batendo — foi preciso `gh workflow run deploy-docs.yml` manual. Se repetir, vale remover o filtro de path (o build do Docusaurus é rápido).
 2. MarkItDown não testado ao vivo — ver entrada acima.
 3. llmfit não testado — ver entrada acima.
 
 **Por que importa:** evita que uma sessão futura comece do zero ou publique a documentação sem essa aprovação explícita ter sido dada.
 
 **Evidência:** commit `324588c` (feat prompt injection) e edições não commitadas em `docs-site/`.
+
+### [DECISÃO ESTRATÉGICA] Teste de densidade relacional via LLM falhou por limitação de ferramenta — não decide nada sobre GraphRAG (06/out/2026)
+
+**O que aconteceu:** tentativa de fechar a validação pendente desde 30/ago/2026 ("GraphRAG opt-in para base curada do Especialista") extraindo entidades via LLM local (Ollama) nas duas bases reais disponíveis (HIV: 20 docs, RAG: 68 docs). Falha em 100% dos casos (88/88, mesmo com retry), com `llama3.2:1b` e `qwen3:4b`: o modelo trunca o JSON antes de fechar a chave externa quando o conteúdo é denso (listas de autores/afiliações acadêmicas), independente de `num_predict` (testado até 1500 tokens). `qwen3:4b` ainda "pensa" em texto corrido mesmo com `think: False`.
+
+**Por que importa:** o resultado é inconclusivo — falha de ferramenta (LLM gerando texto livre que deveria ser JSON), não medição de densidade baixa. A pergunta de 30/ago continua sem resposta: não reabre nem fecha GraphRAG. Se retomado, usar extração determinística (NER), não outro LLM generativo.
+
+**Evidência:** script isolado em scratchpad (não versionado), conversa de 06/out/2026.
+
+### [PADRÃO CONFIRMADO] `_PROMPT_RESUMO` pode estar falhando em silêncio em produção — não medido ainda (06/out/2026)
+
+**O que aconteceu:** reproduzido isoladamente que o exemplo de JSON multi-linha indentado em `_PROMPT_RESUMO` (`tusab_engine/agent/summarize.py`) faz o `llama3.2:1b` — modelo padrão do Tusab — gerar resposta que não fecha a chave externa. Com o exemplo compactado em uma linha, fechou corretamente em 3/3 seeds.
+
+**Por que importa:** `resumir_video()` alimenta `_carregar_resumos_relevantes()` (resumos "Aprofundar base" injetados no prompt do chat) e devolve `None` em qualquer erro de parse — falha silenciosa, sem log. Próximo passo antes de mexer no prompt: medir em produção quantos `_resumo.json` existem vs. quantos deveriam existir.
+
+**Evidência:** teste isolado na conversa de 06/out/2026.
+
+### [DECISÃO ESTRATÉGICA] NER determinístico como alternativa a LLM para extrair entidades — discutido, adiado (06/out/2026)
+
+**O que aconteceu:** discutida a troca de extração via LLM generativo por NER (ex: spaCy), que classifica tokens do texto em vez de gerar JSON e por isso não tem o modo de falha acima. Três aplicações possíveis: (1) destravar o teste de densidade relacional; (2) corrigir `resumir_video()`; (3) novo passo de indexação em `index.py`, no mesmo padrão do KeyBERT (appendar entidades ao corpus BM25).
+
+**Por que foi adiado:** Augusto pediu só o registro ("nenhum por enquanto").
+
+**Ressalva para quando for retomado:** lematização via spaCy (`pt_core_news_sm`) já foi descartada em jul/2026 por 651x de overhead de indexação e erros em português cotidiano (entrada "Lematização em português"). NER é outra operação, mas é a mesma família de ferramenta e o mesmo tipo de custo por token — medir o custo real de indexação antes de propor a aplicação (3).
+
+**Evidência:** conversa de 06/out/2026.
