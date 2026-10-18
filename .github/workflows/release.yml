@@ -146,6 +146,28 @@ jobs:
         working-directory: electron
         run: npm ci
 
+      # electron/python_env e electron/bin estão no .gitignore — este job TEM
+      # que criá-los. Sem este passo (v1.0.42 a v1.0.57) o electron-builder só
+      # avisava "file source doesn't exist" e publicava um .exe de 82 MB sem
+      # backend. Invariante 24 em agents/_historia.md. Mesmo script usado no
+      # teste local, para o teste local valer pelo CI.
+      - name: Montar Python embutido e yt-dlp (invariante 24)
+        shell: pwsh
+        run: ./.github/scripts/montar-python-windows.ps1
+
+      # Trava: empacota sem publicar e sobe o backend DE DENTRO do pacote, do
+      # jeito que electron/main.js faz. Se o Python ou o yt-dlp não estiverem
+      # no pacote, ou o backend não responder /status, o job falha aqui —
+      # antes de qualquer coisa chegar à release.
+      - name: Empacotar (--dir) e verificar backend empacotado (invariante 24)
+        shell: pwsh
+        run: |
+          Push-Location electron
+          npx electron-builder --win --dir
+          if ($LASTEXITCODE -ne 0) { throw 'electron-builder --dir falhou' }
+          Pop-Location
+          ./.github/scripts/verificar-backend-empacotado.ps1 -Resources dist_electron/win-unpacked/resources
+
       # Mesma seção anexada do job create-release (ver comentário lá) — gerada
       # de novo aqui porque electron-builder sobrescreve o corpo da release com
       # este release_notes.md regenerado; sem repetir o passo, a seção de
@@ -271,6 +293,27 @@ jobs:
             --only-binary=:all: \
             --break-system-packages \
             -r requirements.txt
+
+      # Mesma trava do Windows (invariante 24), adaptada: o Python embutido
+      # precisa existir e importar o backend, e a stack pesada (torch & cia)
+      # não pode ter entrado (invariante 15). Só dá para EXECUTAR o python3
+      # arm64 se o runner for arm64 — num Mac Intel self-hosted a checagem cai
+      # para conferir os arquivos no site-packages.
+      - name: Verificar Python embutido (invariantes 15 e 24)
+        run: |
+          PYENV=electron/python_env-macos-arm64
+          SP="$PYENV/lib/python3.12/site-packages"
+          test -x "$PYENV/bin/python3" || { echo "::error::python3 ausente em $PYENV"; exit 1; }
+          for m in fastapi uvicorn lancedb rank_bm25 pdfplumber trafilatura psutil openpyxl docx yt_dlp rapidocr_onnxruntime; do
+            # rank_bm25 é módulo de arquivo único (rank_bm25.py), os demais são pastas
+            { test -d "$SP/$m" || test -f "$SP/$m.py"; } || { echo "::error::pacote $m ausente em $SP"; exit 1; }
+          done
+          for m in torch sentence_transformers keybert sklearn; do
+            test -d "$SP/$m" && { echo "::error::stack pesada ($m) entrou no instalador — invariante 15"; exit 1; }
+          done
+          if [ "$(uname -m)" = "arm64" ]; then
+            "$PYENV/bin/python3" -c "import fastapi, uvicorn, lancedb, rank_bm25, pdfplumber, trafilatura, psutil, openpyxl, docx, yt_dlp, rapidocr_onnxruntime; print('imports do backend: ok')"
+          fi
 
       - name: Build frontend
         working-directory: web_interface
