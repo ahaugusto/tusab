@@ -1,0 +1,79 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Valida o instalador Windows SEM publicar nada: monta o Python embutido,
+# empacota (--dir) e sobe o backend de dentro do pacote — os mesmos dois
+# scripts que o job build-windows de release.yml usa antes de publicar.
+#
+# Por que existe, além da trava dentro do release.yml: a trava impede que um
+# .exe sem backend seja publicado, mas só dispara na hora da tag — e aí a
+# release já foi criada e o job macOS já publicou. Este workflow pega a quebra
+# ANTES: em todo PR que mexa no backend ou no empacotamento, e todo domingo
+# (requirements.txt usa >=, então uma versão nova de dependência pode quebrar o
+# empacotamento sem nenhum commit nosso — o domingo vem antes do auto-release
+# de segunda). Incidente que motivou: invariante 24 em agents/_historia.md.
+
+name: Validar instalador Windows (sem publicar)
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main]
+    paths:
+      - 'requirements.txt'
+      - 'api_tusab.py'
+      - 'tusab_engine/**'
+      - 'electron/**'
+      - '.github/scripts/**'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/validar-instalador-windows.yml'
+  schedule:
+    - cron: '0 9 * * 0'   # domingo 06:00 BRT, antes do auto-release de segunda
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validar-instalador-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    name: Montar Python, empacotar e subir backend
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web_interface/package-lock.json
+
+      - name: Build frontend
+        working-directory: web_interface
+        run: npm install && npx vite build
+
+      - name: Instalar dependências Electron
+        working-directory: electron
+        run: npm ci
+
+      - name: Montar Python embutido e yt-dlp
+        shell: pwsh
+        run: ./.github/scripts/montar-python-windows.ps1
+
+      - name: Empacotar (--dir) e verificar backend empacotado
+        shell: pwsh
+        run: |
+          Push-Location electron
+          npx electron-builder --win --dir
+          if ($LASTEXITCODE -ne 0) { throw 'electron-builder --dir falhou' }
+          Pop-Location
+          ./.github/scripts/verificar-backend-empacotado.ps1 -Resources dist_electron/win-unpacked/resources
+
+      - name: Tamanho do pacote (sinal de saúde — invariante 24, regra c)
+        shell: pwsh
+        run: |
+          $mb = (Get-ChildItem -Recurse -File dist_electron/win-unpacked | Measure-Object -Sum Length).Sum / 1MB
+          "Pacote descompactado: {0:N0} MB" -f $mb | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          if ($mb -lt 500) { throw "Pacote com só $([math]::Round($mb)) MB — sem o Python embutido ele fica perto de 300 MB. Algo faltou." }
