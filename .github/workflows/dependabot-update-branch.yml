@@ -60,7 +60,14 @@ jobs:
           # pronto pra mesclar -> sai sem tocar em nada (é a vez dele); CI
           # falhou -> pula, senão um PR quebrado travaria a fila inteira.
           for N in $CANDIDATOS; do
-            ESTADO=$(gh pr view "$N" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus)
+            # O GitHub calcula mergeStateStatus sob demanda: logo após um push
+            # em main a primeira consulta devolve UNKNOWN (visto na primeira
+            # execução real, 18/out/2026). Repete até ter um estado de verdade.
+            for TENTATIVA in 1 2 3 4 5 6; do
+              ESTADO=$(gh pr view "$N" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus)
+              [ "$ESTADO" != "UNKNOWN" ] && break
+              sleep 10
+            done
             echo "PR #$N: $ESTADO"
             if [ "$ESTADO" = "BEHIND" ]; then
               gh pr update-branch "$N" --repo "$REPO"
