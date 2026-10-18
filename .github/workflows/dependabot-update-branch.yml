@@ -24,11 +24,18 @@
 
 name: Dependabot — atualizar branch em fila
 
+# Push em main não basta como gatilho: quando o auto-merge foi habilitado
+# por dependabot-auto-merge.yml (GITHUB_TOKEN), o merge sai em nome do
+# github-actions e esse push NÃO dispara workflows — visto no merge do
+# PR #42 (commit 507e12c, 18/out/2026), que não acionou a fila. O cron a
+# cada 30 min garante que a fila ande mesmo assim. Repositório público:
+# minutos de Actions em runner padrão não são cobrados, e cada execução
+# leva segundos.
 on:
   push:
     branches: [main]
   schedule:
-    - cron: '0 13 * * *'   # rede de segurança diária, caso um push não dispare
+    - cron: '*/30 * * * *'
   workflow_dispatch: {}
 
 permissions:
