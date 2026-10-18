@@ -1,6 +1,15 @@
 # Tusab — dependências Python
 # Gerado em 2026-06-24 · Python 3.12
 # Instalar sempre via: .venv\Scripts\python.exe -m pip install -r requirements.txt
+#
+# ESTE ARQUIVO É O QUE VAI DENTRO DO INSTALADOR (Windows e macOS — os dois
+# jobs de release.yml instalam daqui). Não colocar aqui torch,
+# sentence-transformers, scikit-learn nem keybert: a stack semântica fica
+# fora do instalador consumer por decisão de 02/jul/2026 (agents/_historia.md,
+# invariante 15) e mora em requirements-enterprise.txt. Ela esteve aqui de
+# 24/jun a 18/out/2026 e foi parar no .dmg (617 → 757 MB). Todo uso no código
+# é import opcional com degradação graciosa — para tê-la em dev:
+#   .venv\Scripts\python.exe -m pip install -r requirements-enterprise.txt
 
 # ── API / servidor ──────────────────────────────────────────────────────────
 fastapi>=0.136.3
@@ -11,10 +20,6 @@ starlette>=1.1.0
 # ── Agente RAG ──────────────────────────────────────────────────────────────
 rank-bm25>=0.2.2
 lancedb>=0.34.0                  # armazenamento columnar do índice (lance_store.py) — ranking continua BM25Okapi em memória
-sentence-transformers>=5.6.1     # CrossEncoder ms-marco-MiniLM-L-6-v2 + KeyBERT embeddings
-torch>=2.12.1                    # backend do sentence-transformers
-scikit-learn>=1.9.0              # usado internamente pelo sentence-transformers
-keybert>=0.8.0                   # extração de frases-chave para enriquecimento BM25 (opcional, degradação graciosa)
 numpy>=2.4.0                     # busca vetorial (embeddings.py) — antes só transitivo via pandas/sentence-transformers
 
 # ── Provedores de IA ────────────────────────────────────────────────────────
