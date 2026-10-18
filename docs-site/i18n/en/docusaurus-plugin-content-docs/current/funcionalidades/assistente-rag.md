@@ -19,7 +19,7 @@ In the interface this feature is called **"Assistant"** — a more precise term,
 2. **Context retrieval** — BM25Okapi search over the selected project(s)' index, always merged with FTS5 (exact-match, guarantees recall of literal terms like proper names and acronyms) and, in Broad Search with the embedding model installed, also with vector search by meaning (see "Vector search" below)
 3. **Prompt assembly** — every retrieved source is wrapped in semantic XML tags (`<source id="N">`) to mitigate prompt injection
 4. **Generation** — local model (Ollama) or a configured external provider
-5. **Post-generation verification** — checks keyword overlap against the retrieved sources
+5. **Post-generation verification** — two independent checks: keyword overlap against the retrieved sources (measures hallucination), and a heuristic that flags when the answer looks like it followed an instruction hidden in a base document (indirect prompt injection) instead of answering the question
 
 ## Narrow Search vs. Broad Search
 
@@ -33,6 +33,7 @@ In the interface this feature is called **"Assistant"** — a more precise term,
 - A relevance threshold, calibrated dynamically per corpus (not a fixed value — a small corpus and a corpus with thousands of chunks have very different score distributions), determines whether there's enough context to answer
 - When there isn't, chat returns `sem_contexto: true` and the interface shows the **"Index now"** button instead of a generic message
 - Per-sentence graded confidence: when part of the answer has weak direct support from the sources, an amber indicator appears under the message — without suppressing the whole answer
+- Separate signal for possible instruction hijacking: if the answer looks like it followed a command hidden in a base document, a warning is shown — this is a different mechanism from per-sentence confidence, and it doesn't block the answer
 
 ## Vector search (embeddings)
 

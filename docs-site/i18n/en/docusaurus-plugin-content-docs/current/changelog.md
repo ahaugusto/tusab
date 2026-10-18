@@ -11,6 +11,8 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.57 (2026-09-28)** — Protection against instructions hidden in indexed documents (indirect prompt injection): malicious content in a video, PDF, or text file is no longer followed as a command by the assistant; when an answer still looks influenced this way, a warning appears in the chat. Dependencies updated, including React and axios (with a security fix).
+
 **v1.0.56 (2026-09-02)** — Fixed the automated accessibility audit in CI, which had been failing since v1.0.55.
 
 **v1.0.55 (2026-08-30)** — OpenRouter as a new free chat provider; search index storage migrated to LanceDB (ranking is still BM25, no perceptible change in answer quality); Especialista profile can hide the Study Mode card on the home screen; tables and lists in assistant replies no longer render glued together on screen; contrast and keyboard focus improvements.

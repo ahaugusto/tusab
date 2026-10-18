@@ -1,0 +1,87 @@
+# Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
+#
+# Destrava PRs do Dependabot com auto-merge habilitado que ficaram para trás
+# de main. main exige branch atualizado antes de mesclar (required status
+# checks com strict: true) — e nem o auto-merge nativo do GitHub nem o
+# Dependabot atualizam o branch sozinhos quando ele só está atrasado (o
+# Dependabot só rebaseia em caso de conflito). Sem isto, qualquer patch que
+# não mesclasse antes do próximo commit em main ficava em BEHIND para
+# sempre: achado real em 18/out/2026, PR #42 (react-i18next, patch) parado
+# desde 28/set com auto-merge habilitado.
+#
+# Fila serial: atualiza UM PR por execução, o mais antigo. Quando ele mescla,
+# o push em main dispara esta workflow de novo e o próximo da fila anda.
+# Atualizar todos de uma vez faria todos rodarem CI juntos e, a cada merge,
+# os demais voltariam para BEHIND — CI desperdiçado sem convergir mais rápido.
+#
+# RELEASE_PAT, não GITHUB_TOKEN: o commit de atualização feito com
+# GITHUB_TOKEN não dispara outros workflows (limitação deliberada do GitHub)
+# — o CI nunca rodaria no branch atualizado e o auto-merge esperaria para
+# sempre. Mesmo motivo já documentado em auto-release.yml e release.yml.
+# Efeito colateral aceito: depois de um update por outro usuário, o
+# Dependabot deixa de rebasear aquele PR sozinho — esta workflow assume essa
+# função.
+
+name: Dependabot — atualizar branch em fila
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 13 * * *'   # rede de segurança diária, caso um push não dispare
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-update-branch
+  cancel-in-progress: false
+
+jobs:
+  atualizar-proximo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Atualizar o PR mais antigo que está atrás de main
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          CANDIDATOS=$(gh pr list --repo "$REPO" --state open --author 'app/dependabot' \
+            --json number,autoMergeRequest,createdAt \
+            --jq 'map(select(.autoMergeRequest != null)) | sort_by(.createdAt) | .[].number')
+          if [ -z "$CANDIDATOS" ]; then
+            echo "Nenhum PR do Dependabot com auto-merge pendente."
+            exit 0
+          fi
+          # Do mais antigo ao mais novo: BEHIND -> atualiza e sai; CI rodando ou
+          # pronto pra mesclar -> sai sem tocar em nada (é a vez dele); CI
+          # falhou -> pula, senão um PR quebrado travaria a fila inteira.
+          for N in $CANDIDATOS; do
+            # O GitHub calcula mergeStateStatus sob demanda: logo após um push
+            # em main a primeira consulta devolve UNKNOWN (visto na primeira
+            # execução real, 18/out/2026). Repete até ter um estado de verdade.
+            for TENTATIVA in 1 2 3 4 5 6; do
+              ESTADO=$(gh pr view "$N" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus)
+              [ "$ESTADO" != "UNKNOWN" ] && break
+              sleep 10
+            done
+            echo "PR #$N: $ESTADO"
+            if [ "$ESTADO" = "BEHIND" ]; then
+              gh pr update-branch "$N" --repo "$REPO"
+              echo "::notice::PR #$N atualizado contra main — CI vai rodar e o auto-merge segue sozinho."
+              exit 0
+            fi
+            set +e
+            gh pr checks "$N" --repo "$REPO" > /dev/null 2>&1
+            CODIGO=$?
+            set -e
+            if [ "$CODIGO" -eq 8 ] || [ "$ESTADO" = "CLEAN" ]; then
+              echo "PR #$N em andamento (CI rodando ou prestes a mesclar) — aguardando a vez dele."
+              exit 0
+            fi
+            echo "PR #$N com CI falho ou estado $ESTADO — pulando para não travar a fila."
+          done
+          echo "Nenhum candidato precisa de atualização agora."
