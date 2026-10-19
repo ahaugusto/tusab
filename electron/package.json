@@ -20,11 +20,11 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "electron-updater": "^6.3.0"
+    "electron-updater": "^6.8.10"
   },
   "devDependencies": {
-    "electron": "^34.5.8",
-    "electron-builder": "^26.15.3"
+    "electron": "^44.9.0",
+    "electron-builder": "^26.17.0"
   },
   "build": {
     "appId": "com.criaugu.tusab",
