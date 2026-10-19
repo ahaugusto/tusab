@@ -33,7 +33,7 @@ jobs:
       # macOS — ver histórico do arquivo). Sem download manual de Python.
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
       # Seção anexada e colapsável de PRs/commits desta versão, categorizada
       # por label via .github/release.yml — não substitui o CHANGELOG.md
       # curado, só complementa com rastreabilidade de origem. Falha graciosa:
@@ -118,7 +118,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -242,7 +242,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
