@@ -12,6 +12,9 @@
   "private": true,
   "scripts": {
     "dev": "electron .",
+    "prebuild": "node ../scripts/garantir-release-notes.js",
+    "prebuild:mac": "node ../scripts/garantir-release-notes.js",
+    "prebuild:mac:publish": "node ../scripts/garantir-release-notes.js",
     "build": "electron-builder --win",
     "build:dir": "electron-builder --win --dir",
     "build:mac:dir": "electron-builder --mac --dir",
