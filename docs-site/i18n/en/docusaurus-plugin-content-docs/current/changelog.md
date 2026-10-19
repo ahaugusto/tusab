@@ -11,6 +11,8 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.58 (2026-10-18)** — The Windows installer includes the app's engine again: versions 1.0.42 to 1.0.57 shipped without the embedded Python, and the app didn't work on Windows. The macOS installer gets smaller, without the semantic reranking stack, which was already not part of the standard Windows version. Security fixes in components used by automatic updates and optional telemetry.
+
 **v1.0.57 (2026-09-28)** — Protection against instructions hidden in indexed documents (indirect prompt injection): malicious content in a video, PDF, or text file is no longer followed as a command by the assistant; when an answer still looks influenced this way, a warning appears in the chat. Dependencies updated, including React and axios (with a security fix).
 
 **v1.0.56 (2026-09-02)** — Fixed the automated accessibility audit in CI, which had been failing since v1.0.55.

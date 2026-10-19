@@ -52,7 +52,7 @@ excerpt was retrieved from.
 | Letter | Stage | What it does |
 |--------|-------|---------------|
 | **I** | Index | Extraction and indexing of YouTube, PDFs, DOCX, Markdown, plain text |
-| **A** | Augment | RAG with BM25 + CrossEncoder delivers precise chunks to the model |
+| **A** | Augment | RAG with BM25 + exact-match search (FTS5) + optional search by meaning delivers precise chunks to the model |
 | **C** | Chat | Chat with streaming, source citation and conversation history |
 
 ---
@@ -129,9 +129,11 @@ excerpt was retrieved from.
 - Upload audio (MP3, WAV, M4A, etc.) — transcription via local faster-whisper
 - Automatic parser for WhatsApp conversations and meeting transcripts (Zoom, Teams, Otter)
 - Paste text directly from the interface
-- Local RAG assistant: BM25Okapi + FTS5 (exact match) + CrossEncoder (ms-marco-MiniLM-L-6-v2) +
-  anti-hallucination
-- Narrow Search (pure BM25, ~1 ms) and Broad Search (BM25 + FTS5 + CrossEncoder, ~250 ms)
+- Local RAG assistant: BM25Okapi + FTS5 (exact match) + anti-hallucination
+- Narrow Search (BM25 + FTS5, ~1 ms) and Broad Search (adds search by meaning via Ollama)
+- Semantic reranking (CrossEncoder `ms-marco-MiniLM-L-6-v2`) and KeyBERT keyword enrichment are
+  supported by the code but left out of the standard installer (heavy `torch` stack) — install
+  `requirements-enterprise.txt` to enable them when running from source
 - Optional vector search (embeddings) via Ollama (`nomic-embed-text`, one-click download) — adds
   meaning-based retrieval on top of keyword search in Broad Search, fully local, degrades
   gracefully when the model isn't installed
@@ -173,7 +175,7 @@ key in **Configure Assistant** — it's tested before being saved and stored via
 ## Stack
 
 **Backend:** Python 3.12 + FastAPI + Uvicorn — REST API on `localhost:8001`
-**RAG assistant:** rank_bm25 (BM25Okapi) + SQLite FTS5 + sentence-transformers (CrossEncoder) + optional Ollama embeddings (`nomic-embed-text`) + Ollama / external providers
+**RAG assistant:** rank_bm25 (BM25Okapi) + SQLite FTS5 + optional Ollama embeddings (`nomic-embed-text`) + Ollama / external providers; sentence-transformers (CrossEncoder) and KeyBERT optional, not in the standard installer
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React
 **Desktop:** Electron 34 + electron-builder (NSIS installer for Windows · signed and notarized `.dmg`/`.zip` for macOS arm64)
 **Extraction:** yt-dlp (bundled) + pdfplumber + python-docx
@@ -196,8 +198,8 @@ Tusab/
     agent/                    <- RAG assistant (internal module name kept as
                                   "agent" on purpose — see CLAUDE.md)
       config.py               <- load/save agent_config.json
-      index.py                <- BM25 indexing + cache + CrossEncoder
-      chat.py                 <- RAG chat + streaming
+      index.py                <- BM25 indexing + cache + KeyBERT enrichment (optional)
+      chat.py                 <- RAG chat + streaming + CrossEncoder rerank (optional)
       fts.py                  <- SQLite FTS5 exact-match layer
       embeddings.py           <- optional vector search (Ollama nomic-embed-text)
       calibration.py          <- dynamic per-corpus retrieval tuning
