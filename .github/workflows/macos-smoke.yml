@@ -87,7 +87,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -225,7 +225,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -365,7 +365,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -517,7 +517,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -684,7 +684,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: electron/package-lock.json
 
@@ -736,7 +736,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 

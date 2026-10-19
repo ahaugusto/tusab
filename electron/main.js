@@ -360,7 +360,13 @@ function registerIpcHandlers () {
     const store = readKeystore()
     const enc   = store[`apikey_${provider}`]
     if (!enc) return null
-    try { return safeStorage.decryptString(Buffer.from(enc, 'base64')) } catch { return null }
+    try { return safeStorage.decryptString(Buffer.from(enc, 'base64')) } catch (e) {
+      // Antes era engolido em silêncio: o usuário só via a chave "sumir". Um
+      // upgrade de Electron que não conseguisse decifrar o que a versão
+      // anterior cifrou ficaria invisível — testado ok 34→44 no Windows.
+      console.error(`[keystore] falha ao decifrar a chave de ${provider}:`, e.message)
+      return null
+    }
   })
 
   ipcMain.handle('set-api-key', (_e, provider, plaintext) => {
@@ -514,6 +520,10 @@ function initUpdater () {
           mainWindow.webContents.send('trigger-install-update')
         }
       })
+      // Electron 42+: no macOS a notificação usa UNNotification e falha em app
+      // sem assinatura (builds --dir de teste) ou sem permissão do usuário. O
+      // aviso dentro da janela (update-downloaded acima) continua valendo.
+      notif.on('failed', (_e, erro) => console.error('[update] notificação nativa falhou:', erro))
       notif.show()
     }
   })
