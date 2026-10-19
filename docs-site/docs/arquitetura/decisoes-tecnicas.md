@@ -36,9 +36,15 @@ Desde julho de 2026, a interface usa o termo **"Assistente"** — mais preciso, 
 
 ## BM25 + FTS5 + CrossEncoder + busca vetorial
 
-Busca Restrita usa BM25 puro (~1 ms). Busca Ampla recupera o top-12 via BM25 e reordena com um CrossEncoder (`ms-marco-MiniLM-L-6-v2`, `sentence-transformers`), entregando o top-6 ao prompt (+236 ms medido). O modelo é carregado sob demanda (lazy load), com degradação graciosa se a biblioteca estiver ausente. Um índice SQLite FTS5 roda em paralelo ao BM25 pra garantir recall exato de termos literais (nomes próprios, siglas) — mesclado sempre, incondicionalmente, no pool de candidatos.
+Busca Restrita usa BM25 (~1 ms). Um índice SQLite FTS5 roda em paralelo ao BM25 pra garantir recall exato de termos literais (nomes próprios, siglas) — mesclado sempre, incondicionalmente, no pool de candidatos. Busca Ampla acrescenta a busca vetorial (abaixo) e, quando a stack semântica está instalada, reordena os candidatos com um CrossEncoder (`ms-marco-MiniLM-L-6-v2`, `sentence-transformers`), entregando o top-6 ao prompt (+236 ms medido).
+
+:::info A stack semântica fica fora do instalador padrão
+CrossEncoder e KeyBERT dependem de `torch` e `sentence-transformers` — de 0,5 a 1 GB de RAM a mais e um instalador várias vezes maior, inviável para o perfil Estudante em PC modesto. Desde 02/jul/2026 essa stack fica fora do instalador consumer em Windows e macOS e é reservada à edição com busca semântica avançada (`requirements-enterprise.txt`). O código carrega os modelos sob demanda e degrada graciosamente sem eles: `_rerankar()` devolve os candidatos na ordem do BM25 e a indexação segue sem o enriquecimento KeyBERT. (Da v1.0.41 à v1.0.57 a stack entrou por engano no instalador do macOS, montado pelo CI a partir de um `requirements.txt` que ainda a listava; corrigido na v1.0.58.)
+:::
 
 **Busca vetorial (embeddings) — Fase 1, v1.0.49:** complementa a busca por palavra-chave com recuperação por significado, via Ollama (`nomic-embed-text`, ~274 MB, download opcional de 1 clique na aba Assistente). Só entra no pool em Busca Ampla — a mesma razão pela qual o CrossEncoder é restrito a esse modo: um match semântico aproximado precisa de um validador de relevância real antes de chegar ao prompt. Score simbólico fixo no pool (não o cosseno bruto — as escalas de BM25/FTS5/cosseno são incompatíveis entre si). Degradação graciosa total: sem o modelo instalado, o comportamento é idêntico ao de antes da feature existir.
+
+Sem o CrossEncoder (o caso do instalador padrão), o filtro final de relevância passa a ser a proporção do score do BM25, e os trechos vetoriais só sobrevivem quando a busca por palavras encontra pouco. Na prática, a busca por significado vira reforço justamente onde o BM25 falha. Medido em 18/out/2026 com 10 perguntas reais: numa base de leis e artigos em português (BM25 forte), 0 de 14 trechos no prompt vieram da busca vetorial; numa base de artigos em inglês consultada em português (BM25 fraco), 12 de 20.
 
 GraphRAG segue descartado — o corpus atual (transcrições de YouTube, PDFs avulsos) tem densidade relacional baixa demais pra justificar a complexidade de um grafo de conhecimento.
 
@@ -46,7 +52,7 @@ GraphRAG segue descartado — o corpus atual (transcrições de YouTube, PDFs av
 
 ## Calibragem dinâmica do número de candidatos por corpus
 
-O número de candidatos que o BM25 entrega ao CrossEncoder na Busca Ampla não é fixo — cresce com o tamanho do corpus (12 em bases pequenas, 20 acima de 1.000 chunks, 30 acima de 5.000): corpus maior tem IDF menor por termo, então mais candidatos dão ao CrossEncoder mais chance de achar o chunk certo. Recalculado a cada indexação e persistido em `management/corpus_profile.json`.
+Esta calibragem só tem efeito quando o CrossEncoder está instalado (ver acima) — sem ele, a ordem final é a do BM25 e o tamanho do pool não muda o resultado. O número de candidatos que o BM25 entrega ao CrossEncoder na Busca Ampla não é fixo — cresce com o tamanho do corpus (12 em bases pequenas, 20 acima de 1.000 chunks, 30 acima de 5.000): corpus maior tem IDF menor por termo, então mais candidatos dão ao CrossEncoder mais chance de achar o chunk certo. Recalculado a cada indexação e persistido em `management/corpus_profile.json`.
 
 Feedback negativo (👎) no chat some ao mesmo cálculo: a cada marco de 10 avaliações negativas acumuladas no projeto, o número de candidatos ganha +8, com teto em +24. A regra nunca reduz nem descarta um resultado — só amplia o quanto o CrossEncoder considera antes de responder. Um threshold de corte adaptativo (score mínimo por corpus ou por feedback) foi deliberadamente descartado — já foi tentado e cortava resultados legítimos em corpus grande.
 
@@ -56,4 +62,4 @@ Documentos longos usam janelas de 2.000 caracteres com overlap de 200 — evita 
 
 ## Enriquecimento silencioso do corpus (KeyBERT)
 
-Antes de indexar, as top-8 frases-chave de cada chunk (via KeyBERT) são appendadas ao campo `texto` usado no índice. O campo `texto_original` preserva o texto limpo para exibição nas fontes do chat. Degradação graciosa se KeyBERT estiver ausente — indexa sem enriquecimento.
+Antes de indexar, as top-8 frases-chave de cada chunk (via KeyBERT) são appendadas ao campo `texto` usado no índice. O campo `texto_original` preserva o texto limpo para exibição nas fontes do chat. Degradação graciosa se KeyBERT estiver ausente — indexa sem enriquecimento, que é o caso do instalador padrão (stack semântica fora, ver acima).

@@ -26,6 +26,10 @@ Só Apple Silicon (arm64) no momento.
 
 Execute o `.exe` e siga o instalador NSIS. Sem passos manuais adicionais.
 
+:::caution Instalou no Windows entre agosto e outubro de 2026?
+As versões **1.0.42 a 1.0.57** para Windows saíram sem o motor do app (o Python embutido e o componente de download do YouTube). Nelas, o Tusab abria, mas a extração de canais, o chat e o repositório não funcionavam. Se esse foi o seu caso, baixe e instale a **1.0.58 ou mais recente** — seus dados e configurações continuam onde estavam.
+:::
+
 ## Instalando no macOS
 
 1. Baixe o `.dmg`.
