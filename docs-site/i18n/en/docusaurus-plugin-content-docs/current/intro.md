@@ -39,7 +39,7 @@ Tusab adapts to whoever is using it. The profile is chosen during onboarding and
 |--------|---------------|
 | 🎓 **Student** | Imports ready-made bases (`.tusab`) shared by teachers. Query only — zero setup. |
 | 📚 **Teacher** | Extracts YouTube channels, indexes teaching material, exports bases to share with the class. |
-| 🔬 **Researcher** | Builds corpora from multiple sources, uses Broad Search with semantic reranking, accesses project analytics. |
+| 🔬 **Researcher** | Builds corpora from multiple sources, uses public-source search by knowledge area, accesses project analytics. |
 | 🧑‍💻 **Specialist** | Full access: system monitoring, administration, full reset, all advanced tools. |
 
 What changes between profiles: visible tabs, the assistant's default persona, access to AI provider configuration, the extraction queue, Drive integration, and administrative tools.

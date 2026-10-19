@@ -35,15 +35,19 @@ Saudações ("oi", "obrigado") e trechos referenciados (`[arquivo]`) também res
 
 ## Busca Restrita vs. Busca Ampla
 
-| Modo | Como funciona | Latência |
-|------|---------------|----------|
-| **Restrita** | BM25 puro | ~1 ms |
-| **Ampla** | BM25 recupera top-12 → CrossEncoder (`ms-marco-MiniLM-L-6-v2`) reordena semanticamente → top-6 vão ao prompt | +236 ms medido |
+| Modo | Como funciona |
+|------|---------------|
+| **Restrita** | BM25 + busca exata (FTS5) — resposta em ~1 ms na etapa de busca |
+| **Ampla** | Tudo da Restrita + busca por significado via Ollama, quando o modelo de embeddings está baixado (ver "Busca vetorial" abaixo). Ela pesa mais justamente quando a busca por palavras encontra pouco — por exemplo, pergunta em português sobre documentos em inglês |
+
+:::info Reordenação semântica (CrossEncoder) e KeyBERT ficam fora do instalador padrão
+O código do Tusab também sabe reordenar os candidatos da Busca Ampla com um CrossEncoder (`ms-marco-MiniLM-L-6-v2`) — o BM25 entrega de 12 a 30 candidatos, conforme o tamanho da base, e o modelo reordena por relevância semântica antes de os 6 melhores irem ao prompt (+236 ms medido) — e enriquecer o índice com palavras-chave via KeyBERT. Essas duas peças dependem de uma stack de IA pesada (`torch` e `sentence-transformers`), que custaria de 0,5 a 1 GB de RAM e multiplicaria o tamanho do instalador. Por isso ela fica **fora do instalador padrão** em Windows e macOS, e o app funciona sem ela: a busca segue com BM25, FTS5 e busca por significado via Ollama. A stack fica reservada à edição com busca semântica avançada (`requirements-enterprise.txt` no código-fonte).
+:::
 
 ## Anti-alucinação
 
 - Threshold de relevância calibrado dinamicamente por corpus (não um valor fixo — um corpus pequeno e um corpus com milhares de chunks têm distribuições de score muito diferentes) determina se há contexto suficiente para responder
-- Quando a Busca Restrita não encontra nada, o chat tenta automaticamente a Busca Ampla (BM25+CrossEncoder) antes de desistir — só depois disso, se ainda não houver contexto, retorna `sem_contexto: true` e a interface mostra o botão **"Indexar agora"** em vez de uma mensagem genérica
+- Quando a Busca Restrita não encontra nada, o chat tenta automaticamente a Busca Ampla antes de desistir — só depois disso, se ainda não houver contexto, retorna `sem_contexto: true` e a interface mostra o botão **"Indexar agora"** em vez de uma mensagem genérica
 - Confiança graduada por sentença: quando parte da resposta tem baixo apoio direto nas fontes, um indicador âmbar aparece sob a mensagem — sem suprimir a resposta inteira
 - Sinal separado de possível sequestro de instrução: se a resposta parecer ter obedecido um comando escondido num documento da base, um aviso é exibido — não é o mesmo mecanismo da confiança por sentença, e não bloqueia a resposta
 
@@ -61,11 +65,11 @@ Toda resposta cita título, data e link de origem. Clicar na fonte abre o vídeo
 
 ## Feedback (RLHF local)
 
-👍 numa resposta salva o par pergunta/resposta em `neural/{projeto}/texts/feedback_{timestamp}.txt` — na próxima indexação, esse conteúdo entra no corpus BM25 e passa a ser recuperável para perguntas parecidas. 👎 não descarta mais silenciosamente: acumula um contador por projeto que amplia o número de candidatos considerados na Busca Ampla (nunca reduz, nunca descarta um resultado — só dá mais chance de achar o trecho certo). Nenhum dos dois é treino de modelo — melhoram a recuperação, não os pesos do LLM.
+👍 numa resposta salva o par pergunta/resposta em `neural/{projeto}/texts/feedback_{timestamp}.txt` — na próxima indexação, esse conteúdo entra no corpus BM25 e passa a ser recuperável para perguntas parecidas. 👎 não descarta mais silenciosamente: acumula um contador por projeto que amplia o número de candidatos que a reordenação semântica da Busca Ampla considera (nunca reduz, nunca descarta um resultado — só dá mais chance de achar o trecho certo). Esse efeito depende do CrossEncoder, que fica fora do instalador padrão (ver acima). Nenhum dos dois é treino de modelo — melhoram a recuperação, não os pesos do LLM.
 
 ## Referenciar trechos
 
-O botão 🔍 na toolbar do chat (ou "Referenciar trecho" em mensagens sem contexto) abre uma busca federada: BM25 + expansão de query + CrossEncoder em uma ou mais bases, com resultados agrupados por projeto e seleção múltipla. Trechos escolhidos são injetados no campo de mensagem como contexto fixado.
+O botão 🔍 na toolbar do chat (ou "Referenciar trecho" em mensagens sem contexto) abre uma busca federada: BM25 + expansão de query (e reordenação semântica, quando disponível) em uma ou mais bases, com resultados agrupados por projeto e seleção múltipla. Trechos escolhidos são injetados no campo de mensagem como contexto fixado.
 
 ## Persona e tom
 

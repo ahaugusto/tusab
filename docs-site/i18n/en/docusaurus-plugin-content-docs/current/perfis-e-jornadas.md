@@ -17,7 +17,7 @@ Tusab has four profiles with progressively more advanced features. The profile i
 | Repository (view + upload) | ✅ | ✅ | ✅ | ✅ |
 | Import / export `.tusab` base | ✅ | ✅ | ✅ | ✅ |
 | Configure AI provider / API key | ✅ | ✅ | ✅ | ✅ |
-| Broad Search (BM25 + CrossEncoder) | ✅ | ✅ | ✅ | ✅ |
+| Broad Search | ✅ | ✅ | ✅ | ✅ |
 | Google Drive (sync) | ✅ | ✅ | ✅ | ✅ |
 | Extract YouTube channel / queue | — | ✅ | ✅ | ✅ |
 | Manage repository (delete/clear) | ✅ | ✅ | ✅ | ✅ |
@@ -46,8 +46,7 @@ Extraction is incremental: on a new run, only new videos are processed.
 Builds corpora from multiple sources for in-depth analysis, with fine-grained control over what goes into the base.
 
 **Differences from Teacher:**
-- **Overview** panel — project analytics: corpus size, coverage, source distribution
-- **Broad Search with CrossEncoder** active by default — BM25 retrieves the top-12 candidates, a CrossEncoder (`ms-marco-MiniLM-L-6-v2`) reorders them semantically, the top-6 go into the prompt
+- **Technical** default persona in the Assistant (Teacher's is didactic)
 - Search [26 public sources across 9 knowledge areas](/funcionalidades/fontes-publicas) (arXiv, PubMed, Brazil's Chamber of Deputies, Central Bank, CERN Open Data, among others)
 
 ## Specialist

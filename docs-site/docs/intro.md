@@ -39,7 +39,7 @@ O Tusab se adapta a quem está usando. O perfil é escolhido no onboarding e pod
 |--------|---------------|
 | 🎓 **Estudante** | Importa bases prontas (`.tusab`) compartilhadas por professores. Só consulta — zero configuração. |
 | 📚 **Professor** | Extrai canais do YouTube, indexa material didático, exporta bases para compartilhar com a turma. |
-| 🔬 **Pesquisador** | Constrói corpora de múltiplas fontes, usa Busca Ampla com re-rankeamento semântico, acessa analytics do projeto. |
+| 🔬 **Pesquisador** | Constrói corpora de múltiplas fontes, usa a busca em fontes públicas por área de conhecimento, acessa analytics do projeto. |
 | 🧑‍💻 **Especialista** | Acesso completo: monitoramento do sistema, administração, reset total, todas as ferramentas avançadas. |
 
 O que muda entre perfis: abas visíveis, persona padrão do assistente, acesso a configuração de provedores de IA, fila de extração, integração com Drive e ferramentas administrativas.

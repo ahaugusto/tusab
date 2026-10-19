@@ -11,6 +11,8 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 ## Destaques recentes
 
+**v1.0.58 (2026-10-18)** — O instalador para Windows volta a incluir o motor do app: as versões 1.0.42 a 1.0.57 saíram sem o Python embutido, e o app não funcionava no Windows. O instalador do macOS fica menor, sem a stack de reordenação semântica, que já não fazia parte da versão padrão no Windows. Correções de segurança em componentes da atualização automática e da telemetria opcional.
+
 **v1.0.57 (2026-09-28)** — Proteção contra instruções escondidas em documentos indexados (prompt injection indireto): conteúdo malicioso num vídeo, PDF ou texto não é mais obedecido como comando pelo assistente; quando a resposta parece ter sido influenciada mesmo assim, um aviso aparece no chat. Dependências atualizadas, incluindo React e axios (com correção de segurança).
 
 **v1.0.56 (2026-09-02)** — Correção da auditoria automatizada de acessibilidade no CI, que estava falhando desde a v1.0.55.
