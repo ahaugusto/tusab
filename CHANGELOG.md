@@ -7,6 +7,19 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.61] — 2026-10-20
+
+### Adicionado
+- **Buscar em várias fontes públicas de uma vez.** Na busca em base pública, as fontes da área viram uma lista compacta de caixas de seleção com a descrição de cada uma: marque quantas quiser, ou use "Marcar todas". As fontes são consultadas uma de cada vez e os resultados vão para o mesmo projeto. Os filtros de autor e data valem só para as fontes que os aceitam, e o resumo final mostra quais fontes falharam, se alguma falhar.
+
+### Corrigido
+- **Telemetria opcional não registrava nada nas versões publicadas.** Para quem aceitou compartilhar dados de uso, a abertura do app e o próprio aceite eram descartados, e o marco de retenção (1, 7 e 30 dias) nunca era enviado. Nada muda para quem recusou: sem consentimento, nada é enviado.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- O build de release passa a receber a chave do PostHog por secret do repositório; antes saía vazia, porque `web_interface/.env` não vai para o Git.
+
+---
+
 ## [1.0.60] — 2026-10-20
 
 ### Alterado
