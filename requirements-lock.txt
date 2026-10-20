@@ -72,5 +72,5 @@ uritemplate==4.2.0
 urllib3==2.7.0
 uvicorn==0.50.2
 watchfiles==1.2.0
-websockets==16.0
+websockets==17.2
 yt-dlp==2026.7.4
