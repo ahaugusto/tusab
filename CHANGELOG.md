@@ -7,6 +7,18 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.59] — 2026-10-20
+
+### Alterado
+- **Base do aplicativo atualizada (Electron 44).** O Tusab passa a rodar sobre uma versão recente do Chromium e do Node.js, com as correções de segurança acumuladas desde a versão anterior. Nada muda no uso: suas bases, conversas e chaves de API continuam onde estavam.
+
+### Interno (CI/infra — sem impacto para quem usa o app)
+- electron-builder 26.17 e electron-updater 6.8.10; o build gera as notas de release sozinho quando o arquivo não existe (o 26.17 passou a exigir).
+- Quando uma chave de API salva não puder ser decifrada, o motivo fica registrado no log em vez de falhar em silêncio.
+- O teste de notarização do macOS roda no runner hospedado do GitHub, igual ao release.
+
+---
+
 ## [1.0.58] — 2026-10-18
 
 ### Corrigido
