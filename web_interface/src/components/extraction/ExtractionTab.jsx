@@ -540,6 +540,20 @@ export default function ExtractionTab({
                     </p>
                   </div>
 
+                  {/* Busca em várias fontes: lista as que falharam, sem esconder as que deram certo */}
+                  {r.falhas?.length > 0 && (
+                    <div className="mt-3 pl-12">
+                      <p className={`text-[11px] font-bold ${darkMode ? 'text-warning' : 'text-amber-700'}`}>{t('extraction.fontes_failed_title')}</p>
+                      <ul className="space-y-0.5 mt-1">
+                        {r.falhas.map((f, i) => (
+                          <li key={i} className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            <span className="font-semibold">{f.fonte}:</span> {f.mensagem}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {/* Lista dos itens consultados — recolhida além de 5 pra não
                       estourar a tela em buscas com muitos resultados (ex: 20-50). */}
                   {r.itens?.length > 0 && (

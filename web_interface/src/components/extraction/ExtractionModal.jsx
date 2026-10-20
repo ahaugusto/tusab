@@ -41,12 +41,27 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // areasFontes/areaSelecionada vêm de App.jsx (carregados e escolhidos já na
   // aba Extração, antes do modal abrir) — aqui só resta escolher a fonte
   // dentro da área já definida.
-  const [fonteSelecionada, setFonteSelecionada] = React.useState(areasFontes[areaSelecionada]?.fontes[0]?.id || '');
+  // Seleção múltipla: o Pesquisador pode buscar o mesmo tema em várias fontes
+  // da área de uma vez. As buscas rodam em sequência (App.jsx), não em
+  // paralelo — todas gravam e reindexam o mesmo projeto.
+  const fontesDaArea = areasFontes[areaSelecionada]?.fontes || [];
+  const [fontesSelecionadas, setFontesSelecionadas] = React.useState(() => (fontesDaArea[0] ? [fontesDaArea[0].id] : []));
   React.useEffect(() => {
-    const fontes = areasFontes[areaSelecionada]?.fontes || [];
-    if (!fontes.some(f => f.id === fonteSelecionada)) setFonteSelecionada(fontes[0]?.id || '');
+    setFontesSelecionadas(prev => {
+      const validas = prev.filter(id => fontesDaArea.some(f => f.id === id));
+      return validas.length ? validas : (fontesDaArea[0] ? [fontesDaArea[0].id] : []);
+    });
   }, [areaSelecionada, areasFontes]);
-  const fonteAtual = areasFontes[areaSelecionada]?.fontes.find(f => f.id === fonteSelecionada) || null;
+  const fontesEscolhidas = fontesDaArea.filter(f => fontesSelecionadas.includes(f.id));
+  const alternarFonte = (id) => setFontesSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const todasMarcadas = fontesDaArea.length > 0 && fontesSelecionadas.length === fontesDaArea.length;
+  // Nome para títulos e textos: a fonte, se for só uma; "N fontes" se forem várias
+  const nomeFontes = fontesEscolhidas.length === 1 ? fontesEscolhidas[0].nome : t('extraction.fontes_n_selected', { n: fontesEscolhidas.length });
+  // Filtros opcionais aparecem se ao menos uma fonte marcada os aceitar
+  const algumaSuportaAutor = fontesEscolhidas.some(f => f.suporta_autor);
+  const algumaSuportaData  = fontesEscolhidas.some(f => f.suporta_data);
+  const filtroParcialAutor = algumaSuportaAutor && !fontesEscolhidas.every(f => f.suporta_autor);
+  const filtroParcialData  = algumaSuportaData  && !fontesEscolhidas.every(f => f.suporta_data);
 
   // Step fonte pública: query de busca + quantidade de resultados + filtros
   // opcionais (autor/data) — só exibidos se a fonte escolhida os suportar
@@ -293,7 +308,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     try {
       const res = await criarProjeto(nome);
       if (res.data?.error) { setErroProjetoBusca(res.data.message || 'Erro ao criar projeto'); return; }
-      onConfirmFonte(fonteSelecionada, fonteQuery.trim(), fonteMaxResults, nome, fonteDataInicio, fonteDataFim, fonteAutor.trim());
+      onConfirmFonte(fontesEscolhidas.map(f => ({ id: f.id, nome: f.nome, suporta_autor: !!f.suporta_autor, suporta_data: !!f.suporta_data })), fonteQuery.trim(), fonteMaxResults, nome, fonteDataInicio, fonteDataFim, fonteAutor.trim());
     } catch {
       setErroProjetoBusca('Não foi possível criar o projeto. Tente novamente.');
     } finally {
@@ -301,7 +316,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     }
   };
 
-  const podeAvancarFonteQuery = fonteQuery.trim().length >= 2 && !!fonteSelecionada;
+  const podeAvancarFonteQuery = fonteQuery.trim().length >= 2 && fontesEscolhidas.length > 0;
 
   // Step visual para a barra de progresso
   // Com canal já configurado, o step 'url' só é revisitado se o Pesquisador
@@ -316,7 +331,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   const totalStepsVisual = pulaStepUrl ? 2 : 3;
 
   const stepLabel = step === 'url'
-    ? (sourceType === 'fonte-publica' ? (fonteAtual ? t('extraction.public_search_in', { nome: fonteAtual.nome }) : t('extraction.public_search_title')) : t('extraction.youtube_channel_title'))
+    ? (sourceType === 'fonte-publica' ? (fontesEscolhidas.length ? t('extraction.public_search_in', { nome: nomeFontes }) : t('extraction.public_search_title')) : t('extraction.youtube_channel_title'))
     : step === 'projeto'
     ? t('extraction.project_name_label')
     : sourceType === 'fonte-publica' ? t('extraction.fonte_results_title') : t('ops.types_modal_title');
@@ -325,7 +340,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     ? (sourceType === 'fonte-publica' ? (areaSelecionada ? t(`extraction.area_${areaSelecionada}`, areasFontes[areaSelecionada]?.nome || '') : '') : t('extraction.enter_channel_url_subtitle'))
     : step === 'projeto'
     ? t('extraction.project_name_subtitle')
-    : sourceType === 'fonte-publica' ? t('extraction.results_how_many', { nome: fonteAtual?.nome || t('extraction.fonte_label') }) : t('ops.types_modal_subtitle');
+    : sourceType === 'fonte-publica' ? t('extraction.results_how_many', { nome: fontesEscolhidas.length ? nomeFontes : t('extraction.fonte_label') }) : t('ops.types_modal_subtitle');
 
   const temVoltar = step === 'projeto' ? (modoFila || !canalJaConfigurado || sourceType === 'fonte-publica') : step === 'fontes';
   const podeAvancarUrl = sourceType === 'fonte-publica' ? podeAvancarFonteQuery : canalUrl.trim().length > 0;
@@ -405,24 +420,42 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
           {step === 'url' && sourceType === 'fonte-publica' && (
             <>
               <div className="mb-4">
-                <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('extraction.fonte_label')}
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(areasFontes[areaSelecionada]?.fontes || []).map(f => {
-                    const ativo = f.id === fonteSelecionada;
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <span id="fontes-legenda" className={`text-[11px] font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {t('extraction.fontes_label_multi')}
+                  </span>
+                  {fontesDaArea.length > 2 && (
+                    <button type="button"
+                      onClick={() => setFontesSelecionadas(todasMarcadas ? [] : fontesDaArea.map(f => f.id))}
+                      className={`text-[10px] font-semibold text-primary hover:underline rounded ${BTN_FOCUS}`}>
+                      {todasMarcadas ? t('extraction.fontes_clear') : t('extraction.fontes_select_all')}
+                    </button>
+                  )}
+                </div>
+                <div role="group" aria-labelledby="fontes-legenda"
+                  className={`rounded-lg border divide-y max-h-52 overflow-y-auto ${darkMode ? 'border-white/10 divide-white/8' : 'border-slate-200 divide-slate-100'}`}>
+                  {fontesDaArea.map(f => {
+                    const marcada = fontesSelecionadas.includes(f.id);
                     return (
-                      <button key={f.id} onClick={() => setFonteSelecionada(f.id)}
-                        className={`text-left px-2.5 py-2 rounded-lg border transition-colors ${BTN_FOCUS}
-                          ${ativo
-                            ? darkMode ? 'bg-primary/15 border-primary text-white' : 'bg-primary/5 border-primary text-slate-800'
-                            : darkMode ? 'bg-white/3 border-white/10 text-slate-300 hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                        <span className={`text-[11px] font-bold block ${ativo ? 'text-primary' : ''}`}>{f.nome}</span>
-                        <span className="text-[10px] leading-snug block mt-0.5 opacity-70">{t(`extraction.fonte_${f.id}_desc`, f.descricao)}</span>
-                      </button>
+                      <label key={f.id}
+                        className={`flex items-start gap-2 px-2.5 py-1.5 cursor-pointer transition-colors
+                          ${marcada ? (darkMode ? 'bg-primary/10' : 'bg-primary/5') : (darkMode ? 'hover:bg-white/3' : 'hover:bg-slate-50')}`}>
+                        <input type="checkbox" checked={marcada} onChange={() => alternarFonte(f.id)}
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary cursor-pointer" />
+                        <span className="min-w-0">
+                          <span className={`text-[11px] font-bold block leading-tight ${marcada ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</span>
+                          <span className={`text-[10px] leading-snug block ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t(`extraction.fonte_${f.id}_desc`, f.descricao)}</span>
+                        </span>
+                      </label>
                     );
                   })}
                 </div>
+                {fontesEscolhidas.length === 0 && (
+                  <p role="alert" className="text-[10px] text-red-500 mt-1 px-1">{t('extraction.fontes_none_selected')}</p>
+                )}
+                {fontesEscolhidas.length > 1 && (
+                  <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.fontes_sequential_hint')}</p>
+                )}
               </div>
 
               <div className="mb-4">
@@ -441,7 +474,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 />
               </div>
 
-              {fonteAtual?.suporta_autor && (
+              {algumaSuportaAutor && (
                 <div className="mb-4">
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     {t('extraction.fonte_autor_label')}
@@ -453,10 +486,13 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                     placeholder={t('extraction.fonte_autor_placeholder')}
                     className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-800 placeholder:text-slate-400'}`}
                   />
+                  {filtroParcialAutor && (
+                    <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.fontes_filter_partial')}</p>
+                  )}
                 </div>
               )}
 
-              {fonteAtual?.suporta_data && (
+              {algumaSuportaData && (
                 <div className="mb-4">
                   <label className={`text-[11px] font-bold block mb-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     {t('extraction.date_filter_label')}
@@ -480,6 +516,9 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                       className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-primary transition-colors ${darkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
                     />
                   </div>
+                  {filtroParcialData && (
+                    <p className={`text-[10px] mt-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('extraction.fontes_filter_partial')}</p>
+                  )}
                 </div>
               )}
 
@@ -611,7 +650,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 {/* Hint sobre estrutura de pastas — oculto quando projeto existente selecionado */}
                 {!projetoExistenteSelecionado && <div className={`rounded-xl p-3 border text-[10px] leading-relaxed space-y-1 ${darkMode ? 'bg-white/3 border-white/8 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                   <p className={`font-bold text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('extraction.folder_structure_title')}</p>
-                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || t('header.channel')}</span> → {sourceType === 'fonte-publica' ? `documents → ${fonteAtual?.nome || t('extraction.fonte_label')}` : `youtube → ${t('extraction.youtube_channel_title')}`}</p>
+                  <p><span className={darkMode ? 'text-slate-300' : 'text-slate-600'}>📁 {projetoNome.trim() || t('header.channel')}</span> → {sourceType === 'fonte-publica' ? `documents → ${fontesEscolhidas.map(f => f.nome).join(', ') || t('extraction.fonte_label')}` : `youtube → ${t('extraction.youtube_channel_title')}`}</p>
                   <p className="opacity-70">{t('extraction.folder_structure_hint')}</p>
                 </div>}
 
@@ -694,6 +733,11 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
                 <p className={`text-[10px] mt-1.5 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   {t('extraction.results_count_hint')}
                 </p>
+                {fontesEscolhidas.length > 1 && (
+                  <p className={`text-[10px] mt-1 leading-relaxed font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {t('extraction.results_count_per_source', { n: fontesEscolhidas.length, total: fonteMaxResults * fontesEscolhidas.length })}
+                  </p>
+                )}
               </div>
 
               {erroProjetoBusca && (
