@@ -10,6 +10,11 @@
 # 24/jun a 18/out/2026 e foi parar no .dmg (617 → 757 MB). Todo uso no código
 # é import opcional com degradação graciosa — para tê-la em dev:
 #   .venv\Scripts\python.exe -m pip install -r requirements-enterprise.txt
+#
+# Ferramentas de teste também ficam fora (pytest e httpx são instalados à
+# parte em ci.yml e release.yml). Depois do pip install, o build roda
+# .github/scripts/enxugar_python_env.py, que tira pip, suítes de teste das
+# bibliotecas e outros arquivos que o app não usa.
 
 # ── API / servidor ──────────────────────────────────────────────────────────
 fastapi>=0.136.3
@@ -25,8 +30,7 @@ numpy>=2.4.0                     # busca vetorial (embeddings.py) — antes só 
 # ── Provedores de IA ────────────────────────────────────────────────────────
 openai>=2.53.0                   # OpenAI + Groq (Groq usa client OpenAI)
 anthropic>=0.120.2
-google-genai>=2.14.0              # SDK google-genai (Gemini) — substitui o google-generativeai legado
-google-generativeai>=0.8.6        # ainda em uso real em chat.py::_get_llm_client (import google.generativeai) — não migrado pro SDK novo acima; nunca tinha sido declarado aqui, só funcionava em dev por instalação manual (achado real: CI limpa nunca teve o pacote)
+google-genai>=2.14.0              # SDK do Gemini (llm_providers._ClienteGemini). O legado google-generativeai saiu em out/2026 — trazia grpcio e google-ai-generativelanguage só para o Gemini
 
 # ── Google Drive ────────────────────────────────────────────────────────────
 google-auth>=2.53.0
@@ -49,9 +53,6 @@ psutil>=7.2.2                    # métricas de CPU/memória no router_metrics
 python-dotenv>=1.2.2
 requests>=2.34.2
 cryptography>=48.0.0             # safeStorage / DPAPI via Electron
-
-# ── Testes ──────────────────────────────────────────────────────────────────
-pytest>=9.0.3
 
 # ── Opcional — áudio (não instalado por padrão) ──────────────────────────────
 # faster-whisper # transcrição de áudio local (CPU, modelo base ~150 MB)

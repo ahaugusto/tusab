@@ -7,7 +7,7 @@ _responder_sem_contexto, _gerar_resposta_llm, chat_stream).
 
 Sem chamada de rede real. OpenAI/Anthropic/Groq/custom só instanciam o
 client (nunca chamam a rede na construção) — seguro chamar de verdade.
-Gemini chama _genai.list_models() na resolução do modelo — mockado.
+Gemini lista os modelos na resolução do modelo (google.genai.Client) — mockado.
 """
 import importlib
 from unittest.mock import MagicMock, patch
@@ -60,40 +60,52 @@ def test_get_llm_client_openrouter_usa_modelo_customizado_do_config():
     assert modelo == 'anthropic/claude-3.5-sonnet'
 
 
+def _modelo_gemini_fake(nome, acoes=('generateContent',)):
+    m = MagicMock()
+    m.name = f'models/{nome}'
+    m.supported_actions = list(acoes)
+    return m
+
+
 def test_get_llm_client_gemini_resolve_modelo_da_lista_de_candidatos():
-    # patch.object sobre o módulo já importado — não patch('google.generativeai.x') por
-    # string: pkgutil.resolve_name (usado pelo unittest.mock pra resolver strings) exige
-    # que 'google.generativeai' já esteja no atributo do pacote 'google', o que só é
-    # garantido depois de um import real. Localmente colava por acidente (outro teste já
-    # tinha importado antes); em CI com ambiente limpo quebrava com AttributeError.
-    import google.generativeai as _genai
-
-    modelo_fake = MagicMock(name='models/gemini-1.5-flash')
-    modelo_fake.name = 'models/gemini-1.5-flash'
-    modelo_fake.supported_generation_methods = ['generateContent']
-
-    with patch.object(_genai, 'configure') as mock_configure, \
-         patch.object(_genai, 'list_models', return_value=[modelo_fake]):
+    modelos = [_modelo_gemini_fake('text-embedding-004', ('embedContent',)),
+               _modelo_gemini_fake('gemini-1.5-flash')]
+    with patch('google.genai.Client') as mock_client:
+        mock_client.return_value.models.list.return_value = modelos
         client, modelo = chat_mod._get_llm_client('gemini', 'AIza-fake', {})
 
-    mock_configure.assert_called_once_with(api_key='AIza-fake')
+    mock_client.assert_called_once_with(api_key='AIza-fake')
     assert modelo == 'gemini-1.5-flash'
-    assert client is _genai  # client é o próprio módulo _genai configurado, não uma instância
+    assert hasattr(client, 'GenerativeModel')  # mesma interface do SDK legado
 
 
 def test_get_llm_client_gemini_sem_modelo_suportado_retorna_none():
-    import google.generativeai as _genai
-
-    modelo_fake = MagicMock()
-    modelo_fake.name = 'models/algum-outro-modelo'
-    modelo_fake.supported_generation_methods = ['generateContent']
-
-    with patch.object(_genai, 'configure'), \
-         patch.object(_genai, 'list_models', return_value=[modelo_fake]):
+    with patch('google.genai.Client') as mock_client:
+        mock_client.return_value.models.list.return_value = [_modelo_gemini_fake('algum-outro-modelo')]
         client, modelo = chat_mod._get_llm_client('gemini', 'AIza-fake', {})
 
     # Nenhum candidato da _GEMINI_CANDIDATOS bate -> cai no fallback (1º da lista real)
     assert modelo == 'algum-outro-modelo'
+
+
+def test_gemini_generate_content_repassa_config_e_garante_texto():
+    with patch('google.genai.Client') as mock_client:
+        api = mock_client.return_value
+        api.models.list.return_value = [_modelo_gemini_fake('gemini-1.5-flash')]
+        api.models.generate_content.return_value = MagicMock(text=None)
+        api.models.generate_content_stream.return_value = iter([MagicMock(text='a'), MagicMock(text='b')])
+        client, modelo = chat_mod._get_llm_client('gemini', 'AIza-fake', {})
+
+        resp = client.GenerativeModel(modelo).generate_content(
+            'oi', generation_config={'max_output_tokens': 5, 'temperature': 0.0})
+        chunks = [c.text for c in client.GenerativeModel(modelo).generate_content('oi', stream=True)]
+
+    # texto None do SDK novo vira '' (callers fazem resp.text.strip())
+    assert resp.text == ''
+    kwargs = api.models.generate_content.call_args.kwargs
+    assert kwargs['model'] == 'gemini-1.5-flash' and kwargs['contents'] == 'oi'
+    assert kwargs['config'].max_output_tokens == 5 and kwargs['config'].temperature == 0.0
+    assert chunks == ['a', 'b']
 
 
 def test_get_llm_client_provider_desconhecido_levanta_valueerror():
