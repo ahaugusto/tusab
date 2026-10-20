@@ -5,9 +5,10 @@ sancionadas/em vigor, não projetos em tramitação — diferente do módulo
 camara.py, que cobre proposições). Sem chave de API.
 
 Achado importante: este endpoint (`/dadosabertos/legislacao/lista`) é
-diferente do `/dadosabertos/processo` (rejeitado — não filtra por palavra-
-chave, ver camara.py) e do LexML (bloqueado por verificação anti-bot ao
-vivo). Retorna ementa real de cada lei publicada — confirmado ao vivo com
+diferente do `/dadosabertos/processo` e do LexML (bloqueado por verificação
+anti-bot ao vivo). Correção (20/out/2026): o `/processo` FILTRA, sim, pelo
+parâmetro `termo` — a avaliação de jul/2026 que o rejeitou estava errada; ele
+virou a fonte `senado_materias.py` (projetos em tramitação). Retorna ementa real de cada lei publicada — confirmado ao vivo com
 leis recentes (nº 15.476/2026, 23/jul/2026).
 
 Sem busca por palavra-chave no servidor — só filtro por `tipo`. Sem texto

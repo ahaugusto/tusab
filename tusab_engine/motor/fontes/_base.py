@@ -24,6 +24,55 @@ from tusab_engine.storage import salvar_json_atomico
 
 MAX_RESULTADOS_PERMITIDO = 50
 
+# User-Agent identificado (padrão do projeto, ver wikipedia.py). Algumas
+# instituições bloqueiam o UA padrão do python-requests E o de navegador, mas
+# aceitam um robô que se identifica — ex.: WHO IRIS e PAHO IRIS (403 para
+# "python-requests/x" e para Chrome, 200 para este; testado em 20/out/2026).
+# A URL de contato precisa vir com https://: sem ela, a Wikimedia passa a
+# responder 429 depois de ~10 chamadas (medido em 20/out/2026; com https,
+# 30 chamadas seguidas sem 429).
+HEADERS_TUSABBOT = {"User-Agent": "TusabBot/1.0 (+https://github.com/ahaugusto/tusab; local personal knowledge tool)"}
+
+# Para as poucas fontes cujo firewall só aceita UA de navegador (ex.: TCU, que
+# devolve HTTP 200 com uma página HTML "Requisição rejeitada" para qualquer
+# outro). Usar só onde o TusabBot comprovadamente não passa.
+HEADERS_NAVEGADOR = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+}
+
+_RE_SCRIPT_STYLE = re.compile(r'<(script|style)\b[^>]*>.*?</\1>', re.IGNORECASE | re.DOTALL)
+_RE_QUEBRA_BLOCO = re.compile(r'<\s*(br|/p|/div|/li|/h[1-6]|/tr)\b[^>]*>', re.IGNORECASE)
+_RE_TAG = re.compile(r'<[^>]+>')
+
+
+def html_para_texto(html: str) -> str:
+    """HTML → texto corrido para o corpus. Remove script/style, troca fim de
+    bloco (</p>, <br>, </li>...) por quebra de linha, tira as tags, decodifica
+    entidades (&ccedil; &#8211;) e normaliza espaços sem colar parágrafos."""
+    from html import unescape
+    if not html:
+        return ""
+    texto = _RE_SCRIPT_STYLE.sub(" ", html)
+    texto = _RE_QUEBRA_BLOCO.sub("\n", texto)
+    texto = unescape(_RE_TAG.sub(" ", texto)).replace("\xa0", " ")
+    linhas = [re.sub(r'[ \t\r\f\v]+', ' ', l).strip() for l in texto.split("\n")]
+    return re.sub(r'\n{3,}', "\n\n", "\n".join(l for l in linhas if l)).strip()
+
+
+def exigir_json(resp, fonte_nome: str):
+    """Devolve resp.json(), mas falha com mensagem clara se a fonte respondeu
+    HTML no lugar de JSON — bloqueio de firewall ou página de manutenção
+    disfarçados de HTTP 200 (TCU, portais gov.br)."""
+    tipo = resp.headers.get("Content-Type", "")
+    if "json" not in tipo.lower():
+        raise RuntimeError(f"{fonte_nome} respondeu {tipo or 'sem tipo'} em vez de JSON (bloqueio ou manutenção no servidor de origem)")
+    return resp.json()
+
+
+def resultado_vazio() -> dict:
+    return {"ok": True, "total_encontrados": 0, "total_salvos": 0, "erros": []}
+
 
 def mensagem_erro_busca_externa(e: Exception, fonte_nome: str) -> str:
     """Traduz erros comuns de API externa em mensagem acionável — o texto cru
