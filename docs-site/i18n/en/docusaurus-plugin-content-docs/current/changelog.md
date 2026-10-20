@@ -11,6 +11,8 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.60 (2026-10-20)** — Lighter installer and app: about 240 MB less on disk and a Windows installer about 50 MB smaller. Gemini now uses Google's current official SDK, with the same key. On Windows, the installer limits the chosen folder to 75 characters, since longer paths made automatic updates hang.
+
 **v1.0.59 (2026-10-20)** — App foundation updated to Electron 44, with the accumulated Chromium and Node.js security fixes. Nothing changes in day-to-day use: your bases, conversations and API keys stay where they were.
 
 **v1.0.58 (2026-10-18)** — The Windows installer includes the app's engine again: versions 1.0.42 to 1.0.57 shipped without the embedded Python, and the app didn't work on Windows. The macOS installer gets smaller, without the semantic reranking stack, which was already not part of the standard Windows version. Security fixes in components used by automatic updates and optional telemetry.
