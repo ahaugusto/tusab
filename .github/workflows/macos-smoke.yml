@@ -87,7 +87,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -225,7 +225,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -365,7 +365,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -502,9 +502,11 @@ jobs:
   # sucesso (comportamento padrão do @electron/notarize).
   electron-notarize:
     name: "Fase 7: Notarização real"
-    # Self-hosted (Scaleway Mac mini) — evita consumir a cota gratuita do
-    # macos-latest hospedado, que já foi motivo de bloqueio nesta sessão.
-    runs-on: [self-hosted, macOS, ARM64]
+    # Hospedado, igual ao build-macos do release.yml. O self-hosted (Scaleway
+    # Mac mini) foi desregistrado e o job ficou 14h em "queued" sem runner
+    # (out/2026). A cota de minutos macOS deixou de ser problema quando o
+    # repo virou público. Os passos de keychain efêmero funcionam igual aqui.
+    runs-on: macos-latest
     if: ${{ github.event.inputs.only_job == '' || github.event.inputs.only_job == 'electron-notarize' }}
     # Assinatura sozinha (Fase 6) já passa de 30min com o python_env inteiro
     # (torch/onnxruntime/transformers) — notarização soma submissão +
@@ -517,7 +519,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 
@@ -684,7 +686,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: electron/package-lock.json
 
@@ -736,7 +738,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
           cache: 'npm'
           cache-dependency-path: web_interface/package-lock.json
 

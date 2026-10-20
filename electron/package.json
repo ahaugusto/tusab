@@ -1,6 +1,6 @@
 {
   "name": "tusab",
-  "version": "1.0.58",
+  "version": "1.0.59",
   "description": "Tusab — Index.Augment.Chat",
   "main": "main.js",
   "author": {
@@ -12,6 +12,9 @@
   "private": true,
   "scripts": {
     "dev": "electron .",
+    "prebuild": "node ../scripts/garantir-release-notes.js",
+    "prebuild:mac": "node ../scripts/garantir-release-notes.js",
+    "prebuild:mac:publish": "node ../scripts/garantir-release-notes.js",
     "build": "electron-builder --win",
     "build:dir": "electron-builder --win --dir",
     "build:mac:dir": "electron-builder --mac --dir",
@@ -20,11 +23,11 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "electron-updater": "^6.3.0"
+    "electron-updater": "^6.8.10"
   },
   "devDependencies": {
-    "electron": "^34.5.8",
-    "electron-builder": "^26.15.3"
+    "electron": "^44.9.0",
+    "electron-builder": "^26.17.0"
   },
   "build": {
     "appId": "com.criaugu.tusab",
