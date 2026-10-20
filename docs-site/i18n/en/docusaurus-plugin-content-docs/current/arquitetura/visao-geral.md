@@ -12,7 +12,7 @@ slug: /arquitetura/visao-geral
 **Backend:** Python 3.12 (embeddable in the production build) + FastAPI + Uvicorn — REST API on `localhost:8001`
 **RAG:** `rank_bm25` (BM25Okapi) + SQLite FTS5 (exact-match) + `sentence-transformers` (CrossEncoder — optional, not in the standard installer) + optional vector search via Ollama (`nomic-embed-text`) + Ollama or external providers
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React + react-i18next (PT/EN/ES)
-**Desktop:** Electron 34 + electron-builder (NSIS for Windows; signed and notarized `.dmg`/`.zip` for macOS arm64) + electron-updater (auto-update via GitHub Releases)
+**Desktop:** Electron 44 + electron-builder (NSIS for Windows; signed and notarized `.dmg`/`.zip` for macOS arm64) + electron-updater (auto-update via GitHub Releases)
 **Extraction:** yt-dlp (bundled) + pdfplumber + python-docx
 **Images:** multimodal Ollama (llava/gemma3) → RapidOCR as fallback (Python + pure ONNX, no external binary)
 **Audio:** faster-whisper (`base` model, CPU, ~150 MB)

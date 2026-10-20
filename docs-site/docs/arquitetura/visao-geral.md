@@ -12,7 +12,7 @@ slug: /arquitetura/visao-geral
 **Backend:** Python 3.12 (embeddable no build de produção) + FastAPI + Uvicorn — API REST em `localhost:8001`
 **RAG:** `rank_bm25` (BM25Okapi) + SQLite FTS5 (exact-match) + `sentence-transformers` (CrossEncoder — opcional, fora do instalador padrão) + busca vetorial opcional via Ollama (`nomic-embed-text`) + Ollama ou provedores externos
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React + react-i18next (PT/EN/ES)
-**Desktop:** Electron 34 + electron-builder (NSIS para Windows; `.dmg`/`.zip` assinado e notarizado para macOS arm64) + electron-updater (auto-update via GitHub Releases)
+**Desktop:** Electron 44 + electron-builder (NSIS para Windows; `.dmg`/`.zip` assinado e notarizado para macOS arm64) + electron-updater (auto-update via GitHub Releases)
 **Extração:** yt-dlp (bundled) + pdfplumber + python-docx
 **Imagens:** Ollama multimodal (llava/gemma3) → RapidOCR como fallback (Python + ONNX puro, sem binário externo)
 **Áudio:** faster-whisper (modelo `base`, CPU, ~150 MB)
