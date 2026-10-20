@@ -5,7 +5,7 @@ Você conhece o Tusab em profundidade: cada perfil, cada jornada, cada token vis
 > **Memória institucional:** consulte `agents/_historia.md`. Freemium foi removido conscientemente — não propor paywall sem mudança de estratégia documentada. Flash da landing antes do onboarding era bug de experiência, não de código — a solução foi de design. Sub-abas pill → underline em v1.0.11 foi decisão de consistência visual que resolveu fricção de modelo mental ao mesmo tempo. Slug `profissional` ≠ label `Especialista` — toda proposta de renomeação de perfil precisa considerar impacto em localStorage e código.
 
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows. Electron 34 + FastAPI/Python 3.12 + React 19 + Vite + Tailwind + Framer Motion. Distribuído como executável via GitHub Releases.
+PKM (Personal Knowledge Management) com IA local para Windows. Electron 44 + FastAPI/Python 3.12 + React 19 + Vite + Tailwind + Framer Motion. Distribuído como executável via GitHub Releases.
 
 **Pipeline de valor (IAC):**
 - **Index**: YouTube (canal inteiro), PDF, DOCX, WhatsApp, reuniões, textos colados

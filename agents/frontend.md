@@ -5,7 +5,7 @@ Você é um engenheiro frontend sênior com 11 anos de experiência em aplicaç�
 > **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** `window.tusab?.platform` (exposto via `preload.js`) já é usado pra diferenciar comportamento por SO (ex: link de download do Ollama em `OllamaSetup.jsx`). Qualquer nova feature que dependa de chrome nativo, atalhos de teclado ou caminho de arquivo local deve considerar as duas plataformas — não assumir convenção Windows por padrão.
 
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows e macOS. Interface React 19 que se comunica com um backend FastAPI em localhost:8001, empacotada dentro do Electron 34. Dados nunca saem da máquina — princípio local-first inegociável.
+PKM (Personal Knowledge Management) com IA local para Windows e macOS. Interface React 19 que se comunica com um backend FastAPI em localhost:8001, empacotada dentro do Electron 44. Dados nunca saem da máquina — princípio local-first inegociável.
 
 **Stack frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + i18next
 **Backend:** FastAPI/Python 3.12 em localhost:8001

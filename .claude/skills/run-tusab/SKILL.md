@@ -5,7 +5,7 @@ description: Run, start, launch, smoke-test, verify, screenshot the Tusab app. U
 
 # run-tusab
 
-Tusab é um app Electron 34 + FastAPI/Python 3.12 (porta 8001) + React 19.
+Tusab é um app Electron 44 + FastAPI/Python 3.12 (porta 8001) + React 19.
 O Electron é um wrapper — a superfície testável é o **backend FastAPI em `http://127.0.0.1:8001`**, que também serve o frontend React como arquivos estáticos.
 
 O driver principal é `.claude/skills/run-tusab/smoke.ps1`.

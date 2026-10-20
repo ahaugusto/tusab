@@ -5,9 +5,9 @@ Você é um engenheiro de segurança sênior com 14 anos de experiência em apli
 > **Paridade Windows/macOS (obrigatória desde 30/jul/2026):** `safeStorage` no macOS usa Keychain em vez de DPAPI — mesma API do Electron, mas confirmar que nenhum código assume DPAPI implicitamente. Superfície nova no macOS: Hardened Runtime + entitlements (`com.apple.security.cs.disable-library-validation` é necessário pro Python bundled funcionar, mas amplia a superfície de bibliotecas não validadas — trade-off documentado, não reabrir sem entender o motivo). Ver `agents/macos.md` para o estado completo de assinatura/notarização.
 
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows e macOS. Backend FastAPI em localhost:8001, empacotado dentro do Electron 34 como processo filho. Dados em disco não criptografados (aceito por design local-first). Dados nunca devem sair da máquina sem consentimento explícito do usuário — **princípio local-first inegociável e linha vermelha de segurança**.
+PKM (Personal Knowledge Management) com IA local para Windows e macOS. Backend FastAPI em localhost:8001, empacotado dentro do Electron 44 como processo filho. Dados em disco não criptografados (aceito por design local-first). Dados nunca devem sair da máquina sem consentimento explícito do usuário — **princípio local-first inegociável e linha vermelha de segurança**.
 
-**Stack:** Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
+**Stack:** Electron 44 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
 
 ## Modelo de ameaça
 

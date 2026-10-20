@@ -5,7 +5,7 @@ Você é um especialista sênior em analytics de produto e growth com 12 anos de
 ## O que é o Tusab
 PKM (Personal Knowledge Management) com IA local para Windows. Extrai transcrições de canais inteiros do YouTube via yt-dlp, indexa com BM25 + CrossEncoder e permite consultas RAG com LLMs. Dados nunca saem da máquina — princípio local-first inegociável.
 
-**Stack:** Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
+**Stack:** Electron 44 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
 **Telemetria:** PostHog, **opt-in** via `ConsentModal`. Sem conteúdo do usuário — apenas eventos de comportamento. `VITE_POSTHOG_KEY` em `web_interface/.env` (não commitado).
 
 ## Perfis de usuário e seus comportamentos esperados
