@@ -62,7 +62,9 @@ jobs:
       - name: Smoke de import das libs críticas
         run: |
           ./python_env-macos-arm64/bin/python3 -c "
-          import fastapi, uvicorn, sentence_transformers, torch, cryptography
+          # mesma lista do instalador (release.yml); torch/sentence_transformers
+          # saíram do requirements.txt na 1.0.58 (invariante 15)
+          import fastapi, uvicorn, lancedb, rank_bm25, pdfplumber, cryptography, google.genai
           import rapidocr_onnxruntime, pandas, reportlab, trafilatura, yt_dlp
           print('Import OK — todas as libs críticas carregaram sem erro')
           "
@@ -105,6 +107,7 @@ jobs:
         run: |
           ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
           ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+          python3 .github/scripts/enxugar_python_env.py ./electron/python_env-macos-arm64/lib/python3.12/site-packages
 
       - name: Build do frontend
         working-directory: web_interface
@@ -241,6 +244,7 @@ jobs:
         run: |
           ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
           ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+          python3 .github/scripts/enxugar_python_env.py ./electron/python_env-macos-arm64/lib/python3.12/site-packages
 
       - name: Build do frontend
         working-directory: web_interface
@@ -380,6 +384,7 @@ jobs:
         run: |
           ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
           ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+          python3 .github/scripts/enxugar_python_env.py ./electron/python_env-macos-arm64/lib/python3.12/site-packages
 
       - name: Build do frontend
         working-directory: web_interface
@@ -534,6 +539,7 @@ jobs:
         run: |
           ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
           ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+          python3 .github/scripts/enxugar_python_env.py ./electron/python_env-macos-arm64/lib/python3.12/site-packages
 
       - name: Build do frontend
         working-directory: web_interface
@@ -753,6 +759,7 @@ jobs:
         run: |
           ./electron/python_env-macos-arm64/bin/python3 -m pip install --upgrade pip
           ./electron/python_env-macos-arm64/bin/python3 -m pip install -r requirements.txt
+          python3 .github/scripts/enxugar_python_env.py ./electron/python_env-macos-arm64/lib/python3.12/site-packages
 
       - name: Build do frontend
         working-directory: web_interface

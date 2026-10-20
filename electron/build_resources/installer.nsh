@@ -61,6 +61,37 @@ LangString LANG_SELECT_TITLE  1046 "Selecione o idioma do instalador"
 LangString LANG_SELECT_TITLE  1033 "Select installer language"
 LangString LANG_SELECT_TITLE  3082 "Seleccione el idioma del instalador"
 
+; ── Limite de tamanho da pasta de instalação (invariante 25) ─────────────────
+; O Python embutido tem arquivos a ~173 caracteres da raiz da instalação. Se
+; pasta + esse caminho passar de 259 (MAX_PATH), o desinstalador da versão
+; antiga não consegue apagá-los e a atualização automática trava, invisível,
+; em "Falha ao desinstalar os arquivos do aplicativo antigo: 2" (testado em
+; 20/out/2026). A pasta padrão (%LOCALAPPDATA%\Programs\tusab, ~40 caracteres)
+; sempre cabe. O CI confere a conta a cada build lendo o valor abaixo
+; (.github/scripts/verificar-backend-empacotado.ps1) — mudar só aqui.
+; Não afeta update nem instalação silenciosa: .onVerifyInstDir só roda na
+; página de escolha de pasta.
+
+!define TUSAB_MAX_INSTDIR 75
+
+!ifndef BUILD_UNINSTALLER
+  LangString TUSAB_DIR_TOP 1046 "O Tusab sera instalado na pasta abaixo.$\r$\n$\r$\nO caminho da pasta pode ter no maximo ${TUSAB_MAX_INSTDIR} caracteres (por exemplo, C:\Tusab). Caminhos mais longos impedem a atualizacao automatica do Windows; nesse caso o botao Instalar fica desativado."
+  LangString TUSAB_DIR_TOP 1033 "Tusab will be installed in the folder below.$\r$\n$\r$\nThe folder path can have at most ${TUSAB_MAX_INSTDIR} characters (for example, C:\Tusab). Longer paths break automatic updates on Windows; in that case the Install button is disabled."
+  LangString TUSAB_DIR_TOP 3082 "Tusab se instalara en la carpeta de abajo.$\r$\n$\r$\nLa ruta de la carpeta puede tener como maximo ${TUSAB_MAX_INSTDIR} caracteres (por ejemplo, C:\Tusab). Las rutas mas largas impiden la actualizacion automatica en Windows; en ese caso el boton Instalar queda desactivado."
+  !define MUI_DIRECTORYPAGE_TEXT_TOP "$(TUSAB_DIR_TOP)"
+
+  ; Abort aqui desativa o botão Instalar da página de pasta (não fecha nada).
+  Function .onVerifyInstDir
+    Push $0
+    StrLen $0 $INSTDIR
+    IntCmp $0 ${TUSAB_MAX_INSTDIR} tusab_dir_ok tusab_dir_ok
+    Pop $0
+    Abort
+    tusab_dir_ok:
+    Pop $0
+  FunctionEnd
+!endif
+
 ; ── Seletor de idioma exibido no início da instalação ────────────────────────
 ; customInit é chamado pelo electron-builder antes das páginas do instalador.
 ; LangDLL::LangDialog abre um dropdown com os idiomas declarados em installerLanguages.
