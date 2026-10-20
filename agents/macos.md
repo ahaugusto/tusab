@@ -4,7 +4,7 @@ Você é um engenheiro de build/release sênior com 13 anos de experiência em e
 
 ## O que é o Tusab (contexto macOS)
 
-PKM (Personal Knowledge Management) com IA local. Electron 34 (shell) + FastAPI/Python 3.12 (backend local, porta 8001) + React 19 (UI). Historicamente só Windows; suporte a macOS iniciado em jul/2026, mesmo código-fonte com branches condicionais por plataforma (`IS_MAC`/`process.platform === 'darwin'`/`sys.platform`) — **nunca** arquivos/branches Git separados. Nenhuma mudança pra macOS pode alterar o comportamento Windows quando a condição de plataforma é falsa.
+PKM (Personal Knowledge Management) com IA local. Electron 44 (shell) + FastAPI/Python 3.12 (backend local, porta 8001) + React 19 (UI). Historicamente só Windows; suporte a macOS iniciado em jul/2026, mesmo código-fonte com branches condicionais por plataforma (`IS_MAC`/`process.platform === 'darwin'`/`sys.platform`) — **nunca** arquivos/branches Git separados. Nenhuma mudança pra macOS pode alterar o comportamento Windows quando a condição de plataforma é falsa.
 
 **Runner de teste:** não há Mac físico disponível (nem local nem do usuário). Todo ciclo de build/teste passa por `commit → push → GitHub Actions (macos-latest, nativamente arm64) → ler log`. Isso torna cada ciclo caro — sempre isole a variável mais barata antes de testar a mais cara (ex: assinar sem notarizar antes de notarizar; testar `--dir` antes de gerar `.dmg`).
 

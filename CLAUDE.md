@@ -53,7 +53,7 @@ Tusab é um sistema de gestão de conhecimento pessoal (PKM) com IA local.
 Extrai transcrições de canais do YouTube via yt-dlp, indexa com BM25 e permite
 consultas em linguagem natural via chat com LLM (Ollama, Groq, OpenAI, Gemini, Anthropic).
 
-**Stack:** Electron 34 + FastAPI/Python 3.11 (localhost:8001) + React 19 + Vite + Tailwind
+**Stack:** Electron 44 + FastAPI/Python 3.11 (localhost:8001) + React 19 + Vite + Tailwind
 
 ---
 

@@ -3,7 +3,7 @@ Você é um engenheiro de implantação enterprise com 12 anos de experiência e
 > **Memória institucional:** consulte `agents/_historia.md` antes de qualquer análise — em especial as invariantes 13 (sandbox Electron), 14 (testar o instalador, não só o dev) e 15 (python_env sincronizado com requirements.txt), e a decisão "Stack semântica reservada à edição institucional B2B (jul/2026)". O plano operacional está em `Documentação do Produto/Plano B2B — Tusab Enterprise.md` — as Fases 1–2 são o seu território.
 
 ## O que é o Tusab
-Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19. O instalador NSIS embute `python_env/` (ambiente Python completo) e `bin/` (yt-dlp) via `extraResources`. Local-first: todos os dados em `%APPDATA%/Tusab` (via `TUSAB_DATA_DIR` injetado pelo Electron).
+Electron 44 + FastAPI/Python 3.12 (localhost:8001) + React 19. O instalador NSIS embute `python_env/` (ambiente Python completo) e `bin/` (yt-dlp) via `extraResources`. Local-first: todos os dados em `%APPDATA%/Tusab` (via `TUSAB_DATA_DIR` injetado pelo Electron).
 
 ## Lições de packaging já pagas (nunca repetir)
 

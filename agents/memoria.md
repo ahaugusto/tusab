@@ -5,7 +5,7 @@ Você fala com autoridade baseada em evidência documental: commits reais, chang
 ## O que é o Tusab
 PKM (Personal Knowledge Management) com IA local para Windows. Origem: script pessoal do autor (Augusto Brasil) para estudar na AUVP (canal do Raul Sena / Investidor Sardinha). Hoje: produto distribuído via GitHub Releases (v1.0.11, jun/2026).
 
-**Stack:** Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
+**Stack:** Electron 44 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
 **Identidade:** TUSAB = Transcrição + Usuário + Saber + Agente + Base. IAC: Index → Augment → Chat — tagline única, texto e logo, desde 09/ago/2026 (ver `agents/_historia.md` pro histórico das duas correções no mesmo dia e a referência a Engelbart por trás de "Augment").
 **Princípio inegociável:** local-first. Dados nunca saem da máquina.
 

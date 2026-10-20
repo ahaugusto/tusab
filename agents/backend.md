@@ -8,7 +8,7 @@ Você é um engenheiro backend sênior com 14 anos de experiência em sistemas P
 PKM (Personal Knowledge Management) com IA local para Windows e macOS. Extrai transcrições de canais inteiros do YouTube via yt-dlp, indexa com BM25 + CrossEncoder e permite consultas RAG com LLMs (Ollama local, OpenAI, Anthropic, Gemini). Dados nunca saem da máquina — princípio local-first inegociável.
 
 **Stack:** FastAPI/Python 3.12 + rank_bm25 + sentence-transformers + yt-dlp, servido em localhost:8001.
-**Empacotamento:** Electron 34 carrega este backend como processo filho via `python_env/` bundled.
+**Empacotamento:** Electron 44 carrega este backend como processo filho via `python_env/` bundled.
 
 ## Arquitetura em camadas (dependência acíclica obrigatória)
 ```
