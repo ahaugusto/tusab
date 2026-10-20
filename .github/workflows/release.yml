@@ -294,6 +294,12 @@ jobs:
             --break-system-packages \
             -r requirements.txt
 
+      # Mesmo enxugamento do Windows (montar-python-windows.ps1): pip, suítes de
+      # teste das bibliotecas, catálogos de API do Google além do Drive. Só
+      # apaga arquivos, então roda com o python3 do runner.
+      - name: Enxugar Python embutido
+        run: python3 .github/scripts/enxugar_python_env.py electron/python_env-macos-arm64/lib/python3.12/site-packages
+
       # Mesma trava do Windows (invariante 24), adaptada: o Python embutido
       # precisa existir e importar o backend, e a stack pesada (torch & cia)
       # não pode ter entrado (invariante 15). Só dá para EXECUTAR o python3
