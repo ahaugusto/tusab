@@ -62,6 +62,53 @@ _GEMINI_CANDIDATOS = [
     'gemini-pro', 'gemini-2.0-flash-lite',
 ]
 
+
+class _RespostaGemini:
+    """Resposta com `.text` sempre str — o SDK novo devolve None quando o
+    modelo não gera texto (o legado lançava exceção), e os callers fazem
+    `resp.text.strip()` direto."""
+    def __init__(self, resp):
+        self.text = getattr(resp, 'text', None) or ''
+
+
+class _ModeloGemini:
+    def __init__(self, client, modelo: str):
+        self._client = client
+        self._modelo = modelo
+
+    def generate_content(self, prompt, stream: bool = False, generation_config: dict = None):
+        from google.genai import types
+        cfg = types.GenerateContentConfig(**generation_config) if generation_config else None
+        if stream:
+            return (_RespostaGemini(c) for c in self._client.models.generate_content_stream(
+                model=self._modelo, contents=prompt, config=cfg))
+        return _RespostaGemini(self._client.models.generate_content(
+            model=self._modelo, contents=prompt, config=cfg))
+
+
+class _ClienteGemini:
+    """Adaptador do SDK google-genai com a mesma interface que os callers já
+    usavam no SDK legado google-generativeai:
+    `client.GenerativeModel(modelo).generate_content(prompt, stream=, generation_config=)`.
+
+    O legado (deprecado pelo Google) foi removido em out/2026: trazia junto
+    google-ai-generativelanguage e grpcio só para o Gemini, peso morto no
+    instalador. Os callers (chat.py, router.py, summarize.py, scheduler.py,
+    router_estudo.py, router_agent.py) não mudaram.
+    """
+    def __init__(self, api_key: str):
+        from google import genai
+        self._client = genai.Client(api_key=api_key)
+
+    def listar_modelos_texto(self) -> list:
+        return [
+            m.name.replace('models/', '') for m in self._client.models.list()
+            if 'generateContent' in (m.supported_actions or [])
+        ]
+
+    def GenerativeModel(self, modelo: str) -> _ModeloGemini:
+        return _ModeloGemini(self._client, modelo)
+
 # Anthropic é o único provider com tiering por finalidade: Haiku (rápido,
 # barato) para chamadas auxiliares de baixo risco (expandir query,
 # classificar intenção, mensagem de fallback sem contexto); Sonnet (melhor
@@ -81,10 +128,9 @@ def _get_llm_client(provider: str, api_key: str, config: dict, principal: bool =
     (expandir query, classificar intenção, fallback sem contexto) — só
     muda o modelo escolhido para a Anthropic (ver _MODELO_ANTHROPIC_*).
 
-    Retorna (client, modelo). Para Gemini, `client` é o módulo `_genai`
-    configurado (não uma instância) — o caller monta
-    `client.GenerativeModel(modelo)` porque o SDK não tem um objeto de
-    cliente único como openai/anthropic.
+    Retorna (client, modelo). Para Gemini, `client` é um _ClienteGemini — o
+    caller monta `client.GenerativeModel(modelo)`, a mesma forma do SDK
+    legado.
     """
     if provider == 'openai':
         from openai import OpenAI
@@ -96,14 +142,10 @@ def _get_llm_client(provider: str, api_key: str, config: dict, principal: bool =
         return anthropic.Anthropic(api_key=api_key), modelo
 
     if provider in ('gemini', 'google'):
-        import google.generativeai as _genai
-        _genai.configure(api_key=api_key)
-        modelos_ok = [
-            m.name.replace('models/', '') for m in _genai.list_models()
-            if 'generateContent' in m.supported_generation_methods
-        ]
+        client = _ClienteGemini(api_key)
+        modelos_ok = client.listar_modelos_texto()
         modelo = next((m for m in _GEMINI_CANDIDATOS if m in modelos_ok), modelos_ok[0] if modelos_ok else None)
-        return _genai, modelo
+        return client, modelo
 
     if provider in ('groq', 'openrouter', 'custom'):
         return _client_openai_compat(provider, api_key, config)

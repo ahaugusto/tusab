@@ -56,6 +56,12 @@ Write-Host '== pip install -r requirements.txt'
 & $py -m pip install --no-warn-script-location --disable-pip-version-check -r (Join-Path $Raiz 'requirements.txt')
 if ($LASTEXITCODE -ne 0) { throw 'pip install -r requirements.txt falhou' }
 
+# Tira o que o app nunca usa em execucao (pip, suites de teste das libs,
+# catalogos de API do Google alem do Drive...). Ver o cabecalho do script.
+# Roda ANTES da verificacao abaixo, que entao valida o ambiente ja enxugado.
+& $py (Join-Path $Raiz '.github\scripts\enxugar_python_env.py') (Join-Path $PyDir 'Lib\site-packages')
+if ($LASTEXITCODE -ne 0) { throw 'enxugar_python_env.py falhou' }
+
 Write-Host "== yt-dlp.exe -> $BinDir"
 $yt = Join-Path $BinDir 'yt-dlp.exe'
 Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -OutFile $yt

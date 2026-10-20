@@ -7,6 +7,17 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.60] — 2026-10-20
+
+### Alterado
+- **Instalador e app mais leves.** O Tusab ocupa cerca de 240 MB a menos no disco, e o instalador do Windows ficou cerca de 50 MB menor. Saíram arquivos que o app nunca usava: ferramentas de desenvolvimento, testes internos de bibliotecas e catálogos de serviços do Google além do Drive.
+- **Gemini atualizado para o SDK oficial atual do Google.** O SDK anterior foi descontinuado pelo Google. Nada muda para quem usa o Gemini: a mesma chave continua funcionando.
+
+### Corrigido
+- **Instalação no Windows em pasta de caminho muito longo** fazia a atualização automática travar sem aviso. Agora o instalador avisa o limite (75 caracteres no caminho da pasta) e só deixa instalar em pastas dentro dele. A pasta padrão sempre cabe.
+
+---
+
 ## [1.0.59] — 2026-10-20
 
 ### Alterado
