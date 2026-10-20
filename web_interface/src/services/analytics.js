@@ -12,12 +12,18 @@
 
 const CONSENT_KEY  = 'tusab_analytics_consent'; // 'yes' | 'no' | null
 const POSTHOG_KEY  = import.meta.env.VITE_POSTHOG_KEY || '';
-const POSTHOG_HOST = 'https://app.posthog.com';
+// Host de ingestão oficial da região US (a chave do Tusab é US; no EU dá 401).
+const POSTHOG_HOST = 'https://us.i.posthog.com';
+const QUEUE_MAX    = 50;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let _posthog   = null;
 let _consented = localStorage.getItem(CONSENT_KEY) === 'yes';
+// Eventos disparados enquanto o posthog-js (import dinâmico) ainda carrega.
+// Sem isso, app_opened e analytics_accepted eram descartados: initAnalytics()
+// é assíncrona e track() rodava na linha seguinte com _posthog ainda null.
+let _queue     = [];
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +42,8 @@ export function initAnalytics() {
       disable_session_recording: true,
     });
     _posthog = posthog;
+    const pendentes = _queue; _queue = [];
+    if (_consented) pendentes.forEach(([event, props]) => { try { posthog.capture(event, props); } catch {} });
   });
 }
 
@@ -58,6 +66,7 @@ export function acceptAnalytics() {
 export function declineAnalytics() {
   localStorage.setItem(CONSENT_KEY, 'no');
   _consented = false;
+  _queue = [];
   if (_posthog) { _posthog.opt_out_capturing(); _posthog = null; }
 }
 
@@ -71,7 +80,11 @@ export function declineAnalytics() {
  * @param {Object} [props={}] - additional properties
  */
 export function track(event, props = {}) {
-  if (!_consented || !_posthog) return;
+  if (!_consented || !POSTHOG_KEY) return;
+  if (!_posthog) {
+    if (_queue.length < QUEUE_MAX) _queue.push([event, props]);
+    return;
+  }
   try { _posthog.capture(event, props); } catch {}
 }
 
