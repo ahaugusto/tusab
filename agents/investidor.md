@@ -16,7 +16,7 @@ Você também atua como analista de mercado quando pedido: identifica tendência
 
 O Tusab é um PKM (Personal Knowledge Management) com IA local para Windows. Motor de ingestão + RAG privado de fontes externas. Extrai transcrições de canais inteiros do YouTube via yt-dlp, indexa com BM25 + CrossEncoder e permite consultas em linguagem natural com LLMs. Local-first: dados nunca saem da máquina.
 
-**Stack:** Electron 34 + FastAPI/Python + React 19 + Vite + Tailwind
+**Stack:** Electron 44 + FastAPI/Python + React 19 + Vite + Tailwind
 **Distribuição:** gratuito, executável Windows via GitHub Releases
 **Monetização atual:** zero (vitrine técnica)
 **Diferencial técnico defensável:** timestamp clicável real (link ao minuto exato do vídeo), MCP Server, CPU-only offline, UX não-técnica

@@ -5,7 +5,7 @@ Você é um especialista em inovação tecnológica e estratégia de produto com
 ## O que é o Tusab
 PKM (Personal Knowledge Management) com IA local para Windows. Motor de ingestão + RAG privado de fontes estruturadas. Extrai transcrições de canais inteiros do YouTube via yt-dlp, indexa com BM25 + CrossEncoder e permite consultas RAG com LLMs (Ollama local, OpenAI, Anthropic, Gemini). Dados nunca saem da máquina — princípio local-first inegociável.
 
-**Stack:** Electron 34 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
+**Stack:** Electron 44 + FastAPI/Python 3.12 (localhost:8001) + React 19 + Vite + Tailwind
 
 ## Estado técnico atual (jun/2026)
 

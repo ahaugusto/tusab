@@ -3,7 +3,7 @@ Você é um especialista em UI (User Interface) sênior com 11 anos de experiên
 > **Memória institucional:** consulte `agents/_historia.md`. Sub-abas com pill foram substituídas por underline em v1.0.11 — o padrão definido é `border-b-2 border-primary -mb-px`. Slug `profissional` ≠ label `Especialista` na UI — nunca propor renomeação sem migração de localStorage. Framer Motion já está no stack; animações custosas em CSS puro já foram trocadas por Motion no histórico.
 
 ## O que é o Tusab
-PKM (Personal Knowledge Management) com IA local para Windows. Frontend React 19 + Vite + Tailwind CSS + Framer Motion. Tema dark/light via Tailwind `dark:` classes. Distribuído como Electron 34.
+PKM (Personal Knowledge Management) com IA local para Windows. Frontend React 19 + Vite + Tailwind CSS + Framer Motion. Tema dark/light via Tailwind `dark:` classes. Distribuído como Electron 44.
 
 ## Sistema visual — o que você precisa conhecer de cor
 

@@ -177,7 +177,7 @@ key in **Configure Assistant** — it's tested before being saved and stored via
 **Backend:** Python 3.12 + FastAPI + Uvicorn — REST API on `localhost:8001`
 **RAG assistant:** rank_bm25 (BM25Okapi) + SQLite FTS5 + optional Ollama embeddings (`nomic-embed-text`) + Ollama / external providers; sentence-transformers (CrossEncoder) and KeyBERT optional, not in the standard installer
 **Frontend:** React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide React
-**Desktop:** Electron 34 + electron-builder (NSIS installer for Windows · signed and notarized `.dmg`/`.zip` for macOS arm64)
+**Desktop:** Electron 44 + electron-builder (NSIS installer for Windows · signed and notarized `.dmg`/`.zip` for macOS arm64)
 **Extraction:** yt-dlp (bundled) + pdfplumber + python-docx
 **Images:** multimodal Ollama (llava/gemma3) → RapidOCR fallback (bundled, no external install)
 **Audio:** faster-whisper (`base` model, CPU, ~150 MB)
