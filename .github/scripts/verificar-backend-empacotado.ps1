@@ -30,6 +30,25 @@ foreach ($f in @($py, $yt, $api)) {
 & $yt --version
 if ($LASTEXITCODE -ne 0) { throw 'bin\yt-dlp.exe nao executa' }
 
+# Invariante 25: pasta de instalacao + caminho relativo mais longo do pacote
+# tem que caber em 259 caracteres (MAX_PATH), senao a atualizacao automatica
+# trava ("Falha ao desinstalar os arquivos do aplicativo antigo: 2"). O
+# instalador recusa pastas acima de TUSAB_MAX_INSTDIR (installer.nsh) e o
+# electron-builder ainda pode acrescentar "\tusab" ao fim; aqui confere que o
+# pacote atual cabe nessa conta.
+$nsh = Join-Path $PSScriptRoot '..\..\electron\build_resources\installer.nsh'
+$m = Select-String -Path $nsh -Pattern '^!define TUSAB_MAX_INSTDIR (\d+)' | Select-Object -First 1
+if (-not $m) { throw "TUSAB_MAX_INSTDIR nao encontrado em $nsh" }
+$maxPasta = [int]$m.Matches[0].Groups[1].Value + '\tusab'.Length
+$raizApp = Split-Path $Resources -Parent
+$maisLongo = Get-ChildItem $raizApp -Recurse -File | Sort-Object { $_.FullName.Length } -Descending | Select-Object -First 1
+$rel = $maisLongo.FullName.Length - $raizApp.Length
+Write-Host "Caminho relativo mais longo: $rel caracteres ($($maisLongo.FullName.Substring($raizApp.Length)))"
+Write-Host "Pasta de instalacao maxima: $maxPasta -> total $($maxPasta + $rel) de 259"
+if ($maxPasta + $rel -gt 259) {
+  throw "Pacote fundo demais para a pasta maxima do instalador ($maxPasta + $rel > 259). Reduza TUSAB_MAX_INSTDIR em electron\build_resources\installer.nsh ou encurte o pacote - ver invariante 25 em agents\_historia.md"
+}
+
 $ocupada = Get-NetTCPConnection -LocalPort $Porta -State Listen -ErrorAction SilentlyContinue
 if ($ocupada) { throw "Porta $Porta ja esta em uso (PID $($ocupada.OwningProcess)) - o teste nao provaria nada" }
 
