@@ -26,9 +26,9 @@ futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de
 from . import (
     agencia_brasil, almg, anvisalegis, art_institute_chicago, arxiv_adapter, bcb,
     bdtd, bvs_ms, camara, camara_discursos, capes_teses, cern_opendata,
-    cleveland_art, clinicaltrials, crossref, data_europa_eu, data_gov_uk, datacite,
+    cleveland_art, clinicaltrials, codeberg, crossref, data_europa_eu, data_gov_uk, datacite,
     doaj, educapes, eric, europepmc, federal_register, fiocruz_arca, github,
-    govbr_noticias, gutenberg, hacker_news, hal, hf_datasets, hf_modelos, hf_papers, ibge_noticias, inca, inspire_hep,
+    gitlab, govbr_noticias, gutenberg, hacker_news, hal, hf_datasets, hf_modelos, hf_papers, ibge_noticias, inca, inspire_hep,
     ipea, nasa_cmr, nasa_ntrs, oasisbr, open_library, openalex, openfda, osti,
     paho_iris, pubmed, senado_discursos, senado_leis, senado_materias,
     stackexchange, stf, tcu, the_met, tst, unasus_ares, uniprot, usgs_pubs,
@@ -41,7 +41,7 @@ _MODULOS = [
     # dentro de cada área as fontes brasileiras vêm primeiro (Brazil First).
     arxiv_adapter, openalex, datacite, doaj, zenodo,
     crossref, hal, data_europa_eu, data_gov_uk, open_library, agencia_brasil,
-    github, hf_modelos, hf_datasets, hf_papers, stackexchange, hacker_news,
+    github, gitlab, codeberg, hf_modelos, hf_datasets, hf_papers, stackexchange, hacker_news,
     bcb, ipea, ibge_noticias, worldbank_wds,
     # Educação — área criada em out/2026 (perfis Professor e Estudante não
     # tinham nenhuma fonte própria). MEC, CNE, BNCC e INEP não têm API

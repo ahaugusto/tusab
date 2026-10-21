@@ -526,7 +526,11 @@ export default function ExtractionTab({
                   <h3 id="summary-busca-heading" className={`text-xs font-bold uppercase tracking-wider ${r.sucesso
                     ? darkMode ? 'text-secondary' : 'text-emerald-700'
                     : darkMode ? 'text-warning' : 'text-amber-700'}`}>
-                    {r.sucesso ? t('extraction.fonte_search_done') : t('extraction.fonte_search_interrupted')}
+                    {r.sucesso
+                      ? t('extraction.fonte_search_done')
+                      : (r.processed > 0 && r.falhas?.length)
+                        ? t('extraction.fonte_search_partial')   // várias fontes: parte deu certo
+                        : t('extraction.fonte_search_interrupted')}
                   </h3>
                 </div>
                 <div className="px-5 py-4">
