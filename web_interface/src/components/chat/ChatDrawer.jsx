@@ -14,7 +14,8 @@ import { Sparkles, X, Bot, Loader2, ExternalLink, Send, Database, ChevronRight, 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
+import { salvarHistoricoChat, listarHistoricosChat, clearChatHistory, lerArquivo, fetchMencoes, fetchArquivos, buscarTrechos, exportResumoCanalDocx, exportTabelaVideosXlsx, exportRelatorioPdf, exportTabelaChatXlsx, uploadDocument, startIndexing, listarHistoricosSalvos, injetarHistorico, enviarFeedback } from '../../services/api';
+import { normalizarTabelasMarkdown, contemTabela, rehypeTabelasChat, lerTabelaDom, tabelaParaCsv, nomeArquivoPlanilha } from '../../utils/tabelasChat';
 import { localeFor } from '../../utils/locale';
 import { BTN_FOCUS } from '../../constants';
 
@@ -165,6 +166,91 @@ function normalizarRespostaIA(texto) {
     .replace(/([a-zà-ú0-9])([.!?])(?=[A-ZÀ-Ú])/g, '$1$2\n\n')
     // Colapsa excesso de linhas em branco geradas pelas substituições acima
     .replace(/\n{3,}/g, '\n\n');
+}
+
+// Pipeline de exibição da resposta do assistente: correções de bullets/frases
+// coladas + saneamento das tabelas GFM (utils/tabelasChat.js — separador
+// ausente, nº de colunas divergente, tabela colada no parágrafo). Puramente
+// visual: o texto persistido no histórico não muda.
+function prepararRespostaIA(texto) {
+  return normalizarTabelasMarkdown(normalizarRespostaIA(texto));
+}
+
+const REHYPE_TABELAS = [rehypeTabelasChat];
+
+/**
+ * Tabela de uma resposta do assistente: rolagem horizontal dentro do balão
+ * (região focável por teclado, WCAG 2.1.1), e — quando a resposta terminou de
+ * chegar — ações "Baixar planilha (.xlsx)" e "Copiar CSV". Os dados saem do
+ * DOM renderizado (exatamente o que o usuário vê, sem marcação Markdown).
+ * Na última tabela de uma resposta com várias, "Todas" gera uma aba por tabela.
+ */
+function TabelaChat({ node, children, darkMode, streaming, onBaixar, t }) {
+  const tabelaRef = useRef(null);
+  const [copiado, setCopiado] = useState(false);
+  const [baixando, setBaixando] = useState(false);
+  const indice = Number(node?.properties?.dataTabelaIndice ?? 0);
+  const total  = Number(node?.properties?.dataTabelaTotal ?? 1);
+
+  const lerTabelas = (todas) => {
+    const raiz = todas ? tabelaRef.current?.closest('.markdown-body') : null;
+    const els = raiz ? Array.from(raiz.querySelectorAll('table[data-tusab-tabela]')) : [tabelaRef.current];
+    return els.filter(Boolean).map(el => ({ nome: '', ...lerTabelaDom(el) }))
+      .filter(tb => tb.cabecalho.length > 0);
+  };
+  const baixar = async (todas) => {
+    const tabelas = lerTabelas(todas);
+    if (!tabelas.length || baixando) return;
+    setBaixando(true);
+    try { await onBaixar(tabelas); } finally { setBaixando(false); }
+  };
+  const copiar = () => {
+    const [tb] = lerTabelas(false);
+    if (!tb) return;
+    navigator.clipboard.writeText(tabelaParaCsv(tb)).then(() => {
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    }).catch(() => {});
+  };
+
+  const btn = `flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${BTN_FOCUS}
+    ${darkMode ? 'text-slate-400 hover:text-slate-200 hover:bg-white/10' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`;
+
+  return (
+    <div className="my-2 max-w-full">
+      <div
+        role="region"
+        tabIndex={0}
+        aria-label={t('chat.tabela_regiao', 'Tabela da resposta (role para os lados para ver todas as colunas)')}
+        className={`max-w-full overflow-x-auto custom-scrollbar rounded-lg border ${BTN_FOCUS}
+          ${darkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+        <table ref={tabelaRef} data-tusab-tabela="" className="w-full border-collapse text-[11px] leading-snug">
+          {children}
+        </table>
+      </div>
+      {!streaming && (
+        <div className="mt-1 flex flex-wrap items-center gap-1">
+          <button type="button" className={btn} onClick={() => baixar(false)} disabled={baixando}
+            title={t('chat.tabela_baixar_title', 'Baixar esta tabela como planilha Excel (.xlsx)')}>
+            {baixando ? <Loader2 size={11} className="animate-spin" /> : <Sheet size={11} />}
+            <span>{t('chat.tabela_baixar', 'Baixar planilha (.xlsx)')}</span>
+          </button>
+          {total > 1 && indice === total - 1 && (
+            <button type="button" className={btn} onClick={() => baixar(true)} disabled={baixando}
+              title={t('chat.tabela_baixar_todas_title', 'Baixar todas as tabelas desta resposta numa planilha, uma aba por tabela')}>
+              <Sheet size={11} />
+              <span>{t('chat.tabela_baixar_todas', 'Todas ({{n}} abas)', { n: total })}</span>
+            </button>
+          )}
+          <button type="button" className={btn} onClick={copiar}
+            title={t('chat.tabela_copiar_csv_title', 'Copiar esta tabela no formato CSV')}>
+            {copiado ? <Check size={11} className="text-secondary" /> : <Copy size={11} />}
+            <span>{copiado ? t('chat.tabela_copiado', 'Copiado') : t('chat.tabela_copiar_csv', 'Copiar CSV')}</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -424,6 +510,20 @@ function ChatDrawer({
       setTimeout(() => setIndexSnackbar(null), 5000);
     }
   }, [t, setIndexSnackbar]);
+
+  /** Planilha a partir de tabela(s) de uma resposta — nome do arquivo vem da
+   *  pergunta do usuário que originou a resposta ("tusab_<assunto>_<data>.xlsx"). */
+  const baixarTabelasResposta = useCallback(async (tabelas, idxMsg) => {
+    let assunto = '';
+    for (let k = idxMsg - 1; k >= 0; k--) {
+      if (chatMessages[k]?.role === 'user') { assunto = chatMessages[k].content || ''; break; }
+    }
+    const idioma = (i18n.language || 'pt').slice(0, 2);
+    await triggerDownload(
+      exportTabelaChatXlsx(tabelas, assunto.slice(0, 200), idioma),
+      nomeArquivoPlanilha(assunto),
+    );
+  }, [chatMessages, i18n.language, triggerDownload]);
 
   const prevChatInputRef = useRef(chatInput);
   useEffect(() => {
@@ -1105,7 +1205,8 @@ function ChatDrawer({
                           <div className="markdown-body">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
-                              children={normalizarRespostaIA(msg.content)}
+                              rehypePlugins={REHYPE_TABELAS}
+                              children={prepararRespostaIA(msg.content)}
                               components={{
                                 p:      ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                                 strong: ({children}) => <strong className="font-semibold">{children}</strong>,
@@ -1123,9 +1224,30 @@ function ChatDrawer({
                                   : <pre className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto mb-2 ${darkMode ? 'bg-black/30' : 'bg-slate-100'}`}><code>{children}</code></pre>,
                                 blockquote: ({children}) => <blockquote className={`border-l-2 pl-3 my-2 italic opacity-70 ${darkMode ? 'border-white/30' : 'border-slate-400'}`}>{children}</blockquote>,
                                 hr:     () => <hr className={`my-3 ${darkMode ? 'border-white/10' : 'border-slate-200'}`} />,
-                                table:  ({children}) => <div className="overflow-x-auto mb-2"><table className="text-[10px] border-collapse w-full">{children}</table></div>,
-                                th:     ({children}) => <th className={`px-2 py-1 text-left font-semibold border ${darkMode ? 'border-white/15 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>{children}</th>,
-                                td:     ({children}) => <td className={`px-2 py-1 border ${darkMode ? 'border-white/10' : 'border-slate-200'}`}>{children}</td>,
+                                table:  ({node, children}) => (
+                                  <TabelaChat node={node} darkMode={darkMode} t={t}
+                                    streaming={!!msg.streaming || msg.role !== 'assistant'}
+                                    onBaixar={(tabelas) => baixarTabelasResposta(tabelas, i)}>
+                                    {children}
+                                  </TabelaChat>
+                                ),
+                                tr:     ({children}) => <tr className={darkMode ? 'even:bg-white/5' : 'even:bg-slate-50'}>{children}</tr>,
+                                th:     ({node, children, style}) => (
+                                  <th scope="col" style={style}
+                                    className={`px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider align-bottom whitespace-nowrap border-b
+                                      ${node?.properties?.dataNumerico ? 'text-right' : 'text-left'}
+                                      ${darkMode ? 'bg-white/10 text-slate-300 border-white/15' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                    {children}
+                                  </th>
+                                ),
+                                td:     ({node, children, style}) => (
+                                  <td style={style}
+                                    className={`px-2.5 py-1.5 align-top border-b [tr:last-child>&]:border-b-0
+                                      ${node?.properties?.dataNumerico ? 'text-right tabular-nums whitespace-nowrap' : 'min-w-[6rem]'}
+                                      ${darkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                                    {children}
+                                  </td>
+                                ),
                               }}
                             />
                             {msg.streaming && <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 animate-pulse align-middle" />}
@@ -1408,8 +1530,11 @@ function ChatDrawer({
                               <FileDown size={11} />
                               <span>PDF</span>
                             </button>
-                            {/* Salvar como Planilha — só quando resposta tem lista/tabela E conteúdo suficiente */}
-                            {detectaLista(msg.content) && temConteudoSuficiente && (
+                            {/* Salvar como Planilha (lista de vídeos do canal) — só quando a resposta
+                                tem lista E conteúdo suficiente. Se a resposta tem TABELA, a ação certa
+                                é a "Baixar planilha" da própria tabela (TabelaChat): mostrar as duas
+                                lado a lado confundia — esta exporta a lista de vídeos, não a tabela. */}
+                            {detectaLista(msg.content) && !contemTabela(msg.content) && temConteudoSuficiente && (
                               <button
                                 title={t('chat.export_video_table_title')}
                                 onClick={() => {

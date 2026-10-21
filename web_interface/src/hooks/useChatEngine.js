@@ -106,7 +106,13 @@ export function useChatEngine({
   const detectarIntencaoExport = (msg) => {
     const m = msg.toLowerCase();
     const isDocx = /word|docx|documento|resumo.*canal|canal.*resumo|summary/.test(m);
-    const isXlsx = /excel|xlsx|planilha|tabela.*v[ií]deo|v[ií]deo.*tabela|spreadsheet/.test(m);
+    // Só a planilha da LISTA DE VÍDEOS do canal é export direto. "Gere uma
+    // planilha com os preços de X" é pedido de CONTEÚDO: vai ao LLM, que
+    // responde com tabela Markdown (reforço _instrucao_pedido_tabela em
+    // agent/chat.py) e a tabela renderizada ganha "Baixar planilha (.xlsx)".
+    // Antes, qualquer "planilha/excel/xlsx" + verbo era interceptado aqui e,
+    // como App.jsx não passa exportFns, virava "Exportação não disponível".
+    const isXlsx = /(planilha|tabela|excel|xlsx|spreadsheet|table).*v[ií]deos?\b|v[ií]deos?\b.*(planilha|tabela|excel|xlsx|spreadsheet|table)/.test(m);
     const isPdf  = /pdf|relat[oó]rio.*pdf|pdf.*relat[oó]rio/.test(m);
     const isHist = /hist[oó]rico.*chat|chat.*hist[oó]rico|conversa.*export|export.*conversa|markdown/.test(m);
     const hasVerb = /ger[ae]|export[ae]|cri[ae]|baixe?|download|salv[ae]/.test(m);
