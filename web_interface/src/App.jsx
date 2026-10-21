@@ -759,6 +759,14 @@ function App() {
 
   useEffect(() => { initAnalytics(); Analytics.appOpened(); }, []);
 
+  // Retenção D1/D7/D30: o backend calcula a marca em GET /agent/status
+  // (registrar_primeiro_uso) e a entrega uma única vez; sem este efeito o
+  // evento retencao_diaN nunca era disparado.
+  useEffect(() => {
+    const dia = agentStatus?.retencao_dia;
+    if (dia) Analytics.retencaoDia(dia, agentStatus.dias_desde_install);
+  }, [agentStatus?.retencao_dia]);
+
   /** Fallback: pede permissão de notificação se onboarding já foi concluído sem perguntar */
   useEffect(() => {
     const jaOnboarded = !!localStorage.getItem('tusab_onboarded');
@@ -1215,17 +1223,69 @@ function App() {
 
   /** Confirms a search on a public source (perfil Pesquisador) — registro
    *  genérico em tusab_engine/motor/fontes/, qualquer fonte usa o mesmo fluxo. */
-  const handleStartConfirmFonte = (fonteId, query, maxResultados, projetoNome, dataInicio = '', dataFim = '', autor = '') => {
-    setShowExtractionModal(false);
-    setLastFonteResult(null);
-    buscarFonte(fonteId, query, maxResultados, projetoNome, dataInicio, dataFim, autor)
+  //  O modal permite marcar várias fontes da mesma área: elas entram numa fila
+  //  e rodam UMA DE CADA VEZ — todas gravam em documents/ e disparam
+  //  reindexação do mesmo projeto, e em paralelo disputariam o _manifest.json
+  //  e o índice. O backend guarda o estado por fonte (router_fontes.py), então
+  //  o polling acompanha a fonte da vez e, ao terminar, puxa a próxima.
+  const filaFontesRef = useRef(null); // { fontes, idx, params, acumulado: { processed, total, itens, falhas } }
+
+  const finalizarFilaFontes = () => {
+    const fila = filaFontesRef.current;
+    filaFontesRef.current = null;
+    setFontePollingId(null);
+    setFonteBackground(false);
+    if (!fila) return;
+    const { processed, total, itens, falhas } = fila.acumulado;
+    const varias = fila.fontes.length > 1;
+    const sucesso = falhas.length === 0;
+    setLastFonteResult({ sucesso, processed, total, itens, falhas, projetoNome: fila.params.projetoNome });
+    setProgressToast(sucesso
+      ? { type: 'success', message: varias
+          ? t('extraction.fontes_done_multi', { processed, total, n: fila.fontes.length })
+          : `Busca concluída (${processed}/${total} indexados)` }
+      : { type: processed > 0 ? 'warning' : 'error', message: varias
+          ? t('extraction.fontes_done_partial', { processed, total, falhas: falhas.length })
+          : (falhas[0]?.mensagem || 'Busca encerrada com erro') });
+    // Sem isso, o projeto novo (ou os resultados novos num projeto
+    // existente) não aparecem no seletor "Abrir pasta do projeto" nem
+    // em outros lugares que leem `repositorio` até trocar de aba.
+    if (processed > 0) fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+  };
+
+  const avancarFilaFontes = () => {
+    const fila = filaFontesRef.current;
+    if (!fila) return;
+    if (fila.idx >= fila.fontes.length) { finalizarFilaFontes(); return; }
+    const f = fila.fontes[fila.idx];
+    const { query, maxResultados, projetoNome, dataInicio, dataFim, autor } = fila.params;
+    const falhou = (mensagem) => {
+      fila.acumulado.falhas.push({ fonte: f.nome, mensagem });
+      fila.idx += 1;
+      avancarFilaFontes();
+    };
+    // Filtro só vai para a fonte que o aceita (FONTE_META.suporta_autor/suporta_data)
+    buscarFonte(f.id, query, maxResultados, projetoNome,
+      f.suporta_data ? dataInicio : '', f.suporta_data ? dataFim : '', f.suporta_autor ? autor : '')
       .then(r => {
-        if (r.data.error) { showError(r.data.message); return; }
-        setFontePollingId(fonteId);
-        setFonteProjetoAtual(projetoNome);
+        if (r.data.error) { falhou(r.data.message); return; }
+        setFontePollingId(f.id);
         setFonteBackground(true);
       })
-      .catch(() => showError(t('error.generic')));
+      .catch(() => falhou(t('error.generic')));
+  };
+
+  const handleStartConfirmFonte = (fontes, query, maxResultados, projetoNome, dataInicio = '', dataFim = '', autor = '') => {
+    const lista = Array.isArray(fontes) ? fontes : [{ id: fontes, nome: fontes, suporta_autor: true, suporta_data: true }];
+    if (!lista.length) return;
+    setShowExtractionModal(false);
+    setLastFonteResult(null);
+    filaFontesRef.current = {
+      fontes: lista, idx: 0,
+      params: { query, maxResultados, projetoNome, dataInicio, dataFim, autor },
+      acumulado: { processed: 0, total: 0, itens: [], falhas: [] },
+    };
+    avancarFilaFontes();
   };
 
   // Polling do progresso da busca em andamento numa fonte pública — a busca
@@ -1238,11 +1298,6 @@ function App() {
   // porque a busca pode continuar rodando no servidor.
   const [fontePollingId,  setFontePollingId]  = useState(null);
   const [fonteBackground, setFonteBackground] = useState(false);
-  // Nome do projeto-alvo da busca em andamento — capturado no momento da
-  // chamada porque o polling (useEffect abaixo) só tem fontePollingId no
-  // closure; precisa disso pro botão "Abrir no Repositório" saber qual
-  // projeto pré-selecionar quando a busca terminar.
-  const [fonteProjetoAtual, setFonteProjetoAtual] = useState('');
   // Resumo persistente da última busca — status.stats (usado pelo card de
   // resumo pós-extração do YouTube) nunca é tocado pela busca em fonte
   // pública, que roda num state isolado no backend. Sem isso, a única
@@ -1253,27 +1308,29 @@ function App() {
     const interval = setInterval(() => {
       statusFonte(fontePollingId).then(r => {
         const { running, status, total, processed, message, itens } = r.data;
+        const fila = filaFontesRef.current;
         if (running) {
-          setProgressToast({ type: 'info', message: `${status} (${processed}/${total})` });
+          const prefixo = fila && fila.fontes.length > 1
+            ? `${t('extraction.fontes_progress', { i: fila.idx + 1, n: fila.fontes.length, nome: fila.fontes[fila.idx].nome })} · `
+            : '';
+          setProgressToast({ type: 'info', message: `${prefixo}${status} (${processed}/${total})` });
         } else {
+          if (!fila) { setFontePollingId(null); setFonteBackground(false); return; }
+          const acc = fila.acumulado;
+          acc.processed += processed || 0;
+          acc.total     += total || 0;
+          acc.itens.push(...(itens || []));
+          if (status !== 'Finalizado ✓') acc.falhas.push({ fonte: fila.fontes[fila.idx].nome, mensagem: message || status || 'Busca encerrada com erro' });
+          fila.idx += 1;
           setFontePollingId(null);
-          setFonteBackground(false);
-          const sucesso = status === 'Finalizado ✓';
-          setLastFonteResult({ sucesso, processed, total, itens: itens || [], projetoNome: fonteProjetoAtual });
-          setProgressToast({
-            type: sucesso ? 'success' : 'error',
-            message: sucesso ? `Busca concluída (${processed}/${total} indexados)` : (message || 'Busca encerrada com erro'),
-          });
-          // Sem isso, o projeto novo (ou os resultados novos num projeto
-          // existente) não aparecem no seletor "Abrir pasta do projeto" nem
-          // em outros lugares que leem `repositorio` até trocar de aba.
-          if (processed > 0) fetchRepositorio().then(r => setRepositorio(r.data)).catch(() => {});
+          avancarFilaFontes();
         }
       }).catch(() => {
         // Polling perdeu conexão — a busca pode continuar rodando no backend.
         // Paramos de chamar a API (fontePollingId=null), mas o Indicador de
         // Operação em Background (fonteBackground) permanece visível.
         setFontePollingId(null);
+        filaFontesRef.current = null;   // sem conexão, não dá para encadear as próximas fontes
         setProgressToast({ type: 'warning', message: 'Perdemos a conexão com o progresso da busca — ela pode continuar rodando. Verifique o Repositório em alguns instantes.' });
       });
     }, 2000);
