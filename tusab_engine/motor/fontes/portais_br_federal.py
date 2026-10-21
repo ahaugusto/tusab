@@ -35,11 +35,17 @@ PORTAIS = [
     {"nome": "Ministério da Cultura", "plataforma": "ckan", "base": "https://dados.cultura.gov.br"},
 ]
 
+# Sub-seleção na modal ("filtrar por órgãos"): a busca consulta só os
+# portais marcados. Ids = nome de exibição de cada portal.
+FONTE_META["subfontes"] = [p["nome"] for p in PORTAIS]
+FONTE_META["subfontes_rotulo"] = "Órgãos"
+
 
 def buscar(
     query: str, max_resultados: int, projeto_nome: str,
     data_inicio: str = "", data_fim: str = "", autor: str = "",
-    evento_cancelar=None, dispatch_event=None,
+    evento_cancelar=None, dispatch_event=None, subfontes=None,
 ) -> dict:
-    return buscar_portais(PORTAIS, FONTE_META["id"], query, max_resultados, projeto_nome,
+    portais = [p for p in PORTAIS if p["nome"] in subfontes] if subfontes else PORTAIS
+    return buscar_portais(portais or PORTAIS, FONTE_META["id"], query, max_resultados, projeto_nome,
                           evento_cancelar=evento_cancelar, dispatch_event=dispatch_event)

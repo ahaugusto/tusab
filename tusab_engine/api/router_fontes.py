@@ -39,6 +39,9 @@ class FonteSearchRequest(BaseModel):
     data_inicio:    str = Field(default="", pattern=r'^\d{4}-\d{2}-\d{2}$|^$')
     data_fim:       str = Field(default="", pattern=r'^\d{4}-\d{2}-\d{2}$|^$')
     autor:          str = Field(default="", max_length=120)
+    # Sub-seleção (ex.: quais estados nos portais estaduais). Só vale para
+    # fontes cujo FONTE_META declara "subfontes"; nomes fora da lista são ignorados.
+    subfontes:      list[str] = Field(default_factory=list, max_length=60)
 
 
 def _estado_fonte(fonte_id: str) -> dict:
@@ -55,7 +58,7 @@ def _estado_fonte(fonte_id: str) -> dict:
 
 
 def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_nome: str,
-                       data_inicio: str, data_fim: str, autor: str):
+                       data_inicio: str, data_fim: str, autor: str, subfontes: list | None = None):
     fonte = obter_fonte(fonte_id)
     fstate = _estado_fonte(fonte_id)
     nome_fonte = fonte.FONTE_META["nome"]
@@ -90,10 +93,14 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
                     fstate["stats"]["itens"].append(titulo)
                 print(f"💾 Resultado {processed}/{fstate['stats']['total']} salvo no projeto ({nome_fonte})")
 
+        extra = {}
+        validas = fonte.FONTE_META.get("subfontes")
+        if validas and subfontes:
+            extra["subfontes"] = [x for x in subfontes if x in validas]
         resultado = fonte.buscar(
             query=query, max_resultados=max_resultados, projeto_nome=projeto_nome,
             data_inicio=data_inicio, data_fim=data_fim, autor=autor,
-            evento_cancelar=fstate["cancel"], dispatch_event=_dispatch,
+            evento_cancelar=fstate["cancel"], dispatch_event=_dispatch, **extra,
         )
         fstate["stats"]["status"] = "Finalizado ✓" if resultado.get("ok") else "Erro"
         if resultado.get("ok"):
@@ -150,7 +157,7 @@ def fonte_search(fonte_id: str, req: FonteSearchRequest, background_tasks: Backg
 
     background_tasks.add_task(
         _run_fonte_search, fonte_id, req.query.strip(), req.max_resultados,
-        projeto_prefixo, req.data_inicio, req.data_fim, req.autor.strip(),
+        projeto_prefixo, req.data_inicio, req.data_fim, req.autor.strip(), req.subfontes,
     )
     return {"ok": True, "message": "Busca iniciada"}
 
