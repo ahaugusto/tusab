@@ -272,6 +272,22 @@ def test_deduplicar_chunks_preserva_diversidade(client):
     assert len(resultado) == 3
 
 
+def test_deduplicar_chunks_preserva_relatorios_que_so_diferem_nos_numeros(client):
+    """Achado real (21/out/2026): relatórios anuais do mesmo modelo só mudam os
+    números — sem os números no Jaccard, o de 2023 sumia e a comparação 2023 x
+    2024 no chat ficava sem um dos anos."""
+    from tusab_engine.agent.chat import _deduplicar_chunks
+    modelo = ("Em {ano} o Programa Farmácia Popular atendeu {p} milhões de pessoas em {f} farmácias "
+              "credenciadas, com investimento de R$ {i} milhões. A região Nordeste concentrou {n}% dos atendimentos.")
+    chunks = [
+        {"texto": modelo.format(ano=2024, p="22,4", f="31.020", i="3.512,4", n=34), "score": 1.0},
+        {"texto": modelo.format(ano=2023, p="18,7", f="30.150", i="2.987,1", n=32), "score": 0.9},
+    ]
+    assert len(_deduplicar_chunks(chunks, n=3, threshold=0.85)) == 2
+    # duplicata exata (mesmos números) continua sendo removida
+    assert len(_deduplicar_chunks([chunks[0], dict(chunks[0], score=0.5)], n=3, threshold=0.85)) == 1
+
+
 def test_deduplicar_chunks_fallback_corpus_vazio(client):
     from tusab_engine.agent.chat import _deduplicar_chunks
     resultado = _deduplicar_chunks([], n=3, threshold=0.85)
