@@ -279,7 +279,7 @@ def test_area_educacao_registrada():
 def test_registro_tem_61_fontes_com_ids_unicos_e_areas_conhecidas():
     from tusab_engine.motor import fontes as fontes_registry
     ids = [m.FONTE_META["id"] for m in fontes_registry._MODULOS]
-    assert len(ids) == len(set(ids)) == 61
+    assert len(ids) == len(set(ids)) == 64
     for m in fontes_registry._MODULOS:
         meta = m.FONTE_META
         assert meta["area"] in fontes_registry.AREAS_META, meta["id"]

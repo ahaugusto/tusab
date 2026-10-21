@@ -15,7 +15,7 @@ def test_area_fisica_registrada():
     areas = fontes_registry.listar_fontes()
     assert "fisica" in areas
     ids = {f["id"] for f in areas["fisica"]["fontes"]}
-    assert ids == {"cern_opendata"}
+    assert ids == {"cern_opendata", "osti", "inspire_hep"}
 
 
 def test_cern_opendata_limpa_html_do_abstract(tmp_path, monkeypatch):
