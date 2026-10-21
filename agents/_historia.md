@@ -696,6 +696,64 @@ Esses 3 abrem caminho pra um filtro por país/bloco na UI (Brasil via BCB, Reino
 
 ---
 
+### Terceira rodada — de 26 para 70 fontes, área Educação e área Dados abertos (20/out/2026, v1.0.61)
+
+Pedido do Augusto: "busque ANVISA, busque no MEC, busque, busque", depois "comece pelo lote 1 e avance até o 3, nem me pergunte". Seis pesquisadores paralelos testaram ao vivo mais de 260 candidatos e mais de 150 portais de dados abertos. Os critérios foram os mesmos de sempre:
+- sem cadastro ou chave;
+- busca real no servidor (termo inexistente devolve 0);
+- texto narrativo de verdade;
+- sem anti-robô.
+
+**Implementado (44 fontes novas, registro em `tusab_engine/motor/fontes/__init__.py`):**
+- **Conectores genéricos reaproveitáveis:**
+  - `_dspace7.py` (OPAS/PAHO IRIS, OMS/WHO IRIS, Fiocruz ARCA, UNA-SUS ARES, IPEA com texto integral do bundle TEXT);
+  - `_vufind.py` (BDTD, OasisBR);
+  - `_mediawiki.py` (Wikisource, Wikilivros, Wikiversidade PT);
+  - `_huggingface.py` (modelos, datasets, papers);
+  - `_portais_dados.py` (CKAN, udata, Socrata, OpenDataSoft; consulta vários portais em paralelo e intercala os resultados).
+- **Jurisprudência:** STF, TCU e TST, com `_lgpd_juridico.py`. Blocos de partes são removidos em todo o documento, os nomes colhidos deles são apagados do texto, e CPF e OAB são mascarados. Risco residual documentado: pessoa citada só no corpo do texto, pega apenas com NER.
+- **Áreas novas:**
+  - "Educação": IBICT, CAPES, Wikimedia e ERIC.
+  - "Dados abertos": 4 fontes agregadas (órgãos federais, estados, capitais, internacionais), mais data.europa.eu e data.gov.uk, movidos da área geral.
+  - A área "antropologia" foi renomeada para "Enciclopédias, dicionários e referência"; o id foi mantido.
+- **Perfis:** Professor e Especialista passam a ver as fontes públicas, antes só o Pesquisador (`usePerfil.js`).
+- **Taxonomia de interface** (`TAXONOMIA` no `__init__.py`): região, tipos, instituição, grupo e variante. Alimenta os filtros e o agrupamento da modal (`FontesSelector.jsx`). Portais declaram `subfontes` para o usuário escolher estados, países ou órgãos.
+
+**Rejeitados ao vivo, para não retestar sem motivo concreto:**
+- **ANVISA, Bulário e consulta de medicamentos:** exigem Cloudflare Turnstile. Os dados abertos da ANVISA são CSV de 46 MB a 1,3 GB, quase só códigos.
+- **MEC, CNE, BNCC e INEP:**
+  - sem API; o REST Plone do gov.br responde 401 ou "Estamos em manutenção";
+  - portal.mec.gov.br sem DNS;
+  - e-MEC e Domínio Público atrás de Cloudflare;
+  - a BNCC só existe como PDF, para importar no Repositório.
+- **Bloqueio anti-robô ou sem API:**
+  - Conitec e todo o gov.br Volto (API "em manutenção" para cliente programático);
+  - LILACS/BVS e SciELO Search (Bunny Shield);
+  - Butantan (Akamai);
+  - Planalto (F5);
+  - STJ (Cloudflare e reCAPTCHA);
+  - IMF (Akamai);
+  - OECD, SSRN, ChemRxiv e CEPAL (Cloudflare);
+  - UN Digital Library e legislation.gov.uk (AWS WAF).
+- **Sem busca por palavra:** medRxiv/bioRxiv (só data ou DOI), PubChem (nome exato), Copernicus CDS (`q` ignorado), Read the Docs (busca só dentro de um projeto) e ReBEC (busca pública desativada).
+- **Exigem chave:** FRED, GovInfo, Europeana, BHL, Materials Project, OER Commons, MERLOT e dados.gov.br (token, inclusive na API nova).
+- **Querido Diário:** fora do ar (503) desde 19/out/2026. É o de maior potencial; reavaliar.
+
+**Achados técnicos que valem para fontes futuras:**
+- **User-Agent:**
+  - A Wikimedia limita UA sem `https://` na URL de contato (429 após ~10 chamadas). Corrigido em `HEADERS_TUSABBOT`.
+  - Vários portais bloqueiam a palavra "Bot" (data.gov.ie, MME); o datos.gob.mx bloqueia também "+http". Por isso os portais usam `Tusab/1.0` puro.
+  - O TCU devolve bloqueio disfarçado de HTTP 200 HTML. `exigir_json` em `_base.py` transforma isso em erro claro.
+- **Assinatura TLS:** dados.pbh.gov.br e open.africa bloqueiam o cliente Python (403 com qualquer cabeçalho, 200 via curl). Contornar exigiria dependência nova; ficaram de fora.
+- **Correção de registro anterior:** o Senado `/dadosabertos/processo` **filtra** por `termo`. A avaliação de jul/2026 que o rejeitou estava errada; ele virou `senado_materias.py`.
+- **Portais estaduais com endereço novo:** dados.sp.gov.br e dados.rj.gov.br morreram; os vivos são dadosabertos.sp.gov.br e dadosabertos.rj.gov.br. O OpenDataSUS trocou CKAN por front Next.js (`/api/3` dá 404).
+- **Conteúdo dos portais:** a descrição de catálogo diz *o que é* o conjunto, não traz os dados. Por isso cada resultado lista os arquivos (formato e URL), que são a ponte para o estudo de "dados brutos" pedido no mesmo dia.
+- **Validação de ponta a ponta:**
+  - As 35 primeiras fontes novas passaram pelo `POST /fontes/{id}/search` real. Foram 71 documentos sem nenhum CPF e 381 chunks reindexados automaticamente, e o chat respondeu citando o acórdão do STF.
+  - A busca em 3 fontes pela modal foi validada com progresso "Fonte i de n" e falha parcial listada.
+
+---
+
 ### Suporte a macOS — Fases 0-8, lições reais de assinatura de código (30/jul/2026)
 
 Plano completo de 9 fases aprovado e documentado em `C:\Users\augus\.claude\plans\no-git-j-estamos-binary-wilkinson.md`. Fases 0-4 (portabilidade de código, runner macOS, Python portátil via python-build-standalone, Electron real `--dir`, `.dmg`/`.zip` sem assinar) fechadas e verificadas via CI real (`macos-latest`, GitHub Actions) antes desta entrada. Sem regressão no Windows em nenhum passo (`pytest` + `smoke.ps1` verdes a cada mudança).

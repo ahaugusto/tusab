@@ -32,7 +32,7 @@ Teacher, Researcher, and Specialist profiles can queue multiple channels for seq
 
 ## Public sources (Researcher profile)
 
-Besides YouTube, the Researcher profile has access to searching 26 public sources across 9 knowledge areas — none require registration or an API key. See [Public sources by knowledge area](/funcionalidades/fontes-publicas) for the full list.
+Besides YouTube, the Teacher, Researcher and Specialist profiles can search 70 public sources across 11 knowledge areas — none require registration or an API key. See [Public sources by knowledge area](/funcionalidades/fontes-publicas) for the full list.
 
 ## Standalone web page reader
 
