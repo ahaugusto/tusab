@@ -30,7 +30,8 @@ from . import (
     doaj, educapes, eric, europepmc, federal_register, fiocruz_arca, github,
     gitlab, govbr_noticias, gutenberg, hacker_news, hal, hf_datasets, hf_modelos, hf_papers, ibge_noticias, inca, inspire_hep,
     ipea, nasa_cmr, nasa_ntrs, oasisbr, open_library, openalex, openfda, osti,
-    paho_iris, pubmed, senado_discursos, senado_leis, senado_materias,
+    paho_iris, portais_br_estados, portais_br_federal, portais_br_municipios,
+    portais_internacionais, pubmed, senado_discursos, senado_leis, senado_materias,
     stackexchange, stf, tcu, the_met, tst, unasus_ares, uniprot, usgs_pubs,
     who_iris, wikilivros_pt, wikipedia, wikisource_pt, wikiversidade_pt,
     wiktionary, worldbank_wds, zenodo,
@@ -40,9 +41,13 @@ _MODULOS = [
     # Ordem = ordem de exibição: a área aparece na posição do seu 1º módulo, e
     # dentro de cada área as fontes brasileiras vêm primeiro (Brazil First).
     arxiv_adapter, openalex, datacite, doaj, zenodo,
-    crossref, hal, data_europa_eu, data_gov_uk, open_library, agencia_brasil,
+    crossref, hal, open_library, agencia_brasil,
     github, gitlab, codeberg, hf_modelos, hf_datasets, hf_papers, stackexchange, hacker_news,
     bcb, ipea, ibge_noticias, worldbank_wds,
+    # Dados abertos (out/2026): ~40 portais agrupados em 4 fontes que consultam
+    # em paralelo — uma caixa por portal deixaria a modal ilegível.
+    portais_br_federal, portais_br_estados, portais_br_municipios,
+    portais_internacionais, data_europa_eu, data_gov_uk,
     # Educação — área criada em out/2026 (perfis Professor e Estudante não
     # tinham nenhuma fonte própria). MEC, CNE, BNCC e INEP não têm API
     # utilizável (testado ao vivo): o acervo brasileiro chega por IBICT e CAPES.
@@ -64,6 +69,7 @@ AREAS_META = {
     "geral":      "Buscadores gerais e multidisciplinares",
     "tecnologia": "Tecnologia, IA e ciência de dados",
     "economia":   "Economia, finanças e ciências sociais",
+    "dados":      "Dados abertos e portais de governo",
     "educacao":   "Educação, ensino e material didático",
     "direito":    "Direito, normas, legislação e governo",
     "saude":      "Saúde, biologia e genética",
