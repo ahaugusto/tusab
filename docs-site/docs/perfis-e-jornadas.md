@@ -23,6 +23,7 @@ O Tusab tem quatro perfis com funcionalidades progressivamente mais avançadas. 
 | Gerenciar repositório (deletar/limpar) | ✅ | ✅ | ✅ | ✅ |
 | Painel Admin | ✅ | ✅ | ✅ | ✅ |
 | Visão Geral (analytics do corpus) | — | ✅ | ✅ | ✅ |
+| [Busca em fontes públicas](/funcionalidades/fontes-publicas) (70 fontes) | — | ✅ | ✅ | ✅ |
 | Monitor de sistema | — | — | — | ✅ |
 | Reset total | ✅ | ✅ | ✅ | ✅ |
 | Persona padrão do assistente | Didático | Didático | Técnico | Objetivo |
@@ -41,13 +42,15 @@ Extrai canais do YouTube, organiza materiais didáticos em projetos, e exporta b
 
 A extração é incremental: numa nova rodada, só os vídeos novos são processados.
 
+Desde a v1.0.61, o Professor também busca em [fontes públicas](/funcionalidades/fontes-publicas) — em especial na área **Educação** (teses da BDTD e da CAPES, artigos do OasisBR, recursos do EduCAPES, Wikilivros, Wikiversidade e ERIC).
+
 ## Pesquisador
 
 Constrói corpora de múltiplas fontes para análise aprofundada, com controle fino sobre o que entra na base.
 
 **Diferenciais em relação ao Professor:**
 - Persona padrão **técnico** no Assistente (no Professor é didático)
-- Busca em [26 fontes públicas por área de conhecimento](/funcionalidades/fontes-publicas) (arXiv, PubMed, Câmara dos Deputados, Banco Central, CERN Open Data, entre outras)
+- Mesmas [70 fontes públicas em 11 áreas](/funcionalidades/fontes-publicas) do Professor, com destaque para jurisprudência (STF, TCU, TST), portais de dados abertos (órgãos federais, estados, capitais e outros países) e repositórios de saúde (OPAS, OMS, Fiocruz)
 
 ## Especialista
 

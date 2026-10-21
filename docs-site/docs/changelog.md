@@ -11,6 +11,8 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 ## Destaques recentes
 
+**v1.0.61 (2026-10-21)** — De 26 para 70 fontes públicas, em 11 áreas: jurisprudência (STF, TCU, TST), Senado e Câmara, saúde (OPAS, OMS, Fiocruz, ANVISA), Banco Mundial, NASA, Hugging Face e outras. Novas áreas **Educação** (teses e material didático) e **Dados abertos** (cerca de 40 portais de governo do Brasil e do exterior). Professor e Especialista passam a buscar em fontes públicas. A busca aceita várias fontes de uma vez, com filtros por região, tipo de conteúdo e instituição. Tabelas no chat ficam mais legíveis e podem ser baixadas como planilha (.xlsx) ou copiadas como CSV.
+
 **v1.0.60 (2026-10-20)** — Instalador e app mais leves: cerca de 240 MB a menos no disco e instalador do Windows cerca de 50 MB menor. Gemini passa a usar o SDK oficial atual do Google, com a mesma chave. No Windows, o instalador limita a pasta escolhida a 75 caracteres, porque caminhos mais longos travavam a atualização automática.
 
 **v1.0.59 (2026-10-20)** — Base do aplicativo atualizada para o Electron 44, com as correções de segurança acumuladas do Chromium e do Node.js. Nada muda no uso: bases, conversas e chaves de API continuam onde estavam.

@@ -11,6 +11,8 @@ The complete history of every version — [Keep a Changelog](https://keepachange
 
 ## Recent highlights
 
+**v1.0.61 (2026-10-21)** — From 26 to 70 public sources across 11 areas: case law (STF, TCU, TST), Brazil's Senate and Chamber, health (PAHO, WHO, Fiocruz, ANVISA), World Bank, NASA, Hugging Face and more. New **Education** (theses and teaching materials) and **Open data** (about 40 government portals in Brazil and abroad) areas. Teacher and Specialist profiles can now search public sources. Search accepts several sources at once, with filters by region, content type and institution. Chat tables are easier to read and can be downloaded as a spreadsheet (.xlsx) or copied as CSV.
+
 **v1.0.60 (2026-10-20)** — Lighter installer and app: about 240 MB less on disk and a Windows installer about 50 MB smaller. Gemini now uses Google's current official SDK, with the same key. On Windows, the installer limits the chosen folder to 75 characters, since longer paths made automatic updates hang.
 
 **v1.0.59 (2026-10-20)** — App foundation updated to Electron 44, with the accumulated Chromium and Node.js security fixes. Nothing changes in day-to-day use: your bases, conversations and API keys stay where they were.

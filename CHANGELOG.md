@@ -7,12 +7,40 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
-## [1.0.61] — 2026-10-20
+## [1.0.61] — 2026-10-21
 
 ### Adicionado
-- **Buscar em várias fontes públicas de uma vez.** Na busca em base pública, as fontes da área viram uma lista compacta de caixas de seleção com a descrição de cada uma: marque quantas quiser, ou use "Marcar todas". As fontes são consultadas uma de cada vez e os resultados vão para o mesmo projeto. Os filtros de autor e data valem só para as fontes que os aceitam, e o resumo final mostra quais fontes falharam, se alguma falhar.
+- **De 26 para 70 fontes públicas, em 11 áreas.** Entre as novas:
+  - **Jurisprudência:** STF, TCU e TST, com inteiro teor. Os dados das partes são removidos e CPF e OAB mascarados (LGPD).
+  - **Legislativo:** projetos e discursos do Senado, discursos da Câmara e proposições da Assembleia de Minas Gerais.
+  - **Saúde:** OPAS, OMS, Fiocruz, UNA-SUS, INCA, a BVS do Ministério da Saúde e a legislação sanitária da ANVISA.
+  - **Economia:** IPEA, notícias do IBGE e documentos do Banco Mundial (com texto integral).
+  - **Ciência e tecnologia:** NASA (relatórios técnicos), Serviço Geológico dos EUA, OSTI, INSPIRE-HEP, HAL, Hugging Face (modelos, datasets e artigos), GitLab e Codeberg.
+  - **Livros e acervos:** Project Gutenberg, Wikisource e o museu de Cleveland.
+  - **Notícias:** Agência Brasil e os portais gov.br.
+- **Nova área "Educação".** Teses da BDTD e da CAPES, artigos do OasisBR, recursos do EduCAPES, Wikilivros, Wikiversidade e ERIC.
+- **Nova área "Dados abertos".** Cerca de 40 portais de governo numa mesma busca: órgãos federais (IPEA, CVM, ANEEL, IBAMA, CAPES, TSE...), 9 estados, 4 capitais e 18 portais de outros países. Cada resultado traz a descrição do conjunto de dados e a lista de arquivos (formato e endereço). Dá para escolher quais estados, capitais, órgãos ou países consultar.
+- **Professor e Especialista passam a buscar em fontes públicas.** Antes, só o Pesquisador tinha acesso.
+- **Buscar em várias fontes de uma vez, com filtros.** As fontes da área viram uma lista de caixas de seleção, com a descrição de cada uma.
+  - Filtros por Brasil ou internacional, por tipo de conteúdo (artigos, teses, legislação, jurisprudência, dados, notícias...) e por nome ou instituição.
+  - Fontes da mesma instituição aparecem agrupadas, como Hugging Face (Modelos, Datasets, Papers) e Senado (Leis, Projetos, Discursos).
+  - As fontes são consultadas uma de cada vez, e os resultados vão para o mesmo projeto.
+  - Os filtros de autor e data valem só para as fontes que os aceitam.
+  - O resumo final mostra quais fontes falharam, se alguma falhar.
+
+- **Tabelas no chat mais legíveis e exportáveis.** As tabelas das respostas ganharam:
+  - cabeçalho destacado, números alinhados e rolagem lateral quando são largas;
+  - botões **Baixar planilha (.xlsx)** e **Copiar CSV**.
+
+  A planilha sai organizada: cabeçalho congelado e com filtro, números como número (inclusive "1.234,56", R$ e %) e uma aba por tabela. Pedir "monte uma tabela" ou "gere uma planilha" agora faz o assistente responder em tabela, e as tabelas malformadas que modelos pequenos geram são consertadas antes de aparecer.
+
+### Alterado
+- A área "Antropologia, linguística e conhecimento estruturado" passa a se chamar **"Enciclopédias, dicionários e referência"**, que descreve o que ela tem (Wikipédia e Wiktionary).
+- **Buscas mais confiáveis na Wikipédia e no Wiktionary.** O Tusab passa a se identificar como a Wikimedia exige. Antes, buscas maiores podiam ser recusadas pelo limite de requisições.
 
 ### Corrigido
+- **Comparações entre documentos parecidos.** Relatórios do mesmo modelo que só mudam os números (por exemplo, o de 2023 e o de 2024) eram tratados como duplicados, e um deles ficava de fora da resposta.
+- **"Gere uma planilha com…" respondia "Exportação não disponível nesta versão"** em vez de levar o pedido ao assistente.
 - **Telemetria opcional não registrava nada nas versões publicadas.** Para quem aceitou compartilhar dados de uso, a abertura do app e o próprio aceite eram descartados, e o marco de retenção (1, 7 e 30 dias) nunca era enviado. Nada muda para quem recusou: sem consentimento, nada é enviado.
 
 ### Interno (CI/infra — sem impacto para quem usa o app)

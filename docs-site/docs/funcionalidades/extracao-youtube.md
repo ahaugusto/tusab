@@ -32,7 +32,7 @@ Perfis Professor, Pesquisador e Especialista podem enfileirar múltiplos canais 
 
 ## Fontes públicas (perfil Pesquisador)
 
-Além do YouTube, o Pesquisador tem acesso a busca em 26 fontes públicas organizadas em 9 áreas de conhecimento — nenhuma exige cadastro ou chave de API. Ver [Fontes públicas por área de conhecimento](/funcionalidades/fontes-publicas) para a lista completa.
+Além do YouTube, Professor, Pesquisador e Especialista têm acesso a busca em 70 fontes públicas organizadas em 11 áreas de conhecimento — nenhuma exige cadastro ou chave de API. Ver [Fontes públicas por área de conhecimento](/funcionalidades/fontes-publicas) para a lista completa.
 
 ## Leitor de página web avulsa
 
