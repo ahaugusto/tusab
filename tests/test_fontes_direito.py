@@ -16,7 +16,10 @@ def test_area_direito_registrada():
     areas = fontes_registry.listar_fontes()
     assert "direito" in areas
     ids = {f["id"] for f in areas["direito"]["fontes"]}
-    assert ids == {"camara", "senado_leis"}
+    assert ids == {
+        "camara", "camara_discursos", "senado_leis", "senado_materias", "senado_discursos",
+        "stf", "tcu", "tst", "govbr_noticias", "almg", "federal_register",
+    }
 
 
 def test_camara_usa_inteiro_teor_quando_pdf_disponivel(tmp_path, monkeypatch):

@@ -37,6 +37,10 @@ export const PERFIS_CONFIG = {
     relatorio: true,
     deletar_arquivos: true,
     limpar_canal: true,
+    // Fontes públicas liberadas para o Professor em out/2026, junto com a área
+    // "Educação" (BDTD, OasisBR, CAPES, EduCAPES, ERIC, Wikilivros...): era o
+    // perfil que mais precisava delas e só o Pesquisador as via.
+    fontes_publicas: true,
   },
   pesquisador: {
     abas: ['extracao', 'repositorio', 'historico', 'relatorio', 'visao-geral', 'estudo', 'agente', 'admin'],
@@ -77,6 +81,10 @@ export const PERFIS_CONFIG = {
     relatorio: true,
     deletar_arquivos: true,
     limpar_canal: true,
+    // Especialista é o perfil de acesso completo (docs: "diferenciais em
+    // relação ao Pesquisador"), mas estava sem as fontes públicas — corrigido
+    // em out/2026.
+    fontes_publicas: true,
   },
 };
 

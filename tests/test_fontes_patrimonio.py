@@ -15,7 +15,7 @@ def test_area_patrimonio_registrada():
     areas = fontes_registry.listar_fontes()
     assert "patrimonio" in areas
     ids = {f["id"] for f in areas["patrimonio"]["fontes"]}
-    assert ids == {"art_institute_chicago", "the_met"}
+    assert ids == {"wikisource_pt", "art_institute_chicago", "the_met", "cleveland_art", "gutenberg"}
 
 
 # ─── Art Institute of Chicago ────────────────────────────────────────────────
