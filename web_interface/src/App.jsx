@@ -1266,7 +1266,8 @@ function App() {
     };
     // Filtro só vai para a fonte que o aceita (FONTE_META.suporta_autor/suporta_data)
     buscarFonte(f.id, query, maxResultados, projetoNome,
-      f.suporta_data ? dataInicio : '', f.suporta_data ? dataFim : '', f.suporta_autor ? autor : '')
+      f.suporta_data ? dataInicio : '', f.suporta_data ? dataFim : '', f.suporta_autor ? autor : '',
+      f.subfontes || [])
       .then(r => {
         if (r.data.error) { falhou(r.data.message); return; }
         setFontePollingId(f.id);

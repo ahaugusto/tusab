@@ -12,6 +12,7 @@ import { X, Zap, Loader2, Search } from 'lucide-react';
 import { BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 import CanalUrlSearchInput from './CanalUrlSearchInput';
+import FontesSelector from './FontesSelector';
 import { getCanalInfo, criarProjeto, listarPlaylistsCanal } from '../../services/api';
 
 /**
@@ -53,8 +54,9 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     });
   }, [areaSelecionada, areasFontes]);
   const fontesEscolhidas = fontesDaArea.filter(f => fontesSelecionadas.includes(f.id));
-  const alternarFonte = (id) => setFontesSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  const todasMarcadas = fontesDaArea.length > 0 && fontesSelecionadas.length === fontesDaArea.length;
+  // Sub-seleção por fonte (ex.: quais estados nos portais estaduais) — { fonteId: [nomes] };
+  // ausente = todos. Ver FontesSelector.jsx.
+  const [subfontesSel, setSubfontesSel] = React.useState({});
   // Nome para títulos e textos: a fonte, se for só uma; "N fontes" se forem várias
   const nomeFontes = fontesEscolhidas.length === 1 ? fontesEscolhidas[0].nome : t('extraction.fontes_n_selected', { n: fontesEscolhidas.length });
   // Filtros opcionais aparecem se ao menos uma fonte marcada os aceitar
@@ -308,7 +310,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
     try {
       const res = await criarProjeto(nome);
       if (res.data?.error) { setErroProjetoBusca(res.data.message || 'Erro ao criar projeto'); return; }
-      onConfirmFonte(fontesEscolhidas.map(f => ({ id: f.id, nome: f.nome, suporta_autor: !!f.suporta_autor, suporta_data: !!f.suporta_data })), fonteQuery.trim(), fonteMaxResults, nome, fonteDataInicio, fonteDataFim, fonteAutor.trim());
+      onConfirmFonte(fontesEscolhidas.map(f => ({ id: f.id, nome: f.nome, suporta_autor: !!f.suporta_autor, suporta_data: !!f.suporta_data, subfontes: subfontesSel[f.id] || [] })), fonteQuery.trim(), fonteMaxResults, nome, fonteDataInicio, fonteDataFim, fonteAutor.trim());
     } catch {
       setErroProjetoBusca('Não foi possível criar o projeto. Tente novamente.');
     } finally {
@@ -420,36 +422,9 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
           {step === 'url' && sourceType === 'fonte-publica' && (
             <>
               <div className="mb-4">
-                <div className="flex items-baseline justify-between mb-1.5">
-                  <span id="fontes-legenda" className={`text-[11px] font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t('extraction.fontes_label_multi')}
-                  </span>
-                  {fontesDaArea.length > 2 && (
-                    <button type="button"
-                      onClick={() => setFontesSelecionadas(todasMarcadas ? [] : fontesDaArea.map(f => f.id))}
-                      className={`text-[10px] font-semibold text-primary hover:underline rounded ${BTN_FOCUS}`}>
-                      {todasMarcadas ? t('extraction.fontes_clear') : t('extraction.fontes_select_all')}
-                    </button>
-                  )}
-                </div>
-                <div role="group" aria-labelledby="fontes-legenda"
-                  className={`rounded-lg border divide-y max-h-52 overflow-y-auto ${darkMode ? 'border-white/10 divide-white/8' : 'border-slate-200 divide-slate-100'}`}>
-                  {fontesDaArea.map(f => {
-                    const marcada = fontesSelecionadas.includes(f.id);
-                    return (
-                      <label key={f.id}
-                        className={`flex items-start gap-2 px-2.5 py-1.5 cursor-pointer transition-colors
-                          ${marcada ? (darkMode ? 'bg-primary/10' : 'bg-primary/5') : (darkMode ? 'hover:bg-white/3' : 'hover:bg-slate-50')}`}>
-                        <input type="checkbox" checked={marcada} onChange={() => alternarFonte(f.id)}
-                          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary cursor-pointer" />
-                        <span className="min-w-0">
-                          <span className={`text-[11px] font-bold block leading-tight ${marcada ? 'text-primary' : darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.nome}</span>
-                          <span className={`text-[10px] leading-snug block ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t(`extraction.fonte_${f.id}_desc`, f.descricao)}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+                <FontesSelector area={areasFontes[areaSelecionada]} selecionadas={fontesSelecionadas}
+                  setSelecionadas={setFontesSelecionadas} subfontesSel={subfontesSel}
+                  setSubfontesSel={setSubfontesSel} darkMode={darkMode} />
                 {fontesEscolhidas.length === 0 && (
                   <p role="alert" className="text-[10px] text-red-500 mt-1 px-1">{t('extraction.fontes_none_selected')}</p>
                 )}
