@@ -116,13 +116,13 @@ excerpt was retrieved from.
 
 - Automatic extraction of entire YouTube channels (captions + metadata), with optional
   playlist selection and publish-date filtering
-- Search 26 public sources across 9 knowledge areas (Researcher profile) — general/multidisciplinary
-  (arXiv, OpenAlex, Crossref, DataCite, DOAJ, Zenodo, Open Library, data.europa.eu, data.gov.uk),
-  technology (GitHub, Stack Overflow, Hacker News), economics (Central Bank of Brazil), law
-  (Chamber of Deputies, Federal Senate), health (PubMed, Europe PMC, ClinicalTrials.gov, UniProt,
-  openFDA), earth sciences (NASA Earthdata), physics (CERN Open Data), cultural heritage
-  (Art Institute of Chicago, The Met), and anthropology/linguistics (Wikipedia PT, Wiktionary) —
-  none require registration or an API key; results are downloaded and indexed automatically
+- Search 70 public sources across 11 knowledge areas (Teacher, Researcher and Specialist
+  profiles), with filters by region (Brazil/international), content type and institution — e.g.
+  case law (STF, TCU, TST), Congress (bills, laws, speeches), health (PAHO, WHO, Fiocruz, ANVISA
+  regulations, PubMed), education (BDTD and CAPES theses, OasisBR, EduCAPES, ERIC), open data
+  portals (federal agencies, 9 states, state capitals, 18 international portals), World Bank, NASA, Hugging
+  Face, GitHub/GitLab — none require registration or an API key; results are downloaded and
+  indexed automatically (full list: docs site, "Public sources")
 - Clinical study search via FHIR/ResearchStudy (Researcher profile) — public server, no auth, scoped to research studies
 - Upload PDFs, DOCX, Markdown, CSV and TXT
 - Upload images (PNG, JPG, WEBP, etc.) — description via multimodal Ollama or OCR (RapidOCR)
@@ -216,7 +216,7 @@ Tusab/
       router_estudo.py        <- /agent/study/* (flashcards, summary, post-its, TTS)
       router_repositorio.py   <- /repositorio, /relatorio, /neural/*, /reset-total
       router_exports.py       <- /export/* (zip, markdown, docx, xlsx, pdf)
-      router_fontes.py        <- 26 public sources across 9 knowledge areas (arXiv, PubMed, GitHub, etc.)
+      router_fontes.py        <- 70 public sources across 11 knowledge areas (arXiv, PubMed, STF, open data portals, etc.)
       router_digest.py        <- scheduled digest
       router_metrics.py       <- GET /metrics
   requirements.txt            <- Python dependencies
