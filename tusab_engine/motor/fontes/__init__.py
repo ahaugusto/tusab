@@ -7,7 +7,7 @@ compartilhado de salvamento.
 
 Mapeado a partir do documento "Bases de Dados Abertas — Consolidação Ampliada
 de Endpoints de API" (Equipe NDTI/DECIT/SCTIE, Ministério da Saúde, jul/2026),
-9 áreas de conhecimento por domínio + 1 área "geral" pros buscadores
+10 áreas de conhecimento por domínio (Educação desde out/2026) + 1 área "geral" pros buscadores
 multidisciplinares (arXiv, OpenAlex, DataCite, DOAJ, Zenodo) — esses não
 "pertencem" a uma área de domínio como PubMed pertence a saúde ou CERN Open
 Data pertence a física; indexam produção de qualquer campo, então ficavam
@@ -24,22 +24,36 @@ futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de
 """
 
 from . import (
-    art_institute_chicago, arxiv_adapter, bcb, camara, cern_opendata,
-    clinicaltrials, crossref, data_europa_eu, data_gov_uk, datacite, doaj,
-    europepmc, github, hacker_news, nasa_cmr, open_library, openalex, openfda,
-    pubmed, senado_leis, stackexchange, the_met, uniprot, wikipedia, wiktionary, zenodo,
+    agencia_brasil, almg, anvisalegis, art_institute_chicago, arxiv_adapter, bcb,
+    bdtd, bvs_ms, camara, camara_discursos, capes_teses, cern_opendata,
+    cleveland_art, clinicaltrials, crossref, data_europa_eu, data_gov_uk, datacite,
+    doaj, educapes, eric, europepmc, federal_register, fiocruz_arca, github,
+    govbr_noticias, gutenberg, hacker_news, hal, hf_datasets, hf_modelos, hf_papers, ibge_noticias, inca, inspire_hep,
+    ipea, nasa_cmr, nasa_ntrs, oasisbr, open_library, openalex, openfda, osti,
+    paho_iris, pubmed, senado_discursos, senado_leis, senado_materias,
+    stackexchange, stf, tcu, the_met, tst, unasus_ares, uniprot, usgs_pubs,
+    who_iris, wikilivros_pt, wikipedia, wikisource_pt, wikiversidade_pt,
+    wiktionary, worldbank_wds, zenodo,
 )
 
 _MODULOS = [
+    # Ordem = ordem de exibição: a área aparece na posição do seu 1º módulo, e
+    # dentro de cada área as fontes brasileiras vêm primeiro (Brazil First).
     arxiv_adapter, openalex, datacite, doaj, zenodo,
-    crossref, data_europa_eu, data_gov_uk, open_library,
-    github, stackexchange, hacker_news,
-    bcb,
-    camara, senado_leis,
+    crossref, hal, data_europa_eu, data_gov_uk, open_library, agencia_brasil,
+    github, hf_modelos, hf_datasets, hf_papers, stackexchange, hacker_news,
+    bcb, ipea, ibge_noticias, worldbank_wds,
+    # Educação — área criada em out/2026 (perfis Professor e Estudante não
+    # tinham nenhuma fonte própria). MEC, CNE, BNCC e INEP não têm API
+    # utilizável (testado ao vivo): o acervo brasileiro chega por IBICT e CAPES.
+    bdtd, oasisbr, capes_teses, educapes, wikilivros_pt, wikiversidade_pt, eric,
+    camara, camara_discursos, senado_leis, senado_materias, senado_discursos,
+    stf, tcu, tst, govbr_noticias, almg, federal_register,
+    bvs_ms, anvisalegis, fiocruz_arca, inca, unasus_ares, paho_iris, who_iris,
     pubmed, clinicaltrials, uniprot, europepmc, openfda,
-    nasa_cmr,
-    cern_opendata,
-    art_institute_chicago, the_met,
+    nasa_cmr, nasa_ntrs, usgs_pubs,
+    cern_opendata, osti, inspire_hep,
+    wikisource_pt, art_institute_chicago, the_met, cleveland_art, gutenberg,
     wikipedia, wiktionary,
 ]
 
@@ -50,6 +64,7 @@ AREAS_META = {
     "geral":      "Buscadores gerais e multidisciplinares",
     "tecnologia": "Tecnologia, IA e ciência de dados",
     "economia":   "Economia, finanças e ciências sociais",
+    "educacao":   "Educação, ensino e material didático",
     "direito":    "Direito, normas, legislação e governo",
     "saude":      "Saúde, biologia e genética",
     "terra":      "Ciências da Terra, clima e espaço",

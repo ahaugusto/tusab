@@ -15,7 +15,10 @@ def test_area_saude_registrada():
     areas = fontes_registry.listar_fontes()
     assert "saude" in areas
     ids = {f["id"] for f in areas["saude"]["fontes"]}
-    assert ids == {"pubmed", "clinicaltrials", "uniprot", "europepmc", "openfda"}
+    assert ids == {
+        "bvs_ms", "anvisalegis", "fiocruz_arca", "inca", "unasus_ares", "paho_iris", "who_iris",
+        "pubmed", "clinicaltrials", "uniprot", "europepmc", "openfda",
+    }
 
 
 # ─── PubMed ──────────────────────────────────────────────────────────────────

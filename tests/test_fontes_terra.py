@@ -15,7 +15,7 @@ def test_area_terra_registrada():
     areas = fontes_registry.listar_fontes()
     assert "terra" in areas
     ids = {f["id"] for f in areas["terra"]["fontes"]}
-    assert ids == {"nasa_cmr"}
+    assert ids == {"nasa_cmr", "nasa_ntrs", "usgs_pubs"}
 
 
 def test_nasa_cmr_extrai_summary_real(tmp_path, monkeypatch):
