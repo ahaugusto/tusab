@@ -23,6 +23,7 @@ Tusab has four profiles with progressively more advanced features. The profile i
 | Manage repository (delete/clear) | ✅ | ✅ | ✅ | ✅ |
 | Admin panel | ✅ | ✅ | ✅ | ✅ |
 | Overview (corpus analytics) | — | ✅ | ✅ | ✅ |
+| [Public source search](/funcionalidades/fontes-publicas) (70 sources) | — | ✅ | ✅ | ✅ |
 | System Monitor | — | — | — | ✅ |
 | Full reset | ✅ | ✅ | ✅ | ✅ |
 | Assistant's default persona | Didactic | Didactic | Technical | Objective |
@@ -41,13 +42,15 @@ Extracts YouTube channels, organizes teaching material into projects, and export
 
 Extraction is incremental: on a new run, only new videos are processed.
 
+Since v1.0.61, the Teacher can also search [public sources](/funcionalidades/fontes-publicas) — especially the **Education** area (theses from BDTD and CAPES, OasisBR articles, EduCAPES resources, Portuguese Wikibooks and Wikiversity, and ERIC).
+
 ## Researcher
 
 Builds corpora from multiple sources for in-depth analysis, with fine-grained control over what goes into the base.
 
 **Differences from Teacher:**
 - **Technical** default persona in the Assistant (Teacher's is didactic)
-- Search [26 public sources across 9 knowledge areas](/funcionalidades/fontes-publicas) (arXiv, PubMed, Brazil's Chamber of Deputies, Central Bank, CERN Open Data, among others)
+- Same [70 public sources across 11 areas](/funcionalidades/fontes-publicas) as the Teacher, notably case law (STF, TCU, TST), open data portals (federal agencies, states, cities and other countries) and health repositories (PAHO, WHO, Fiocruz)
 
 ## Specialist
 
