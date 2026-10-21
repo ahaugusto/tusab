@@ -14,7 +14,7 @@ def test_area_economia_registrada():
     areas = fontes_registry.listar_fontes()
     assert "economia" in areas
     ids = {f["id"] for f in areas["economia"]["fontes"]}
-    assert ids == {"bcb"}
+    assert ids == {"bcb", "ipea", "ibge_noticias", "worldbank_wds"}
 
 
 def test_bcb_extrai_notes_como_texto(tmp_path, monkeypatch):
