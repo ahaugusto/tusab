@@ -15,7 +15,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "data_europa_eu",
     "nome": "data.europa.eu",
-    "area": "geral",
+    "area": "dados",
     "descricao": "Portal de dados abertos da União Europeia — datasets de instituições e países-membros.",
     "requer_auth": False,
     "suporta_data": False,

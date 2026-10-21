@@ -15,7 +15,7 @@ from ._base import MAX_RESULTADOS_PERMITIDO, executar_busca_generica
 FONTE_META = {
     "id": "data_gov_uk",
     "nome": "data.gov.uk",
-    "area": "geral",
+    "area": "dados",
     "descricao": "Portal de dados abertos do governo do Reino Unido — qualquer área temática.",
     "requer_auth": False,
     "suporta_data": False,
