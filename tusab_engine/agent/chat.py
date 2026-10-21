@@ -163,11 +163,66 @@ _FMT_INSTR = (
     "- Parágrafos separados por linha em branco — nunca um bloco único de texto corrido.\n"
     "- Para listar tópicos, use UMA linha por item começando com \"- \" (lista Markdown) — nunca junte vários tópicos na mesma linha.\n"
     "- Use **negrito** para destacar termos-chave, nomes e dados importantes — não frases inteiras.\n"
-    "- Quando a resposta comparar itens ou apresentar dados estruturados (preços, datas, categorias, prós/contras), use uma tabela Markdown (cabeçalho + linhas com \"|\").\n"
+    "- TABELA: use tabela Markdown quando a resposta comparar itens, listar registros com atributos ou trouxer números por categoria/período; se a resposta é explicação, use texto.\n"
+    "  Regras: 1ª linha = cabeçalho; 2ª linha = |---|---| (um --- por coluna); toda linha com o mesmo nº de colunas; uma informação por célula, sem quebra de linha dentro; números sem texto junto (unidade no cabeçalho, ex.: \"Valor (R$)\"); sem células mescladas; no máximo 8 colunas; linha em branco antes e depois da tabela.\n"
     "- Emojis com moderação: só quando reforçam a organização visual (ex.: ✅ ❌ 📌 ⚠️) ou o tema pede — nunca um emoji decorativo por frase.\n"
     "- Não repita pontuação (nunca escreva \"..\" ou \":.\" — use apenas \".\" ou \":\").\n"
     "- Não coloque \":\" logo após um termo em **negrito** seguido de texto na mesma linha de outros tópicos; cada tópico em negrito deve abrir sua própria linha de lista.\n\n"
 )
+
+# Pedido explícito de tabela/planilha ("gere uma planilha com...", "compare
+# numa tabela") — reforço curto, só quando a pergunta pede, posicionado logo
+# após o tom (perto do fim do bloco de instruções, onde modelo pequeno presta
+# mais atenção). Sem isso o llama3.2:1b tende a responder "não consigo criar
+# arquivos Excel" em vez de entregar a tabela — o próprio app transforma a
+# tabela renderizada em .xlsx (botão "Baixar planilha" no ChatDrawer).
+# "tabela" sozinho não basta: "valor da tabela SUS", "explique a tabela
+# periódica" são perguntas SOBRE uma tabela, não pedido de formato. Exige a
+# construção de pedido ("numa tabela", "em formato de tabela", "a table"...);
+# planilha/excel/xlsx/csv valem sozinhos.
+_RE_PEDIDO_TABELA = re.compile(
+    r'\b(planilhas?|excel|xlsx|csv|spreadsheets?|hojas? de c[aá]lculo|tabul(?:e|ar|ado|ada|em))\b'
+    r'|\b(?:numa|uma|em|como|formato\s+de|forma\s+de)\s+tabelas?\b'
+    r'|\b(?:a|an|as\s+a|in\s+a|into\s+a)\s+tables?\b|\btable\s+format\b'
+    r'|\b(?:una|en\s+una|en|como\s+una)\s+tablas?\b',
+    re.IGNORECASE,
+)
+
+
+def _pediu_tabela(pergunta: str) -> bool:
+    return bool(pergunta) and bool(_RE_PEDIDO_TABELA.search(pergunta))
+
+
+# Bloco de formato alternativo quando o usuário PEDE tabela/planilha. Medido ao
+# vivo (20/out/2026, mesma pergunta/contexto, temperature 0.3, num_ctx 2048):
+# com o _FMT_INSTR completo (cheio de regras de lista/negrito) o llama3.2:1b
+# respondeu em bullets 3 de 4 vezes mesmo com o reforço "PEDIDO DE TABELA";
+# trocando pelo bloco só-tabela abaixo foram 4/4 tabelas (gemma3:4b 1/3 → 3/3,
+# llama3.1:8b 2/3 → 3/3). As regras de lista competiam com o pedido de tabela.
+_FMT_INSTR_TABELA = (
+    "FORMATO: responda em Markdown com UMA tabela.\n"
+    "- 1ª linha = cabeçalho; 2ª linha = |---|---| (um --- por coluna); uma linha por item; mesmo nº de colunas em todas as linhas.\n"
+    "- Uma informação por célula, sem quebra de linha dentro; números sem texto junto (unidade no cabeçalho, ex.: \"Valor (R$)\"); sem células mescladas; no máximo 8 colunas.\n"
+    "- Antes da tabela, no máximo uma frase. Não use lista com \"-\".\n\n"
+)
+
+
+def _fmt_instr_para(pergunta: str) -> str:
+    """_FMT_INSTR_TABELA quando a pergunta pede tabela/planilha; senão o _FMT_INSTR geral."""
+    return _FMT_INSTR_TABELA if _pediu_tabela(pergunta) else _FMT_INSTR
+
+
+def _instrucao_pedido_tabela(pergunta: str) -> str:
+    if not _pediu_tabela(pergunta):
+        return ''
+    return (
+        "PEDIDO DE TABELA: o usuário pediu tabela/planilha. Responda com uma frase curta e "
+        "UMA tabela Markdown seguindo as regras de formato acima, sem inventar valores; "
+        "dado ausente nas fontes fica como \"não informado\". "
+        "Não escreva código nem fórmulas e não diga que não consegue gerar planilha — "
+        "o app converte a tabela em planilha.\n\n"
+    )
+
 
 # Reforço anti-prompt-injection — só usado em _montar_prompt() (fontes vêm do
 # corpus indexado: vídeos do YouTube, PDFs, docs — conteúdo de terceiros que o
@@ -306,8 +361,9 @@ def _montar_prompt_contexto(pergunta: str, historico: list, ultima_resposta: dic
         f'O usuário fez uma instrução sobre a resposta anterior da conversa.\n'
         f'NÃO busque novos documentos — opere sobre o conteúdo já apresentado.\n\n'
         f'IDIOMA: responda SEMPRE em {lang_label}.\n\n'
-        + _FMT_INSTR
+        + _fmt_instr_para(pergunta)
         + instrucao_tom
+        + _instrucao_pedido_tabela(pergunta)
         + hist_str
         + f'<previous_question>{pergunta_anterior}</previous_question>\n\n'
         + f'<previous_answer>{resposta_anterior}</previous_answer>\n\n'
@@ -842,7 +898,12 @@ def _deduplicar_chunks(chunks: list, n: int, threshold: float = 0.85) -> list:
     Retorna no máximo `n` chunks.
     """
     def _tokens(texto: str) -> set:
-        return {w for w in re.findall(r'\b[a-záéíóúàâêôãõç]{4,}\b', texto.lower())
+        # Números entram no conjunto (anos, valores, percentuais): sem eles, dois
+        # relatórios do mesmo modelo que só diferem nos números — "2023: 18,7
+        # milhões" vs "2024: 22,4 milhões", séries anuais de portais de dados —
+        # davam Jaccard 1.0 e um era descartado, quebrando comparações (achado
+        # real 21/out/2026, tabela comparativa no chat sem o ano de 2023).
+        return {w for w in re.findall(r'\b[a-záéíóúàâêôãõç]{4,}\b|\d[\d.,]*%?', texto.lower())
                 if w not in _STOPWORDS}
 
     selecionados = []
@@ -1034,7 +1095,8 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
     lang_label = _IDIOMA_LABEL.get(idioma, "português")
     lang_instr = f"IDIOMA: responda SEMPRE em {lang_label}, independentemente do idioma das fontes.\n\n"
 
-    fmt_instr = _FMT_INSTR
+    fmt_instr = _fmt_instr_para(pergunta)
+    instrucao_tabela = _instrucao_pedido_tabela(pergunta)
 
     if busca_ampla:
         instrucoes = (
@@ -1048,6 +1110,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             + fmt_instr
             + lang_instr
             + instrucao_tom
+            + instrucao_tabela
         )
     else:
         instrucoes = (
@@ -1062,6 +1125,7 @@ def _montar_prompt(pergunta: str, contexto: list, meta_canal: dict = None, histo
             + fmt_instr
             + lang_instr
             + instrucao_tom
+            + instrucao_tabela
         )
 
     return (

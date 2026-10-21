@@ -104,8 +104,8 @@ export const queueMoveItem = (from_index, to_index) => axios.post(`${API_BASE}/q
 export const listarFontes = () => axios.get(`${API_BASE}/fontes`);
 
 /** Starts a search + download + save on the given source for the given project */
-export const buscarFonte = (fonteId, query, max_resultados, projeto_nome, data_inicio = '', data_fim = '', autor = '') =>
-  axios.post(`${API_BASE}/fontes/${fonteId}/search`, { query, max_resultados, projeto_nome, data_inicio, data_fim, autor });
+export const buscarFonte = (fonteId, query, max_resultados, projeto_nome, data_inicio = '', data_fim = '', autor = '', subfontes = []) =>
+  axios.post(`${API_BASE}/fontes/${fonteId}/search`, { query, max_resultados, projeto_nome, data_inicio, data_fim, autor, subfontes });
 
 /** Cancels an in-progress search on the given source */
 export const cancelarFonte = (fonteId) => axios.post(`${API_BASE}/fontes/${fonteId}/cancel`);
@@ -390,3 +390,12 @@ export const exportRelatorioPdf = (projeto_nome, mensagens = []) =>
 
 /** Fetches the MCP server config JSON — paste into Claude Code / Cursor / any MCP client */
 export const fetchMcpConfig = () => axios.get(`${API_BASE}/agent/mcp/config`);
+
+/** Downloads the table(s) of one chat answer as an organized .xlsx (one sheet per table).
+ *  tabelas: [{ nome, cabecalho: string[], linhas: string[][] }] — read from the rendered table. */
+export const exportTabelaChatXlsx = (tabelas, titulo = '', idioma = 'pt') =>
+  fetch(`${API_BASE}/export/tabela-xlsx`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tabelas, titulo, idioma }),
+  });
