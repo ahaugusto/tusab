@@ -7,6 +7,16 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.62] — 2026-10-27
+
+### Corrigido
+- **Chat expandido:** ao chegar uma resposta, a rolagem automática deslocava o layout da tela inteira (a barra superior e o cabeçalho do chat saíam do lugar). Agora só a lista de mensagens rola.
+
+### Interno
+- Electron 44.9.3, electron-builder 26.18.0, electron-updater 6.8.11, React 19.3.1; `follow-redirects` corrigido (vulnerabilidade alta, sem impacto no app instalado). Dependências de produção do front: 0 vulnerabilidades.
+
+---
+
 ## [1.0.61] — 2026-10-21
 
 ### Adicionado

@@ -69,7 +69,11 @@ export function useChatEngine({
 
   /** Scrolls chat to the latest message */
   useEffect(() => {
-    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    // block:'nearest' — o padrão ('start') alinha o fim da conversa ao TOPO de todo contêiner
+    // rolável, inclusive os com overflow:hidden; no chat expandido (tela cheia) isso empurrava
+    // o painel inteiro para cima durante a resposta e a conversa sumia (achado em 27/out/2026,
+    // gravação do vídeo de divulgação em viewport 1536x864).
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }, [chatMessages]);
 
   /** Auto-save: persiste após cada resposta completa (não durante streaming) */
