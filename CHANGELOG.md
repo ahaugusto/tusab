@@ -36,6 +36,7 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ### Alterado
 - A área "Antropologia, linguística e conhecimento estruturado" passa a se chamar **"Enciclopédias, dicionários e referência"**, que descreve o que ela tem (Wikipédia e Wiktionary).
+- **Limite do caminho da pasta de instalação no Windows: de 75 para 65 caracteres.** Uma atualização de biblioteca interna aprofundou as pastas do app, e o limite menor mantém a atualização automática segura. A pasta sugerida pelo instalador (cerca de 43 caracteres) continua cabendo com folga.
 - **Buscas mais confiáveis na Wikipédia e no Wiktionary.** O Tusab passa a se identificar como a Wikimedia exige. Antes, buscas maiores podiam ser recusadas pelo limite de requisições.
 
 ### Corrigido
