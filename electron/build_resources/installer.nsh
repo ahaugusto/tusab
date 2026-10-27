@@ -72,7 +72,7 @@ LangString LANG_SELECT_TITLE  3082 "Seleccione el idioma del instalador"
 ; Não afeta update nem instalação silenciosa: .onVerifyInstDir só roda na
 ; página de escolha de pasta.
 
-!define TUSAB_MAX_INSTDIR 75
+!define TUSAB_MAX_INSTDIR 65
 
 !ifndef BUILD_UNINSTALLER
   LangString TUSAB_DIR_TOP 1046 "O Tusab sera instalado na pasta abaixo.$\r$\n$\r$\nO caminho da pasta pode ter no maximo ${TUSAB_MAX_INSTDIR} caracteres (por exemplo, C:\Tusab). Caminhos mais longos impedem a atualizacao automatica do Windows; nesse caso o botao Instalar fica desativado."
