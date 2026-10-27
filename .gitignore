@@ -99,3 +99,6 @@ Apple/
 # Auditoria de segurança — venv isolado do gerador de PDF (recriar via python -m venv)
 docs/security-audit/.venv-report/
 docs/security-audit/__pycache__/
+
+marketing/video/saida/
+marketing/video/node_modules/

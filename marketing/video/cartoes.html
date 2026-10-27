@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tusab — cartões do vídeo de divulgação</title>
+<!-- Cartões de marca do vídeo (gravados por gravar.cjs, um por hash: #abertura, #virada, ...).
+     Cores do design system: primary #1558B0 / #4B9FE8 (escuro), secondary #10B981, accent #06B6D4. -->
+<style>
+  :root { --azul:#1558B0; --azulc:#4B9FE8; --verde:#10B981; --ciano:#06B6D4; --fundo:#0B1220; --ambar:#F5A524; }
+  * { box-sizing:border-box; margin:0; }
+  html, body { width:1920px; height:1080px; overflow:hidden; background:var(--fundo); color:#fff;
+    font-family:'Segoe UI', Arial, sans-serif; }
+  .bg { position:absolute; inset:0;
+    background: radial-gradient(1200px 700px at 18% 8%, #133a82 0%, transparent 60%),
+                radial-gradient(1000px 700px at 92% 92%, #0b5566 0%, transparent 55%), var(--fundo); }
+  .grid { position:absolute; inset:-120px;
+    background-image: linear-gradient(rgba(75,159,232,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(75,159,232,.09) 1px, transparent 1px);
+    background-size:80px 80px; animation:mv 14s linear infinite; }
+  @keyframes mv { to { transform:translate(80px,80px); } }
+  .c { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:0 150px; gap:30px; }
+  .w { opacity:0; transform:translateY(34px); animation:in .75s cubic-bezier(.2,.8,.2,1) forwards; animation-delay:var(--d,0s); }
+  @keyframes in { to { opacity:1; transform:none; } }
+  .g { background:linear-gradient(90deg,var(--azulc),var(--ciano) 55%,var(--verde)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .a { color:var(--ambar); }
+  .h1 { font-size:116px; font-weight:800; letter-spacing:-2px; line-height:1.04; }
+  .h2 { font-size:76px; font-weight:700; line-height:1.1; }
+  .p  { font-size:44px; color:#c9d6ee; line-height:1.3; font-weight:400; }
+  .s  { font-size:30px; color:#8fa6cc; letter-spacing:7px; text-transform:uppercase; font-weight:700; }
+  .logo { width:230px; height:230px; border-radius:50%; box-shadow:0 0 90px rgba(75,159,232,.55); }
+  .row { display:flex; gap:34px; justify-content:center; }
+  .num { font-size:210px; font-weight:800; line-height:1; }
+  .lab { font-size:34px; color:#c9d6ee; margin-top:6px; }
+  .box { width:400px; padding:36px 28px; border-radius:26px; background:rgba(21,88,176,.18);
+    border:2px solid rgba(75,159,232,.45); }
+  .box b { display:block; font-size:44px; margin-bottom:10px; }
+  .box span { font-size:28px; color:#c9d6ee; line-height:1.3; }
+  .chip { display:inline-block; padding:18px 40px; border-radius:60px; font-size:38px; font-weight:700;
+    background:var(--azul); box-shadow:0 10px 40px rgba(21,88,176,.55); }
+  .url { font-size:36px; color:#9ec9f5; letter-spacing:.5px; }
+  svg.cad { width:170px; height:170px; }
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grid"></div>
+<div class="c" id="root"></div>
+<script>
+const LOGO = 'file:///D:/Tusab/web_interface/public/logo_dark_compact.svg';
+const C = {
+  abertura: `
+    <div class="s w" style="--d:.1s">Seu conhecimento está espalhado</div>
+    <div class="h1 w" style="--d:.6s">Vídeos. PDFs. Leis.</div>
+    <div class="h1 w" style="--d:1.3s">Artigos. Planilhas.</div>
+    <div class="h2 w" style="--d:2.5s"><span class="g">Tudo guardado.</span> <span class="a">Nada encontrado.</span></div>`,
+  virada: `
+    <div class="h1 w" style="--d:.2s">E se tudo isso</div>
+    <div class="h1 w g" style="--d:.9s">respondesse</div>
+    <div class="h1 w" style="--d:1.6s">às suas perguntas?</div>`,
+  logo: `
+    <img class="logo w" src="${LOGO}" style="--d:.1s">
+    <div class="h1 w g" style="--d:.6s; font-size:150px; letter-spacing:6px">TUSAB</div>
+    <div class="s w" style="--d:1.2s">Index · Augment · Chat</div>
+    <div class="p w" style="--d:1.8s">Sua base de conhecimento com IA —<br><b>no seu computador.</b></div>`,
+  numeros: `
+    <div class="row">
+      <div class="w" style="--d:.2s"><div class="num g" data-n="70">0</div><div class="lab">fontes públicas</div></div>
+      <div class="w" style="--d:.5s"><div class="num g" data-n="11">0</div><div class="lab">áreas de conhecimento</div></div>
+      <div class="w" style="--d:.8s"><div class="num g" data-n="0">0</div><div class="lab">cadastros ou chaves</div></div>
+    </div>
+    <div class="p w" style="--d:1.6s">Teses · jurisprudência · dados abertos · saúde · ciência · e mais</div>`,
+  privacidade: `
+    <svg class="cad w" style="--d:.1s" viewBox="0 0 24 24" fill="none" stroke="#4B9FE8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.4" fill="#4B9FE8"/></svg>
+    <div class="h2 w" style="--d:.5s">Roda no seu computador.</div>
+    <div class="h1 w g" style="--d:1.2s">Seus dados não saem dele.</div>
+    <div class="p w" style="--d:2.1s">IA local com Ollama — ou use a sua chave:<br>Groq · OpenAI · Anthropic · Gemini</div>`,
+  perfis: `
+    <div class="s w" style="--d:.1s">Um app, quatro jeitos de usar</div>
+    <div class="row">
+      <div class="box w" style="--d:.5s"><b class="g">Estudante</b><span>Importe uma base pronta e converse com ela</span></div>
+      <div class="box w" style="--d:.9s"><b class="g">Professor</b><span>Transforme aulas e materiais em uma base</span></div>
+      <div class="box w" style="--d:1.3s"><b class="g">Pesquisador</b><span>Monte corpora com dezenas de fontes</span></div>
+      <div class="box w" style="--d:1.7s"><b class="g">Especialista</b><span>Consulte relatórios, atas e acervos</span></div>
+    </div>`,
+  cta: `
+    <img class="logo w" src="${LOGO}" style="--d:.1s; width:160px; height:160px">
+    <div class="h1 w" style="--d:.5s">Comece <span class="g">agora.</span></div>
+    <div class="p w" style="--d:1.1s">Baixe o Tusab para Windows e macOS</div>
+    <div class="w" style="--d:1.7s"><span class="chip">github.com/ahaugusto/tusab</span></div>
+    <div class="url w" style="--d:2.2s">Documentação: ahaugusto.github.io/tusab</div>`,
+};
+document.getElementById('root').innerHTML = C[location.hash.slice(1)] || '';
+document.querySelectorAll('[data-n]').forEach(el => {
+  const alvo = +el.dataset.n, ini = performance.now() + 400;
+  (function tick() { requestAnimationFrame(t => { const k = Math.min(1, Math.max(0, (t - ini) / 1400));
+    el.textContent = Math.round(alvo * (1 - Math.pow(1 - k, 3))); if (k < 1) tick(); }); })();
+});
+</script>
+</body>
+</html>
