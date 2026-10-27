@@ -102,3 +102,7 @@ docs/security-audit/__pycache__/
 
 marketing/video/saida/
 marketing/video/node_modules/
+marketing/video/voz/.venv/
+marketing/video/voz/*.onnx*
+marketing/video/voz/*.wav
+marketing/video/musica.mp3

@@ -68,7 +68,7 @@ for (let i = 1; i < existentes.length; i++) {
 filtro += `[vx]fade=t=in:st=0:d=0.5,fade=t=out:st=${(total - 0.7).toFixed(2)}:d=0.7[vf]`;
 const idxAudio = existentes.length;
 filtro += temMusica
-  ? `;[${idxAudio}:a]volume=0.22,afade=t=in:st=0:d=1.5,afade=t=out:st=${(total - 2).toFixed(2)}:d=2[af]`
+  ? `;[${idxAudio}:a]volume=0.8,afade=t=in:st=0:d=1.5,afade=t=out:st=${(total - 2).toFixed(2)}:d=2[af]`
   : `;[${idxAudio}:a]anull[af]`;
 
 args.push('-filter_complex', filtro, '-map', '[vf]', '-map', '[af]', '-t', total.toFixed(2),
