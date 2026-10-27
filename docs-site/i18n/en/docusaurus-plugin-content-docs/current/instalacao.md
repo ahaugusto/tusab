@@ -26,7 +26,7 @@ Apple Silicon (arm64) only, for now.
 
 Run the `.exe` and follow the NSIS installer. No additional manual steps.
 
-If you pick a different folder, its path can have at most **75 characters** (for example, `C:\Tusab`). The folder suggested by the installer always fits. With longer paths, Windows automatic updates can't replace the old files, so the **Install** button stays disabled (from 1.0.60 on).
+If you pick a different folder, its path can have at most **65 characters** (for example, `C:\Tusab`). The folder suggested by the installer always fits. With longer paths, Windows automatic updates can't replace the old files, so the **Install** button stays disabled (from 1.0.60 on).
 
 :::caution Installed on Windows between August and October 2026?
 Windows versions **1.0.42 to 1.0.57** shipped without the app's engine (the embedded Python and the YouTube download component). Tusab opened, but channel extraction, chat and the repository didn't work. If that happened to you, download and install **1.0.58 or later** — your data and settings stay where they were.
