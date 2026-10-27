@@ -29,7 +29,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.6.1",
     "pa11y-ci": "^4.1.1",
-    "postcss": "^8.5.28",
+    "postcss": "^8.5.31",
     "tailwindcss": "^3.4.1",
     "vite": "^8.3.4",
     "wait-on": "^9.1.0"
