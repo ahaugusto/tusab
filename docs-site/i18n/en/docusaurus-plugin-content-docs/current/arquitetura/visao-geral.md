@@ -55,7 +55,7 @@ api_tusab.py           thin entry point; mounts the FastAPI app + routers + star
 ```
 web_interface/src/
   services/api.js           every call to the FastAPI backend
-  services/analytics.js     PostHog wrapper (opt-in; no-op without consent)
+  services/analytics.js     Microsoft Clarity wrapper (opt-in; no-op without consent)
   hooks/
     useStatus.js              polls GET /status every 2s
     useAssistenteConfig.js    assistant config (provider, key, Ollama, channel metadata)

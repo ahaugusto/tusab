@@ -38,7 +38,7 @@ diretas com uso mais substancial no produto; não é exaustiva de toda a
 | [Lucide](https://github.com/lucide-icons/lucide) | ISC | Ícones |
 | [react-markdown](https://github.com/remarkjs/react-markdown) + [remark-gfm](https://github.com/remarkjs/remark-gfm) | MIT | Renderização de Markdown no chat |
 | [i18next](https://github.com/i18next/i18next) | MIT | Internacionalização PT/EN/ES |
-| [PostHog](https://github.com/PostHog/posthog-js) | MIT | Telemetria opt-in |
+| [Microsoft Clarity](https://github.com/microsoft/clarity-js) | MIT | Telemetria opt-in (`@microsoft/clarity`) |
 
 ## Desktop
 

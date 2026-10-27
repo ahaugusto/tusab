@@ -10,12 +10,12 @@
     "test:unit": "node --test src/utils/*.test.js"
   },
   "dependencies": {
+    "@microsoft/clarity": "^1.0.2",
     "axios": "^1.20.0",
     "framer-motion": "^12.43.0",
     "i18next": "^26.4.7",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.47.0",
-    "posthog-js": "^1.438.12",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^17.0.15",

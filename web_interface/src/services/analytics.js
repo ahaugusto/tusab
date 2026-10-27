@@ -1,6 +1,6 @@
 ﻿/**
  * @file analytics.js
- * @description Posthog analytics service — opt-in only.
+ * @description Microsoft Clarity analytics service — opt-in only.
  *   All tracking is gated behind explicit user consent stored in localStorage.
  *   If no consent or no API key, every call is a no-op.
  * @module services/analytics
@@ -10,41 +10,42 @@
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CONSENT_KEY  = 'tusab_analytics_consent'; // 'yes' | 'no' | null
-const POSTHOG_KEY  = import.meta.env.VITE_POSTHOG_KEY || '';
-// Host de ingestão oficial da região US (a chave do Tusab é US; no EU dá 401).
-const POSTHOG_HOST = 'https://us.i.posthog.com';
-const QUEUE_MAX    = 50;
+// Chave nova (v1.0.63): a telemetria passou do PostHog para o Microsoft Clarity,
+// que também grava interação (cliques, rolagem). Quem aceitou a anterior é
+// consultado de novo — o consentimento antigo não cobria esse tipo de coleta.
+const CONSENT_KEY = 'tusab_clarity_consent'; // 'yes' | 'no' | null
+// ID do projeto Clarity — identificador público (aparece no script de qualquer site), não é segredo.
+const CLARITY_ID  = import.meta.env.VITE_CLARITY_ID || 'z41cjpv40n';
+const PERFIL_KEY  = 'tusab_perfil';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let _posthog   = null;
+let _clarity   = null;
 let _consented = localStorage.getItem(CONSENT_KEY) === 'yes';
-// Eventos disparados enquanto o posthog-js (import dinâmico) ainda carrega.
-// Sem isso, app_opened e analytics_accepted eram descartados: initAnalytics()
-// é assíncrona e track() rodava na linha seguinte com _posthog ainda null.
+// Eventos disparados enquanto o SDK (import dinâmico) ainda carrega.
 let _queue     = [];
+const QUEUE_MAX = 50;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 /**
- * Initialises Posthog if consent was previously given and a key exists.
+ * Initialises Microsoft Clarity if consent was previously given.
  * Safe to call multiple times — only initialises once.
+ * Mascaramento estrito: todo o conteúdo da tela (chat, documentos, chaves de API)
+ * é mascarado no cliente antes de sair — só estrutura, cliques e rolagem são gravados.
  */
 export function initAnalytics() {
-  if (!POSTHOG_KEY || !_consented || _posthog) return;
-  import('posthog-js').then(({ default: posthog }) => {
-    posthog.init(POSTHOG_KEY, {
-      api_host:            POSTHOG_HOST,
-      autocapture:         false,   // manual events only
-      capture_pageview:    false,
-      persistence:         'localStorage',
-      disable_session_recording: true,
-    });
-    _posthog = posthog;
+  if (!CLARITY_ID || !_consented || _clarity) return;
+  document.body.setAttribute('data-clarity-mask', 'True');
+  import('@microsoft/clarity').then(({ default: Clarity }) => {
+    if (!_consented) return;
+    Clarity.init(CLARITY_ID);
+    Clarity.consentV2({ ad_Storage: 'denied', analytics_Storage: 'granted' });
+    try { Clarity.setTag('perfil', localStorage.getItem(PERFIL_KEY) || 'nenhum'); } catch {}
+    _clarity = Clarity;
     const pendentes = _queue; _queue = [];
-    if (_consented) pendentes.forEach(([event, props]) => { try { posthog.capture(event, props); } catch {} });
-  });
+    pendentes.forEach(([event]) => { try { Clarity.event(event); } catch {} });
+  }).catch(() => {});
 }
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
@@ -67,25 +68,27 @@ export function declineAnalytics() {
   localStorage.setItem(CONSENT_KEY, 'no');
   _consented = false;
   _queue = [];
-  if (_posthog) { _posthog.opt_out_capturing(); _posthog = null; }
+  if (_clarity) { try { _clarity.consent(false); } catch {} _clarity = null; }
+  document.body.removeAttribute('data-clarity-mask');
 }
 
 // ─── Tracking ─────────────────────────────────────────────────────────────────
 
 /**
- * Captures a named event with optional properties.
- * No-op if user hasn't consented or Posthog isn't initialised.
+ * Registra um evento nomeado. O Clarity guarda só o nome (sem propriedades);
+ * o que antes ia em `props` fica de fora de propósito — menos dado, mesma contagem.
+ * No-op se o usuário não consentiu.
  *
  * @param {string} event      - event name (snake_case)
- * @param {Object} [props={}] - additional properties
+ * @param {Object} [props={}] - ignorado (mantido para compatibilidade das chamadas)
  */
 export function track(event, props = {}) {
-  if (!_consented || !POSTHOG_KEY) return;
-  if (!_posthog) {
-    if (_queue.length < QUEUE_MAX) _queue.push([event, props]);
+  if (!_consented) return;
+  if (!_clarity) {
+    if (_queue.length < QUEUE_MAX) _queue.push([event]);
     return;
   }
-  try { _posthog.capture(event, props); } catch {}
+  try { _clarity.event(event); } catch {}
 }
 
 // ─── Named events (keeps event names consistent across the codebase) ─────────

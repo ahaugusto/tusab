@@ -52,7 +52,7 @@ Interface completa em `http://localhost:8001` (servida pelo backend a partir do 
 |----------|-----------|
 | `TUSAB_DATA_DIR` | Sobrescreve o diretório de dados (usado em testes e no Electron empacotado) |
 | `ELECTRON_RUN` | Definida pelo Electron em produção — suprime abertura automática do navegador |
-| `VITE_POSTHOG_KEY` | Chave de telemetria PostHog (nunca commitar — usar `web_interface/.env`) |
+| `VITE_CLARITY_ID` | Opcional: substitui o ID do projeto Microsoft Clarity (identificador público) |
 
 ## Armadilhas conhecidas
 
