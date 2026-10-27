@@ -7,6 +7,16 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.63] — 2026-10-27
+
+### Alterado
+- **Telemetria passa do PostHog para o Microsoft Clarity.** Continua opt-in, e quem aceitou antes é consultado de novo (a coleta agora inclui cliques e rolagem). O conteúdo da tela é mascarado no seu computador: texto do chat, documentos e chaves de API não são enviados. Os eventos levam só o nome. Sem aceite, nenhuma requisição sai.
+
+### Interno
+- Removido o `posthog-js` e o uso de `VITE_POSTHOG_KEY` no CI; o ID público do projeto Clarity fica em `services/analytics.js` (`VITE_CLARITY_ID` opcional).
+
+---
+
 ## [1.0.62] — 2026-10-27
 
 ### Corrigido

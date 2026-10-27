@@ -137,13 +137,10 @@ jobs:
           "
 
       # Build do frontend (dist/ que vai dentro do instalador).
-      # VITE_POSTHOG_KEY precisa vir do secret: web_interface/.env é gitignored,
-      # então sem isso o build do CI saía com a chave vazia e a telemetria
-      # opt-in do PostHog nunca enviava nada (achado em 20/out/2026).
+      # Telemetria: Microsoft Clarity (ID público embutido em services/analytics.js,
+      # sobrescrevível por VITE_CLARITY_ID). O PostHog foi removido na v1.0.63.
       - name: Build frontend
         working-directory: web_interface
-        env:
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
         run: npm install && npx vite build
 
       # Instala dependências do Electron
@@ -328,8 +325,6 @@ jobs:
 
       - name: Build frontend
         working-directory: web_interface
-        env:
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}   # ver nota no build-windows
         run: npm install && npx vite build
 
       - name: Instalar dependências Electron

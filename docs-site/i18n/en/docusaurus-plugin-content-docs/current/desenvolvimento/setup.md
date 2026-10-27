@@ -52,7 +52,7 @@ Full interface at `http://localhost:8001` (served by the backend from the genera
 |----------|-----------|
 | `TUSAB_DATA_DIR` | Overrides the data directory (used in tests and in the packaged Electron app) |
 | `ELECTRON_RUN` | Set by Electron in production — suppresses automatic browser launch |
-| `VITE_POSTHOG_KEY` | PostHog telemetry key (never commit — use `web_interface/.env`) |
+| `VITE_CLARITY_ID` | Optional: overrides the Microsoft Clarity project ID (public identifier) |
 
 ## Known pitfalls
 

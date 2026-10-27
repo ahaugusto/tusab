@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2, Bell, BellOff, BellRing, Mail, CheckCircle2, RefreshCw, Plug, Copy, Check, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -214,7 +214,7 @@ export default function AdminTab({
               <p className={`text-[10px] mt-1 leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                 {t('admin.telemetry_desc_p1')}
                 <strong className={darkMode ? ' text-slate-400' : ' text-slate-600'}> {t('admin.telemetry_desc_strong')}</strong>{t('admin.telemetry_desc_p2')}
-                {' '}<strong className={darkMode ? 'text-slate-400' : 'text-slate-600'}>PostHog</strong> {t('admin.telemetry_desc_p3')}
+                {' '}{t('admin.telemetry_desc_p3')}
               </p>
             </div>
             <button

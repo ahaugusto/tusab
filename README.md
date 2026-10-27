@@ -152,7 +152,7 @@ excerpt was retrieved from.
 - Extraction report per channel with statistics and a video table
 - Auto-update via GitHub Releases
 - Internationalization: Portuguese, English, Spanish
-- Opt-in telemetry (PostHog)
+- Opt-in telemetry (Microsoft Clarity, screen content masked)
 
 ---
 
@@ -308,7 +308,7 @@ Hot reload at `http://localhost:5173` (Vite dev server).
 |----------|--------------|
 | `TUSAB_DATA_DIR` | Overrides the data directory (used in tests and packaged Electron) |
 | `ELECTRON_RUN` | Set by Electron in production — suppresses automatic browser launch |
-| `VITE_POSTHOG_KEY` | PostHog telemetry key (never commit — use `web_interface/.env`) |
+| `VITE_CLARITY_ID` | Optional override of the Microsoft Clarity project ID (public identifier) |
 
 ---
 
