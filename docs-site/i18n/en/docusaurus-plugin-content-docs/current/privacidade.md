@@ -28,7 +28,7 @@ Stored locally (preferably via Electron's `safeStorage` — DPAPI/Keychain). Nev
 
 ## Telemetry (opt-in)
 
-With explicit consent (modal on first launch), anonymous usage events are collected via PostHog: app opened, extraction started, indexing, chat message sent (only the modality, not the content), configured provider.
+With explicit consent (modal on first launch), anonymous usage and interaction events are collected via Microsoft Clarity: app opened, extraction started, indexing, chat message sent, configured provider, plus clicks and scrolling. Screen content is **masked before it leaves your computer** (Clarity does not receive chat text, documents or keys). Events carry only a name, with no properties. Users who accepted telemetry in earlier versions (PostHog) are asked again in 1.0.63.
 
 **Never collected:** message content, channel URLs, video titles, file names, API keys, or any personally identifiable data. Consent can be revoked at any time in settings.
 

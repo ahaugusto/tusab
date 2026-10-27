@@ -267,9 +267,9 @@ os importam pelo nome antigo, sem breaking change.
 
 ```
 web_interface/src/
-  constants/index.js        IDs de eventos PostHog, constantes de UI
+  constants/index.js        IDs de eventos de telemetria, constantes de UI
   services/api.js           todas as chamadas ao backend FastAPI
-  services/analytics.js     wrapper PostHog (opt-in; no-op sem consentimento)
+  services/analytics.js     wrapper Microsoft Clarity (opt-in; no-op sem consentimento; mascaramento estrito)
   hooks/
     useStatus.js            polling GET /status a cada 2s
     useOnboarding.js        lógica de onboarding contextual
@@ -295,7 +295,7 @@ web_interface/src/
   locales/pt.json, en.json, es.json   i18n
 ```
 
-**Segurança:** `VITE_POSTHOG_KEY` fica em `web_interface/.env` (gitignored). **Nunca commitar.**
+**Telemetria:** Microsoft Clarity (desde a v1.0.63; PostHog removido). O ID do projeto é público e fica em `services/analytics.js` (sobrescrevível por `VITE_CLARITY_ID`). Consentimento em `tusab_clarity_consent`; sem aceite, nenhuma requisição sai.
 
 ---
 

@@ -28,7 +28,7 @@ Armazenadas localmente (preferencialmente via `safeStorage` do Electron — DPAP
 
 ## Telemetria (opt-in)
 
-Com consentimento explícito (modal na primeira execução), eventos anônimos de uso são coletados via PostHog: abertura do app, início de extração, indexação, envio de chat (só a modalidade, não o conteúdo), provedor configurado.
+Com consentimento explícito (modal na primeira execução), eventos anônimos de uso e interação são coletados via Microsoft Clarity: abertura do app, início de extração, indexação, envio de chat, provedor configurado, além de cliques e rolagem. O conteúdo da tela é **mascarado antes de sair do seu computador** (o Clarity não recebe o texto do chat, dos documentos nem das chaves). Os eventos levam só o nome, sem propriedades. Quem aceitou a telemetria nas versões anteriores (PostHog) é consultado de novo na 1.0.63.
 
 **Nunca coletado:** conteúdo de mensagens, URLs de canais, títulos de vídeos, nomes de arquivo, chaves de API, ou qualquer dado pessoal identificável. Consentimento revogável a qualquer momento nas configurações.
 
