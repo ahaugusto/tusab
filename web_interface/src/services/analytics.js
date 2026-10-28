@@ -15,7 +15,9 @@
 // consultado de novo — o consentimento antigo não cobria esse tipo de coleta.
 const CONSENT_KEY = 'tusab_clarity_consent'; // 'yes' | 'no' | null
 // ID do projeto Clarity — identificador público (aparece no script de qualquer site), não é segredo.
-const CLARITY_ID  = import.meta.env.VITE_CLARITY_ID || 'z41cjpv40n';
+// Precisa ser um projeto do tipo "Site": o SDK web descarta a sessão se o ID for de app móvel
+// (foi o caso do z41cjpv40n na v1.0.63 — nada era gravado).
+const CLARITY_ID  = import.meta.env.VITE_CLARITY_ID || 'z4jcpcx609';
 const PERFIL_KEY  = 'tusab_perfil';
 
 // ─── State ────────────────────────────────────────────────────────────────────

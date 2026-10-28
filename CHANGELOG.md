@@ -7,6 +7,13 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ---
 
+## [1.0.64] — 2026-10-27
+
+### Corrigido
+- **Telemetria não era gravada na 1.0.63.** O ID do Clarity apontava para um projeto de aplicativo móvel, e o script web descarta a sessão nesse caso. Agora usa um projeto do tipo Site, com mascaramento rígido também no painel do Clarity. O consentimento continua o mesmo: quem já aceitou não é consultado de novo.
+
+---
+
 ## [1.0.63] — 2026-10-27
 
 ### Alterado
