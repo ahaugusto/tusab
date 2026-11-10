@@ -106,3 +106,8 @@ marketing/video/voz/.venv/
 marketing/video/voz/*.onnx*
 marketing/video/voz/*.wav
 marketing/video/musica.mp3
+
+# Instruções de IA: ficam no repositório privado criaugu-orquestra, não aqui
+CLAUDE.md
+CLAUDE.local.md
+.claude/
