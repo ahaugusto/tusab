@@ -110,7 +110,7 @@ typing_extensions==4.16.0
 tzlocal==5.4.4
 uritemplate==4.2.0
 urllib3==2.7.0
-uvicorn==0.52.0
+uvicorn==0.54.0
 uvloop==0.22.1
 watchfiles==1.2.0
 websockets==16.1.1
