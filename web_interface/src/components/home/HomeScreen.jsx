@@ -6,6 +6,7 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 import React, { useState } from 'react';
+import { MODO_EXTENSAO } from '../../constants';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import CircuitBackground from './CircuitBackground';
@@ -223,7 +224,8 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
     },
   ];
 
-  const utilityCards = allUtilityCards.filter(c => c.perfis.includes(perfil));
+  // Extensão: o assistente é a IA do próprio usuário — sem cartão de configuração.
+  const utilityCards = allUtilityCards.filter(c => c.perfis.includes(perfil) && !(MODO_EXTENSAO && c.id === 'agente'));
 
   const badgeClass = (color) => color === 'secondary'
     ? darkMode ? 'bg-secondary/20 text-secondary' : 'bg-emerald-100 text-emerald-700'
@@ -342,7 +344,9 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                Especialista pode ocultar o card de Estudo (menos central pra esse perfil) — quando
                oculto, Chat ocupa a largura inteira em vez de deixar metade vazia. */}
           {indexed && (
-            <div className={ocultarCardEstudo ? '' : 'grid grid-cols-2 gap-3 items-stretch'}>
+            <div className={ocultarCardEstudo || MODO_EXTENSAO ? '' : 'grid grid-cols-2 gap-3 items-stretch'}>
+              {/* Extensão: a conversa é na IA do usuário — só o cartão de Estudo. */}
+              {!MODO_EXTENSAO && (
               <div className="flex flex-col">
                 <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   {t('home.section_talk')}
@@ -368,6 +372,7 @@ function HomeScreen({ darkMode, history, repositorio, agentStatus, ollamaStatus,
                   </button>
                 )}
               </div>
+              )}
 
               {!ocultarCardEstudo && (
                 <div className="flex flex-col">

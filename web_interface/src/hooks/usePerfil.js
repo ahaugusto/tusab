@@ -1,3 +1,11 @@
+import { MODO_EXTENSAO } from '../constants';
+
+// Extensão: o chat (e o histórico dele) é a IA do próprio usuário; Estudo chega na fase D.
+const ABAS_FORA_DA_EXTENSAO = new Set(['agente', 'historico']);
+// Recursos do desktop ainda não portados para a extensão (fases B e C) ou que não se aplicam.
+const REGRAS_EXTENSAO = {
+  config_api: false, drive: false,
+};
 import { useState, useCallback } from 'react';
 
 // ---------------------------------------------------------------------------
@@ -157,6 +165,10 @@ export function usePerfil() {
   // Se perfil não definido, fallback = profissional (não bloqueia nada antes do onboarding)
   const regrasBase = PERFIS_CONFIG[perfil] ?? PERFIS_CONFIG.profissional;
   const regras = { ...regrasBase, _perfil: perfil ?? 'profissional' };
+  if (MODO_EXTENSAO) {
+    Object.assign(regras, REGRAS_EXTENSAO);
+    regras.abas = regras.abas.filter((a) => !ABAS_FORA_DA_EXTENSAO.has(a));
+  }
 
   const perfilDefinido = perfil !== null;
 

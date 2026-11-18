@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Layers, FileText, Trash2, Pencil, X, Search, Video } from 'lucide-react';
+import { MODO_EXTENSAO } from '../../constants';
 import { listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, buscarProgressoRevisao } from '../../services/api';
 import EstudoArtefatoModal from './EstudoArtefatoModal';
 import AudioArtefatoPlayer from './AudioArtefatoPlayer';
@@ -26,6 +27,7 @@ export default function EstudoTab({
   itensSelecionados = [], setItensSelecionados,
   gerando,
   erro,
+  pedidoIA = '',
   flashcards,
   resumo,
   resumoArtefatoId,
@@ -63,6 +65,20 @@ export default function EstudoTab({
   }, [projeto]);
 
   useEffect(() => { refetchArtefatos(); }, [refetchArtefatos]);
+
+  // Extensão: quem grava é a IA do usuário, fora desta tela — atualiza ao voltar
+  // para a janela e a cada 10 s enquanto a aba estiver aberta.
+  useEffect(() => {
+    if (!MODO_EXTENSAO) return undefined;
+    const id = setInterval(refetchArtefatos, 10000);
+    window.addEventListener('focus', refetchArtefatos);
+    return () => { clearInterval(id); window.removeEventListener('focus', refetchArtefatos); };
+  }, [refetchArtefatos]);
+
+  const [pedidoCopiado, setPedidoCopiado] = useState(false);
+  const copiarPedido = () => {
+    navigator.clipboard?.writeText(pedidoIA).then(() => { setPedidoCopiado(true); setTimeout(() => setPedidoCopiado(false), 2000); }).catch(() => {});
+  };
 
   // Refaz a busca assim que uma geração termina (gerando true→false) — os
   // artefatos recém-criados já estão salvos no backend nesse ponto.
@@ -244,9 +260,11 @@ export default function EstudoTab({
               );
             })}
           </div>
+          {!MODO_EXTENSAO && (
           <p style={{ fontSize: '10px', color: textSecond, marginTop: '8px', marginBottom: 0 }}>
             {t('estudo.modelo_robusto_hint')}
           </p>
+          )}
         </div>
 
         {/* Tema — opcional, escopa a geração a um recorte específico do projeto via BM25 */}
@@ -392,7 +410,7 @@ export default function EstudoTab({
           }}>
             {gerando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {t('estudo.generating')}</>
-              : <><BookOpen size={14} /> {t('estudo.generate_btn')}</>}
+              : <><BookOpen size={14} /> {t(MODO_EXTENSAO ? 'estudo.generate_btn_extensao' : 'estudo.generate_btn')}</>}
           </button>
 
           {(flashcards?.length > 0 || resumo || postits?.length > 0) && (
@@ -472,6 +490,25 @@ export default function EstudoTab({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Extensão: pedido pronto para a IA do usuário */}
+      {pedidoIA && (
+        <div role="status" style={{
+          background: darkMode ? 'rgba(139,92,246,0.10)' : '#f5f3ff',
+          border: `1px solid ${darkMode ? 'rgba(139,92,246,0.35)' : '#c4b5fd'}`,
+          borderRadius: '12px', padding: '12px 14px', fontSize: '12px',
+          color: darkMode ? '#ddd6fe' : '#4c1d95', display: 'flex', flexDirection: 'column', gap: '8px',
+        }}>
+          <span style={{ fontWeight: 700 }}>{t('estudo.pedido_ia_titulo')}</span>
+          <span style={{ fontStyle: 'italic' }}>“{pedidoIA}”</span>
+          <span style={{ color: textSecond }}>{t('estudo.pedido_ia_dica')}</span>
+          <button onClick={copiarPedido} style={{
+            alignSelf: 'flex-start', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+            border: `1px solid ${darkMode ? 'rgba(139,92,246,0.45)' : '#a78bfa'}`, background: 'transparent',
+            color: darkMode ? '#c4b5fd' : '#6d28d9', cursor: 'pointer',
+          }}>{pedidoCopiado ? t('estudo.pedido_ia_copiado') : t('estudo.pedido_ia_copiar')}</button>
         </div>
       )}
 

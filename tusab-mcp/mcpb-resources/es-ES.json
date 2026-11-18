@@ -1,0 +1,187 @@
+{
+  "display_name": "Tusab",
+  "description": "Tusab dentro de tu IA: extrae canales de YouTube en este ordenador y consulta la base con citas al minuto exacto.",
+  "long_description": "Tusab extrae transcripciones de canales, listas y videos de YouTube en este ordenador, desde tu propia IP, y lo organiza todo en una carpeta local (la misma estructura de Tusab de escritorio). Tu herramienta de IA consulta esa base y cita el video y el minuto. La pantalla de Tusab se abre en el navegador, servida por este ordenador. Nada pasa por servidores de CriAugu: solo los fragmentos que la IA consulta van a la IA que elegiste.",
+  "keywords": [
+    "conocimiento",
+    "youtube",
+    "transcripciones",
+    "rag",
+    "local-first",
+    "sqlite"
+  ],
+  "tools": [
+    {
+      "name": "tusab_buscar",
+      "description": "Busca en la base local y devuelve fragmentos con fuente, minuto y enlace."
+    },
+    {
+      "name": "tusab_listar_projetos",
+      "description": "Lista los proyectos, con fuentes, fragmentos y cobertura de las extracciones."
+    },
+    {
+      "name": "tusab_ler_fonte",
+      "description": "Lee una fuente en orden, a partir de un minuto."
+    },
+    {
+      "name": "tusab_ler_original",
+      "description": "Abre el archivo original de un documento (una imagen o páginas de un PDF) cuando el texto no basta."
+    },
+    {
+      "name": "tusab_adicionar_youtube",
+      "description": "Extrae un canal, una lista o un video en este ordenador y lo indexa."
+    },
+    {
+      "name": "tusab_adicionar_arquivo",
+      "description": "Añade un archivo .txt o .md a los textos del proyecto."
+    },
+    {
+      "name": "tusab_fontes_publicas",
+      "description": "Lista las 70 fuentes públicas (arXiv, PubMed, Cámara de Diputados de Brasil, IBGE...) por área."
+    },
+    {
+      "name": "tusab_buscar_fonte_publica",
+      "description": "Busca un tema en una fuente pública y guarda los resultados en el proyecto."
+    },
+    {
+      "name": "tusab_salvar_estudo",
+      "description": "Guarda flashcards, notas adhesivas o un resumen creados por la IA, para repasar en otras conversaciones."
+    },
+    {
+      "name": "tusab_revisao_hoje",
+      "description": "Lista las flashcards que vencen hoy (repaso espaciado)."
+    },
+    {
+      "name": "tusab_registrar_revisao",
+      "description": "Registra la nota de una flashcard repasada."
+    },
+    {
+      "name": "tusab_novidades_semana",
+      "description": "Lista lo que entró en el proyecto en los últimos 7 días."
+    },
+    {
+      "name": "tusab_economia",
+      "description": "Muestra cuántos tokens ahorró Tusab a la IA (solo fragmentos × fuentes completas). Estimación local."
+    },
+    {
+      "name": "tusab_status",
+      "description": "Muestra el repositorio, la extracción en curso y la cola."
+    },
+    {
+      "name": "tusab_abrir_painel",
+      "description": "Abre la pantalla de Tusab en el navegador, servida por este ordenador."
+    }
+  ],
+  "prompts": [
+    {
+      "name": "abrir_tusab",
+      "description": "Abre la pantalla de Tusab en el navegador.",
+      "text": "Abre el panel de Tusab."
+    },
+    {
+      "name": "flashcards",
+      "description": "Preguntas y respuestas cortas, guardadas para repaso espaciado.",
+      "text": "Flashcards — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "revisar-hoje",
+      "description": "Las flashcards que vencen hoy, una por vez, con nota y reprogramación.",
+      "text": "Repasar hoy — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "quiz",
+      "description": "Preguntas con 4 opciones, una por vez, con corrección comentada.",
+      "text": "Quiz de opción múltiple — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "resumo",
+      "description": "Tema central, conceptos clave, ideas y vacíos — guardado en el proyecto.",
+      "text": "Resumen de estudio — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "mapa-mental",
+      "description": "Estructura jerárquica de los conceptos (Mermaid).",
+      "text": "Mapa mental — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "explicar-simples",
+      "description": "Explicación para quien está empezando, con ejemplos.",
+      "text": "Explicar de forma sencilla — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "plano-estudo",
+      "description": "Itinerario por días, en el orden correcto del contenido.",
+      "text": "Plan de estudio — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "prova",
+      "description": "Preguntas objetivas y abiertas, clave de respuestas y criterios de corrección.",
+      "text": "Examen con respuestas — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "plano-aula",
+      "description": "Objetivos, secuencia, actividades y evaluación a partir de las fuentes.",
+      "text": "Plan de clase — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "exercicios",
+      "description": "Ejercicios básicos, intermedios y avanzados con resolución.",
+      "text": "Ejercicios por nivel — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "revisao-literatura",
+      "description": "Qué dicen las fuentes, en qué coinciden y en qué difieren.",
+      "text": "Revisión del material — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "contradicoes",
+      "description": "Dónde se contradicen las fuentes, lado a lado.",
+      "text": "Comparar fuentes y contradicciones — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "lacunas",
+      "description": "Lo que le falta al material para cubrir bien el tema.",
+      "text": "Vacíos de la base — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "ficha-leitura",
+      "description": "Para cada fuente: tesis, argumentos, evidencias y citas.",
+      "text": "Ficha de lectura por fuente — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "linha-do-tempo",
+      "description": "Eventos y fechas en orden cronológico.",
+      "text": "Línea de tiempo — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "citacoes",
+      "description": "Las frases más importantes, literales y con la fuente.",
+      "text": "Citas clave — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "resposta-verificavel",
+      "description": "Responde solo con fragmentos de la base e indica el grado de confianza.",
+      "text": "Respuesta verificable — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "nota-tecnica",
+      "description": "Contexto, análisis, recomendación y riesgos, con fuentes.",
+      "text": "Nota técnica — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "roteiro",
+      "description": "Guion con gancho, desarrollo y cierre.",
+      "text": "Guion de video — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "post",
+      "description": "Texto corto, con una idea central.",
+      "text": "Publicación para LinkedIn — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "digest",
+      "description": "Lo que entró en el proyecto en los últimos 7 días.",
+      "text": "Resumen de la semana — proyecto ${arguments.projeto}"
+    }
+  ]
+}

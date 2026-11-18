@@ -9,11 +9,18 @@
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 /**
+ * Modo extensão: a interface é servida pelo plugin MCP do Tusab (tusab-mcp),
+ * que responde às mesmas rotas em /api no próprio endereço local da página.
+ * Ativado só no build da extensão (VITE_TUSAB_MODO=extensao).
+ */
+export const MODO_EXTENSAO = import.meta.env.VITE_TUSAB_MODO === 'extensao';
+
+/**
  * Base URL for the FastAPI backend.
  * In Electron or production builds, uses absolute URL.
  * In Vite dev server, uses empty string so requests go through the proxy.
  */
-export const API_BASE = (
+export const API_BASE = MODO_EXTENSAO ? '/api' : (
   typeof window !== 'undefined' && window.tusab
     ? 'http://localhost:8001'          // Electron context — direct call
     : import.meta.env.DEV

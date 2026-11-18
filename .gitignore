@@ -42,6 +42,11 @@ output/
 web_interface/node_modules/
 web_interface/.vite/
 
+# --- Plugin MCP (tusab-mcp) ---
+tusab-mcp/node_modules/
+tusab-mcp/interface/
+*.mcpb
+
 # --- Ferramentas de análise de código (cache local, não versionar) ---
 graphify-out/
 
@@ -111,3 +116,8 @@ marketing/video/musica.mp3
 CLAUDE.md
 CLAUDE.local.md
 .claude/
+
+# gerados por tusab-mcp/scripts/gerar-licencas.mjs no empacotamento
+tusab-mcp/LICENSE
+tusab-mcp/TRADEMARK.md
+tusab-mcp/THIRD_PARTY_NOTICES.txt

@@ -9,7 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Trophy, X, CheckCircle2, CloudOff, ShieldCheck, ExternalLink, Bot, Info, Loader2 } from 'lucide-react';
-import { BTN_FOCUS } from '../../constants';
+import { BTN_FOCUS, MODO_EXTENSAO } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -59,6 +59,16 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, agentIndex
           </button>
         </div>
 
+        {MODO_EXTENSAO ? (
+          <div className={`rounded-xl border p-4 flex flex-col gap-2 ${darkMode ? 'bg-primary/5 border-primary/30' : 'bg-violet-50 border-violet-200'}`}>
+            <div className="flex items-center gap-2">
+              <Bot size={14} className="text-primary" aria-hidden="true" />
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('onboarding.s_extensao_title')}</h3>
+            </div>
+            <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{t('onboarding.s_extensao_body')}</p>
+            <p className={`text-xs leading-relaxed font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('modal.extensao_sugestao')}</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Drive / NotebookLM option */}
           <div className={`rounded-2xl p-4 border flex flex-col gap-3 ${darkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
@@ -129,6 +139,7 @@ function PostExtractionModal({ onClose, driveStatus, agentConfigured, agentIndex
             </div>
           </div>
         </div>
+        )}
 
         <button onClick={onClose}
           className={`w-full mt-3 py-2 rounded-xl text-xs font-bold transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'} ${BTN_FOCUS}`}>
