@@ -1,0 +1,36 @@
+{
+  "name": "tusab-mcp",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Tusab como extensão de IA: a interface do Tusab servida pelo próprio plugin, motor de extração local e base de conhecimento consultável por MCP.",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "CriAugu",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "tusab-mcp": "src/index.js"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "cli": "node src/cli.js",
+    "painel": "node src/cli.js painel",
+    "build:interface": "npm --prefix ../web_interface exec -- vite build --mode extensao --outDir ../tusab-mcp/interface --emptyOutDir",
+    "pack": "npm run build:interface && node scripts/gerar-licencas.mjs && npx --yes @anthropic-ai/mcpb@2.1.2 pack . ../tusab.mcpb",
+    "test": "node --import ./test/_ambiente.js --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@sqlite.org/sqlite-wasm": "3.54.1-build1",
+    "fast-xml-parser": "5.12.0",
+    "fflate": "0.8.3",
+    "mammoth": "1.13.0",
+    "pdfjs-dist": "6.5.438",
+    "pdfkit": "0.20.2",
+    "read-excel-file": "9.3.14",
+    "write-excel-file": "4.1.1",
+    "zod": "4.6.7"
+  }
+}

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import PrivacidadeRede from '../assistente/PrivacidadeRede';
 import RedesCorporativas from '../assistente/RedesCorporativas';
-import { BTN_FOCUS } from '../../constants';
+import { BTN_FOCUS, MODO_EXTENSAO } from '../../constants';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
 import { fetchMcpConfig } from '../../services/api';
 
@@ -161,6 +161,7 @@ export default function AdminTab({
       )}
 
       {/* Atualização do app — verificação manual */}
+      {!MODO_EXTENSAO && (
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <RefreshCw size={13} className={darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true" />
@@ -195,8 +196,10 @@ export default function AdminTab({
           </div>
         </div>
       </section>
+      )}
 
       {/* Telemetria */}
+      {!MODO_EXTENSAO && (
       <section className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-white/4 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className={`px-5 py-3.5 flex items-center gap-2 ${darkMode ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={analyticsEnabled ? 'text-secondary' : darkMode ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -229,12 +232,13 @@ export default function AdminTab({
           </div>
         </div>
       </section>
+      )}
 
       {/* Privacidade e Rede */}
-      <PrivacidadeRede darkMode={darkMode} />
+      {!MODO_EXTENSAO && <PrivacidadeRede darkMode={darkMode} />}
 
       {/* Redes Corporativas */}
-      <RedesCorporativas darkMode={darkMode} />
+      {!MODO_EXTENSAO && <RedesCorporativas darkMode={darkMode} />}
 
       {/* Limpeza de bases — só para perfis com reset_total */}
       {regras.reset_total && (

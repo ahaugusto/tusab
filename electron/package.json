@@ -55,7 +55,11 @@
           "tusab_engine/**",
           "credentials.json",
           "web_interface/dist/**",
-          "assets/**"
+          "assets/**",
+          "LICENSE",
+          "TRADEMARK.md",
+          "THIRD_PARTY_NOTICES.txt",
+          "THIRD_PARTY_NOTICES.md"
         ]
       }
     ],

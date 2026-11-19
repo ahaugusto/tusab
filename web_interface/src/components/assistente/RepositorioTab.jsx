@@ -11,6 +11,18 @@ import { useTranslation } from 'react-i18next';
 import ModalWrapper from '../shared/ModalWrapper';
 import { fetchRepositorio, fetchAgentStatus, uploadDocument, saveText, salvarUrl, deleteRepositorioItem, limparBase, buscarBase, lerArquivo, listarProjetos, criarProjeto, limparCanal, resetTotal, startIndexing, exportarBaseCompartilhavel, importarBaseCompartilhavel, fetchReadonlyStatus, openFolder } from '../../services/api';
 import { Analytics } from '../../services/analytics';
+import { MODO_EXTENSAO } from '../../constants';
+import { PedirIA } from './PromptsTab';
+import { localeFor } from '../../utils/locale';
+
+/** 1536 → "1,5 KB" (pt/es) ou "1.5 KB" (en). */
+function formatarBytes(n = 0, lng = 'pt') {
+  const un = ['B', 'KB', 'MB', 'GB'];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < un.length - 1) { v /= 1024; i++; }
+  return `${v.toLocaleString(localeFor(lng), { maximumFractionDigits: i ? 1 : 0 })} ${un[i]}`;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -293,7 +305,7 @@ function IndexarModal({ darkMode, btnFocus, projetos, indexarSel, setIndexarSel,
  * @returns {JSX.Element}
  */
 function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFocus, onSetCanal, showAdd, setShowAdd: setShowAddProp, canalAtivo, onInjetarContexto, onAnexarArquivo, onIndexar, agentStatus, openIndexar, onOpenIndexarHandled, regras, openImport, onOpenImportHandled, projetoInicial, onProjetoInicialHandled, buscaInicial, onBuscaInicialHandled }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showAddLocal, setShowAddLocal] = React.useState(false);
   const showAdd_ = showAdd !== undefined ? showAdd : showAddLocal;
 
@@ -336,6 +348,9 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
   const [filaStatus,     setFilaStatus]     = React.useState({});   // { nome: 'aguardando'|'indexando'|'ok'|'erro' }
   const [indexSnackbar,  setIndexSnackbar]  = React.useState(null);
   const [exportando,     setExportando]     = React.useState(false);
+  // Extensão: antes de exportar, perguntar se os arquivos originais vão junto.
+  const [exportarPedido, setExportarPedido] = React.useState(null);
+  const [exportarOriginais, setExportarOriginais] = React.useState(false);
   const [importando,     setImportando]     = React.useState(false);
   const [shareSnackbar,  setShareSnackbar]  = React.useState(null);
   const [readonlyMap,    setReadonlyMap]    = React.useState({});
@@ -653,11 +668,12 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
     reload();
   };
 
-  const handleExportar = async (projeto) => {
+  const handleExportar = async (projeto, comOriginais = false) => {
+    setExportarPedido(null);
     setExportando(true);
     setShareSnackbar(null);
     try {
-      const res = await exportarBaseCompartilhavel(projeto);
+      const res = await exportarBaseCompartilhavel(projeto, comOriginais);
       const url = URL.createObjectURL(res.data);
       const a = document.createElement('a');
       a.href = url;
@@ -1253,12 +1269,16 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                     {t('repo.readonly_badge')}
                   </span>
                 )}
-                <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('repo.item_count', { count: cTotal })}</span>
+                <span className={`text-[10px] shrink-0 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {t('repo.item_count', { count: cTotal })}
+                  {canal.espaco && <> · {formatarBytes(canal.espaco.total, i18n.resolvedLanguage)}</>}
+                </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   <path d="M6 9l6 6 6-6"/>
                 </svg>
               </button>
+              {MODO_EXTENSAO && cTotal > 0 && <PedirIA projeto={canal.nome} darkMode={darkMode} />}
               {/* Colar texto no projeto */}
               {!readonlyMap[canal.nome] && (
                 <button
@@ -1300,7 +1320,11 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               )}
               {!readonlyMap[canal.nome] && regras?.export_tusab !== false && (
                 <button
-                  onClick={e => { e.stopPropagation(); handleExportar(canal.nome); }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (MODO_EXTENSAO && canal.espaco?.originais > 0) { setExportarOriginais(false); setExportarPedido(canal); }
+                    else handleExportar(canal.nome);
+                  }}
                   disabled={exportando}
                   title={t('repo.export_base_title', { nome: canal.nome })}
                   className={`shrink-0 p-1.5 rounded-lg transition-colors ${btnFocus} ${darkMode ? 'text-secondary/60 hover:text-secondary hover:bg-secondary/10' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}>
@@ -1328,6 +1352,17 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
               const b = _getBusca(canal.nome);
               return (
                 <div>
+                  {canal.espaco && (
+                    <p className={`px-4 pt-2 text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} data-estado="espaco">
+                      {canal.espaco.originais > 0
+                        ? t('ext.repo.ocupa_detalhe', {
+                          total: formatarBytes(canal.espaco.total, i18n.resolvedLanguage),
+                          originais: formatarBytes(canal.espaco.originais, i18n.resolvedLanguage),
+                          texto: formatarBytes(canal.espaco.texto, i18n.resolvedLanguage),
+                        })
+                        : t('ext.repo.ocupa', { total: formatarBytes(canal.espaco.total, i18n.resolvedLanguage) })}
+                    </p>
+                  )}
                   {/* Campo de busca inline */}
                   <div className={`px-4 py-2 border-b ${darkMode ? 'border-white/8' : 'border-slate-100'}`}>
                     <div className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30
@@ -1412,8 +1447,14 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                           <p className={`text-xs font-medium truncate flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                             {item.titulo || item.nome_original}
                             <FormatoBadge formato={item.formato_detectado} darkMode={darkMode} t={t} />
+                            {MODO_EXTENSAO && item._tipo === 'documents' && !item.original && (
+                              <span title={t('ext.repo.so_texto_dica')} data-estado="so-texto"
+                                className={`ml-1.5 shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${darkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                {t('ext.repo.so_texto')}
+                              </span>
+                            )}
                           </p>
-                          <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                          <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo === 'texto' ? t('ext.repo.tipo_texto') : (item.tipo?.toUpperCase() || 'TXT')} · {item.chars?.toLocaleString()} chars</p>
                         </div>
                         <button onClick={() => handleDelete(item._tipo, item.id)}
                           className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
@@ -1466,7 +1507,7 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
                           {item.titulo || item.nome_original}
                           <FormatoBadge formato={item.formato_detectado} darkMode={darkMode} t={t} />
                         </p>
-                        <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo?.toUpperCase() || 'TXT'} · {item.chars?.toLocaleString()} chars</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>{item.data} · {item.tipo === 'texto' ? t('ext.repo.tipo_texto') : (item.tipo?.toUpperCase() || 'TXT')} · {item.chars?.toLocaleString()} chars</p>
                       </div>
                       <button onClick={() => handleDelete(group.tipo, item.id)}
                         className={`p-2.5 rounded-lg transition-colors text-danger/60 hover:text-danger hover:bg-danger/10 ${btnFocus}`}
@@ -1670,6 +1711,36 @@ function RepositorioTab({ darkMode, repositorio, setRepositorio, history, btnFoc
       )}
 
       {/* Modal — limpar canal individual */}
+      {exportarPedido && (
+        <ModalWrapper onClose={() => setExportarPedido(null)} zIndex="z-[9999]" backdrop="bg-black/60" label={t('ext.repo.exportar_modal')}>
+          <div className={`w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>
+            <div>
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('ext.repo.exportar_titulo', { projeto: exportarPedido.nome })}</h3>
+              <p className={`text-[11px] mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('ext.repo.exportar_texto')}</p>
+            </div>
+            <label className={`flex items-start gap-2.5 text-xs cursor-pointer ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              <input type="checkbox" checked={exportarOriginais} onChange={e => setExportarOriginais(e.target.checked)}
+                aria-describedby="aviso-originais" className="mt-0.5 accent-primary" />
+              <span>{t('ext.repo.incluir_originais', { tamanho: formatarBytes(exportarPedido.espaco.originais, i18n.resolvedLanguage) })}</span>
+            </label>
+            <p id="aviso-originais" className={`text-[11px] rounded-xl px-3 py-2 ${darkMode ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-800'}`}>
+              {t('ext.repo.aviso_originais')}
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setExportarPedido(null)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${btnFocus}
+                  ${darkMode ? 'border-white/15 text-slate-400 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {t('repo.cancel')}
+              </button>
+              <button onClick={() => handleExportar(exportarPedido.nome, exportarOriginais)} disabled={exportando} data-acao="exportar"
+                className={`flex-1 py-2 rounded-xl text-xs font-bold bg-primary-button text-white hover:bg-primary-button/85 transition-colors disabled:opacity-40 ${btnFocus}`}>
+                {exportarOriginais ? t('ext.repo.exportar_com') : t('ext.repo.exportar_so_texto')}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>
+      )}
+
       {limparCanalNome && (
         <ModalWrapper onClose={() => !limpandoCanal && setLimparCanalNome(null)} zIndex="z-[9999]" backdrop="bg-black/60" label="Limpar canal">
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl p-6 space-y-4 ${darkMode ? 'bg-[#0C1122] border-white/15' : 'bg-white border-slate-200'}`}>

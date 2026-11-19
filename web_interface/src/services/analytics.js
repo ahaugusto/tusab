@@ -8,6 +8,8 @@
  * @copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57
  */
 
+import { MODO_EXTENSAO } from '../constants';
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 // Chave nova (v1.0.63): a telemetria passou do PostHog para o Microsoft Clarity,
@@ -37,6 +39,7 @@ const QUEUE_MAX = 50;
  * é mascarado no cliente antes de sair — só estrutura, cliques e rolagem são gravados.
  */
 export function initAnalytics() {
+  if (MODO_EXTENSAO) return; // extensão: nenhuma requisição sai do computador
   if (!CLARITY_ID || !_consented || _clarity) return;
   document.body.setAttribute('data-clarity-mask', 'True');
   import('@microsoft/clarity').then(({ default: Clarity }) => {

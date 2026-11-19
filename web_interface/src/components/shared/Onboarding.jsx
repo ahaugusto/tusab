@@ -9,7 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Brain, Play, FolderOpen, Cloud, Cpu, MessageSquare, BarChart2, Bell } from 'lucide-react';
-import { BTN_FOCUS } from '../../constants';
+import { BTN_FOCUS, MODO_EXTENSAO } from '../../constants';
 import ModalWrapper from './ModalWrapper';
 import { usePerfil, PERFIS_META, PERFIS_CONFIG } from '../../hooks/usePerfil';
 import OllamaSetup from '../assistente/OllamaSetup';
@@ -44,7 +44,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
 
   // Detecta Ollama ao entrar no step 5 (step === 5, contentStep === 4)
   useEffect(() => {
-    if (step !== 5) return;
+    if (step !== 5 || MODO_EXTENSAO) return;
     fetchOllamaStatus().then(r => setOllamaStatus(r.data)).catch(() => {});
   }, [step]);
 
@@ -115,12 +115,14 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
     { icon: Brain,         title: t('onboarding.s1_title'), body: s1Body() },
     { icon: Play,          title: t('onboarding.s2_title'), body: t('onboarding.s2_body') },
     { icon: FolderOpen,    title: t('onboarding.s3_title'), body: s3Body() },
-    { icon: Cloud,         title: t('onboarding.s4_title'), body: t('onboarding.s4_body') },
-    { icon: Cpu,           title: t('onboarding.s5_title'), body: t('onboarding.s5_body') },
-    { icon: MessageSquare, title: t('onboarding.s6_title'), body: s6Body() },
+    { icon: Cloud,         title: t('onboarding.s4_title'), body: t('onboarding.s4_body'), id: 'drive' },
+    { icon: Cpu,           title: t('onboarding.s5_title'), body: t('onboarding.s5_body'), id: 'ia' },
+    { icon: MessageSquare, title: t('onboarding.s6_title'), body: s6Body(), id: 'chat' },
+    // Extensão: no lugar de Drive, motor de IA e chat, um passo sobre perguntar na IA do usuário.
+    { icon: MessageSquare, title: t('onboarding.s_extensao_title'), body: t('onboarding.s_extensao_body'), id: 'extensao' },
     { icon: Bell,          title: t('onboarding.s_notif_title'), body: t('onboarding.s_notif_body'), isNotif: true },
     { icon: BarChart2,     title: t('onboarding.s7_title'), body: t('onboarding.s7_body') },
-  ];
+  ].filter((p) => (MODO_EXTENSAO ? !['drive', 'ia', 'chat'].includes(p.id) : p.id !== 'extensao'));
 
   const total   = STEPS.length;
   // step 0 is the profile picker; content steps start at 1
@@ -229,7 +231,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
 
   // ── Steps 1–7 — Content steps ─────────────────────────────────────────────
   return (
-    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label="Introdução ao Tusab" zIndex={zIndex} skipAriaHidden={skipAriaHidden}>
+    <ModalWrapper onClose={() => finish(false)} disableBackdrop disableEscape label={t('ext.app.intro_rotulo')} zIndex={zIndex} skipAriaHidden={skipAriaHidden}>
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 12 }}
@@ -264,7 +266,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
         <p className={`text-sm leading-relaxed mb-4 ${textSub}`}>{current.body}</p>
 
         {/* Step 5 — Configurar IA: OllamaSetup interativo */}
-        {contentStep === 4 && (
+        {current?.id === 'ia' && (
           <div className="mt-1 mb-2">
             <OllamaSetup
               darkMode={darkMode}
