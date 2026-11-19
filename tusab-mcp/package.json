@@ -17,7 +17,7 @@
     "start": "node src/index.js",
     "cli": "node src/cli.js",
     "painel": "node src/cli.js painel",
-    "build:interface": "npm --prefix ../web_interface exec -- vite build --mode extensao --outDir ../tusab-mcp/interface --emptyOutDir",
+    "build:interface": "cd ../web_interface && npx --no-install vite build --mode extensao --outDir ../tusab-mcp/interface --emptyOutDir",
     "pack": "npm run build:interface && node scripts/gerar-licencas.mjs && npx --yes @anthropic-ai/mcpb@2.1.2 pack . ../tusab.mcpb",
     "test": "node --import ./test/_ambiente.js --test \"test/*.test.js\""
   },
