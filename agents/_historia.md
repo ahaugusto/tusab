@@ -117,6 +117,45 @@ Motivação declarada por Augusto: visibilidade. Decisão tomada após consulta 
 
 **Resolvido (07/ago/2026)**: `tusab` e `tusab-public` consolidados num único repo público. Antes do flip de visibilidade, Augusto notou um problema real que a recomendação original (28/jul) não previa: `Documentação do Produto/` (Plano B2B, roadmap, propostas de expansão de mercado) estava versionada dentro do `tusab` — tornar o repo público exporia estratégia de negócio inteira, não só código. Resolvido em duas etapas: (1) `git filter-repo --path "Documentação do Produto/"` extraiu a pasta com histórico completo (91 commits, 30 arquivos) pro novo repo privado `ahaugusto/tusab-docs`; (2) `git filter-repo --path "Documentação do Produto/" --invert-paths` purgou a pasta de **todos** os commits do `tusab` (565→534 commits, os ~30 que só tocavam a pasta foram descartados por ficarem vazios), força-pushed por cima do histórico antigo (tags incluídas). Só depois disso `tusab` foi tornado público (`gh api -X PATCH .../visibility=public`). `build.publish.repo` do electron-builder migrado pra `tusab`; `tusab-public` **deletado** (não mantido como mirror de transição — poucas instalações existentes, `pode apagar o público, nada que vai impactar o lançamento`, decisão de Augusto). Efeito colateral aceito: instalações da v1.0.41/v1.0.42 feitas via `tusab-public` perdem o aviso de atualização automática silenciosamente (app continua funcionando) até reinstalar manualmente uma vez.
 
+### Repositório oficial: organização CriAugu no GitHub — `criaugu/tusab` (18/nov/2026)
+Em 18/nov/2026 o `tusab` e o `tusab-docs` saíram da conta pessoal (`ahaugusto`) para a organização da CriAugu, que no
+mesmo dia trocou de identificador (`augustoalvesbrasil` → `criaugu`). **O endereço oficial é `github.com/criaugu/tusab`**
+e a documentação pública fica em **https://criaugu.github.io/tusab/**. Os endereços antigos de repositório
+(`ahaugusto/tusab`, `augustoalvesbrasil/tusab`) só redirecionam enquanto ninguém registrar esses nomes; o GitHub Pages
+**não** redireciona (o endereço antigo da documentação dá 404).
+
+**Regra para qualquer agente:** todo endereço novo (link, comando `gh --repo`, configuração) usa `criaugu/tusab` ou
+`criaugu.github.io/tusab`. Nunca `ahaugusto/...` nem `augustoalvesbrasil/...` (este último continua certo só no link do
+LinkedIn do autor). Repositórios novos de produto da CriAugu nascem na organização `criaugu`, não na conta pessoal.
+
+**Onde o endereço mora (atualizar todos juntos se o dono ou o nome mudar de novo):**
+- `electron/package.json` → `build.publish.owner` (de onde o app instalado baixa as atualizações);
+- `docs-site/docusaurus.config.js` → `url`, `organizationName` e links; `docs-site/docs/**` e `docs-site/i18n/en/**`;
+- `README.md`, `CONTRIBUTING.md`, `THIRD_PARTY_NOTICES.md`;
+- `electron/help.html` e `electron/main.js` (menu "Reportar problema");
+- `web_interface/src/App.jsx`, `web_interface/src/components/modals/UpdateSuccessModal.jsx` e `web_interface/src/locales/*.json`
+  (links das notas de versão);
+- `tusab-mcp/manifest.json` (`homepage`);
+- User-Agent das fontes públicas: `tusab_engine/motor/fontes/_base.py`, `_mediawiki.py`, `wikipedia.py`, `wiktionary.py` e
+  `tusab-mcp/src/fontes/_base.js`;
+- `scripts/generate-release-notes.js`, `scripts/harness/*`, comentários de `.github/workflows/release.yml`;
+- os agentes `integracao.md`, `qa.md`, `macos.md` e `documentacao.md`;
+- fora do repositório: o `CLAUDE.md` do Tusab, a memória do projeto, o mapa do orquestrador da CriAugu e a cópia no
+  cofre `criaugu-orquestra`.
+Conferência: `git grep -n -e "ahaugusto/" -e "augustoalvesbrasil/" -e "augustoalvesbrasil.github.io"` deve sobrar só no
+histórico (este arquivo) e nos comentários de agosto do `release.yml`.
+
+**Pendências do Augusto registradas na mudança (conferir antes da próxima release):**
+1. `RELEASE_PAT` (segredo usado pelo `release.yml`): é um token pessoal. Precisa ter acesso à organização `criaugu`; um
+   token de acesso restrito (fine-grained) criado para a conta pessoal **não** enxerga repositórios da organização e a
+   release falha no passo de publicar. Conferir em GitHub → Settings → Developer settings → Personal access tokens.
+2. GitGuardian: estava instalado só na conta pessoal e parou de rodar nos PRs depois da transferência. Instalar o app
+   na organização `criaugu`.
+3. Portfólio (`augustobrasil-site/index.html`) e qualquer material público com `github.com/ahaugusto/tusab`: funciona
+   pelo redirecionamento, mas atualizar na próxima publicação.
+4. Os identificadores antigos ficaram livres no GitHub. Se alguém registrar `augustoalvesbrasil` ou o nome de um
+   repositório em `ahaugusto`, o redirecionamento correspondente para de funcionar.
+
 ---
 
 ## Experimentos que falharam — não repropor sem nova evidência
@@ -239,6 +278,12 @@ Motivação declarada por Augusto: visibilidade. Decisão tomada após consulta 
     - O pytest saiu do `requirements.txt`; o CI instala à parte.
     - Resultado: python_env de ~1.000 para 759 MB em disco e instalador Windows de 398 para ~350 MB. O ganho no download é menor porque JSON e testes comprimiam bem.
     - Teste funcional com o Python do pacote passou em 10/10: OCR, PDF, DOCX, XLSX, trafilatura, Drive com discovery estático, LanceDB, BM25, Gemini e yt-dlp.
+
+26. **Endereço do repositório: `criaugu/tusab` e documentação em `criaugu.github.io/tusab`.** Desde 18/nov/2026 o Tusab
+    mora na organização CriAugu. `electron/package.json::build.publish.owner` tem que ser `criaugu`, senão o app
+    instalado procura atualizações no lugar errado. Mudança de dono ou de nome do repositório exige trocar o endereço em
+    todos os lugares da lista em "Repositório oficial: organização CriAugu" (Decisões estratégicas) e conferir o
+    `RELEASE_PAT` antes da próxima release.
 
 ---
 

@@ -31,7 +31,7 @@ MAX_RESULTADOS_PERMITIDO = 50
 # A URL de contato precisa vir com https://: sem ela, a Wikimedia passa a
 # responder 429 depois de ~10 chamadas (medido em 20/out/2026; com https,
 # 30 chamadas seguidas sem 429).
-HEADERS_TUSABBOT = {"User-Agent": "TusabBot/1.0 (+https://github.com/augustoalvesbrasil/tusab; local personal knowledge tool)"}
+HEADERS_TUSABBOT = {"User-Agent": "TusabBot/1.0 (+https://github.com/criaugu/tusab; local personal knowledge tool)"}
 
 # Para as poucas fontes cujo firewall só aceita UA de navegador (ex.: TCU, que
 # devolve HTTP 200 com uma página HTML "Requisição rejeitada" para qualquer

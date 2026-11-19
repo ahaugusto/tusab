@@ -15,13 +15,13 @@ const config = {
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
-  url: 'https://augustoalvesbrasil.github.io',
+  url: 'https://criaugu.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/tusab/',
 
   // GitHub pages deployment config.
-  organizationName: 'augustoalvesbrasil', // GitHub org/user name.
+  organizationName: 'criaugu', // GitHub org/user name.
   projectName: 'tusab', // Repo name.
   deploymentBranch: 'gh-pages',
   trailingSlash: false,
@@ -50,7 +50,7 @@ const config = {
         docs: {
           routeBasePath: '/', // documentação é a home do site
           sidebarPath: './sidebars.js',
-          editUrl: 'https://github.com/augustoalvesbrasil/tusab/tree/main/docs-site/',
+          editUrl: 'https://github.com/criaugu/tusab/tree/main/docs-site/',
           // Conteúdo de demonstração do template Docusaurus — não faz parte
           // da documentação real do Tusab. Excluído em vez de apagado porque
           // o ambiente de scaffolding não tem permissão de delete neste volume.
@@ -94,12 +94,12 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://github.com/augustoalvesbrasil/tusab',
+            href: 'https://github.com/criaugu/tusab',
             label: 'GitHub',
             position: 'right',
           },
           {
-            href: 'https://github.com/augustoalvesbrasil/tusab/releases/latest',
+            href: 'https://github.com/criaugu/tusab/releases/latest',
             label: 'Download',
             position: 'right',
           },
@@ -120,10 +120,10 @@ const config = {
           {
             title: 'Projeto',
             items: [
-              {label: 'Repositório no GitHub', href: 'https://github.com/augustoalvesbrasil/tusab'},
-              {label: 'Changelog completo', href: 'https://github.com/augustoalvesbrasil/tusab/blob/main/CHANGELOG.md'},
-              {label: 'Issues', href: 'https://github.com/augustoalvesbrasil/tusab/issues'},
-              {label: 'Licença (Elastic License 2.0)', href: 'https://github.com/augustoalvesbrasil/tusab/blob/main/LICENSE'},
+              {label: 'Repositório no GitHub', href: 'https://github.com/criaugu/tusab'},
+              {label: 'Changelog completo', href: 'https://github.com/criaugu/tusab/blob/main/CHANGELOG.md'},
+              {label: 'Issues', href: 'https://github.com/criaugu/tusab/issues'},
+              {label: 'Licença (Elastic License 2.0)', href: 'https://github.com/criaugu/tusab/blob/main/LICENSE'},
             ],
           },
           {

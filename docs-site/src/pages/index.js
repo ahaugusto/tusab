@@ -34,7 +34,7 @@ function HomepageHeader() {
             <Link
               className="button button--outline button--lg margin-left--md"
               style={{color: 'white', borderColor: 'white'}}
-              to="https://github.com/augustoalvesbrasil/tusab/releases/latest">
+              to="https://github.com/criaugu/tusab/releases/latest">
               <Translate id="homepage.hero.download">Baixar o Tusab</Translate>
             </Link>
           </div>

@@ -24,7 +24,7 @@ Música opcional: coloque `musica.mp3` (com licença para uso comercial) nesta p
 | 14 | Tabela e planilha | ~20 s | "Peça uma tabela" → "Baixe como planilha .xlsx" | "Peça uma tabela e baixe como planilha, pronta para usar." |
 | 15 | Privacidade | ~5 s | "Roda no seu computador. Seus dados não saem dele." | "Tudo roda no seu computador. Seus dados não saem dele." |
 | 16 | Perfis | ~6 s | Estudante · Professor · Pesquisador · Especialista | "Para estudantes, professores, pesquisadores e especialistas." |
-| 17 | Chamada | ~6 s | "Comece agora." — Windows e macOS — github.com/augustoalvesbrasil/tusab | "Baixe o Tusab para Windows e macOS." |
+| 17 | Chamada | ~6 s | "Comece agora." — Windows e macOS — github.com/criaugu/tusab | "Baixe o Tusab para Windows e macOS." |
 
 ## Cuidados de honestidade (não alterar sem checar)
 - Não afirmar que é gratuito nem "open source": a licença é Elastic License 2.0 (código disponível para leitura e auditoria).

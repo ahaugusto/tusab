@@ -9,7 +9,7 @@ slug: /licenca
 
 ## Code — Elastic License 2.0
 
-Tusab's source code is **source-available** under the [Elastic License 2.0](https://github.com/augustoalvesbrasil/tusab/blob/main/LICENSE): anyone can read, audit, run, and freely modify it for their own use. The one relevant restriction is **not offering Tusab as a hosted/managed service to third parties**.
+Tusab's source code is **source-available** under the [Elastic License 2.0](https://github.com/criaugu/tusab/blob/main/LICENSE): anyone can read, audit, run, and freely modify it for their own use. The one relevant restriction is **not offering Tusab as a hosted/managed service to third parties**.
 
 External Pull Requests are not accepted at this time — see [Contributing](/contribuindo).
 
@@ -28,7 +28,7 @@ If you distribute a modified version, give the fork a different name and make it
 
 ## Third-party dependencies
 
-The full list of third-party libraries used and their licenses is in [`THIRD_PARTY_NOTICES.md`](https://github.com/augustoalvesbrasil/tusab/blob/main/THIRD_PARTY_NOTICES.md) in the repository.
+The full list of third-party libraries used and their licenses is in [`THIRD_PARTY_NOTICES.md`](https://github.com/criaugu/tusab/blob/main/THIRD_PARTY_NOTICES.md) in the repository.
 
 ---
 

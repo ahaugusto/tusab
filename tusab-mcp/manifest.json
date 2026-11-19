@@ -9,7 +9,7 @@
     "name": "CriAugu",
     "url": "https://criaugu.com"
   },
-  "homepage": "https://augustoalvesbrasil.github.io/tusab/",
+  "homepage": "https://criaugu.github.io/tusab/",
   "license": "Elastic-2.0",
   "server": {
     "type": "node",

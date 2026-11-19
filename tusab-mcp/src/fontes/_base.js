@@ -30,7 +30,7 @@ export const MAX_RESULTADOS_PERMITIDO = 50;
 // robô que se identifica — ex.: WHO IRIS e PAHO IRIS. A URL de contato precisa
 // vir com https://: sem ela, a Wikimedia passa a responder 429 depois de ~10
 // chamadas. Não leva nenhum dado do usuário (só o endereço público do projeto).
-export const HEADERS_TUSABBOT = { 'User-Agent': 'TusabBot/1.0 (+https://github.com/augustoalvesbrasil/tusab; local personal knowledge tool)' };
+export const HEADERS_TUSABBOT = { 'User-Agent': 'TusabBot/1.0 (+https://github.com/criaugu/tusab; local personal knowledge tool)' };
 
 // Para as poucas fontes cujo firewall só aceita UA de navegador (ex.: TCU).
 export const HEADERS_NAVEGADOR = {
@@ -40,7 +40,7 @@ export const HEADERS_NAVEGADOR = {
 
 // Onde o Python não mandava cabeçalho (o requests usava "python-requests/x"),
 // a extensão se identifica de forma genérica — nunca com dado do usuário.
-export const USER_AGENT_PADRAO = 'Tusab/0.2 (+https://augustoalvesbrasil.github.io/tusab/)';
+export const USER_AGENT_PADRAO = 'Tusab/0.2 (+https://criaugu.github.io/tusab/)';
 
 /** max(1, min(int(n), MAX_RESULTADOS_PERMITIDO)) */
 export function limitarMax(n) {
