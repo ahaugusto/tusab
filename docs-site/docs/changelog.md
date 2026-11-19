@@ -7,7 +7,7 @@ slug: /changelog
 
 # Changelog
 
-O histórico completo de todas as versões — formato [Keep a Changelog](https://keepachangelog.com), versionamento [semântico](https://semver.org) — vive em [`CHANGELOG.md`](https://github.com/ahaugusto/tusab/blob/main/CHANGELOG.md) no repositório principal. Esta página resume os marcos mais recentes.
+O histórico completo de todas as versões — formato [Keep a Changelog](https://keepachangelog.com), versionamento [semântico](https://semver.org) — vive em [`CHANGELOG.md`](https://github.com/augustoalvesbrasil/tusab/blob/main/CHANGELOG.md) no repositório principal. Esta página resume os marcos mais recentes.
 
 ## Destaques recentes
 
@@ -49,4 +49,4 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 **v1.0.38–40 (2026-07-24/27)** — Reconhecimento automático de documentos jurídicos, confiança graduada por sentença no chat, exposição do MCP Server na interface.
 
-Para o detalhe completo — incluindo correções internas de CI/infra — consulte o [CHANGELOG.md completo](https://github.com/ahaugusto/tusab/blob/main/CHANGELOG.md).
+Para o detalhe completo — incluindo correções internas de CI/infra — consulte o [CHANGELOG.md completo](https://github.com/augustoalvesbrasil/tusab/blob/main/CHANGELOG.md).

@@ -1626,7 +1626,7 @@ function App() {
                 </button>
               ) : (
                 <a
-                  href="https://github.com/ahaugusto/tusab-public/releases/latest"
+                  href="https://github.com/augustoalvesbrasil/tusab/releases/latest"
                   target="_blank" rel="noreferrer"
                   className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-colors
                     ${darkMode ? 'border-white/15 text-slate-300 hover:bg-white/8' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>

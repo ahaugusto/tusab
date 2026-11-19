@@ -7,7 +7,7 @@ slug: /contribuindo
 
 # Contribuindo
 
-O código do Tusab é **source-available** ([Elastic License 2.0](https://github.com/ahaugusto/tusab/blob/main/LICENSE)) — qualquer pessoa pode ler, auditar, rodar e modificar para uso próprio. Isso é deliberado: é a prova de que o princípio local-first ("seus dados nunca saem da máquina") é verificável, não só uma promessa de marketing.
+O código do Tusab é **source-available** ([Elastic License 2.0](https://github.com/augustoalvesbrasil/tusab/blob/main/LICENSE)) — qualquer pessoa pode ler, auditar, rodar e modificar para uso próprio. Isso é deliberado: é a prova de que o princípio local-first ("seus dados nunca saem da máquina") é verificável, não só uma promessa de marketing.
 
 ## Sobre Pull Requests
 
@@ -15,6 +15,6 @@ O código do Tusab é **source-available** ([Elastic License 2.0](https://github
 
 ## Como ajudar mesmo assim
 
-- **Bugs e sugestões** — abra uma [issue no GitHub](https://github.com/ahaugusto/tusab/issues); é lida e usada para priorizar o roadmap.
+- **Bugs e sugestões** — abra uma [issue no GitHub](https://github.com/augustoalvesbrasil/tusab/issues); é lida e usada para priorizar o roadmap.
 - **Dúvidas técnicas sobre a arquitetura** — o `CLAUDE.md` na raiz do repositório documenta a arquitetura em camadas, decisões técnicas não óbvias e onde encontrar cada parte do código.
 - **Forks** — bem-vindos nos termos da [licença](/licenca); só não use o nome ou a marca "Tusab" (ver [Licença](/licenca)).

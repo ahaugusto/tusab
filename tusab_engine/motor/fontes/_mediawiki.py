@@ -26,9 +26,9 @@ Achados do teste ao vivo (20/out/2026):
   para a íntegra.
 - A Wikimedia aplica limite de requisições por User-Agent (HTTP 429 com
   `Retry-After` de 15–50 s, corpo text/plain, header `x-envoy-ratelimited`).
-  Com o User-Agent antigo ("... contato via github.com/ahaugusto/tusab",
+  Com o User-Agent antigo ("... contato via github.com/augustoalvesbrasil/tusab",
   URL SEM esquema) o balde é de ~10 requisições a cada ~45–60 s — mesmo com
-  2 s entre chamadas. O mesmo texto com "https://github.com/ahaugusto/tusab"
+  2 s entre chamadas. O mesmo texto com "https://github.com/augustoalvesbrasil/tusab"
   passou 30/30 chamadas seguidas sem 429 (medido em 20/out/2026): a Wikimedia
   só reconhece o contato com URL completa. Corrigido em _base.py (e em
   wikipedia.py/wiktionary.py) no mesmo dia; WHO e PAHO IRIS revalidadas

@@ -7,7 +7,7 @@ slug: /contribuindo
 
 # Contributing
 
-Tusab's code is **source-available** ([Elastic License 2.0](https://github.com/ahaugusto/tusab/blob/main/LICENSE)) — anyone can read, audit, run, and modify it for their own use. This is deliberate: it's proof that the local-first principle ("your data never leaves the machine") is verifiable, not just a marketing promise.
+Tusab's code is **source-available** ([Elastic License 2.0](https://github.com/augustoalvesbrasil/tusab/blob/main/LICENSE)) — anyone can read, audit, run, and modify it for their own use. This is deliberate: it's proof that the local-first principle ("your data never leaves the machine") is verifiable, not just a marketing promise.
 
 ## About Pull Requests
 
@@ -15,6 +15,6 @@ Tusab's code is **source-available** ([Elastic License 2.0](https://github.com/a
 
 ## How to help anyway
 
-- **Bugs and suggestions** — open an [issue on GitHub](https://github.com/ahaugusto/tusab/issues); it's read and used to prioritize the roadmap.
+- **Bugs and suggestions** — open an [issue on GitHub](https://github.com/augustoalvesbrasil/tusab/issues); it's read and used to prioritize the roadmap.
 - **Technical questions about the architecture** — `CLAUDE.md` at the repository root documents the layered architecture, non-obvious technical decisions, and where to find each part of the code.
 - **Forks** — welcome under the terms of the [license](/licenca); just don't use the "Tusab" name or brand (see [License](/licenca)).

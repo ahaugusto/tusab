@@ -41,7 +41,7 @@ FONTE_META = {
 }
 
 API_URL = "https://pt.wikipedia.org/w/api.php"
-_HEADERS = {"User-Agent": "TusabBot/1.0 (+https://github.com/ahaugusto/tusab; local personal knowledge tool)"}
+_HEADERS = {"User-Agent": "TusabBot/1.0 (+https://github.com/augustoalvesbrasil/tusab; local personal knowledge tool)"}
 
 
 def buscar(

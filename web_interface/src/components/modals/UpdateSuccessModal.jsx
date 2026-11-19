@@ -11,8 +11,8 @@ export default function UpdateSuccessModal({ version, darkMode, onClose }) {
   if (!version) return null;
 
   const releaseUrl = version
-    ? `https://github.com/ahaugusto/tusab-public/releases/tag/v${version}`
-    : 'https://github.com/ahaugusto/tusab-public/releases';
+    ? `https://github.com/augustoalvesbrasil/tusab/releases/tag/v${version}`
+    : 'https://github.com/augustoalvesbrasil/tusab/releases';
 
   // Resumo real da novidade — só existe quando a versão está em
   // RELEASE_HIGHLIGHTS (ver comentário no arquivo). Sem entrada, o modal
