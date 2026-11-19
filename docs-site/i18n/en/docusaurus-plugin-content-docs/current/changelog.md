@@ -7,11 +7,23 @@ slug: /changelog
 
 # Changelog
 
-Technical summary of the versions. The desktop app's complete history, in [Keep a Changelog](https://keepachangelog.com) format with [semantic versioning](https://semver.org), is in [`CHANGELOG.md`](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).
+Technical summary of the versions. From 2.0.0 on, Tusab is only the AI extension; the numbering continues the product's (the desktop app stopped at 1.0.64). The desktop's complete history, in [Keep a Changelog](https://keepachangelog.com) format, is in [`CHANGELOG.md`](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).
 
 ## Extension (`tusab-mcp/`)
 
-**v0.6.0 (2026-11-18)** — First version published in the repository.
+**v2.0.0 (2026-11-19)** — Tusab becomes only the AI extension; the desktop app is discontinued.
+
+- First version of the extension published in the [releases](https://github.com/criaugu/tusab/releases) as `tusab-2.0.0.mcpb`, with a SHA-256 checksum next to it. GitHub Actions builds the release from the tag: tests, compiled screen, license notices and package.
+- Square icon in the package (light and dark theme versions), made from the logo.
+- **Materials** tab: what the AI saves in Tusab opens in a dialog on the screen (flashcards with spaced repetition, summaries, sticky notes and documents). New `documento` type in `tusab_salvar_estudo` (Markdown, up to 60,000 characters), and the prompts that produce documents (quiz, mind map, lesson plan, test, technical note…) ask to save them.
+- Connection with the AI: every prompt starts with a check (without the Tusab tools, the AI warns instead of answering from memory), and the "copied" notice shows whether Tusab is connected and confirms when the AI queried the base (`GET /api/conexao`).
+- Screen fixes: in the dark theme, the open list of selects was white with white text (native controls now follow the theme); select arrows have a fixed gap from the border.
+- A single source for the version number: `tusab-mcp/package.json`. The server and the screen read it from there; a test checks that `manifest.json` matches.
+- Extension descriptions (pt, en, es) no longer mention the desktop app.
+- Desktop app discontinued: its code (Electron, Python engine, tests and installer automation) left the repository and is preserved in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag. The 1.0.x releases stay published as history, with no further fixes.
+- CI tests the extension on Windows, macOS and Linux and audits the accessibility of the screen served by the plugin (pa11y-ci, light and dark theme).
+
+**v0.6.0 (2026-11-18)** — First version of the extension in the repository (not published as a package).
 
 - MCP server over stdio with 15 tools: search with citations (`tusab_buscar`), reading a source and an original, YouTube extraction, text files, public sources, study memory and spaced repetition, weekly news, token savings, status and opening the screen.
 - Tusab screen served on `127.0.0.1` with a per-session key, `Host` and `Origin` checked, no CORS and CSP `'self'`: the desktop app interface built in extension mode.
@@ -24,7 +36,7 @@ Technical summary of the versions. The desktop app's complete history, in [Keep 
 - Locally estimated token savings, with a command-line test (`medir-tokens`).
 - `.mcpb` package with `LICENSE`, `TRADEMARK.md` and `THIRD_PARTY_NOTICES.txt`.
 
-## Desktop app
+## Desktop app (discontinued on 2026-11-19)
 
 **v1.0.64 (2026-10-27)** — Optional telemetry is recorded again: the Clarity ID pointed to a mobile app project; it now uses a Site project, with strict masking.
 

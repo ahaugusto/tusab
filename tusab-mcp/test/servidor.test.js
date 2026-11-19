@@ -12,6 +12,13 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 const ENTRADA = fileURLToPath(new URL('../src/index.js', import.meta.url));
 const YTDLP_FALSO = fileURLToPath(new URL('./ytdlp-falso.mjs', import.meta.url));
 
+test('versão única: o servidor usa a do package.json, e o manifest.json bate com ela', async () => {
+  const { VERSAO } = await import('../src/servidor.js');
+  const lerJson = (arq) => JSON.parse(fs.readFileSync(new URL(arq, import.meta.url), 'utf8'));
+  assert.equal(VERSAO, lerJson('../package.json').version);
+  assert.equal(lerJson('../manifest.json').version, VERSAO);
+});
+
 async function conectar(raiz) {
   const transporte = new StdioClientTransport({
     command: process.execPath,

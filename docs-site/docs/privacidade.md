@@ -56,7 +56,7 @@ Contato: **tusab@tusab.solutions**
 
 ## App desktop
 
-No [app desktop](/desktop/visao-geral), além do acima:
+No [app desktop](/desktop/visao-geral), descontinuado em 19/11/2026 (vale para as versões 1.0.x ainda instaladas), além do acima:
 
 - **Assistente:** com um provedor externo (OpenAI, Anthropic, Gemini, Groq, OpenRouter, endpoint próprio), a pergunta e os trechos recuperados vão para esse provedor; o app avisa ao configurar. Com Ollama local, nada sai.
 - **Chaves de API** ficam no keychain do sistema (`safeStorage`) e são usadas direto do computador para o provedor escolhido.

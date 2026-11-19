@@ -7,7 +7,7 @@ slug: /acessibilidade
 
 # Acessibilidade
 
-A tela do Tusab (a mesma interface React do app desktop, em `web_interface/`) é auditada contra **WCAG 2.1 nível AA**. O que vale para a interface vale para os dois.
+A tela do Tusab (a interface React de `web_interface/`, a mesma que o app desktop descontinuado usava) é auditada contra **WCAG 2.1 nível AA**.
 
 ## Conformidade por área
 
@@ -51,7 +51,7 @@ Na tela da extensão, os atalhos de chat, Assistente e Histórico não se aplica
 
 Todos os atalhos com `Shift` são desativados automaticamente enquanto o foco está num campo de texto, para não interferir com a digitação — em qualquer sistema.
 
-No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nativa — `Shift` continua funcionando igual, `⌘` é só uma opção a mais. **Três exceções ficam só em `Shift + tecla`, mesmo no Mac**: Monitor, Histórico e Relatório usam letras (`M`, `H`, `R`) que colidem com atalhos do próprio sistema operacional ou do menu do Electron (Minimizar, Ocultar app, Recarregar) — esses interceptam a tecla antes que o app consiga reconhecer o atalho, então usar `⌘` nesses três casos nunca funcionaria de forma confiável.
+No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nativa — `Shift` continua funcionando igual, `⌘` é só uma opção a mais. **Três exceções ficam só em `Shift + tecla`, mesmo no Mac**: Monitor, Histórico e Relatório usam letras (`M`, `H`, `R`) que colidem com atalhos do próprio sistema operacional ou do navegador (no app desktop, do menu do Electron) (Minimizar, Ocultar app, Recarregar) — esses interceptam a tecla antes que o app consiga reconhecer o atalho, então usar `⌘` nesses três casos nunca funcionaria de forma confiável.
 
 ## Checklist WCAG 2.1 AA — resumo por princípio
 
@@ -72,6 +72,6 @@ No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nati
 
 ### Escopo do pa11y-ci
 
-Hoje a auditoria automatizada cobre só a **tela de Landing** (temas claro e escuro), a única alcançável sem estado prévio (sem backend real), o que a torna testável de forma determinística em CI. O restante (telas internas, modais, fluxos com dados) é coberto por revisão manual e por testes com leitor de tela, não por esse gate automatizado.
+Hoje a auditoria automatizada cobre só a **tela de Landing** (temas claro e escuro), a primeira tela e a única alcançável sem estado prévio, o que a torna testável de forma determinística em CI. No CI, ela é servida pelo próprio plugin, como na extensão instalada (`node tusab-mcp/src/cli.js painel --sem-navegador`, com um repositório vazio). O restante (telas internas, modais, fluxos com dados) é coberto por revisão manual e por testes com leitor de tela, não por esse gate automatizado.
 
 A regra de contraste (`color-contrast`) é validada via **HTML_CodeSniffer**, não via axe-core, nesta configuração específica — o fundo animado da Landing (`<canvas>` do `CircuitBackground`) faz o axe sinalizar a maioria dos textos como "precisa de revisão manual" (não consegue amostrar um fundo que muda), o que reduziria o gate a ruído sem essa escolha.

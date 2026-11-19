@@ -7,6 +7,10 @@ slug: /funcionalidades/assistente-rag
 
 # Desktop app — Assistant (RAG chat)
 
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
 The Assistant is the chat of the **desktop app**: the user asks in natural language and gets a streaming answer with source citation. Retrieval (RAG) and generation run on the local backend, with Ollama or a configured external provider.
 
 :::note Desktop app only

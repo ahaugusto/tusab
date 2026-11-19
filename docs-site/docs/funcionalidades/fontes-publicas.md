@@ -12,7 +12,7 @@ O Tusab busca em **70 fontes públicas**, organizadas em **11 áreas de conhecim
 - **Pela IA:** `tusab_fontes_publicas` lista as fontes por área, com o `id` de cada uma; `tusab_buscar_fonte_publica` busca um tema numa fonte e guarda os resultados no projeto (cria o projeto se ele não existir). De 1 a 50 resultados, padrão 10.
 - **Pela tela:** aba Extração → **Base pública** (perfis Professor, Pesquisador e Especialista), várias fontes de uma vez. De 1 a 50 resultados por fonte, padrão 20.
 
-O código fica em `tusab-mcp/src/fontes/`, com o mesmo registro de fontes do app desktop (`tusab_engine/motor/fontes/`).
+O código fica em `tusab-mcp/src/fontes/`, com o mesmo registro de fontes do app desktop (`tusab_engine/motor/fontes/`, hoje na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final/tusab_engine/motor/fontes)).
 
 Só entram fontes testadas com busca real por palavra-chave e conteúdo textual (não apenas metadado). O levantamento inicial partiu do documento "Bases de Dados Abertas — Consolidação Ampliada de Endpoints de API" (Ministério da Saúde, jul/2026); a ampliação de out/2026 testou mais de 260 candidatos e mais de 150 portais de dados abertos.
 

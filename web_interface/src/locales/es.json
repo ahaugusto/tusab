@@ -1563,7 +1563,17 @@
   "ext.copiado.app": "Abrir Claude (app)",
   "ext.copiado.navegador": "Abrir en el navegador",
   "ext.copiado.navegador_qual": "IA en el navegador",
-  "ext.copiado.aviso_navegador": "En el navegador, la IA no accede a Tusab en este ordenador: usa la app (Claude Desktop) para que lea tu base.",
+  "ext.copiado.aviso_navegador": "En el navegador, la IA no accede al Tusab de este ordenador: avisará que Tusab no está conectado. Para usar tu base, pégalo en la app (Claude Desktop).",
   "ext.copiado.fechar": "Cerrar aviso",
-  "ext.repo.tipo_texto": "TEXTO"
+  "ext.repo.tipo_texto": "TEXTO",
+  "tabs.materiais": "Materiales",
+  "estudo.type_documento": "Documento",
+  "ext.materiais.dica": "Lo que tu IA <b>guarda en Tusab</b> (flashcards, resúmenes, quizzes, mapas mentales, planes de clase…) aparece aquí. Haz clic para abrir: los flashcards tienen repaso espaciado.",
+  "ext.materiais.sem_projetos": "Aún no hay proyectos",
+  "ext.materiais.vazio_titulo": "No hay materiales guardados en este proyecto",
+  "ext.materiais.vazio_texto": "Usa un prompt de la Biblioteca (flashcards, resumen, quiz, mapa mental, plan de clase…) en Claude Desktop: al final, la IA guarda el resultado aquí.",
+  "ext.materiais.ir_biblioteca": "Ir a la Biblioteca de prompts",
+  "ext.copiado.sem_conexao": "Tusab no está conectado a ninguna IA ahora. Abre Claude Desktop con la extensión Tusab activada; sin ella, la IA avisará que no puede leer tu base.",
+  "ext.copiado.aguardando": "Tusab conectado a {{cliente}}. Pega y envía: la confirmación aparece aquí cuando la IA consulte tu base.",
+  "ext.copiado.consultou": "La IA consultó tu base en Tusab ({{ferramenta}}): la respuesta viene de tus fragmentos."
 }

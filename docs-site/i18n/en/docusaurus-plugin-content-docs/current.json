@@ -15,8 +15,8 @@
     "message": "Development",
     "description": "The label for category 'Desenvolvimento' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.App desktop (versão anterior)": {
-    "message": "Desktop app (previous version)",
-    "description": "The label for category 'App desktop (versão anterior)' in sidebar 'tutorialSidebar'"
+  "sidebar.tutorialSidebar.category.App desktop (descontinuado)": {
+    "message": "Desktop app (discontinued)",
+    "description": "The label for category 'App desktop (descontinuado)' in sidebar 'tutorialSidebar'"
   }
 }

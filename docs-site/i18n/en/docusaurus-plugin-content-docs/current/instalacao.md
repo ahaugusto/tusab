@@ -7,23 +7,29 @@ slug: /instalacao
 
 # Installation
 
-Tusab is installed as an extension (local MCP server) in the AI tool. Systems declared in the manifest: Windows (`win32`) and macOS (`darwin`). For the desktop app (`.exe` and `.dmg` installers), see [Desktop app — installation](/desktop/instalacao).
+Tusab is installed as an extension (local MCP server) in the AI tool. Systems declared in the manifest: Windows (`win32`) and macOS (`darwin`).
+
+:::note Desktop app discontinued
+The desktop app (`.exe` and `.dmg` installers) was discontinued on 2026-11-19. Its documentation stays in the [Desktop app](/desktop/visao-geral) section as a record.
+:::
 
 ## Claude Desktop: `.mcpb` package
 
-The extension is distributed as an [MCP Bundle](https://github.com/modelcontextprotocol/mcpb) package (`tusab.mcpb`). The package carries the server code, the dependencies, the prebuilt screen and the license texts. Node.js comes with Claude Desktop itself, so there is nothing else to install.
+<a className="button button--primary button--lg" href="https://github.com/criaugu/tusab/releases/download/v2.0.0/tusab-2.0.0.mcpb">Download Tusab 2.0.0 (.mcpb)</a>
 
-:::note The `.mcpb` is not published in releases yet
-For now, the [GitHub releases](https://github.com/criaugu/tusab/releases) carry only the desktop app installers. To get `tusab.mcpb`, build the package from source (below).
-:::
+SHA-256 checksum: the `tusab-2.0.0.mcpb.sha256` file, in the same [release](https://github.com/criaugu/tusab/releases/tag/v2.0.0), holds the package's checksum. To verify, compare it with the output of `Get-FileHash .\tusab-2.0.0.mcpb -Algorithm SHA256` (Windows, PowerShell) or `shasum -a 256 tusab-2.0.0.mcpb` (macOS).
 
-1. Open the `tusab.mcpb` file with Claude Desktop installed; it shows the extension installation screen.
+The extension is distributed as an [MCP Bundle](https://github.com/modelcontextprotocol/mcpb) package (`.mcpb`). The package carries the server code, the dependencies, the prebuilt screen and the license texts. Node.js comes with Claude Desktop itself, so there is nothing else to install.
+
+1. Open the `tusab-2.0.0.mcpb` file with Claude Desktop installed; it shows the extension installation screen.
 2. When Claude Desktop asks for the repository folder (field "Pasta do repositório"), choose a folder. Tusab creates `data/` inside it. To open a base created by the desktop app, choose the app's data folder (see [Data and storage](/arquitetura/dados-e-armazenamento#where-the-data-lives)).
 3. On the first run in a folder, the plugin opens the Tusab screen in the browser once (marker in `data/config/boas_vindas.json`).
 
 The chosen folder is passed to the server through the `TUSAB_REPOSITORIO` environment variable (field `user_config.repositorio` in `manifest.json`). Without that variable, the server uses `~/Tusab`.
 
 ## Building the `.mcpb` from source
+
+An alternative to the download above. The generated package is named `tusab.mcpb` and installs the same way.
 
 Prerequisite: Node.js 18.17 or newer.
 

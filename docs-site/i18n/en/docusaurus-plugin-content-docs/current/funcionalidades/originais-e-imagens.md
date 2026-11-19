@@ -33,7 +33,7 @@ A closed list, checked by **the name extension and the file signature** (first b
 | Image | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` |
 | Audio | `.mp3`, `.wav`, `.ogg`, `.opus`, `.flac`, `.m4a`, `.aac` |
 
-SVG, HTML and executables are refused. Images and audio are **stored without being read**: Tusab does no OCR or transcription (the [desktop app](/desktop/visao-geral) does, with local models). Upload limit: 50 MB per file.
+SVG, HTML and executables are refused. Images and audio are **stored without being read**: Tusab does no OCR or transcription (the discontinued [desktop app](/desktop/visao-geral) did, with local models). Upload limit: 50 MB per file.
 
 ## `tusab_ler_original`
 

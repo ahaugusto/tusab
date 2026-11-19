@@ -44,9 +44,14 @@
 //          conceitos-chave (3-5 tópicos), insights (2-3 parágrafos), lacunas.
 //   Grava management/resumo_estudo.md + artefato. Resposta: { ok, flashcards: [], resumo, postits: [], total: 0, artefatos }
 //
+// salvarDocumentoEstudo(raiz, projeto, texto, { titulo?, tema?, fontes? })
+//   texto: Markdown, 1 a 60.000 caracteres. Só da extensão: o que a IA gera e não é resumo
+//   (quiz, mapa mental, plano de aula, prova, nota técnica, roteiro...), para o usuário abrir
+//   depois na tela do Tusab (aba Materiais). Só o artefato; não mexe em management/.
+//
 // salvarArtefato(raiz, projeto, { tipo, conteudo, titulo?, tema?, fontes? })
 //   tipo: 'flashcards' | 'postits' | 'resumo' (os três que o desktop gera; o
-//   "ambos" do desktop é flashcards + resumo, duas chamadas). conteudo: o mesmo
+//   "ambos" do desktop é flashcards + resumo, duas chamadas) | 'documento'. conteudo: o mesmo
 //   formato de cards/postits/texto acima. Encaminha para a função do tipo.
 //
 //   Opções comuns: tema (até 200 caracteres; entra no título "Flashcards — {tema} (data)"),
@@ -80,11 +85,12 @@ export const LIMITES = Object.freeze({
   resposta: 2000,
   postit: 400,
   resumo: 30000,
+  documento: 60000,
   digest: 20000,
 });
 
-const TIPOS_ARTEFATO = ['flashcards', 'resumo', 'postits'];
-const ROTULOS = { resumo: 'Resumo', flashcards: 'Flashcards', postits: 'Post-its' };
+export const TIPOS_ARTEFATO = ['flashcards', 'resumo', 'postits', 'documento'];
+const ROTULOS = { resumo: 'Resumo', flashcards: 'Flashcards', postits: 'Post-its', documento: 'Documento' };
 const AVISO_IA = 'AVISO: Conteúdo gerado por IA via Modo Estudo — derivado do material original, não é fonte primária.';
 const JANELA_DIGEST_MS = 7 * 24 * 3600 * 1000;
 
@@ -530,10 +536,24 @@ export function salvarResumo(raiz, projeto, textoResumo, opcoes = {}) {
   });
 }
 
+export function salvarDocumentoEstudo(raiz, projeto, textoDoc, opcoes = {}) {
+  return protegido(() => {
+    const { nome, prefixo } = projetoExistente(raiz, projeto);
+    const comuns = opcoesComuns(opcoes);
+    if (typeof textoDoc !== 'string') throw new Recusa(t('Envie o documento como texto (Markdown).'));
+    const doc = textoDoc.replace(/\r\n?/g, '\n');
+    if (!pyStrip(doc)) throw new Recusa(t('O documento está vazio.'));
+    if (doc.length > LIMITES.documento) throw new Recusa(t('O documento tem {length} caracteres (máximo {max}).', { length: doc.length, max: LIMITES.documento }));
+    const entrada = salvarEstudoIndexavel(raiz, prefixo, nome, 'documento', comuns.tema, doc, { ...comuns, agora: opcoes.agora || new Date() });
+    return { ok: true, flashcards: [], resumo: '', postits: [], total: 0, artefatos: entrada ? [entrada] : [] };
+  });
+}
+
 export function salvarArtefato(raiz, projeto, { tipo, conteudo, ...opcoes } = {}) {
   if (tipo === 'flashcards') return salvarFlashcards(raiz, projeto, conteudo, opcoes);
   if (tipo === 'postits') return salvarPostits(raiz, projeto, conteudo, opcoes);
   if (tipo === 'resumo') return salvarResumo(raiz, projeto, conteudo, opcoes);
+  if (tipo === 'documento') return salvarDocumentoEstudo(raiz, projeto, conteudo, opcoes);
   return { error: true, message: t('Tipo inválido. Use: {v}.', { v: TIPOS_ARTEFATO.join(', ') }) };
 }
 

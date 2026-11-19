@@ -61,7 +61,7 @@ Antes de `tusab_ler_original` devolver uma imagem, saem EXIF, XMP, comentários 
 
 ## App desktop
 
-O app desktop tem outras superfícies: a API FastAPI em `localhost:8001`, a janela Electron e as chaves de API guardadas no sistema. Os controles aplicados:
+O app desktop (descontinuado em 19/11/2026; as versões 1.0.x não recebem mais correções) tem outras superfícies: a API FastAPI em `localhost:8001`, a janela Electron e as chaves de API guardadas no sistema. Os controles aplicados:
 
 | Controle | Como |
 |---|---|

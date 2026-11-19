@@ -7,6 +7,10 @@ slug: /desktop/decisoes-tecnicas
 
 # Desktop app — technical decisions
 
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
 Decisions in the desktop app's Python backend and Assistant that wouldn't be evident just from reading the code. The extension's decisions are in [Technical decisions](/arquitetura/decisoes-tecnicas).
 
 | Decision | Reason |

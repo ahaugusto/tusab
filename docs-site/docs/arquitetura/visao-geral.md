@@ -7,7 +7,7 @@ slug: /arquitetura/visao-geral
 
 # Visão geral da arquitetura
 
-O Tusab (`tusab-mcp/`, versão 0.6.0) é um servidor [MCP](https://modelcontextprotocol.io) escrito em Node.js (ESM, Node 18.17 ou mais novo). A ferramenta de IA do usuário inicia o processo no próprio computador e conversa com ele pela entrada e saída padrão (**stdio**). O mesmo processo:
+O Tusab (`tusab-mcp/`, versão 2.0.0) é um servidor [MCP](https://modelcontextprotocol.io) escrito em Node.js (ESM, Node 18.17 ou mais novo). A ferramenta de IA do usuário inicia o processo no próprio computador e conversa com ele pela entrada e saída padrão (**stdio**). O mesmo processo:
 
 - responde à IA pelas [ferramentas MCP](/ferramentas-mcp) e pelos [prompts](/biblioteca-de-prompts);
 - serve a [tela do Tusab](/tela) em `http://127.0.0.1:<porta aleatória>`;
@@ -109,11 +109,11 @@ A tela é a interface React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide 
 | Saída | `tusab-mcp/interface/`, servida pelo painel |
 | O que o modo muda | `VITE_TUSAB_MODO=extensao` (`web_interface/.env.extensao`) liga `MODO_EXTENSAO` em `src/constants/index.js`: `API_BASE='/api'`, chave da sessão nas chamadas, sem fontes do Google nem sourcemaps (CSP `'self'`), sem telemetria, sem chat |
 
-O mesmo código gera a interface do [app desktop](/desktop/visao-geral) com `npx vite build`.
+O [app desktop](/desktop/visao-geral), descontinuado, compilava o mesmo código com `npx vite build`.
 
 ## O que fica com a IA do usuário
 
-Conversar, resumir, montar quizzes e gerar flashcards. O Tusab não tem chat próprio, LLM, Ollama, busca vetorial, Google Drive, transcrição de áudio, OCR nem telemetria: entrega os trechos, guarda o que precisa de memória entre conversas e cuida da base. Esses recursos existem no [app desktop](/desktop/visao-geral).
+Conversar, resumir, montar quizzes e gerar flashcards. O Tusab não tem chat próprio, LLM, Ollama, busca vetorial, Google Drive, transcrição de áudio, OCR nem telemetria: entrega os trechos, guarda o que precisa de memória entre conversas e cuida da base. Esses recursos existiam no [app desktop](/desktop/visao-geral), descontinuado.
 
 ## Padrões
 

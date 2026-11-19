@@ -57,7 +57,7 @@ These formats are the same as the desktop app's and stay in Portuguese (labels a
 - `data/tusab.sqlite`, with an FTS5 virtual table (`unicode61 remove_diacritics 2`) and ranking by `bm25()`.
 - **The `.txt` files are the source of truth.** The index can be rebuilt and is synced per file (modification time and size): one excerpt per block in transcripts, by paragraph in documents and texts.
 - The database is kept in memory and written atomically under a lock file, because more than one AI tool may open the same repository.
-- The desktop app has its own index (`data/agent_index/`, LanceDB), which the extension doesn't use.
+- The desktop app had its own index (`data/agent_index/`, LanceDB), which the extension doesn't use.
 
 ## Project names
 

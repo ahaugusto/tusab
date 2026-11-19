@@ -21,7 +21,8 @@ O endereço tem a forma `http://127.0.0.1:<porta>/?chave=<chave da sessão>`. El
 
 - **Extração:** YouTube (canal, playlists, abas, período) e fontes públicas, com fila, pausa, log ao vivo e atualização automática de canais.
 - **Repositório:** documentos, textos e páginas web por projeto; excluir e limpar; espaço ocupado (originais × texto); marca "Só texto"; botão **Pedir à IA**.
-- **Biblioteca de Prompts:** os prompts prontos e "Meus prompts", para copiar em qualquer IA (ver [Biblioteca de Prompts](/biblioteca-de-prompts)).
+- **Biblioteca de Prompts:** os prompts prontos e "Meus prompts", para copiar em qualquer IA (ver [Biblioteca de Prompts](/biblioteca-de-prompts)). Depois de copiar, um aviso leva ao app do Claude ou à IA no navegador e mostra o estado da conexão: se o plugin está ligado a uma ferramenta de IA (nome informado por ela ao conectar) e, depois da cópia, quando a IA usou uma ferramenta do Tusab (`GET /api/conexao`, consultado a cada 2 s enquanto o aviso está aberto).
+- **Materiais:** o que a IA guardou com `tusab_salvar_estudo` (flashcards, resumos, post-its e documentos), por projeto, cada um aberto numa janela (ver [Estudo e revisão espaçada](/funcionalidades/estudo)).
 - **Relatório** por canal, **Visão Geral** e **Monitor** (perfil Especialista), **Admin**.
 - **Exportações:** `.tusab` (com ou sem originais), zip da base, tabela de vídeos (XLSX) e relatório em PDF; importação de `.tusab`.
 
@@ -46,4 +47,4 @@ Um servidor em `127.0.0.1` pode ser alvo de outros sites abertos no mesmo navega
 
 ## API
 
-A tela fala com o plugin pelas rotas `/api/*` (`tusab-mcp/src/api.js`). Elas repetem os contratos da API do app desktop (mesmos nomes de campos), para a mesma interface servir aos dois. Rotas do desktop sem equivalente na extensão (chat, configuração de LLM, Ollama) respondem de forma neutra.
+A tela fala com o plugin pelas rotas `/api/*` (`tusab-mcp/src/api.js`). Elas repetem os contratos da API do app desktop (mesmos nomes de campos), herança de quando a mesma interface servia aos dois. Rotas do desktop sem equivalente na extensão (chat, configuração de LLM, Ollama) respondem de forma neutra.

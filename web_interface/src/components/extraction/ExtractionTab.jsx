@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Zap, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2,
   Link2, XCircle, Pause, Square, Terminal, Activity, Globe,
-  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronRight, ChevronDown, Trash2,
+  FileText, Video, Database, Trophy, MicOff, Scissors, RefreshCw, ChevronDown, Trash2,
   Search, BookOpen,
 } from 'lucide-react';
 import StatCard   from '../shared/StatCard';
@@ -290,7 +290,7 @@ export default function ExtractionTab({
                         if (h) handleUsarCanalHistorico(h.canal_url, h.canal);
                         e.target.value = '';
                       }}
-                      className={`w-full px-3 py-2 pr-8 text-xs bg-transparent outline-none cursor-pointer appearance-none
+                      className={`w-full px-3 py-2 text-xs bg-transparent outline-none cursor-pointer
                         ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                       <option value="" disabled className={darkMode ? 'bg-slate-900' : 'bg-white'}>
                         {t('channel.select_placeholder')}
@@ -301,7 +301,6 @@ export default function ExtractionTab({
                         </option>
                       ))}
                     </select>
-                    <ChevronRight size={12} className={`absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
                   </div>
                 </div>
               </div>

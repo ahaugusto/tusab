@@ -2,7 +2,7 @@
 
 Extensão para ferramentas de IA (como o Claude Desktop) que mantém a base de conhecimento do usuário **no computador dele** e entrega à IA só os trechos certos, **com citação**: o vídeo e o minuto, ou a página do PDF.
 
-Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local em Node.js (`tusab-mcp/`, versão 0.6.0). A ferramenta de IA inicia o processo no próprio computador; ele extrai transcrições do YouTube, lê documentos e busca em fontes públicas, indexa tudo numa pasta local (SQLite FTS5), responde à IA por 15 ferramentas MCP e serve uma tela no navegador em `http://127.0.0.1:<porta>`. Nada passa por servidor da CriAugu: só os trechos consultados vão para a IA que o usuário escolheu.
+Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local em Node.js (`tusab-mcp/`, versão 2.0.0). A ferramenta de IA inicia o processo no próprio computador; ele extrai transcrições do YouTube, lê documentos e busca em fontes públicas, indexa tudo numa pasta local (SQLite FTS5), responde à IA por 15 ferramentas MCP e serve uma tela no navegador em `http://127.0.0.1:<porta>`. Nada passa por servidor da CriAugu: só os trechos consultados vão para a IA que o usuário escolheu.
 
 **Documentação:** https://criaugu.github.io/tusab/
 
@@ -21,7 +21,9 @@ Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local em Nod
 
 ### Claude Desktop (`.mcpb`)
 
-O pacote `tusab.mcpb` ainda não é publicado nas releases; gere a partir do código (Node.js 18.17+):
+Baixe o pacote da versão nas [releases](https://github.com/criaugu/tusab/releases) (`tusab-2.0.0.mcpb`, com a soma SHA-256 em `tusab-2.0.0.mcpb.sha256`) e abra o arquivo com o Claude Desktop instalado. Escolha a pasta do repositório (o Tusab cria `data/` dentro dela).
+
+Para gerar o pacote a partir do código (Node.js 18.17+):
 
 ```powershell
 git clone https://github.com/criaugu/tusab.git
@@ -31,8 +33,6 @@ cd ../tusab-mcp
 npm install
 npm run pack          # gera ../tusab.mcpb
 ```
-
-Abra o `tusab.mcpb` no Claude Desktop e escolha a pasta do repositório (o Tusab cria `data/` dentro dela).
 
 ### Outras ferramentas MCP (Claude Code, VS Code, Cursor…)
 
@@ -63,12 +63,12 @@ tusab/
     test/               testes (node --test)
     scripts/            avisos de licença e textos do manifesto em en/es
     manifest.json       manifesto do pacote .mcpb
-  web_interface/      interface React (tela da extensão e do app desktop)
-  tusab_engine/       backend Python do app desktop (FastAPI)
-  electron/           casca do app desktop (Electron)
-  tests/              testes do backend do app desktop (pytest)
+    icon.png            ícone do pacote (icon-claro.png para o tema escuro)
+  web_interface/      interface React, compilada para dentro do pacote (modo extensão)
   docs-site/          site de documentação (Docusaurus)
   docs/design-system/ design system da interface
+  docs/marca/         script que gera o ícone quadrado a partir do logo
+  .github/workflows/  CI (testes no Windows, macOS e Linux; acessibilidade) e release do .mcpb
 ```
 
 ## Desenvolvimento e testes (extensão)
@@ -92,25 +92,18 @@ node scripts/gerar-recursos-manifesto.mjs    # mcpb-resources/en-US.json e es-ES
 
 `TUSAB_YTDLP=test/ytdlp-falso.mjs` troca o yt-dlp por um simulado. Mais em [Desenvolvimento](https://criaugu.github.io/tusab/desenvolvimento/setup).
 
-## App desktop (versão anterior)
+## Publicar uma versão
 
-Antes da extensão, o Tusab era um app desktop (Electron + FastAPI + React) com chat próprio (RAG com Ollama ou provedor externo). Ele continua disponível para Windows 10/11 x64 e macOS 14+ (Apple Silicon) nas [releases](https://github.com/criaugu/tusab/releases/latest) e grava a mesma estrutura de pastas da extensão.
+1. Subir a versão em `tusab-mcp/package.json` e `tusab-mcp/manifest.json` (um teste confere que batem), escrever a entrada em `docs-site/docs/changelog.md` (pt e en) e trocar o link de download nas duas páginas de instalação.
+2. Juntar o PR na `main`.
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`: o workflow `release.yml` roda os testes, gera o `.mcpb` com os avisos de licença, calcula a soma SHA-256 e publica a release (sem marcar como a mais recente).
 
-```powershell
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-cd web_interface; npm install; cd ..
-cd electron; npm install; cd ..
+## App desktop (descontinuado)
 
-.venv\Scripts\python.exe api_tusab.py           # backend em localhost:8001
-cd web_interface; npm run dev                    # interface com recarga automática
-.venv\Scripts\python.exe -m pytest tests/ -v     # testes
-```
-
-Documentação: [App desktop](https://criaugu.github.io/tusab/desktop/visao-geral). Histórico de versões: [CHANGELOG.md](CHANGELOG.md).
+Até a 1.0.64 o Tusab era um app desktop (Electron + FastAPI + React) com chat próprio. Ele foi **descontinuado em 19/11/2026**: não recebe mais correções nem atualizações. O código está preservado na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) e as versões 1.0.x continuam nas [releases](https://github.com/criaugu/tusab/releases) só como histórico ([CHANGELOG.md](CHANGELOG.md)). Bases criadas pelo desktop abrem na extensão: basta escolher a pasta de dados dele.
 
 ## Licença
 
 Copyright © 2026 CriAugu — CNPJ 65.131.075/0001-57.
 
-Código source-available sob a [Elastic License 2.0](LICENSE): pode ser lido, auditado, executado e modificado para uso próprio; não pode ser oferecido como serviço hospedado a terceiros. O nome e a marca "Tusab" não estão cobertos pela licença de código ([TRADEMARK.md](TRADEMARK.md)). Bibliotecas de terceiros: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (repositório e app desktop) e `tusab-mcp/THIRD_PARTY_NOTICES.txt` (extensão). Pull Requests externos não são aceitos no momento ([CONTRIBUTING.md](CONTRIBUTING.md)).
+Código source-available sob a [Elastic License 2.0](LICENSE): pode ser lido, auditado, executado e modificado para uso próprio; não pode ser oferecido como serviço hospedado a terceiros. O nome e a marca "Tusab" não estão cobertos pela licença de código ([TRADEMARK.md](TRADEMARK.md)). Bibliotecas de terceiros: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (resumo) e `THIRD_PARTY_NOTICES.txt` dentro do pacote `.mcpb` (textos completos). Pull Requests externos não são aceitos no momento ([CONTRIBUTING.md](CONTRIBUTING.md)).

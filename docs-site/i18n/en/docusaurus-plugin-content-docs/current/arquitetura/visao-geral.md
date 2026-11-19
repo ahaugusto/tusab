@@ -7,7 +7,7 @@ slug: /arquitetura/visao-geral
 
 # Architecture overview
 
-Tusab (`tusab-mcp/`, version 0.6.0) is an [MCP](https://modelcontextprotocol.io) server written in Node.js (ESM, Node 18.17 or newer). The user's AI tool starts the process on the computer itself and talks to it over standard input and output (**stdio**). The same process:
+Tusab (`tusab-mcp/`, version 2.0.0) is an [MCP](https://modelcontextprotocol.io) server written in Node.js (ESM, Node 18.17 or newer). The user's AI tool starts the process on the computer itself and talks to it over standard input and output (**stdio**). The same process:
 
 - answers the AI through the [MCP tools](/ferramentas-mcp) and the [prompts](/biblioteca-de-prompts);
 - serves the [Tusab screen](/tela) at `http://127.0.0.1:<random port>`;
@@ -109,11 +109,11 @@ The screen is the React 19 + Vite + Tailwind CSS 3 + Framer Motion + Lucide Reac
 | Output | `tusab-mcp/interface/`, served by the panel |
 | What the mode changes | `VITE_TUSAB_MODO=extensao` (`web_interface/.env.extensao`) turns on `MODO_EXTENSAO` in `src/constants/index.js`: `API_BASE='/api'`, session key on calls, no Google fonts or sourcemaps (CSP `'self'`), no telemetry, no chat |
 
-The same code builds the [desktop app](/desktop/visao-geral) interface with `npx vite build`.
+The discontinued [desktop app](/desktop/visao-geral) built the same code with `npx vite build`.
 
 ## What stays with the user's AI
 
-Conversing, summarizing, building quizzes and generating flashcards. Tusab has no chat of its own, LLM, Ollama, vector search, Google Drive, audio transcription, OCR or telemetry: it delivers the excerpts, keeps what needs memory across conversations and takes care of the base. Those features exist in the [desktop app](/desktop/visao-geral).
+Conversing, summarizing, building quizzes and generating flashcards. Tusab has no chat of its own, LLM, Ollama, vector search, Google Drive, audio transcription, OCR or telemetry: it delivers the excerpts, keeps what needs memory across conversations and takes care of the base. Those features existed in the [desktop app](/desktop/visao-geral), now discontinued.
 
 ## Patterns
 

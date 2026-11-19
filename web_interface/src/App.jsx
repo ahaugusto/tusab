@@ -16,7 +16,7 @@ import {
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
   Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard, History,
-  GraduationCap, LibraryBig, Move,
+  GraduationCap, LibraryBig, Layers, Move,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -68,6 +68,7 @@ import AssistenteTab            from './components/tabs/AssistenteTab';
 import AdminTab                 from './components/tabs/AdminTab';
 import EstudoTab                from './components/assistente/EstudoTab';
 import PromptsTab, { EVENTO_ABRIR_PROMPTS } from './components/assistente/PromptsTab';
+import MateriaisTab               from './components/assistente/MateriaisTab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -151,8 +152,9 @@ const STATUS_MOTOR = {
   'Minerando YouTube': 'minerando', 'Em Pausa': 'pausa', 'Cancelando...': 'cancelando', 'Interrompido': 'interrompido',
   'Finalizado ✓': 'finalizado', 'Erro': 'erro', 'Na fila': 'fila',
 };
-// Extensão: a Biblioteca de Prompts (aba 'estudo') fica logo abaixo do Repositório.
-const ORDEM_NAV_EXTENSAO = ['extracao', 'repositorio', 'estudo', 'visao-geral', 'monitor', 'admin'];
+// Extensão: a Biblioteca de Prompts (aba 'estudo') fica logo abaixo do Repositório, e os
+// Materiais (o que a IA guardou) logo abaixo dela.
+const ORDEM_NAV_EXTENSAO = ['extracao', 'repositorio', 'estudo', 'materiais', 'visao-geral', 'monitor', 'admin'];
 function ordemNav(a, b) {
   if (!MODO_EXTENSAO) return 0;
   const pos = (id) => { const i = ORDEM_NAV_EXTENSAO.indexOf(id); return i < 0 ? 99 : i; };
@@ -1816,6 +1818,7 @@ function App() {
                 { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                 { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                 { id: 'estudo',      icon: MODO_EXTENSAO ? LibraryBig : GraduationCap,    label: t('tabs.estudo')      },
+                { id: 'materiais',   icon: Layers,           label: t('tabs.materiais')   },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.assistente')       },
                 { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
               ].filter(({ id }) => regras.abas?.includes(id)).sort(ordemNav).map(({ id, icon: Icon, label }) => {
@@ -1924,6 +1927,7 @@ function App() {
                   { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                   { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
                   { id: 'estudo',      icon: MODO_EXTENSAO ? LibraryBig : GraduationCap,    label: t('tabs.estudo')      },
+                { id: 'materiais',   icon: Layers,           label: t('tabs.materiais')   },
                   { id: 'agente',      icon: Wrench,           label: t('tabs.assistente')       },
                   { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
                 ].filter(({ id }) => regras.abas?.includes(id)).sort(ordemNav).map(({ id, icon: Icon, label }) => (
@@ -2021,7 +2025,7 @@ function App() {
                 ) : (
                   <div>
                     <h1 className={`text-xl lg:text-2xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.assistente'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico'), estudo: t('tabs.estudo') }[activeTab]}
+                      {{ extracao: t('tabs.extraction'), repositorio: t('tabs.repositorio'), relatorio: t('tabs.relatorio'), monitor: 'Monitor', agente: t('tabs.assistente'), 'visao-geral': t('tabs.overview'), admin: t('tabs.admin_title'), historico: t('tabs.historico'), estudo: t('tabs.estudo'), materiais: t('tabs.materiais') }[activeTab]}
                     </h1>
                     {canalConfigurado && (
                       <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>@{cleanCanalName(canalConfigurado)}</p>
@@ -2334,6 +2338,14 @@ function App() {
                   onExportarAnki={handleEstudoExportarAnki}
                 />
                 )}
+              </div>
+            )}
+
+            {/* ── TAB: MATERIAIS (extensão) ── */}
+            {activeTab === 'materiais' && MODO_EXTENSAO && (
+              <div id="panel-materiais" role="tabpanel" aria-labelledby="tab-materiais" ref={mainScrollRef}
+                className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
+                <MateriaisTab darkMode={darkMode} projetos={projetosIndexados.map((c) => c.nome)} />
               </div>
             )}
 

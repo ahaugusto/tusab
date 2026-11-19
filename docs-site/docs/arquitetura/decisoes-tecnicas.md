@@ -19,7 +19,7 @@ Decisões que não seriam evidentes só lendo o código; o motivo importa tanto 
 | SQLite em WebAssembly (`@sqlite.org/sqlite-wasm`), sem binário nativo | O pacote `.mcpb` funciona em Windows e macOS sem compilar nada no computador do usuário |
 | Banco em memória com gravação atômica e arquivo de trava | Mais de uma ferramenta de IA pode abrir o mesmo repositório ao mesmo tempo |
 | Pergunta convertida em termos entre aspas ligados por `OR` | Expressão FTS5 sempre válida: caracteres da pergunta nunca viram operadores da consulta |
-| Metadados, capítulos e legenda numa única chamada do yt-dlp por vídeo | O desktop faz três chamadas; menos chamadas, menos risco de bloqueio 429 |
+| Metadados, capítulos e legenda numa única chamada do yt-dlp por vídeo | O desktop fazia três chamadas; menos chamadas, menos risco de bloqueio 429 |
 | yt-dlp oficial baixado com conferência SHA-256 | O pacote não precisa levar o binário; um download alterado é descartado |
 | Tela servida pelo plugin, não por um site | Navegadores como Firefox e Safari não deixam um site gravar numa pasta do computador; aqui o navegador só mostra a tela e quem grava é o plugin |
 | Chave da sessão num cabeçalho próprio (`X-Tusab-Chave`) e nenhum cabeçalho CORS | Um cabeçalho próprio obriga verificação prévia em pedidos de outros sites, e o servidor não libera nenhuma |

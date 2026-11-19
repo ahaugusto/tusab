@@ -7,6 +7,10 @@ slug: /funcionalidades/modo-estudo
 
 # Desktop app — Study Mode
 
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
 In the desktop app, Study Mode **generates** study material with the LLM configured in the app, from the indexed base. In the extension, the user's AI generates it and Tusab stores the result in the same format (see [Study and spaced repetition](/funcionalidades/estudo)).
 
 | | Desktop app | Extension |

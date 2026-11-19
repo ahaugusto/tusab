@@ -33,7 +33,7 @@ Lista fechada, conferida pela **extensão do nome e pela assinatura do arquivo**
 | Imagem | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` |
 | Áudio | `.mp3`, `.wav`, `.ogg`, `.opus`, `.flac`, `.m4a`, `.aac` |
 
-SVG, HTML e executáveis são recusados. Imagens e áudios são **guardados sem leitura**: o Tusab não faz OCR nem transcrição (o [app desktop](/desktop/visao-geral) faz, com modelos locais). Limite de envio: 50 MB por arquivo.
+SVG, HTML e executáveis são recusados. Imagens e áudios são **guardados sem leitura**: o Tusab não faz OCR nem transcrição (o [app desktop](/desktop/visao-geral), descontinuado, fazia, com modelos locais). Limite de envio: 50 MB por arquivo.
 
 ## `tusab_ler_original`
 

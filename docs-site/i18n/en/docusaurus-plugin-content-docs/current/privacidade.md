@@ -56,7 +56,7 @@ Contact: **tusab@tusab.solutions**
 
 ## Desktop app
 
-In the [desktop app](/desktop/visao-geral), in addition to the above:
+In the [desktop app](/desktop/visao-geral), discontinued on 2026-11-19 (this applies to 1.0.x versions still installed), in addition to the above:
 
 - **Assistant:** with an external provider (OpenAI, Anthropic, Gemini, Groq, OpenRouter, custom endpoint), the question and the retrieved excerpts go to that provider; the app warns when configuring it. With local Ollama, nothing leaves.
 - **API keys** stay in the system keychain (`safeStorage`) and are used directly from the computer to the chosen provider.

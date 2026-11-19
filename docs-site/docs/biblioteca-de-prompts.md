@@ -37,7 +37,8 @@ Ao montar o texto final, o plugin acrescenta ao pedido as regras de busca e cita
 
 - As regras **não são editáveis** e valem também para os prompts criados pelo usuário.
 - Duas exceções: **Revisar hoje** e **Digest da semana** já dizem no próprio pedido quais ferramentas usar (`tusab_revisao_hoje`/`tusab_registrar_revisao` e `tusab_novidades_semana`), então não recebem as regras.
-- Flashcards e Resumo terminam pedindo que a IA grave o resultado com `tusab_salvar_estudo`.
+- Flashcards e Resumo terminam pedindo que a IA grave o resultado com `tusab_salvar_estudo`. Os prompts que produzem um documento (quiz, mapa mental, plano de estudo, prova, plano de aula, exercícios, revisão de literatura, ficha de leitura, linha do tempo, nota técnica, roteiro e post) pedem que ela guarde o material completo como `documento`, para abrir depois na aba **Materiais**.
+- Todo pedido começa com uma checagem de conexão: se as ferramentas do Tusab não estiverem disponíveis na conversa, a IA deve dizer que o Tusab não está conectado, em vez de responder de memória. Isso vale também para os prompts do usuário e para quem cola o pedido numa IA no navegador, que não alcança o Tusab local.
 
 ## Meus prompts
 

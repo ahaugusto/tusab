@@ -1,7 +1,7 @@
 {
   "display_name": "Tusab",
   "description": "Tusab inside your AI: extract YouTube channels on this computer and query the base with citations to the exact minute.",
-  "long_description": "Tusab extracts transcripts from YouTube channels, playlists and videos on this computer, from your own IP, and organizes everything in a local folder (the same structure as Tusab desktop). Your AI tool queries this base and cites the video and the minute. The Tusab screen opens in the browser, served by this computer. Nothing goes through CriAugu servers: only the excerpts the AI queries go to the AI you chose.",
+  "long_description": "Tusab extracts transcripts from YouTube channels, playlists and videos on this computer, from your own IP, and organizes everything in a local folder. Your AI tool queries this base and cites the video and the minute. The Tusab screen opens in the browser, served by this computer. Nothing goes through CriAugu servers: only the excerpts the AI queries go to the AI you chose.",
   "keywords": [
     "knowledge",
     "youtube",

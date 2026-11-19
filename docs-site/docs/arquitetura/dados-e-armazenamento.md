@@ -57,7 +57,7 @@ Esses formatos são os mesmos do app desktop e ficam em português (rótulos e s
 - `data/tusab.sqlite`, com uma tabela virtual FTS5 (`unicode61 remove_diacritics 2`) e ordenação por `bm25()`.
 - **Os `.txt` são a fonte da verdade.** O índice é reconstruível e é sincronizado por arquivo (data de modificação e tamanho): um trecho por bloco nas transcrições, por parágrafo nos documentos e textos.
 - O banco é mantido em memória e gravado de forma atômica sob um arquivo de trava, porque mais de uma ferramenta de IA pode abrir o mesmo repositório.
-- O app desktop tem índice próprio (`data/agent_index/`, LanceDB), que a extensão não usa.
+- O app desktop tinha índice próprio (`data/agent_index/`, LanceDB), que a extensão não usa.
 
 ## Nomes de projeto
 

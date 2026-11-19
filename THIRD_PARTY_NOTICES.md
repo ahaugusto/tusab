@@ -1,59 +1,47 @@
 # Avisos de terceiros
 
 O Tusab é construído sobre bibliotecas open-source. Nenhuma foi modificada
-(fork) — todas são usadas via gerenciador de pacotes (`pip`/`npm`), nos
-termos de suas licenças originais. Esta lista cobre as dependências
-diretas com uso mais substancial no produto; não é exaustiva de toda a
-árvore de dependências transitivas (ver `requirements-lock.txt` e
-`*/package-lock.json` para a lista completa).
+(fork): todas são usadas via `npm`, nos termos das licenças originais.
+Esta lista cobre as dependências diretas. O pacote `.mcpb` leva o texto
+completo de todas as licenças, incluindo as dependências transitivas, em
+`THIRD_PARTY_NOTICES.txt` (gerado por `tusab-mcp/scripts/gerar-licencas.mjs`).
 
-## Backend (Python)
-
-| Biblioteca | Licença | Uso no Tusab |
-|---|---|---|
-| [FastAPI](https://github.com/tiangolo/fastapi) | MIT | Framework da API REST |
-| [Uvicorn](https://github.com/encode/uvicorn) | BSD-3-Clause | Servidor ASGI |
-| [rank-bm25](https://github.com/dorianbrown/rank_bm25) | Apache-2.0 | Índice BM25Okapi — fundação do RAG |
-| [sentence-transformers](https://github.com/UKPLab/sentence-transformers) | Apache-2.0 | CrossEncoder (Busca Ampla) + embeddings do KeyBERT |
-| [PyTorch](https://github.com/pytorch/pytorch) | BSD-3-Clause | Backend de inferência do sentence-transformers |
-| [KeyBERT](https://github.com/MaartenGr/KeyBERT) | MIT | Extração de frases-chave para enriquecimento do corpus BM25 |
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Unlicense | Extração de transcrições do YouTube — roda localmente, no IP do usuário |
-| [pdfplumber](https://github.com/jsvine/pdfplumber) | MIT | Extração de texto de PDF (upload, arXiv, Câmara dos Deputados) |
-| [python-docx](https://github.com/python-openxml/python-docx) | MIT | Leitura/geração de DOCX |
-| [trafilatura](https://github.com/adbar/trafilatura) (Adrien Barbaresi) | Apache-2.0 | Extração de conteúdo principal de página web avulsa — respeita `robots.txt` |
-| [RapidOCR](https://github.com/RapidAI/RapidOCR) | Apache-2.0 | OCR fallback para upload de imagem (atrás de Ollama multimodal) |
-| [pandas](https://github.com/pandas-dev/pandas) | BSD-3-Clause | Manipulação de CSV/relatórios |
-| [reportlab](https://github.com/MrBitBucket/reportlab-mirror) | BSD-3-Clause | Geração de PDF de relatório |
-| [cryptography](https://github.com/pyca/cryptography) | Apache-2.0 / BSD | Suporte a `safeStorage`/DPAPI |
-| Anthropic SDK, OpenAI SDK, google-genai | MIT / Apache-2.0 | Clientes para provedores de LLM externos (opcionais) |
-
-## Frontend (JavaScript)
+## Extensão (`tusab-mcp/`)
 
 | Biblioteca | Licença | Uso no Tusab |
 |---|---|---|
-| [React](https://github.com/facebook/react) | MIT | Framework de UI |
-| [Vite](https://github.com/vitejs/vite) | MIT | Build tool |
+| [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | MIT | Servidor MCP (stdio) |
+| [SQLite Wasm](https://github.com/sqlite/sqlite-wasm) | Apache-2.0 | Índice de busca (FTS5) |
+| [PDF.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) | Apache-2.0 | Texto e páginas de PDF |
+| [mammoth](https://github.com/mwilliamson/mammoth.js) | BSD-2-Clause | Texto de documentos Word |
+| [read-excel-file](https://gitlab.com/catamphetamine/read-excel-file) | MIT | Leitura de planilhas |
+| [write-excel-file](https://gitlab.com/catamphetamine/write-excel-file) | MIT | Tabela de vídeos (XLSX) |
+| [PDFKit](https://github.com/foliojs/pdfkit) | MIT | Relatório em PDF |
+| [fflate](https://github.com/101arrowz/fflate) | MIT | Zip da base e `.tusab` |
+| [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) | MIT | Respostas XML de fontes públicas |
+| [Zod](https://github.com/colinhacks/zod) | MIT | Validação dos parâmetros das ferramentas |
+
+## Tela (`web_interface/`, compilada para dentro do pacote)
+
+| Biblioteca | Licença | Uso no Tusab |
+|---|---|---|
+| [React](https://github.com/facebook/react) | MIT | Interface |
+| [Vite](https://github.com/vitejs/vite) | MIT | Build |
 | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | MIT | Estilização |
 | [Framer Motion](https://github.com/framer/motion) | MIT | Animações |
 | [Lucide](https://github.com/lucide-icons/lucide) | ISC | Ícones |
-| [react-markdown](https://github.com/remarkjs/react-markdown) + [remark-gfm](https://github.com/remarkjs/remark-gfm) | MIT | Renderização de Markdown no chat |
-| [i18next](https://github.com/i18next/i18next) | MIT | Internacionalização PT/EN/ES |
-| [Microsoft Clarity](https://github.com/microsoft/clarity-js) | MIT | Telemetria opt-in (`@microsoft/clarity`) |
+| [react-markdown](https://github.com/remarkjs/react-markdown), [remark-gfm](https://github.com/remarkjs/remark-gfm), [remark-breaks](https://github.com/remarkjs/remark-breaks) | MIT | Markdown |
+| [i18next](https://github.com/i18next/i18next) | MIT | Português, inglês e espanhol |
+| [axios](https://github.com/axios/axios) | MIT | Chamadas à API local do plugin |
+| [Microsoft Clarity](https://github.com/microsoft/clarity-js) (`@microsoft/clarity`) | MIT | Código compartilhado com o antigo app desktop; desligado na extensão |
 
-## Desktop
+## Baixado na hora do uso (não vai no pacote)
 
-| Biblioteca | Licença | Uso no Tusab |
+| Programa | Licença | Uso no Tusab |
 |---|---|---|
-| [Electron](https://github.com/electron/electron) | MIT | Runtime desktop |
-| [electron-builder](https://github.com/electron-userland/electron-builder) | MIT | Empacotamento do instalador NSIS |
-| [electron-updater](https://github.com/electron-userland/electron-builder) | MIT | Auto-update via GitHub Releases |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Unlicense | Transcrições do YouTube, no IP do usuário. Baixado do repositório oficial, com conferência SHA-256 |
 
-## Modelos locais (via Ollama)
-
-| Modelo | Licença | Uso no Tusab |
-|---|---|---|
-| [ms-marco-MiniLM-L-6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2) | Apache-2.0 | CrossEncoder da Busca Ampla |
-| [Llama 3.2](https://huggingface.co/meta-llama/Llama-3.2-1B) | Llama 3.2 Community License | Modelo padrão do chat via Ollama (opcional — usuário pode trocar) |
+O app desktop (descontinuado em 19/11/2026) usava outras bibliotecas (Python, Electron, modelos locais). A lista dele está na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/blob/desktop-final/THIRD_PARTY_NOTICES.md).
 
 ---
 

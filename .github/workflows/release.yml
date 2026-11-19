@@ -1,426 +1,129 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
-# Release pipeline: builda o instalador Windows e publica como GitHub Release
-# Acionado por push de tag vX.Y.Z (ex: git tag v1.2.0 && git push --tags)
+# Release da extensão: ao criar a etiqueta vX.Y.Z (a mesma versão do tusab-mcp/package.json),
+# roda os testes, gera o pacote .mcpb com os avisos de licença, assina (quando o certificado
+# estiver configurado), calcula a soma SHA-256 e publica a release no GitHub SEM marcá-la
+# como "mais recente" (decisão do Augusto, 19/11/2026: a marca é dada à mão depois do teste
+# no Claude Desktop). As notas saem da entrada da versão em docs-site/docs/changelog.md.
+#
+# Como publicar uma versão:
+#   1. subir a versão em tusab-mcp/package.json e manifest.json (o teste confere que batem),
+#      escrever a entrada no changelog e trocar o link de download nas páginas de instalação;
+#   2. juntar o PR na main;
+#   3. git tag vX.Y.Z && git push origin vX.Y.Z
+#
+# Assinatura (opcional até existir certificado): segredos MCPB_CERTIFICADO e MCPB_CHAVE (PEM,
+# certificado de assinatura de código) e, se a autoridade exigir, MCPB_INTERMEDIARIOS (PEM, um
+# ou mais certificados concatenados). Sem eles o pacote sai sem assinatura, como hoje.
 
-name: Release
+name: Release da extensão
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-  # Gatilho manual — só existe pra validar o job `tests` isoladamente (ex: depois
-  # de trocar/registrar um runner self-hosted novo) sem precisar publicar uma
-  # tag de verdade. build-windows/build-macos ficam com `if: github.event_name
-  # == 'push'` propositalmente — nunca rodam (nem builda, nem publica nada) num
-  # disparo manual.
-  workflow_dispatch: {}
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  # ── 1. Testes antes de qualquer build ────────────────────────────────────────
-  tests:
-    name: Testes (pytest + vite)
-    # Voltou pro ubuntu-latest hospedado em 2026-08-06 — o bloqueio de billing
-    # ("recent account payments have failed or your spending limit needs to
-    # be increased", ativo desde meados de 2026) não reproduz mais, validado
-    # via workflow_dispatch (run 31139474481, verde em 5m34s). Mais barato e
-    # rápido que qualquer runner self-hosted; não depende de nenhum Mac físico.
+  release:
+    name: Gerar e publicar o .mcpb
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      # ubuntu-latest hospedado: actions/setup-python funciona normalmente aqui
-      # (o bug de permissão RUNNER_TOOL_CACHE era específico do self-hosted
-      # macOS — ver histórico do arquivo). Sem download manual de Python.
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
+          node-version: '22'
           cache: 'npm'
-          cache-dependency-path: web_interface/package-lock.json
+          cache-dependency-path: |
+            web_interface/package-lock.json
+            tusab-mcp/package-lock.json
 
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-
-      - name: Instalar dependências Python
+      - name: Conferir versão, changelog e link de download
+        id: versao
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest httpx
-
-      - name: Dist mínimo para testes
-        run: |
-          mkdir -p web_interface/dist/assets
-          echo '<!doctype html><html><body>Tusab CI</body></html>' > web_interface/dist/index.html
-
-      - name: Pytest
-        run: python -m pytest tests/ -v --tb=short
-
-      - name: Build frontend
-        working-directory: web_interface
-        run: npm install && npx vite build
-
-  # ── 2. Cria a release vazia antes dos builders — evita a corrida de criação ──
-  # HISTÓRICO: build-windows e build-macos rodam em paralelo e cada um chama
-  # electron-builder com --publish always, que faz "GET release da tag → se não
-  # achar, POST cria". Quando os dois checam "não existe" ao mesmo tempo, os
-  # dois tentam criar: um ganha, o outro recebe 422 already_exists. Em v1.0.42
-  # e v1.0.43 isso criou DOIS objetos de release pra mesma tag (assets
-  # espalhados entre eles); em v1.0.44 o 422 chegou a derrubar o job inteiro
-  # (build-windows "sucesso" no build mas falhou no publish, sem subir
-  # latest.yml/blockmap). Criando a release aqui, sozinha, antes de qualquer
-  # builder começar, os dois jobs seguintes só fazem "GET acha → upload assets"
-  # — sem chance de corrida na criação.
-  create-release:
-    name: Criar release (antes dos builders, evita corrida de criação)
-    runs-on: ubuntu-latest
-    needs: tests
-    if: github.event_name == 'push'
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
-      # Seção anexada e colapsável de PRs/commits desta versão, categorizada
-      # por label via .github/release.yml — não substitui o CHANGELOG.md
-      # curado, só complementa com rastreabilidade de origem. Falha graciosa:
-      # se a API não retornar nada, generate-release-notes.js segue sem essa
-      # seção (auto_notes.md ausente ou vazio).
-      - name: Gerar notas automáticas do GitHub (PRs/commits desta versão)
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-        run: |
-          gh api "repos/${{ github.repository }}/releases/generate-notes" \
-            -f tag_name="$GITHUB_REF_NAME" \
-            --jq .body > auto_notes.md || true
-      - name: Gerar notas de release a partir do CHANGELOG.md
-        run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"
-      - name: Criar release vazia
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "${{ github.repository }}" \
-            --title "${GITHUB_REF_NAME#v}" \
-            --notes-file release_notes.md
-
-  # ── 3. Build do instalador Windows ───────────────────────────────────────────
-  build-windows:
-    name: Build Windows (.exe)
-    runs-on: windows-latest
-    needs: [tests, create-release]
-    if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
-    permissions:
-      contents: write   # necessário para publicar a release em criaugu/tusab
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
-          cache: 'npm'
-          cache-dependency-path: web_interface/package-lock.json
-
-      # Extrai a versão da tag (v1.2.0 → 1.2.0) e atualiza package.json do Electron
-      - name: Sincronizar versão do package.json com a tag
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "Versão: $VERSION"
-          cd electron
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-            pkg.version = '$VERSION';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-          "
-
-      # Build do frontend (dist/ que vai dentro do instalador).
-      # Telemetria: Microsoft Clarity (ID público embutido em services/analytics.js,
-      # sobrescrevível por VITE_CLARITY_ID). O PostHog foi removido na v1.0.63.
-      - name: Build frontend
-        working-directory: web_interface
-        run: npm install && npx vite build
-
-      # Instala dependências do Electron
-      - name: Instalar dependências Electron
-        working-directory: electron
-        run: npm ci
-
-      # electron/python_env e electron/bin estão no .gitignore — este job TEM
-      # que criá-los. Sem este passo (v1.0.42 a v1.0.57) o electron-builder só
-      # avisava "file source doesn't exist" e publicava um .exe de 82 MB sem
-      # backend. Invariante 24 em histórico interno do projeto. Mesmo script usado no
-      # teste local, para o teste local valer pelo CI.
-      - name: Montar Python embutido e yt-dlp (invariante 24)
-        shell: pwsh
-        run: ./.github/scripts/montar-python-windows.ps1
-
-      # Trava: empacota sem publicar e sobe o backend DE DENTRO do pacote, do
-      # jeito que electron/main.js faz. Se o Python ou o yt-dlp não estiverem
-      # no pacote, ou o backend não responder /status, o job falha aqui —
-      # antes de qualquer coisa chegar à release.
-      - name: Empacotar (--dir) e verificar backend empacotado (invariante 24)
-        shell: pwsh
-        run: |
-          Push-Location electron
-          npx electron-builder --win --dir
-          if ($LASTEXITCODE -ne 0) { throw 'electron-builder --dir falhou' }
-          Pop-Location
-          ./.github/scripts/verificar-backend-empacotado.ps1 -Resources dist_electron/win-unpacked/resources
-
-      # Mesma seção anexada do job create-release (ver comentário lá) — gerada
-      # de novo aqui porque electron-builder sobrescreve o corpo da release com
-      # este release_notes.md regenerado; sem repetir o passo, a seção de
-      # PRs/commits desapareceria assim que este job publicasse.
-      - name: Gerar notas automáticas do GitHub (PRs/commits desta versão)
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-        run: |
-          gh api "repos/${{ github.repository }}/releases/generate-notes" \
-            -f tag_name="$GITHUB_REF_NAME" \
-            --jq .body > auto_notes.md || true
-
-      # Extrai a seção do CHANGELOG.md da versão atual pra usar como corpo da
-      # release (releaseInfo.releaseNotesFile em electron/package.json) — sem
-      # isso a release fica com corpo vazio (aconteceu na v1.0.41, publicada
-      # sem nenhuma nota nem instrução de instalação pro macOS).
-      - name: Gerar notas de release a partir do CHANGELOG.md
-        shell: bash
-        run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"
-
-      # credentials.json (OAuth do Google Drive) nunca foi commitado — só existia
-      # localmente na máquina onde builds eram feitos manualmente. Builds via CI
-      # (aqui e no job build-macos) sempre saíram sem esse arquivo, ou seja, sem
-      # sincronização com o Drive funcionando no instalador. Ver notas internas de build do macOS.
-      - name: Escrever credentials.json (OAuth Google Drive) a partir do secret
-        shell: bash
-        run: echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS_JSON }}' > credentials.json
-
-      # electron-builder lê GH_TOKEN para publicar na release.
-      # [HISTÓRICO] RELEASE_PAT existia porque publish.owner/repo em
-      # electron/package.json apontava pra ahaugusto/tusab-public —
-      # repositório DIFERENTE de onde este workflow roda (ahaugusto/tusab) —
-      # e o GITHUB_TOKEN automático do Actions só tem permissão no repo
-      # local. Causa raiz de todas as releases v1.0.23–v1.0.37 terem sido
-      # feitas manualmente: 403 "Resource not accessible by integration"
-      # com GITHUB_TOKEN — ver run 28401557076 (v1.0.22, 29/jun/2026).
-      # Desde 2026-08-07, publish.repo aponta pro próprio ahaugusto/tusab
-      # (em 2026-11-18 o repositório foi transferido para a organização CriAugu:
-      # criaugu/tusab; o endereço antigo redireciona)
-      # (tusab-public foi descontinuado) — o GITHUB_TOKEN padrão já teria
-      # permissão suficiente agora, mas manteve-se RELEASE_PAT (funciona
-      # igual, sem risco de trocar token logo após a migração de repo).
-      - name: Build e publicar instalador
-        working-directory: electron
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-        run: npm run build -- --publish always
-
-  # ── 4. Build do instalador macOS (.dmg + .zip, assinado e notarizado) ───────
-  build-macos:
-    name: Build macOS (.dmg + .zip)
-    # TEMPORÁRIO (reconstrução da release v1.0.42, 2026-08-07): voltou pro
-    # macos-latest hospedado — o self-hosted (MacBookPro11,1) caiu offline
-    # de novo (suspensão recorrente, ainda não resolvida de vez) bem no
-    # momento em que a release precisava ser refeita com urgência (assets
-    # originais perdidos na deleção do tusab-public). Reverter pro
-    # self-hosted quando a estabilidade do Mac físico estiver garantida —
-    # a lógica de cross-build (pip download --platform) funciona igual em
-    # qualquer host.
-    runs-on: macos-latest
-    needs: [tests, create-release]
-    if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
-    # Assinatura sozinha (deep-sign de todo o python_env com torch/
-    # onnxruntime/transformers) já passa de 30min — notarização soma
-    # submissão + espera da Apple em cima disso. Medido na prática
-    # (self-hosted, Mac mini M1-M): 90min não foi suficiente.
-    timeout-minutes: 180
-    permissions:
-      contents: write   # necessário para publicar a release em criaugu/tusab
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'   # Electron 44 exige Node >= 22.12 no host de build
-          cache: 'npm'
-          cache-dependency-path: web_interface/package-lock.json
-
-      - name: Sincronizar versão do package.json com a tag
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "Versão: $VERSION"
-          cd electron
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-            pkg.version = '$VERSION';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-          "
-
-      # Python portátil (equivalente macOS do python_env embeddable do Windows)
-      # — mesmo par release/versão usado no macos-smoke.yml (Fases 1-7).
-      # Extração de tar é arch-agnóstica — só EXECUTAR um binário arm64 falha
-      # num host Intel (não existe Rosetta ao contrário).
-      - name: Baixar Python portátil (cpython 3.12.13, arm64)
-        run: |
-          curl -L -o python-macos-arm64.tar.gz \
-            "https://github.com/astral-sh/python-build-standalone/releases/download/20260728/cpython-3.12.13%2B20260728-aarch64-apple-darwin-install_only.tar.gz"
-          mkdir -p electron/python_env-macos-arm64
-          tar -xzf python-macos-arm64.tar.gz -C electron/python_env-macos-arm64 --strip-components=1
-
-      # pip install --platform/--python-version/--abi busca e extrai wheels de
-      # OUTRA plataforma sem executar o interpretador alvo — usa o Python do
-      # próprio runner (Intel) só como ferramenta de download+extração,
-      # nunca importa/executa o código baixado. macosx_14_0 (não 11/12/13) é
-      # a tag mínima que torch>=2.12.1 publica pra arm64 (ver README —
-      # requisito mínimo macOS 14/Sonoma pro instalador Apple Silicon).
-      # --break-system-packages: o Python do runner hospedado vem via Homebrew,
-      # marcado como "externally-managed" (PEP 668) — pip recusa instalar
-      # qualquer coisa sem essa flag, mesmo com --target apontando pra fora do
-      # site-packages do sistema. Seguro aqui: runner efêmero de CI, não uma
-      # máquina real, e o pip está só baixando/extraindo wheels pra dentro de
-      # electron/python_env-macos-arm64, nunca tocando no Python do sistema.
-      - name: Instalar dependências Python (wheels arm64, sem executar interpretador arm64)
-        run: |
-          python3 -m pip install \
-            --target electron/python_env-macos-arm64/lib/python3.12/site-packages \
-            --platform macosx_14_0_arm64 \
-            --python-version 3.12 \
-            --implementation cp \
-            --abi cp312 \
-            --only-binary=:all: \
-            --break-system-packages \
-            -r requirements.txt
-
-      # Mesmo enxugamento do Windows (montar-python-windows.ps1): pip, suítes de
-      # teste das bibliotecas, catálogos de API do Google além do Drive. Só
-      # apaga arquivos, então roda com o python3 do runner.
-      - name: Enxugar Python embutido
-        run: python3 .github/scripts/enxugar_python_env.py electron/python_env-macos-arm64/lib/python3.12/site-packages
-
-      # Mesma trava do Windows (invariante 24), adaptada: o Python embutido
-      # precisa existir e importar o backend, e a stack pesada (torch & cia)
-      # não pode ter entrado (invariante 15). Só dá para EXECUTAR o python3
-      # arm64 se o runner for arm64 — num Mac Intel self-hosted a checagem cai
-      # para conferir os arquivos no site-packages.
-      - name: Verificar Python embutido (invariantes 15 e 24)
-        run: |
-          PYENV=electron/python_env-macos-arm64
-          SP="$PYENV/lib/python3.12/site-packages"
-          test -x "$PYENV/bin/python3" || { echo "::error::python3 ausente em $PYENV"; exit 1; }
-          for m in fastapi uvicorn lancedb rank_bm25 pdfplumber trafilatura psutil openpyxl docx yt_dlp rapidocr_onnxruntime; do
-            # rank_bm25 é módulo de arquivo único (rank_bm25.py), os demais são pastas
-            { test -d "$SP/$m" || test -f "$SP/$m.py"; } || { echo "::error::pacote $m ausente em $SP"; exit 1; }
+          TAG="${GITHUB_REF_NAME}"
+          V="${TAG#v}"
+          PKG=$(node -p "require('./tusab-mcp/package.json').version")
+          MAN=$(node -p "require('./tusab-mcp/manifest.json').version")
+          [ "$V" = "$PKG" ] && [ "$V" = "$MAN" ] || { echo "::error::Etiqueta $TAG, package.json $PKG, manifest.json $MAN: precisam ser iguais."; exit 1; }
+          grep -q "^\*\*v$V " docs-site/docs/changelog.md || { echo "::error::Falta a entrada **v$V (...)** em docs-site/docs/changelog.md."; exit 1; }
+          for f in docs-site/docs/instalacao.md docs-site/i18n/en/docusaurus-plugin-content-docs/current/instalacao.md; do
+            grep -q "releases/download/$TAG/tusab-$V.mcpb" "$f" || { echo "::error::$f não aponta para releases/download/$TAG/tusab-$V.mcpb."; exit 1; }
           done
-          for m in torch sentence_transformers keybert sklearn; do
-            test -d "$SP/$m" && { echo "::error::stack pesada ($m) entrou no instalador — invariante 15"; exit 1; }
-          done
-          if [ "$(uname -m)" = "arm64" ]; then
-            "$PYENV/bin/python3" -c "import fastapi, uvicorn, lancedb, rank_bm25, pdfplumber, trafilatura, psutil, openpyxl, docx, yt_dlp, rapidocr_onnxruntime; print('imports do backend: ok')"
+          echo "v=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Instalar dependências
+        run: |
+          npm ci --prefix web_interface
+          npm ci --prefix tusab-mcp
+
+      - name: Testes da extensão
+        working-directory: tusab-mcp
+        run: npm test
+
+      - name: Gerar o pacote (tela + avisos de licença + .mcpb)
+        working-directory: tusab-mcp
+        run: |
+          npm run pack
+          test -f interface/index.html
+          for f in LICENSE TRADEMARK.md THIRD_PARTY_NOTICES.txt icon.png; do test -s "$f" || { echo "::error::Falta $f no pacote."; exit 1; }; done
+          mv ../tusab.mcpb "../tusab-${{ steps.versao.outputs.v }}.mcpb"
+
+      - name: Assinar o pacote (quando o certificado estiver configurado)
+        env:
+          CERT: ${{ secrets.MCPB_CERTIFICADO }}
+          CHAVE: ${{ secrets.MCPB_CHAVE }}
+          INTERMEDIARIOS: ${{ secrets.MCPB_INTERMEDIARIOS }}
+        run: |
+          ARQ="tusab-${{ steps.versao.outputs.v }}.mcpb"
+          if [ -z "$CERT" ] || [ -z "$CHAVE" ]; then
+            echo "Sem certificado configurado: o pacote sai sem assinatura."
+            exit 0
           fi
+          umask 077
+          printf '%s\n' "$CERT" > "$RUNNER_TEMP/cert.pem"
+          printf '%s\n' "$CHAVE" > "$RUNNER_TEMP/key.pem"
+          EXTRA=()
+          if [ -n "$INTERMEDIARIOS" ]; then
+            printf '%s\n' "$INTERMEDIARIOS" > "$RUNNER_TEMP/intermediarios.pem"
+            EXTRA=(--intermediate "$RUNNER_TEMP/intermediarios.pem")
+          fi
+          npx --yes @anthropic-ai/mcpb@2.1.2 sign "$ARQ" --cert "$RUNNER_TEMP/cert.pem" --key "$RUNNER_TEMP/key.pem" "${EXTRA[@]}"
+          rm -f "$RUNNER_TEMP/cert.pem" "$RUNNER_TEMP/key.pem" "$RUNNER_TEMP/intermediarios.pem"
+          # O "mcpb verify" 2.1.2 diz "não assinado" mesmo em pacote assinado (testado em 19/11/2026);
+          # por isso a conferência é a do bloco de assinatura no fim do arquivo.
+          tail -c 65536 "$ARQ" | grep -q 'MCPB_SIG_END' || { echo "::error::O pacote não ficou assinado."; exit 1; }
 
-      - name: Build frontend
-        working-directory: web_interface
-        run: npm install && npx vite build
-
-      - name: Instalar dependências Electron
-        working-directory: electron
-        run: npm ci
-
-      # credentials.json (OAuth do Google Drive) nunca foi commitado — builds
-      # via CI sempre saíram sem esse arquivo, ou seja, sem sincronização com
-      # o Drive funcionando no instalador. Mesmo passo em build-windows.
-      - name: Escrever credentials.json (OAuth Google Drive) a partir do secret
-        run: echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS_JSON }}' > credentials.json
-
-      # APPLE_API_KEY precisa ser um caminho de arquivo .p8 — o secret guarda
-      # o conteúdo (ver macos-smoke.yml, job electron-notarize).
-      - name: Preparar API Key da App Store Connect (arquivo .p8)
+      - name: Soma de verificação (SHA-256)
         run: |
-          mkdir -p "$HOME/private_keys"
-          KEY_PATH="$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8"
-          echo "${{ secrets.APPLE_API_KEY }}" > "$KEY_PATH"
-          echo "APPLE_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          ARQ="tusab-${{ steps.versao.outputs.v }}.mcpb"
+          sha256sum "$ARQ" > "$ARQ.sha256"
+          cat "$ARQ.sha256"
+          npx --yes @anthropic-ai/mcpb@2.1.2 info "$ARQ"
 
-      # Runner self-hosted roda sem sessão GUI (só SSH) — o keychain de login
-      # não pode ser desbloqueado/importado programaticamente nesse contexto.
-      # Mesma causa raiz e fix aplicados em macos-smoke.yml (job
-      # electron-notarize) — ver comentário lá e notas internas de build do macOS.
-      - name: Preparar keychain de assinatura (self-hosted, sem sessão GUI)
+      - name: Notas da release (changelog + soma)
         run: |
-          KEYCHAIN_PASS="$(openssl rand -base64 24)"
-          security delete-keychain build.keychain 2>/dev/null || true
-          security create-keychain -p "$KEYCHAIN_PASS" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASS" build.keychain
-          security list-keychains -d user -s build.keychain login.keychain-db
+          V="${{ steps.versao.outputs.v }}"
+          awk -v v="**v$V " 'index($0, v) == 1 {on=1} on && /^(\*\*v|## )/ && index($0, v) != 1 {exit} on {print}' docs-site/docs/changelog.md > notas.md
+          {
+            echo
+            echo "## Instalar"
+            echo
+            echo "Baixe \`tusab-$V.mcpb\` abaixo e abra o arquivo com o Claude Desktop instalado. Passo a passo: https://criaugu.github.io/tusab/instalacao"
+            echo
+            echo "SHA-256 (\`tusab-$V.mcpb\`): \`$(cut -d' ' -f1 "tusab-$V.mcpb.sha256")\`"
+          } >> notas.md
+          cat notas.md
 
-          echo "${{ secrets.CSC_LINK }}" | base64 --decode > /tmp/cert.p12
-          security import /tmp/cert.p12 -k build.keychain -P "${{ secrets.CSC_KEY_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
-          rm -f /tmp/cert.p12
-
-          curl -sL -o /tmp/DeveloperIDG2CA.cer "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer"
-          curl -sL -o /tmp/AppleRootCA.cer "https://www.apple.com/appleca/AppleIncRootCertificate.cer"
-          security import /tmp/DeveloperIDG2CA.cer -k build.keychain -T /usr/bin/codesign -T /usr/bin/security
-          security import /tmp/AppleRootCA.cer -k build.keychain -T /usr/bin/codesign -T /usr/bin/security
-
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" build.keychain
-          security find-identity -v -p codesigning build.keychain
-
-      # Mesma seção anexada do job create-release/build-windows (ver comentário
-      # em create-release) — repetida aqui pelo mesmo motivo: electron-builder
-      # sobrescreve o corpo da release com o release_notes.md regenerado.
-      - name: Gerar notas automáticas do GitHub (PRs/commits desta versão)
+      - name: Publicar a release (sem marcar como a mais recente)
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api "repos/${{ github.repository }}/releases/generate-notes" \
-            -f tag_name="$GITHUB_REF_NAME" \
-            --jq .body > auto_notes.md || true
-
-      # Mesma extração do job build-windows — os dois jobs publicam na MESMA
-      # release (criaugu/tusab), então geramos as notas idênticas aqui também
-      # (não depende de qual job termina primeiro).
-      - name: Gerar notas de release a partir do CHANGELOG.md
-        run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"
-
-      # electron-builder notariza e grampeia (staple) o ticket automaticamente
-      # com base no mac.notarize do package.json + os 3 env vars da API Key,
-      # depois publica na release. CSC_LINK/CSC_KEY_PASSWORD não são passados
-      # aqui — o certificado já está no keychain (passo anterior).
-      - name: Build, assinar, notarizar e publicar (.dmg + .zip)
-        working-directory: electron
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
-          APPLE_API_KEY: ${{ env.APPLE_API_KEY_PATH }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          # Sem isso, o publisher do electron-builder recusa anexar os
-          # artefatos a uma release já existente com mais de 2h (guard interno
-          # dele, ver gitHubPublisher.ts — pensado pra evitar sobrescrever uma
-          # release "definitiva" antiga por engano). A release do Windows é
-          # criada bem antes da notarização do Mac terminar (notarização real
-          # leva 90-180min), então esse guard sempre disparava aqui — build,
-          # assinatura e notarização terminavam OK mas o upload era pulado em
-          # silêncio (exit code 0, log só mostra "skipped publishing").
-          EP_GH_IGNORE_TIME: "true"
-        # ulimit padrão do runner (256) é baixo demais pra assinar cada um dos
-        # milhares de arquivos dentro de python_env (torch/onnxruntime/
-        # transformers) — sem isso, EMFILE: too many open files. 10240 ainda
-        # não foi suficiente num teste real; 65536 confirmado necessário.
-        run: |
-          sudo sysctl -w kern.maxfilesperproc=200000 kern.maxfiles=300000
-          ulimit -n 100000
-          npm run build:mac:publish -- -c.mac.notarize=true
-
-      - name: Remover keychain efêmero de assinatura
-        if: always()
-        run: |
-          security list-keychains -d user -s login.keychain-db
-          security delete-keychain build.keychain 2>/dev/null || true
+          V="${{ steps.versao.outputs.v }}"
+          gh release create "$GITHUB_REF_NAME" "tusab-$V.mcpb" "tusab-$V.mcpb.sha256" \
+            --title "Tusab $V" --notes-file notas.md --latest=false --verify-tag

@@ -1,13 +1,17 @@
 ---
 id: visao-geral
-title: Desktop app (previous version)
+title: Desktop app (discontinued)
 sidebar_label: Overview
 slug: /desktop/visao-geral
 ---
 
-# Desktop app (previous version)
+# Desktop app (discontinued)
 
-Before the AI extension, Tusab was distributed as a desktop application: an Electron window with a Python backend (FastAPI) and **its own chat** (the Assistant), which answers with local RAG using Ollama or an external provider. The app is still available for Windows and macOS (version 1.0.64) and is maintained in the same repository.
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
+Before the AI extension, Tusab was distributed as a desktop application: an Electron window with a Python backend (FastAPI) and **its own chat** (the Assistant), which answers with local RAG using Ollama or an external provider. The last version was 1.0.64, for Windows and macOS. The 1.0.x releases remain published on GitHub as history, and the code is in the `desktop-final` tag.
 
 ## Differences from the extension
 

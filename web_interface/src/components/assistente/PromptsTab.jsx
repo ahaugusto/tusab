@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { BookOpen, GraduationCap, Search, Scale, PenLine, Inbox, Copy, Check, X, Info, Star, Plus, Pencil, Trash2, CopyPlus, Sparkles, ChevronDown, Gauge, Folder, ExternalLink } from 'lucide-react';
+import { BookOpen, GraduationCap, Search, Scale, PenLine, Inbox, Copy, Check, X, Info, Star, Plus, Pencil, Trash2, CopyPlus, Sparkles, ChevronDown, Gauge, Folder, ExternalLink, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { API_BASE, BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 import EconomiaTokens from './EconomiaTokens';
@@ -39,21 +39,49 @@ const IAS_NAVEGADOR = [
   { id: 'gemini', nome: 'Gemini', url: 'https://gemini.google.com/app' },
 ];
 const CHAVE_IA_NAVEGADOR = 'tusab_ia_navegador';
+// Nome que a ferramenta de IA informa ao conectar (clientInfo.name) → nome para mostrar.
+const NOME_CLIENTE = { 'claude-ai': 'Claude Desktop', 'claude-code': 'Claude Code' };
+const nomeCliente = (c) => NOME_CLIENTE[c?.nome] || c?.nome || '';
+
+/**
+ * Estado da conexão MCP enquanto o aviso está aberto (GET /api/conexao a cada 2 s):
+ * se o plugin está ligado a uma ferramenta de IA e se ela já usou o Tusab depois da cópia.
+ * → { carregado, mcp, cliente, consultou: nome da ferramenta | null }
+ */
+function useConexaoDesde(desde) {
+  const [estado, setEstado] = useState({ carregado: false, mcp: false, cliente: null, consultou: null });
+  useEffect(() => {
+    let vivo = true;
+    const ler = () => axios.get(`${API_BASE}/conexao`).then((r) => {
+      if (!vivo) return;
+      const uf = r.data?.ultima_ferramenta;
+      setEstado({ carregado: true, mcp: Boolean(r.data?.mcp), cliente: r.data?.cliente || null, consultou: uf && uf.em >= desde ? uf.nome : null });
+    }).catch(() => { if (vivo) setEstado((e) => ({ ...e, carregado: true })); });
+    ler();
+    const id = setInterval(ler, 2000);
+    return () => { vivo = false; clearInterval(id); };
+  }, [desde]);
+  return estado;
+}
 
 /**
  * Aviso depois de copiar: leva à IA aberta no computador (app do Claude, pelo endereço claude://)
- * ou à IA no navegador. Fica 15 s, ou até fechar; não rouba o foco.
+ * ou à IA no navegador, e mostra se o Tusab está conectado a uma IA e quando ela consultou a base
+ * (a confirmação de que a resposta vem dos trechos do usuário). Fica 45 s (8 s depois da
+ * confirmação), ou até fechar; parado enquanto o mouse ou o foco estão nele; não rouba o foco.
  */
 export function AvisoCopiado({ darkMode, onFechar }) {
   const { t } = useTranslation();
   const [ia, setIa] = useState(() => {
     try { return localStorage.getItem(CHAVE_IA_NAVEGADOR) || 'claude'; } catch { return 'claude'; }
   });
+  const [desde] = useState(() => Date.now());
+  const conexao = useConexaoDesde(desde);
   const pausado = useRef(false);
   useEffect(() => {
-    const tm = setInterval(() => { if (!pausado.current) onFechar(); }, 15000);
+    const tm = setInterval(() => { if (!pausado.current) onFechar(); }, conexao.consultou ? 8000 : 45000);
     return () => clearInterval(tm);
-  }, [onFechar]);
+  }, [onFechar, conexao.consultou]);
   const escolher = (id) => {
     setIa(id);
     try { localStorage.setItem(CHAVE_IA_NAVEGADOR, id); } catch { /* sem armazenamento */ }
@@ -91,9 +119,34 @@ export function AvisoCopiado({ darkMode, onFechar }) {
           </select>
         </span>
       </div>
+      <EstadoConexao conexao={conexao} darkMode={darkMode} />
       <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('ext.copiado.aviso_navegador')}</p>
     </div>,
     document.body,
+  );
+}
+
+/** Linha de estado da conexão no aviso de "copiado". */
+function EstadoConexao({ conexao, darkMode }) {
+  const { t } = useTranslation();
+  if (!conexao.carregado) return null;
+  const cliente = nomeCliente(conexao.cliente);
+  let Icone = Loader2, cor = darkMode ? 'text-slate-300' : 'text-slate-600', texto, girando = true;
+  if (!conexao.mcp) {
+    Icone = AlertTriangle; girando = false; cor = darkMode ? 'text-amber-300' : 'text-amber-700';
+    texto = t('ext.copiado.sem_conexao');
+  } else if (conexao.consultou) {
+    Icone = CheckCircle2; girando = false; cor = darkMode ? 'text-emerald-300' : 'text-emerald-700';
+    texto = t('ext.copiado.consultou', { cliente: cliente || 'IA', ferramenta: conexao.consultou });
+  } else {
+    texto = t('ext.copiado.aguardando', { cliente: cliente || 'IA' });
+  }
+  return (
+    <p data-estado={!conexao.mcp ? 'sem-conexao' : conexao.consultou ? 'consultou' : 'aguardando'}
+      className={`text-xs flex items-start gap-2 ${cor}`}>
+      <Icone size={14} className={`shrink-0 mt-0.5 ${girando ? 'animate-spin' : ''}`} aria-hidden="true" />
+      <span>{texto}</span>
+    </p>
   );
 }
 
