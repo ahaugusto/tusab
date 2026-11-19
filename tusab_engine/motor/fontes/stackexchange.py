@@ -6,6 +6,7 @@ pontual de busca — confirmado ao vivo: quota_remaining consumida normalmente).
 Confirmado ao vivo: corpo real da pergunta disponível via filter=withbody.
 """
 
+import html
 import os
 import re
 
@@ -34,6 +35,37 @@ def _limpar_html(texto: str) -> str:
     return texto
 
 
+# O conteúdo do Stack Overflow é CC BY-SA e pede crédito ao autor: nome, link do perfil, link do
+# post e a licença, que depende da data (2.5 até 08/04/2011, 3.0 até 02/05/2018, depois 4.0).
+def licenca_stack_overflow(criado_em_segundos) -> str:
+    try:
+        t = float(criado_em_segundos or 0)
+    except (TypeError, ValueError):
+        t = 0
+    if t < 1302220800:   # 2011-04-08 00:00 UTC
+        return "CC BY-SA 2.5"
+    if t < 1525219200:   # 2018-05-02 00:00 UTC
+        return "CC BY-SA 3.0"
+    return "CC BY-SA 4.0"
+
+
+def extrair_item(item):
+    """Item da API → documento, com a atribuição exigida pela licença no fim do texto."""
+    corpo = _limpar_html(item.get("body", ""))
+    if not corpo:
+        return None
+    partes = [corpo]
+    if item.get("tags"):
+        partes.append("Tags: " + ", ".join(item["tags"]))
+    partes.append(f"{item.get('score', 0)} votos · {item.get('answer_count', 0)} resposta(s)")
+    dono = item.get("owner") or {}
+    autor = html.unescape(dono.get("display_name") or "") or "autor não informado"
+    perfil = f" ({dono['link']})" if dono.get("link") else ""
+    partes.append(f"Autor: {autor}{perfil} · Stack Overflow · Licença: {licenca_stack_overflow(item.get('creation_date'))}")
+    titulo = html.unescape(item.get("title") or "") or "Sem título"
+    return {"titulo": titulo, "texto": "\n\n".join(partes), "url_origem": item.get("link", "")}
+
+
 def buscar(
     query: str, max_resultados: int, projeto_nome: str,
     data_inicio: str = "", data_fim: str = "", autor: str = "",
@@ -53,18 +85,7 @@ def buscar(
     resp.raise_for_status()
     itens = resp.json().get("items", [])
 
-    def extrair(item):
-        corpo = _limpar_html(item.get("body", ""))
-        if not corpo:
-            return None
-        partes = [corpo]
-        if item.get("tags"):
-            partes.append("Tags: " + ", ".join(item["tags"]))
-        partes.append(f"{item.get('score', 0)} votos · {item.get('answer_count', 0)} resposta(s)")
-        titulo = item.get("title") or "Sem título"
-        return {"titulo": titulo, "texto": "\n\n".join(partes), "url_origem": item.get("link", "")}
-
     return executar_busca_generica(
-        itens, extrair, "stackexchange", doc_dir,
+        itens, extrair_item, "stackexchange", doc_dir,
         evento_cancelar=evento_cancelar, dispatch_event=dispatch_event, throttle=1.0,
     )

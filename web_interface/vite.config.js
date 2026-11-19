@@ -5,8 +5,26 @@ import { resolve } from 'path'
 
 const electronPkg = JSON.parse(readFileSync(resolve(__dirname, '../electron/package.json'), 'utf-8'))
 
+// Modo extensão (vite build --mode extensao): a interface é servida pelo plugin
+// MCP do Tusab, sem nada carregado de fora (CSP 'self'). Remove as fontes do
+// Google do index.html e não gera sourcemaps (pacote menor).
+function modoExtensao() {
+  let ativo = false
+  return {
+    name: 'tusab-modo-extensao',
+    config(_cfg, { mode }) {
+      ativo = mode === 'extensao'
+      return ativo ? { build: { sourcemap: false } } : undefined
+    },
+    transformIndexHtml(html) {
+      if (!ativo) return html
+      return html.replace(/\s*<link[^>]+fonts\.(googleapis|gstatic)\.com[^>]*>/g, '')
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), modoExtensao()],
   server: {
     proxy: {
       '/api': { target: 'http://127.0.0.1:8001', changeOrigin: true, rewrite: p => p.replace(/^\/api/, '') },

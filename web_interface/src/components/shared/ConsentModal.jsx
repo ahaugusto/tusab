@@ -11,13 +11,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, BarChart2, Globe, HardDrive, ShieldCheck } from 'lucide-react';
+import { ChevronDown, BarChart2, Globe, HardDrive, ShieldCheck, PlayCircle, Bot, Lock } from 'lucide-react';
 import { acceptAnalytics, declineAnalytics } from '../../services/analytics';
 import { useAriaHidden } from '../../hooks/useAriaHidden';
+import { MODO_EXTENSAO } from '../../constants';
 
 // ─── Data flows disclosed ─────────────────────────────────────────────────────
 
 function getFlows(t) {
+  // Extensão: sem telemetria, sem chave de API e sem Drive — os fluxos reais são estes três.
+  if (MODO_EXTENSAO) return [
+    { icon: PlayCircle, color: 'text-red-500', bg: 'bg-red-500/10', title: t('consent.ext_flow_youtube_title'), desc: t('consent.ext_flow_youtube_desc') },
+    { icon: Bot, color: 'text-primary', bg: 'bg-primary/10', title: t('consent.ext_flow_ia_title'), desc: t('consent.ext_flow_ia_desc') },
+    { icon: Lock, color: 'text-emerald-500', bg: 'bg-emerald-500/10', title: t('consent.ext_flow_criaugu_title'), desc: t('consent.ext_flow_criaugu_desc') },
+  ];
   return [
     {
       icon: BarChart2,
@@ -62,6 +69,12 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
 
   const handleAccept  = () => { acceptAnalytics();  onDone(); };
   const handleDecline = () => { declineAnalytics(); onDone(); };
+  // Extensão: não há telemetria a aceitar; registra a ciência do aviso de uso responsável.
+  const handleEntendi = () => {
+    try { localStorage.setItem('tusab_extensao_aviso_uso', new Date().toISOString()); } catch { /* sem armazenamento */ }
+    declineAnalytics();
+    onDone();
+  };
 
   // Foca o primeiro botão ao montar e fecha com Escape (decline implícito)
   useEffect(() => {
@@ -101,7 +114,7 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
             <div>
               <p id="consent-title" className="text-sm font-bold">{t('consent.title')}</p>
               <p className={`text-[11px] mt-0.5 leading-relaxed ${muted}`}>
-                {t('consent.intro')}
+                {t(MODO_EXTENSAO ? 'consent.ext_intro' : 'consent.intro')}
               </p>
             </div>
           </div>
@@ -145,7 +158,17 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
           )}
         </AnimatePresence>
 
-        {/* Analytics consent question */}
+        {/* Analytics consent question (desktop) / uso responsável (extensão) */}
+        {MODO_EXTENSAO ? (
+          <div className={`px-5 pt-0 pb-5 border-t ${darkMode ? 'border-white/8' : 'border-slate-100'} mt-1`}>
+            <p className={`text-[11px] font-semibold mt-3 mb-1 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t('consent.ext_uso_title')}</p>
+            <p className={`text-[10px] leading-relaxed mb-3 ${muted}`}>{t('consent.ext_uso_desc')}</p>
+            <button ref={firstBtnRef} onClick={handleEntendi}
+              className="w-full py-2 rounded-xl text-xs font-bold transition-colors bg-primary/20 text-primary hover:bg-primary/30">
+              {t('consent.ext_entendi')}
+            </button>
+          </div>
+        ) : (
         <div className={`px-5 pt-0 pb-5 border-t ${darkMode ? 'border-white/8' : 'border-slate-100'} mt-1`}>
           <p className={`text-[11px] font-semibold mt-3 mb-2.5 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
             {t('consent.question')}
@@ -167,6 +190,7 @@ function ConsentModal({ darkMode, onDone, zIndex = 'z-50', skipAriaHidden = fals
             {t('consent.footer_note')}
           </p>
         </div>
+        )}
 
       </div>
     </motion.div>,

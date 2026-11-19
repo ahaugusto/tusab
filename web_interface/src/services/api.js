@@ -258,11 +258,13 @@ export const limparCanal = (projeto_nome) => Promise.all([
 
 // ─── Base Compartilhável ─────────────────────────────────────────────────────
 
-/** Exports a project as a .tusab file (returns blob URL for download) */
-export const exportarBaseCompartilhavel = (projeto) =>
+/** Exports a project as a .tusab file (returns blob URL for download).
+ *  comOriginais (extensão): leva também os arquivos originais — o plugin só os inclui com ?originais=1. */
+export const exportarBaseCompartilhavel = (projeto, comOriginais = false) =>
   axios.get(`${API_BASE}/export/base-compartilhavel/${encodeURIComponent(projeto)}`, {
+    params: comOriginais ? { originais: 1 } : undefined,
     responseType: 'blob',
-    timeout: 60000,
+    timeout: comOriginais ? 300000 : 60000,
   });
 
 /** Returns { projeto: bool } map of which projects are readonly */

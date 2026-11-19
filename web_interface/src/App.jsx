@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import i18n from './i18n';
 import {
   Pause, Square, Activity, FileText, Video, HelpCircle,
@@ -16,12 +16,12 @@ import {
   CloudOff, Trophy, Globe, MicOff, Scissors, Bot, Sparkles,
   KeyRound, BookOpen, Eye, EyeOff, ExternalLink, RefreshCw, ArrowUp, FolderOpen, Settings, Info,
   Sun, Moon, Link2, XCircle, Trash2, Wrench, Shield, Bell, Clock, Mail, LayoutDashboard, History,
-  GraduationCap, Move,
+  GraduationCap, LibraryBig, Move,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Constants, services, hooks ───────────────────────────────────────────────
-import { API_BASE, BTN_FOCUS } from './constants';
+import { API_BASE, BTN_FOCUS, MODO_EXTENSAO } from './constants';
 import { initAnalytics, getConsent, Analytics } from './services/analytics';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useAssistenteConfig } from './hooks/useAssistenteConfig';
@@ -38,7 +38,7 @@ import {
   cancelExtraction, startDriveAuth, cancelDriveAuth, disconnectDrive, saveAgentConfig,
   startIndexing, cancelIndexing, clearChatHistory, fetchAgentStatus,
   deleteCanalIndex, openFolder, extrairMensagemErro, listarProjetos, criarProjeto, resetTotal,
-  buscarFonte, statusFonte, listarFontes, gerarEstudo, exportFlashcardsAnki, listarItensEstudo,
+  buscarFonte, statusFonte, listarFontes, gerarEstudo, fetchEstudo, exportFlashcardsAnki, listarItensEstudo,
 } from './services/api';
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -67,6 +67,7 @@ import ExtractionTab            from './components/extraction/ExtractionTab';
 import AssistenteTab            from './components/tabs/AssistenteTab';
 import AdminTab                 from './components/tabs/AdminTab';
 import EstudoTab                from './components/assistente/EstudoTab';
+import PromptsTab, { EVENTO_ABRIR_PROMPTS } from './components/assistente/PromptsTab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -142,6 +143,26 @@ function ChatFloatButton({ darkMode, indexed, configured, msgCount, onClick, tit
 }
 
 // ─── App ─────────────────────────────────────────────────────────────────────
+
+// O motor manda o status como código em português ("Finalizado ✓" é comparado em vários lugares);
+// aqui ele vira o rótulo no idioma da tela. Status desconhecido aparece como veio.
+const STATUS_MOTOR = {
+  'Ocioso': 'ocioso', 'Iniciando': 'iniciando', 'Mapeando YouTube': 'mapeando', 'Extraindo legendas': 'extraindo',
+  'Minerando YouTube': 'minerando', 'Em Pausa': 'pausa', 'Cancelando...': 'cancelando', 'Interrompido': 'interrompido',
+  'Finalizado ✓': 'finalizado', 'Erro': 'erro', 'Na fila': 'fila',
+};
+// Extensão: a Biblioteca de Prompts (aba 'estudo') fica logo abaixo do Repositório.
+const ORDEM_NAV_EXTENSAO = ['extracao', 'repositorio', 'estudo', 'visao-geral', 'monitor', 'admin'];
+function ordemNav(a, b) {
+  if (!MODO_EXTENSAO) return 0;
+  const pos = (id) => { const i = ORDEM_NAV_EXTENSAO.indexOf(id); return i < 0 ? 99 : i; };
+  return pos(a.id) - pos(b.id);
+}
+
+function rotuloStatus(status, t) {
+  const chave = STATUS_MOTOR[status];
+  return chave ? t(`ext.status.${chave}`) : status;
+}
 
 function App() {
   const { t } = useTranslation();
@@ -320,6 +341,8 @@ function App() {
   const [estudoItensSelecionados,  setEstudoItensSelecionados]  = useState([]); // [arquivo, ...]
   const [estudoGerando,    setEstudoGerando]    = useState(false);
   const [estudoErro,       setEstudoErro]       = useState('');
+  // Extensão: a geração é da IA do usuário — guarda o pedido pronto para copiar.
+  const [estudoPedidoIA,   setEstudoPedidoIA]   = useState('');
   const [estudoFlashcards, setEstudoFlashcards] = useState([]);
   const [estudoResumo,     setEstudoResumo]     = useState('');
   const [estudoPostits,    setEstudoPostits]    = useState([]);
@@ -335,6 +358,15 @@ function App() {
     listarItensEstudo(estudoProjeto)
       .then(r => setEstudoItensDisponiveis(r.data?.itens || []))
       .catch(() => setEstudoItensDisponiveis([]));
+    // Extensão: o que a IA gravou (último lote) aparece ao abrir o projeto, sem gerar na tela.
+    if (MODO_EXTENSAO) {
+      setEstudoPedidoIA('');
+      fetchEstudo(estudoProjeto).then(r => {
+        setEstudoFlashcards(r.data?.flashcards || []);
+        setEstudoResumo(r.data?.resumo || '');
+        setEstudoPostits(r.data?.postits || []);
+      }).catch(() => {});
+    }
   }, [estudoProjeto]);
 
   const handleEstudoGerar = useCallback(async () => {
@@ -342,6 +374,7 @@ function App() {
     if (!estudoTipos.length) { setEstudoErro('Selecione ao menos um tipo antes de gerar.'); return; }
     setEstudoGerando(true);
     setEstudoErro('');
+    setEstudoPedidoIA('');
     setEstudoFlashcards([]);
     setEstudoResumo('');
     setEstudoPostits([]);
@@ -355,12 +388,14 @@ function App() {
       );
       const resultados = await Promise.allSettled(chamadas);
       const erros = [];
+      const pedidos = [];
       for (const r of resultados) {
         if (r.status === 'rejected') {
           erros.push(r.reason?.response?.data?.message || r.reason?.message || 'Erro de conexão com o backend.');
           continue;
         }
         const { tipo: t, data } = r.value;
+        if (data.gerar_pela_ia) { pedidos.push(data.pedido); continue; }
         if (data.error) { erros.push(data.message || `Erro ao gerar ${t}.`); continue; }
         if (data.flashcards?.length) setEstudoFlashcards(data.flashcards);
         if (data.resumo) {
@@ -371,6 +406,7 @@ function App() {
         if (data.postits?.length) setEstudoPostits(data.postits);
       }
       if (erros.length) setEstudoErro(erros.join(' '));
+      if (pedidos.length) setEstudoPedidoIA(pedidos.join('; '));
     } catch (e) {
       setEstudoErro(e?.response?.data?.message || e?.message || 'Erro de conexão com o backend.');
     } finally {
@@ -391,6 +427,12 @@ function App() {
     try {
       const resp = await exportFlashcardsAnki(estudoProjeto);
       if (!resp.ok) { setEstudoErro('Erro ao exportar CSV.'); return; }
+      // Erro vem em JSON com status 200 (contrato do desktop): não baixar como .csv.
+      if ((resp.headers.get('content-type') || '').includes('application/json')) {
+        const dados = await resp.json().catch(() => ({}));
+        setEstudoErro(dados.message || 'Erro ao exportar CSV.');
+        return;
+      }
       const blob = await resp.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -747,6 +789,13 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [chatOpen, chatExpandido, setChatOpen, setChatExpandido, regras, handleOpenChat]);
 
+  // Extensão: "Pedir à IA → Ver todos os prompts" no Repositório abre a aba de prompts (id 'estudo').
+  useEffect(() => {
+    const abrir = () => { setActiveTab('estudo'); setShowHome(false); };
+    window.addEventListener(EVENTO_ABRIR_PROMPTS, abrir);
+    return () => window.removeEventListener(EVENTO_ABRIR_PROMPTS, abrir);
+  }, []);
+
   /** Trocar de aba com o chat expandido volta o chat pro tamanho reduzido —
    * o chat expandido ocupa boa parte da tela, disputando espaço visual com
    * o conteúdo da aba nova que o usuário acabou de escolher ver. Depende só
@@ -969,7 +1018,7 @@ function App() {
         sem_legenda:        status.stats.videos_sem_legenda,
       });
       const notify = () => new Notification(t('notify.extraction_done'), {
-        body: status.stats.videos_processed + ' vídeos extraídos de @' + (status.stats.projeto_nome || ''),
+        body: t('ext.app.notificacao_corpo', { n: status.stats.videos_processed, projeto: status.stats.projeto_nome || '' }),
         icon: '/logo_light_mode.svg',
       });
       if (Notification.permission === 'granted') {
@@ -1243,7 +1292,7 @@ function App() {
     setProgressToast(sucesso
       ? { type: 'success', message: varias
           ? t('extraction.fontes_done_multi', { processed, total, n: fila.fontes.length })
-          : `Busca concluída (${processed}/${total} indexados)` }
+          : t('ext.app.busca_concluida', { processed, total }) }
       : { type: processed > 0 ? 'warning' : 'error', message: varias
           ? t('extraction.fontes_done_partial', { processed, total, falhas: falhas.length })
           : (falhas[0]?.mensagem || 'Busca encerrada com erro') });
@@ -1321,7 +1370,7 @@ function App() {
           acc.processed += processed || 0;
           acc.total     += total || 0;
           acc.itens.push(...(itens || []));
-          if (status !== 'Finalizado ✓') acc.falhas.push({ fonte: fila.fontes[fila.idx].nome, mensagem: message || status || 'Busca encerrada com erro' });
+          if (status !== 'Finalizado ✓') acc.falhas.push({ fonte: fila.fontes[fila.idx].nome, mensagem: message || rotuloStatus(status, t) || t('ext.app.busca_erro') });
           fila.idx += 1;
           setFontePollingId(null);
           avancarFilaFontes();
@@ -1332,7 +1381,7 @@ function App() {
         // Operação em Background (fonteBackground) permanece visível.
         setFontePollingId(null);
         filaFontesRef.current = null;   // sem conexão, não dá para encadear as próximas fontes
-        setProgressToast({ type: 'warning', message: 'Perdemos a conexão com o progresso da busca — ela pode continuar rodando. Verifique o Repositório em alguns instantes.' });
+        setProgressToast({ type: 'warning', message: t('ext.app.conexao_perdida') });
       });
     }, 2000);
     return () => clearInterval(interval);
@@ -1462,7 +1511,7 @@ function App() {
                     <>
                       <h2 className={`text-sm font-bold mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t('home.create_first_project')}</h2>
                       <p className={`text-xs mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Você ainda não tem projetos. Crie um para organizar seus arquivos.
+                        {t('ext.app.sem_projetos')}
                       </p>
                       <div className="flex gap-2">
                         <input
@@ -1558,8 +1607,8 @@ function App() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold">
                 {appUpdateInfo.downloaded
-                  ? <>Tusab <span className="text-warning">{appUpdateInfo.version}</span> pronto para instalar</>
-                  : <>Nova versão <span className="text-warning">{appUpdateInfo.version}</span> disponível</>
+                  ? <Trans i18nKey="ext.app.atualizacao_pronta" values={{ versao: appUpdateInfo.version }} components={{ v: <span className="text-warning" /> }} />
+                  : <Trans i18nKey="ext.app.atualizacao_disponivel" values={{ versao: appUpdateInfo.version }} components={{ v: <span className="text-warning" /> }} />
                 }
               </p>
               <p className={`text-[10px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -1766,10 +1815,10 @@ function App() {
                 { id: 'historico',   icon: History,          label: t('tabs.historico')   },
                 { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                 { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
-                { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
+                { id: 'estudo',      icon: MODO_EXTENSAO ? LibraryBig : GraduationCap,    label: t('tabs.estudo')      },
                 { id: 'agente',      icon: Wrench,           label: t('tabs.assistente')       },
                 { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
-              ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => {
+              ].filter(({ id }) => regras.abas?.includes(id)).sort(ordemNav).map(({ id, icon: Icon, label }) => {
                 // Badge de status por item — cor + texto do tooltip explicativo
                 // (hover/focus no ícone). Antes só "agente" tinha tooltip; os
                 // outros badges (indexação/extração/update) pulsavam sem
@@ -1874,10 +1923,10 @@ function App() {
                   { id: 'historico',   icon: History,          label: t('tabs.historico')   },
                   { id: 'visao-geral', icon: LayoutDashboard,  label: t('tabs.overview')    },
                   { id: 'monitor',     icon: Activity,         label: t('tabs.monitor')     },
-                  { id: 'estudo',      icon: GraduationCap,    label: t('tabs.estudo')      },
+                  { id: 'estudo',      icon: MODO_EXTENSAO ? LibraryBig : GraduationCap,    label: t('tabs.estudo')      },
                   { id: 'agente',      icon: Wrench,           label: t('tabs.assistente')       },
                   { id: 'admin',       icon: Settings,         label: t('tabs.admin')       },
-                ].filter(({ id }) => regras.abas?.includes(id)).map(({ id, icon: Icon, label }) => (
+                ].filter(({ id }) => regras.abas?.includes(id)).sort(ordemNav).map(({ id, icon: Icon, label }) => (
                   <button key={id}
                     onClick={() => {
                       setActiveTab(id); setSidebarOpen(false); setShowHome(false);
@@ -1950,7 +1999,7 @@ function App() {
                       <span className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>{t('header.status')}</span>
                     </div>
                     <h2 aria-live="polite" aria-atomic="true" className={`text-lg lg:text-2xl font-bold leading-tight ${statusTextColor()}`}>
-                      {status.stats.status}
+                      {rotuloStatus(status.stats.status, t)}
                     </h2>
                     {isRunning && !isPaused && status.stats.eta_segundos > 0 && (
                       <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${darkMode ? 'text-slate-300' : 'text-slate-400'}`}>
@@ -2261,6 +2310,9 @@ function App() {
             {activeTab === 'estudo' && (
               <div id="panel-estudo" role="tabpanel" aria-labelledby="tab-estudo" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
+                {MODO_EXTENSAO ? (
+                  <PromptsTab darkMode={darkMode} projetos={projetosIndexados.map((c) => c.nome)} />
+                ) : (
                 <EstudoTab
                   darkMode={darkMode}
                   projetosIndexados={projetosIndexados}
@@ -2272,6 +2324,7 @@ function App() {
                   itensSelecionados={estudoItensSelecionados}   setItensSelecionados={setEstudoItensSelecionados}
                   gerando={estudoGerando}
                   erro={estudoErro}
+                  pedidoIA={estudoPedidoIA}
                   flashcards={estudoFlashcards}
                   resumo={estudoResumo}
                   resumoArtefatoId={estudoResumoArtefatoId}
@@ -2280,6 +2333,7 @@ function App() {
                   onResetar={handleEstudoResetar}
                   onExportarAnki={handleEstudoExportarAnki}
                 />
+                )}
               </div>
             )}
 
@@ -2353,7 +2407,7 @@ function App() {
             )}
 
             {/* ── Chat Drawer ── */}
-            <ChatDrawer
+            {!MODO_EXTENSAO && (<ChatDrawer
               darkMode={darkMode}
               persona={persona}
               onOpenPersona={PERFIS_CONFIG[perfil]?.config_api !== false ? () => {
@@ -2433,12 +2487,12 @@ function App() {
               onRetomar={retomar}
               onNovaConversa={novaConversa}
               chatQueue={chatQueue}
-            />
+            />)}
 
             {/* Floating chat button — bolinha arrastável (onMouseDown inicia o
                 arraste; posição persiste em localStorage pra não ficar sobre
                 texto que o usuário precise ler) */}
-            {!chatOpen && (
+            {!chatOpen && !MODO_EXTENSAO && (
               <div
                 ref={bubbleRef}
                 onMouseDown={handleBubbleMouseDown}
