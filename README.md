@@ -20,7 +20,7 @@ Built by **Augusto Brasil** · [CriAugu](https://linkedin.com/in/augustoalvesbra
 
 ## Download
 
-**[⬇ Download latest release](https://github.com/ahaugusto/tusab/releases/latest)**
+**[⬇ Download latest release](https://github.com/augustoalvesbrasil/tusab/releases/latest)**
 
 | Platform | Requirement | File |
 |---|---|---|
@@ -269,7 +269,7 @@ unencrypted cloud backups. The `neural/` folder is safe to share.
 
 ```powershell
 # Clone the repository
-git clone https://github.com/ahaugusto/tusab.git
+git clone https://github.com/augustoalvesbrasil/tusab.git
 cd tusab
 
 # Python virtualenv

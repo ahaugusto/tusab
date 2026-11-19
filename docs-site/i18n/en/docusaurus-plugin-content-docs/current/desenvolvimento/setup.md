@@ -14,7 +14,7 @@ Node.js 20+, Python 3.12+, Git.
 ## Clone and install
 
 ```powershell
-git clone https://github.com/ahaugusto/tusab.git
+git clone https://github.com/augustoalvesbrasil/tusab.git
 cd tusab
 
 # Python virtual environment

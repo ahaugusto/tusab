@@ -9,7 +9,7 @@ slug: /licenca
 
 ## Código — Elastic License 2.0
 
-O código-fonte do Tusab é **source-available** sob a [Elastic License 2.0](https://github.com/ahaugusto/tusab/blob/main/LICENSE): qualquer pessoa pode ler, auditar, rodar e modificar livremente para uso próprio. A única restrição relevante é **não oferecer o Tusab como serviço hospedado/gerenciado a terceiros**.
+O código-fonte do Tusab é **source-available** sob a [Elastic License 2.0](https://github.com/augustoalvesbrasil/tusab/blob/main/LICENSE): qualquer pessoa pode ler, auditar, rodar e modificar livremente para uso próprio. A única restrição relevante é **não oferecer o Tusab como serviço hospedado/gerenciado a terceiros**.
 
 Pull Requests externos não são aceitos no momento — ver [Contribuindo](/contribuindo).
 
@@ -28,7 +28,7 @@ Se você distribuir uma versão modificada, dê um nome diferente ao fork e deix
 
 ## Dependências de terceiros
 
-A lista completa de bibliotecas de terceiros usadas e suas licenças está em [`THIRD_PARTY_NOTICES.md`](https://github.com/ahaugusto/tusab/blob/main/THIRD_PARTY_NOTICES.md) no repositório.
+A lista completa de bibliotecas de terceiros usadas e suas licenças está em [`THIRD_PARTY_NOTICES.md`](https://github.com/augustoalvesbrasil/tusab/blob/main/THIRD_PARTY_NOTICES.md) no repositório.
 
 ---
 

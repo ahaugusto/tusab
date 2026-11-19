@@ -58,4 +58,4 @@ diretas com uso mais substancial no produto; não é exaustiva de toda a
 ---
 
 Se você mantém uma das bibliotecas acima e acha que a atribuição está
-incorreta ou incompleta, abra uma [issue](https://github.com/ahaugusto/tusab/issues).
+incorreta ou incompleta, abra uma [issue](https://github.com/augustoalvesbrasil/tusab/issues).

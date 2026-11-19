@@ -31,15 +31,15 @@ const cabecalho = `## Download
 
 | Plataforma | Requisito | Arquivo |
 |---|---|---|
-| Windows 10/11 x64 | — | [Tusab-Setup-${version}.exe](https://github.com/ahaugusto/tusab/releases/download/v${version}/Tusab-Setup-${version}.exe) |
-| macOS (Apple Silicon — M1 ou superior) | macOS 14 (Sonoma)+ | [Tusab-${version}-arm64.dmg](https://github.com/ahaugusto/tusab/releases/download/v${version}/Tusab-${version}-arm64.dmg) |
+| Windows 10/11 x64 | — | [Tusab-Setup-${version}.exe](https://github.com/augustoalvesbrasil/tusab/releases/download/v${version}/Tusab-Setup-${version}.exe) |
+| macOS (Apple Silicon — M1 ou superior) | macOS 14 (Sonoma)+ | [Tusab-${version}-arm64.dmg](https://github.com/augustoalvesbrasil/tusab/releases/download/v${version}/Tusab-${version}-arm64.dmg) |
 
 macOS Intel não é suportado. Ignore os arquivos \`.blockmap\` e \`.yml\` — são usados pelo auto-updater, não para instalação manual.
 
 ---
 `;
 
-const rodape = '\n\n---\n\nVer [CHANGELOG.md](https://github.com/ahaugusto/tusab/blob/main/CHANGELOG.md) para o historico completo.';
+const rodape = '\n\n---\n\nVer [CHANGELOG.md](https://github.com/augustoalvesbrasil/tusab/blob/main/CHANGELOG.md) para o historico completo.';
 
 // Seção opcional anexada ao final: PRs/commits desta versão, gerados pela API
 // nativa do GitHub (releases/generate-notes) e categorizados por label via
