@@ -3,7 +3,7 @@
 Testes da calibragem dinâmica de corpus (P0-c) — tusab_engine/agent/calibration.py.
 
 Invariante crítica: nunca reintroduzir score_minimo (removido em v1.0.26,
-ver agents/_historia.md) — a suite verifica explicitamente sua ausência.
+ver histórico interno do projeto) — a suite verifica explicitamente sua ausência.
 """
 import json
 import os

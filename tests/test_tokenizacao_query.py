@@ -2,7 +2,7 @@
 """
 Testes de tusab_engine.agent.chat::_tokenizar_query.
 
-Bug real (14/ago/2026, ver agents/_historia.md): a query do BM25 nunca
+Bug real (14/ago/2026, ver histórico interno do projeto): a query do BM25 nunca
 filtrava stopword/pontuação antes de pontuar — "Me fale sobre self-rag.
 O que é?" numa base com papers de RAG + leis recuperava só leis, porque
 "sobre" sozinho (não filtrado, alta frequência em texto jurídico formal)

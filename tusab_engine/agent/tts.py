@@ -4,7 +4,7 @@ Text-to-speech local para o Modo Estudo — feature de edição Beta/Enterprise.
 
 Usa Pocket TTS (kyutai-labs/pocket-tts): modelo de 100M parâmetros, CPU-only,
 streaming, sem chamada de rede após o primeiro download dos pesos (HuggingFace
-Hub, cache local). Avaliado em `agents/_historia.md` (seção "Benchmark —
+Hub, cache local). Avaliado em histórico interno do projeto (seção "Benchmark —
 ferramentas open-source avaliadas").
 
 [DECISÃO DE ARQUITETURA] `torch` + `pocket-tts` NUNCA entram no requirements.txt

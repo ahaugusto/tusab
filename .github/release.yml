@@ -4,7 +4,7 @@
 # (POST /repos/.../releases/generate-notes). Usado só como seção anexada
 # e colapsável no final do corpo da release — o corpo principal continua
 # sendo o CHANGELOG.md curado à mão via scripts/generate-release-notes.js.
-# Ver agents/_historia.md para o porquê dessa separação.
+# Ver histórico interno do projeto para o porquê dessa separação.
 
 changelog:
   exclude:

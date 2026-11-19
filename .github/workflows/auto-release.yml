@@ -82,7 +82,7 @@ jobs:
             echo "::notice::Nada a publicar desde $ULTIMA_TAG — job encerrado sem criar tag."
           fi
 
-      - name: Calcular próxima versão (patch-only, ver agents/_historia.md)
+      - name: Calcular próxima versão (patch-only, ver histórico interno do projeto)
         if: steps.pending.outputs.tem-pendencia == 'true'
         id: versao
         run: |

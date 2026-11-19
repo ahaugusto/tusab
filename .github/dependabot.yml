@@ -2,7 +2,7 @@
 #
 # Atualização automática de dependências, um PR por atualização — nunca em
 # lote. Lição da rodada manual de update de stacks (jul/2026, ver
-# agents/_historia.md): atualizar várias dependências de uma vez pode
+# histórico interno do projeto): atualizar várias dependências de uma vez pode
 # quebrar travas transitivas não óbvias (ex: protobuf/typer/mpmath/setuptools
 # quebraram juntos ao atualizar um grupo "de baixo risco"). PRs individuais,
 # cada um testado isoladamente pelo ci.yml existente, evitam esse tipo de
@@ -48,7 +48,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     # Major bump do Electron exige testar o app empacotado inteiro
-    # (ver invariante 13/14 em agents/_historia.md — bugs de sandbox só
+    # (ver invariante 13/14 em histórico interno do projeto — bugs de sandbox só
     # aparecem no .exe instalado, nunca em dev) — nunca automático.
     ignore:
       - dependency-name: "electron"

@@ -535,7 +535,7 @@ def _contar_unidades_fonte(projeto_prefixo: str) -> int:
     Conta por ARQUIVO, não por pasta de canal — pastas com dezenas/centenas
     de vídeos (comum em canais grandes) faziam a barra ficar parada em "1 de
     N" por minutos enquanto essa única unidade processava internamente
-    (achado ao vivo, 14/ago/2026, ver agents/_historia.md).
+    (achado ao vivo, 14/ago/2026, ver histórico interno do projeto).
     """
     total = 0
     youtube_base = os.path.join(NEURAL_DIR, projeto_prefixo, 'youtube')
@@ -576,7 +576,7 @@ def _parsear_todos_chunks(projeto_prefixo: str, progress_callback=None, embeddin
     ARQUIVO processado (não mais por pasta de canal inteira — pastas com
     dezenas/centenas de vídeos deixavam a barra parada em "1 de N" por
     minutos enquanto essa única unidade processava internamente por dentro;
-    achado ao vivo, 14/ago/2026, ver agents/_historia.md). `_contar_unidades_fonte`
+    achado ao vivo, 14/ago/2026, ver histórico interno do projeto). `_contar_unidades_fonte`
     usa a mesma granularidade por arquivo como denominador.
 
     stop_event, se fornecido e setado, interrompe o parsing entre arquivos —

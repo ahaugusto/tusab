@@ -478,7 +478,7 @@ def _obter_corpus_merged(prefixos: list[str]) -> dict | None:
 # "Código Penal") com score bem mais baixo mas ainda dentro do top-n — e o LLM
 # confunde o conteúdo deles com o do documento perguntado (confirmado ao vivo,
 # 29/jul/2026: pergunta sobre a Lei 14.688 trouxe conteúdo real da Lei 14.344
-# na resposta, não invenção — conflação entre chunks, ver agents/_historia.md).
+# na resposta, não invenção — conflação entre chunks, ver histórico interno do projeto).
 # Extraído como função própria (não inline em _recuperar_contexto) pra ser
 # testável sem precisar de um corpus BM25 real — BM25 degenera com corpus
 # sintético pequeno (IDF fica negativo quando um termo aparece na maioria dos
@@ -650,7 +650,7 @@ def _recuperar_contexto(pergunta: str, projeto_nome: str, n: int = 6, config: di
         # precisa de um validador de relevância real (o CrossEncoder, chamado
         # depois em _rerankar), que não existe em Busca Restrita. Diferente
         # do FTS5 (exact-match, mesclado sempre), este bloco só entra quando
-        # busca_ampla=True. Ver agents/_historia.md sobre a Fase 1 de
+        # busca_ampla=True. Ver histórico interno do projeto sobre a Fase 1 de
         # embeddings — complemento ao BM25, nunca substituição.
         if busca_ampla:
             try:
@@ -941,7 +941,7 @@ def _deduplicar_chunks(chunks: list, n: int, threshold: float = 0.85) -> list:
 # frase ao parafrasear um chunk denso em números mas apagar os números em si —
 # "Decreto-Lei nº 1.001, de 21 de outubro de 1969" vira "Decreto-Lei nº., de
 # de outubro de" na resposta (confirmado ao vivo, 29/jul/2026, ver
-# agents/_historia.md). Não é alucinação (não inventa número errado) nem é
+# histórico interno do projeto). Não é alucinação (não inventa número errado) nem é
 # pego por verificar_alucinacao/avaliar_confianca_por_sentenca (nenhum dos
 # dois lê o texto pra achar lacuna estrutural, só cobertura de vocabulário).
 # tem_lacuna_numerica() e as demais funções de crítica (verificação de
@@ -1342,7 +1342,7 @@ def _gerar_com_fidelidade_numerica(provider: str, api_key: str, prompt: str, con
     data apagado (ver critique.tem_lacuna_numerica), tenta 1 vez mais com instrução
     reforçada de fidelidade — confirmado ao vivo que reduz (não elimina
     sozinha) a perda de dígitos em modelos locais pequenos ao parafrasear
-    contexto denso em números (ver agents/_historia.md, 29/jul/2026).
+    contexto denso em números (ver histórico interno do projeto, 29/jul/2026).
 
     Não tenta de novo se não há contexto (nada pra ser fiel a) ou se a
     segunda tentativa falhar — evita loop e latência sem ganho; a resposta

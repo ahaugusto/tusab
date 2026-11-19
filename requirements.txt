@@ -5,7 +5,7 @@
 # ESTE ARQUIVO É O QUE VAI DENTRO DO INSTALADOR (Windows e macOS — os dois
 # jobs de release.yml instalam daqui). Não colocar aqui torch,
 # sentence-transformers, scikit-learn nem keybert: a stack semântica fica
-# fora do instalador consumer por decisão de 02/jul/2026 (agents/_historia.md,
+# fora do instalador consumer por decisão de 02/jul/2026 (histórico interno do projeto,
 # invariante 15) e mora em requirements-enterprise.txt. Ela esteve aqui de
 # 24/jun a 18/out/2026 e foi parar no .dmg (617 → 757 MB). Todo uso no código
 # é import opcional com degradação graciosa — para tê-la em dev:

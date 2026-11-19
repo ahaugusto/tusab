@@ -3,7 +3,7 @@
 Fonte pública: ClinicalTrials.gov (API v2, NIH/NLM) — registro de ensaios
 clínicos com cobertura genuinamente mundial. Sem chave de API.
 
-Avaliado extensamente em agents/_historia.md junto com a decisão do vertical
+Avaliado extensamente em histórico interno do projeto junto com a decisão do vertical
 Tusab Saúde: confirmado ao vivo escala mundial real (10.094 resultados só pra
 "HIV", locais em Tanzânia/Uganda/Romênia/EUA) e texto substantivo
 (briefSummary/detailedDescription, não só metadado — diferente do Datajud).

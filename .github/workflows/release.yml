@@ -151,7 +151,7 @@ jobs:
       # electron/python_env e electron/bin estão no .gitignore — este job TEM
       # que criá-los. Sem este passo (v1.0.42 a v1.0.57) o electron-builder só
       # avisava "file source doesn't exist" e publicava um .exe de 82 MB sem
-      # backend. Invariante 24 em agents/_historia.md. Mesmo script usado no
+      # backend. Invariante 24 em histórico interno do projeto. Mesmo script usado no
       # teste local, para o teste local valer pelo CI.
       - name: Montar Python embutido e yt-dlp (invariante 24)
         shell: pwsh
@@ -194,7 +194,7 @@ jobs:
       # credentials.json (OAuth do Google Drive) nunca foi commitado — só existia
       # localmente na máquina onde builds eram feitos manualmente. Builds via CI
       # (aqui e no job build-macos) sempre saíram sem esse arquivo, ou seja, sem
-      # sincronização com o Drive funcionando no instalador. Ver agents/macos.md.
+      # sincronização com o Drive funcionando no instalador. Ver notas internas de build do macOS.
       - name: Escrever credentials.json (OAuth Google Drive) a partir do secret
         shell: bash
         run: echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS_JSON }}' > credentials.json
@@ -351,7 +351,7 @@ jobs:
       # Runner self-hosted roda sem sessão GUI (só SSH) — o keychain de login
       # não pode ser desbloqueado/importado programaticamente nesse contexto.
       # Mesma causa raiz e fix aplicados em macos-smoke.yml (job
-      # electron-notarize) — ver comentário lá e agents/macos.md.
+      # electron-notarize) — ver comentário lá e notas internas de build do macOS.
       - name: Preparar keychain de assinatura (self-hosted, sem sessão GUI)
         run: |
           KEYCHAIN_PASS="$(openssl rand -base64 24)"

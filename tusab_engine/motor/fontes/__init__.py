@@ -12,11 +12,11 @@ multidisciplinares (arXiv, OpenAlex, DataCite, DOAJ, Zenodo) — esses não
 "pertencem" a uma área de domínio como PubMed pertence a saúde ou CERN Open
 Data pertence a física; indexam produção de qualquer campo, então ficavam
 soterrados dentro de "Produção científica e literatura" mesmo cobrindo muito
-mais que isso (decisão de 30/jul/2026, ver agents/_historia.md).
+mais que isso (decisão de 30/jul/2026, ver histórico interno do projeto).
 
 Só entram fontes testadas ao vivo, sem cadastro/chave, com conteúdo textual
 substantivo (não apenas metadado) — mesmo critério usado pra FHIR/
-ClinicalTrials.gov (ver agents/_historia.md).
+ClinicalTrials.gov (ver histórico interno do projeto).
 
 arXiv (arxiv_adapter.py) está no registro ativo — não fica exclusivo do
 futuro vertical Tusab Saúde: a mesma base técnica atende os dois (decisão de

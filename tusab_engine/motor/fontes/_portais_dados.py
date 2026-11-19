@@ -5,7 +5,7 @@ paralelo e intercala os resultados. Usado por portais_br_federal.py,
 portais_br_estados.py, portais_br_municipios.py e portais_internacionais.py.
 
 Mapeamento ao vivo (20/out/2026, mais de 150 portais testados; detalhes em
-agents/_historia.md). Quatro plataformas, quatro adaptadores:
+histórico interno do projeto). Quatro plataformas, quatro adaptadores:
 - CKAN   `{base}/api/3/action/package_search?q=&rows=` → result.results[]
          (`title`, `notes`, `organization.title`, `resources[]`, `name`).
          O path base varia (`/data`, `/catalogo`, `/opendata`...).

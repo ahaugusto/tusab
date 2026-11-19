@@ -7,7 +7,7 @@ uma release completa — não faz parte do pytest (precisa de rede real).
 Motivação: v1.0.40 foi publicada sem o `latest.yml` (só .exe + .blockmap
 foram anexados via `gh release upload`) e o auto-update falhou com 404
 numa máquina real — só descoberto por teste manual do usuário. Ver
-`agents/_historia.md`, invariante 23.
+histórico interno do projeto, invariante 23.
 
 Uso:
     .venv\\Scripts\\python.exe scripts\\harness\\verificar_release.py v1.0.40

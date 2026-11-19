@@ -7,7 +7,7 @@ licença Apache-2.0) — biblioteca open-source de extração de texto de págin
 web, amplamente usada em pipelines de NLP/pesquisa (inclusive nos datasets do
 Common Crawl). Ver CHANGELOG.md e https://github.com/adbar/trafilatura.
 
-Avaliado em `agents/_historia.md` junto com Anakin-Inc (rejeitado — AGPL-3.0
+Avaliado em histórico interno do projeto junto com Anakin-Inc (rejeitado — AGPL-3.0
 incompatível com a edição Enterprise + evasão de bot deliberada) e Crawl4AI
 (mais robusto pra páginas com JavaScript, mas exige browser headless —
 candidato futuro se trafilatura sozinho não bastar). Escopo deliberado desta

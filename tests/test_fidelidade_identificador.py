@@ -3,7 +3,7 @@
 Testes da correção de conflação entre documentos com vocabulário parecido
 (ex: leis diferentes sobre "crimes hediondos") — bug real reportado por
 Augusto: pergunta sobre a Lei 14.688 trouxe conteúdo real de outra lei
-retornada pelo BM25 na resposta. Ver agents/_historia.md, 29/jul/2026.
+retornada pelo BM25 na resposta. Ver histórico interno do projeto, 29/jul/2026.
 
 Duas partes da correção:
 1. index.py::_parsear_todos_chunks() — passa a parsear TITULO/DATA/URL_ORIGEM

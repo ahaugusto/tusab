@@ -9,7 +9,7 @@ Granularidade por ARQUIVO (não por pasta de canal) desde 14/ago/2026 — bug
 real achado ao vivo: pastas de canal com dezenas/centenas de vídeos deixavam
 a barra de progresso parada em "1 de N" por minutos, e stop_event não tinha
 efeito nenhum durante essa fase (só era checado depois que TUDO já tinha
-sido parseado). Ver agents/_historia.md.
+sido parseado). Ver histórico interno do projeto.
 """
 import os
 

@@ -4,7 +4,7 @@ Fonte pública: CERN Open Data — conjuntos de dados de colisões do LHC. Sem
 chave de API. Único candidato viável da área "Física, química e materiais"
 com busca real por tema e texto narrativo real: PubChem só faz lookup por
 nome exato de composto (não busca por tema — mesmo problema do PyPI, ver
-agents/_historia.md); NOMAD é repositório de cálculo computacional, campos
+histórico interno do projeto); NOMAD é repositório de cálculo computacional, campos
 puramente estruturados/numéricos, sem narrativa; The Materials Project exige
 chave; NIST Chemistry WebBook não tem API, só páginas HTML; Crystallography
 Open DB não testado nesta rodada.

@@ -666,7 +666,7 @@ def buscar_canais_youtube(query: str, max_resultados: int = 8) -> list:
     sp=EgIQAg (parâmetro de filtro nativo do YouTube, mesmo usado pela busca
     web deles) restringe os resultados a canais; sem ele a busca padrão do
     yt-dlp (ytsearch:) retorna vídeos, não canais. Testado ao vivo antes de
-    implementar (ver agents/_historia.md).
+    implementar (ver histórico interno do projeto).
     """
     query = (query or '').strip()
     if not query:

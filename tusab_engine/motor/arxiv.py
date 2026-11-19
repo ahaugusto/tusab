@@ -3,7 +3,7 @@
 Fonte de extração: busca acadêmica no arXiv, para o perfil Pesquisador.
 
 Feature inspirada no projeto open-source OpenScience (synthetic-sciences/openscience),
-um workbench de agente de pesquisa científica avaliado em `agents/_historia.md`
+um workbench de agente de pesquisa científica avaliado em histórico interno do projeto
 (seção "Benchmark — ferramentas open-source avaliadas", jul/2026). Diferente do
 OpenScience, o Tusab não roda hipótese/experimento — apenas busca, baixa e indexa
 papers como qualquer outro documento do Repositório, preservando o pipeline BM25

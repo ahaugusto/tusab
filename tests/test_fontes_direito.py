@@ -4,7 +4,7 @@ Testes dos adaptadores da área "Direito, normas, legislação e governo" —
 Câmara dos Deputados (proposições em tramitação) e Senado Federal/Legislação
 (leis já publicadas). LexML (bloqueado por verificação anti-bot ao vivo) e
 Datajud (já rejeitado antes) ficam de fora — ver docstrings dos módulos e
-agents/_historia.md. Sem chamada de rede real — requests é mockado.
+histórico interno do projeto. Sem chamada de rede real — requests é mockado.
 """
 from unittest.mock import MagicMock, patch
 

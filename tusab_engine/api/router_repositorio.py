@@ -508,7 +508,7 @@ def _extrair_imagem(conteudo_bytes: bytes, filename: str) -> str:
     # técnico (Estudante/Professor) era o resultado mais comum. RapidOCR
     # (Apache-2.0) é Python + ONNX puro, sem binário externo — modelos (<20MB)
     # baixados e cacheados automaticamente no primeiro uso, mesmo padrão já
-    # usado pelo sentence-transformers/CrossEncoder. Ver agents/_historia.md.
+    # usado pelo sentence-transformers/CrossEncoder. Ver histórico interno do projeto.
     try:
         import numpy as np
         from PIL import Image

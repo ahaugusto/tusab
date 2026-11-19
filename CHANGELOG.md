@@ -218,7 +218,6 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ### Adicionado
 - **Site de documentação público** (`docs-site/`, Docusaurus) publicado pela primeira vez via GitHub Pages — cobre instalação, perfis, funcionalidades, arquitetura, segurança, privacidade, acessibilidade, design system e desenvolvimento.
-- **Agente `/documentacao`** (`agents/documentacao.md`) — mantém o site e o `README.md` sincronizados com o código: audita, propõe atualizações, só publica com aprovação explícita. Registrado em `CLAUDE.md` para rodar após qualquer mudança visível ao usuário.
 
 ### Corrigido
 - **Reset total disponível para todos os perfis** — antes só o perfil Especialista via o botão na aba Admin; Estudante, Professor e Pesquisador agora também têm acesso.
@@ -232,7 +231,6 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ### Adicionado
 - **Busca vetorial (embeddings) — Fase 1**, complemento ao BM25+FTS5 no pipeline RAG: novo módulo `tusab_engine/agent/embeddings.py` gera embeddings via Ollama (`nomic-embed-text`, local, mesmo princípio local-first), persistidos em `.npy`+`.meta.json` por projeto. Indexação faz backfill dirigido — bases já indexadas ganham embedding na próxima reindexação sem reprocessar KeyBERT. Chat mescla candidatos vetoriais só em Busca Ampla (score simbólico, mesmo padrão do FTS5), com degradação graciosa total quando o modelo não está instalado. Card "Busca vetorial (embeddings)" na aba Assistente para baixar o modelo com 1 clique — reaproveita os endpoints Ollama existentes, zero rota nova.
-- **Agente especializado `/acessibilidade`** (`agents/acessibilidade.md`) — WCAG, ARIA, navegação por teclado, comportamento real de leitores de tela (NVDA/JAWS/VoiceOver).
 - Ajuda (`electron/help.html`): FAQs novas sobre busca vetorial, perfis de usuário e a aba Estudo, em pt/en/es.
 
 ### Corrigido
@@ -426,7 +424,6 @@ Versionamento via [Semantic Versioning](https://semver.org).
 ### Adicionado
 - **Botão "Verificar atualização" na aba Admin** — seção permanente com versão atual e checagem manual forçada; funciona mesmo com auto-update desativado nas preferências. Achar versão nova dispara download automático + banner "Instalar e reiniciar". Handler IPC `check-for-updates` + `window.tusab.checkForUpdates()` + refactor do updater para init lazy/idempotente.
 - **Design System oficial do Tusab** — `Documentação do Produto/Design System — Tusab.md`: tokens de cor (semânticos + superfícies dark por white/N), escala tipográfica de 6 degraus medida por grep no código real, radius por papel, espaçamentos canônicos, variantes de botão, componentes padrão (Card, ModalWrapper, toggle, badge, feedback), motion e a11y normativa. Inclui inventário completo de moléculas e organismos (`Design System — Inventário de Componentes.md`): shell, sistema de modais, chat completo, feedback global, estados transversais, formulários, dados e superfícies especiais.
-- **Agente `/design-system`** — guardião dos tokens e da biblioteca de componentes; fronteiras claras com `/ui`, `/ux` e `/frontend`; medição real obrigatória antes de token novo.
 
 ### Corrigido
 - **Fallback de versão hardcoded `'1.0.0'` no preload** — `resolveVersion()` agora cai para string vazia quando o `package.json` não resolve, em vez de exibir uma versão errada (AdminTab e help.html já ocultam o badge quando vazio).
@@ -644,7 +641,6 @@ Versionamento via [Semantic Versioning](https://semver.org).
 
 ## [1.0.12] — 2026-06-27
 ### Adicionado
-- **Sistema de agentes especialistas** internos: QA, Frontend, Backend, Produto, UX, Inovação — com base de memória institucional (`agents/_historia.md`)
 - **Mapa de cobertura pré-extração** (`GET /canal-info`): visualizar quais vídeos do canal já foram extraídos antes de iniciar
 - Capítulos de vídeo como fronteiras de chunk BM25 para melhor granularidade de recuperação
 

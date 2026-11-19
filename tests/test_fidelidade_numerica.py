@@ -4,7 +4,7 @@ Testes da correção de fidelidade numérica no chat —
 tusab_engine/agent/critique.py::tem_lacuna_numerica() +
 tusab_engine/agent/chat.py::_gerar_com_fidelidade_numerica().
 
-Bug real (29/jul/2026, ver agents/_historia.md): llama3.2:1b apagava
+Bug real (29/jul/2026, ver histórico interno do projeto): llama3.2:1b apagava
 números/datas ao parafrasear chunk denso ("Decreto-Lei nº 1.001, de 21 de
 outubro de 1969" virava "Decreto-Lei nº., de de outubro de"). Sem chamada
 de rede real — _gerar_resposta_llm é mockado.

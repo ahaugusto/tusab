@@ -6,7 +6,7 @@
 #
 # Estas libs ficam FORA do instalador B2C por decisão estratégica (jul/2026):
 # ~2,5 GB instaladas, +0,5-1 GB RAM em runtime — inviável em PC modesto.
-# Ver: agents/_historia.md → "Stack semântica reservada à edição institucional B2B"
+# Ver: histórico interno do projeto → "Stack semântica reservada à edição institucional B2B"
 # e "Documentação do Produto/Plano B2B — Tusab Enterprise.md".
 #
 # QA obrigatório pós-build (lição do CrossEncoder): verificação POSITIVA no

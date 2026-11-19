@@ -10,7 +10,7 @@
 # ANTES: em todo PR que mexa no backend ou no empacotamento, e todo domingo
 # (requirements.txt usa >=, então uma versão nova de dependência pode quebrar o
 # empacotamento sem nenhum commit nosso — o domingo vem antes do auto-release
-# de segunda). Incidente que motivou: invariante 24 em agents/_historia.md.
+# de segunda). Incidente que motivou: invariante 24 em histórico interno do projeto.
 
 name: Validar instalador Windows (sem publicar)
 

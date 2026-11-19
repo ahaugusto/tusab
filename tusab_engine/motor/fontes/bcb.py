@@ -11,7 +11,7 @@ não tem endpoint de busca (só listagem paginada dos ~29.500 indicadores,
 exigiria baixar tudo e filtrar localmente — arquitetura diferente da busca ao
 vivo usada aqui); IBGE/Ipeadata expõem agregados por código, não por tema;
 UN Data (handlers legados) respondeu com erro de servidor; dados.gov.br
-retornou 401 no endpoint de busca. Ver agents/_historia.md.
+retornou 401 no endpoint de busca. Ver histórico interno do projeto.
 """
 
 import os

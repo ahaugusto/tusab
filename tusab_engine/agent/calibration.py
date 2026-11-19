@@ -10,7 +10,7 @@ corpus grande tem IDF menor por termo, mais candidatos dão ao CrossEncoder
 mais chance de achar o chunk certo.
 
 [INVARIANTE] Nunca incluir score_minimo aqui. Removido deliberadamente em
-v1.0.26 (ver agents/_historia.md, "Score mínimo BM25 adaptativo por tamanho
+v1.0.26 (ver histórico interno do projeto, "Score mínimo BM25 adaptativo por tamanho
 de corpus" na seção "O que funcionou bem" — substituído por score>0 + FTS5
 como rede de segurança). Qualquer threshold arbitrário, fixo ou adaptativo,
 já foi tentado e cortava resultados válidos em corpus grande. Não reintroduzir.

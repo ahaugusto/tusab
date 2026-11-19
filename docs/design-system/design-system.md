@@ -205,7 +205,7 @@ Dot `w-1.5 h-1.5 rounded-full bg-{token} animate-pulse` (`aria-hidden="true"`), 
 
 ---
 
-## 10. Anti-padrões (aprendidos a caro — ver `agents/_historia.md`)
+## 10. Anti-padrões (aprendidos a caro — ver histórico interno do projeto)
 
 | Nunca | Porquê |
 |-------|--------|

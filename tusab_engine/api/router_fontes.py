@@ -6,7 +6,7 @@ contrato de cada adaptador.
 
 Substitui o padrão anterior de um endpoint dedicado por fonte (POST /arxiv/
 search, POST /fhir/search) — que não escala pras dezenas de fontes mapeadas
-em agents/_historia.md. Um único endpoint genérico (/fontes/{fonte_id}/search)
+em histórico interno do projeto. Um único endpoint genérico (/fontes/{fonte_id}/search)
 atende qualquer fonte registrada.
 """
 
@@ -67,7 +67,7 @@ def _run_fonte_search(fonte_id: str, query: str, max_resultados: int, projeto_no
     # filtro do log — mesmo padrão de _run_arxiv_search (removido, migrado pra cá).
     # state.stats["projeto_nome"] é o campo genérico "projeto ativo agora" (não
     # exclusivo de canal do YouTube, apesar do nome antigo "canal_nome" sugerir
-    # isso — corrigido em 29/jul/2026, ver agents/_historia.md).
+    # isso — corrigido em 29/jul/2026, ver histórico interno do projeto).
     projeto_nome_anterior = state.stats.get("projeto_nome", "")
     try:
         fstate["running"] = True

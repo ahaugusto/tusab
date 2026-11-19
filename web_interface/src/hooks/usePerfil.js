@@ -70,7 +70,7 @@ export const PERFIS_CONFIG = {
     // em tusab_engine/motor/fontes/ (9 áreas de domínio + "Buscadores gerais"
     // pros multidisciplinares: arXiv, OpenAlex, DataCite, DOAJ, Zenodo).
     // Compartilhado com o futuro vertical Tusab Saúde, não exclusivo dele.
-    // Ver agents/_historia.md.
+    // Ver histórico interno do projeto.
     fontes_publicas: true,
   },
   profissional: {

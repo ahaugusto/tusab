@@ -565,7 +565,7 @@ jobs:
       # basta — sem a CA intermediária "Developer ID" instalada, o macOS não
       # confia nele e `security find-identity` retorna 0 identidades válidas
       # mesmo com o cert já importado). Descoberto e validado por SSH direto
-      # no runner antes de codificar aqui — ver agents/macos.md.
+      # no runner antes de codificar aqui — ver notas internas de build do macOS.
       - name: Preparar keychain de assinatura (self-hosted, sem sessão GUI)
         run: |
           KEYCHAIN_PASS="$(openssl rand -base64 24)"

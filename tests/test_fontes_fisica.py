@@ -2,7 +2,7 @@
 """
 Testes do adaptador da área "Física, química e materiais" — CERN Open Data
 (único candidato viável, ver docstring de cern_opendata.py e
-agents/_historia.md — PubChem só faz lookup por nome exato, NOMAD é dado de
+histórico interno do projeto — PubChem só faz lookup por nome exato, NOMAD é dado de
 cálculo sem narrativa). Sem chamada de rede real.
 """
 from unittest.mock import MagicMock, patch

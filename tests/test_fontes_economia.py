@@ -2,7 +2,7 @@
 """
 Testes do adaptador da área "Economia, finanças e ciências sociais" — Banco
 Central do Brasil (único candidato com busca real por tema, ver docstring de
-bcb.py e agents/_historia.md). Sem chamada de rede real — requests é mockado.
+bcb.py e histórico interno do projeto). Sem chamada de rede real — requests é mockado.
 """
 from unittest.mock import MagicMock, patch
 

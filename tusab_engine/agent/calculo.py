@@ -8,7 +8,7 @@ digitada pelo usuário — nunca de chunks recuperados via BM25 (PDFs,
 transcrições, documentos de terceiros). Essa restrição é deliberada: números
 extraídos de conteúdo de terceiro seriam exatamente o vetor de prompt
 injection já sinalizado na avaliação do NVIDIA NOOA (10/ago/2026, ver
-agents/_historia.md) — um documento malicioso poderia formatar um número
+histórico interno do projeto) — um documento malicioso poderia formatar um número
 especificamente para virar uma expressão hostil se entrasse na pipeline de
 cálculo. Revisado e aprovado por /seguranca em 14/ago/2026 (2 correções
 aplicadas: ver avaliar_expressao — checagem de Pow antes de computar, e

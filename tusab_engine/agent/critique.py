@@ -11,7 +11,7 @@ usados no filtro pós-CrossEncoder/BM25 de _recuperar_contexto().
 [INVARIANTE] `isrel` em Critica é um sinal de FLUXO (decidir se tenta busca
 ampla antes de desistir), nunca um FILTRO de chunk. "Score mínimo BM25 fixo
 ou adaptativo" já foi tentado e descartado (v1.0.11–v1.0.26, ver
-agents/_historia.md) — cortava resultados legítimos em corpus grande.
+histórico interno do projeto) — cortava resultados legítimos em corpus grande.
 A rede de segurança pra qual chunk ENTRA no contexto continua sendo
 score > 0 + FTS5, sem exceção. Não usar isrel pra filtrar candidatos.
 """
@@ -68,7 +68,7 @@ def avaliar_relevancia_contexto(contexto: list, *, busca_ampla_ja_tentada: bool)
 # frase ao parafrasear um chunk denso em números mas apagar os números em si —
 # "Decreto-Lei nº 1.001, de 21 de outubro de 1969" vira "Decreto-Lei nº., de
 # de outubro de" na resposta (confirmado ao vivo, 29/jul/2026, ver
-# agents/_historia.md). Não é alucinação (não inventa número errado) nem é
+# histórico interno do projeto). Não é alucinação (não inventa número errado) nem é
 # pego por verificar_alucinacao/confianca_por_sentenca (nenhum dos dois lê o
 # texto pra achar lacuna estrutural, só cobertura de vocabulário).
 # "de de" e "nº." seguido de pontuação são a assinatura textual de um número

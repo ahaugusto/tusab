@@ -5,7 +5,7 @@ Sem chave de API. Único candidato viável da área "Direito, normas,
 legislação e governo": Senado Federal tem endpoint depreciado sem busca
 real (o substituto oficial ignora o parâmetro de busca — total idêntico
 pra qualquer termo, confirmado ao vivo); LexML/Datajud já rejeitados
-antes (sem REST/metadado sem texto integral, ver agents/_historia.md).
+antes (sem REST/metadado sem texto integral, ver histórico interno do projeto).
 
 Diferente do Datajud (só metadado processual), a Câmara disponibiliza o
 inteiro teor em PDF (`urlInteiroTeor`) — texto integral real da proposição,

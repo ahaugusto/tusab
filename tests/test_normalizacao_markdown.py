@@ -3,7 +3,7 @@
 Testes de tusab_engine/agent/chat.py::_normalizar_markdown() e da sua
 aplicação no caminho de streaming (_gerar_stream_com_fidelidade_numerica).
 
-Bug real (31/ago/2026, ver agents/_historia.md): resposta sobre a Lei nº
+Bug real (31/ago/2026, ver histórico interno do projeto): resposta sobre a Lei nº
 14.344 saiu com bullets "- **Tópico**: texto" todos colados numa linha só,
 sem quebra entre eles — legível como parágrafo corrido, não como lista.
 _normalizar_markdown() já existia (criada em v1.0.26 pra esse mesmo padrão),

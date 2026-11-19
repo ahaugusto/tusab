@@ -5,7 +5,7 @@ Escopo restrito a ResearchStudy — nunca Patient ou outro recurso de indivíduo
 
 A busca ao vivo (POST /fhir/search) foi removida em 27/jul/2026 — nenhum
 servidor FHIR público serve como registro central pesquisável de estudos
-clínicos (ver agents/_historia.md). O que sobrou é a leitura de um Bundle
+clínicos (ver histórico interno do projeto). O que sobrou é a leitura de um Bundle
 que o usuário já tem em mãos, via upload no Repositório.
 """
 import json

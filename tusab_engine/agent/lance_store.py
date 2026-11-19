@@ -8,7 +8,7 @@ sem migração de dado legado nem fallback para o JSON antigo.
 Responsabilidade: só armazenamento. O ranking continua 100% BM25Okapi (rank_bm25,
 Python, em memória) — chat.py::_carregar_projeto_cache lê os chunks desta tabela
 em vez do JSON e reconstrói o BM25Okapi exatamente como antes. Decisão validada
-com benchmark real de qualidade (01-02/set/2026, ver `agents/_historia.md`): o
+com benchmark real de qualidade (01-02/set/2026, ver histórico interno do projeto): o
 FTS nativo do LanceDB (`tbl.search(query, query_type='fts')`) foi testado contra
 20 perguntas reais e perdeu em título exato (8/11 vs 10/11 do BM25 atual) sem
 ganhar em paráfrase (0/6 em ambos) — não usar aqui não é cautela teórica, é

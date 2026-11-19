@@ -19,7 +19,7 @@
 # falhava sempre (GraphQL: "GitHub Actions is not permitted to approve pull
 # requests"), o que interrompia o job ANTES do step de merge — resultado:
 # nenhum PR do Dependabot foi mesclado automaticamente entre 03/ago e
-# 02/set/2026, apesar do workflow "existir". Ver agents/_historia.md.
+# 02/set/2026, apesar do workflow "existir". Ver histórico interno do projeto.
 #
 # Trigger é `pull_request` comum, não `pull_request_target` — PRs abertos
 # pelo Dependabot já rodam com GITHUB_TOKEN somente leitura por padrão do

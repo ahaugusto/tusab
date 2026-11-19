@@ -2,7 +2,7 @@
 """
 Testes do adaptador da área "Ciências da Terra, clima e espaço" — NASA
 Earthdata/CMR (único candidato com resumo narrativo real, ver docstring de
-nasa_cmr.py e agents/_historia.md — NOAA exige token, demais candidatos são
+nasa_cmr.py e histórico interno do projeto — NOAA exige token, demais candidatos são
 dado numérico/geoespacial estruturado). Sem chamada de rede real.
 """
 from unittest.mock import MagicMock, patch

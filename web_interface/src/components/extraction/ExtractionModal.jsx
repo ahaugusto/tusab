@@ -31,7 +31,7 @@ function ExtractionModal({ onClose, onConfirm, onConfirmFonte, darkMode, canalNo
   // "Buscadores gerais" pros multidisciplinares (arXiv, OpenAlex, DataCite,
   // DOAJ, Zenodo — arXiv originalmente inspirado no projeto open-source
   // OpenScience/synthetic-sciences; hoje compartilhado com o futuro vertical
-  // Tusab Saúde, não exclusivo dele — ver agents/_historia.md).
+  // Tusab Saúde, não exclusivo dele — ver histórico interno do projeto).
   const podeUsarFontesPublicas = !!regras.fontes_publicas && !modoFila;
   const podeEscolherFonte = podeUsarFontesPublicas;
   // sourceTypeInicial: quando o usuário já escolheu a fonte na tela principal

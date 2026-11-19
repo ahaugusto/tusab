@@ -2,7 +2,7 @@
 """
 Leitor de arquivos FHIR (ResearchStudy), para o perfil Pesquisador.
 
-Avaliado em `agents/_historia.md` (seção "FHIR — formato viável para fonte de
+Avaliado em histórico interno do projeto (seção "FHIR — formato viável para fonte de
 dados clínicos"). Escopo deliberadamente restrito ao resource type ResearchStudy
 — nunca Patient ou qualquer outro recurso que modele dados de indivíduo, mesmo
 sintético/teste: o perfil Pesquisador B2C é "RAG sobre PDFs/docs/arXiv com
