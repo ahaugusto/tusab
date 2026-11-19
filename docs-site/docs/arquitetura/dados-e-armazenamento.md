@@ -9,55 +9,72 @@ slug: /arquitetura/dados-e-armazenamento
 
 ## Onde os dados ficam
 
-| Contexto | Local |
-|----------|-------|
-| Produção (Electron empacotado) | `%AppData%\Tusab\data\` (Windows) |
-| Desenvolvimento | `./data/` |
-| Configurável via | variável de ambiente `TUSAB_DATA_DIR` |
+Tudo fica numa **raiz** que contém a pasta `data/`:
+
+- a pasta escolhida na instalação (campo **Pasta do repositório** do Claude Desktop), passada ao servidor pela variável `TUSAB_REPOSITORIO`;
+- sem a variável, `~/Tusab`.
+
+Para abrir uma base criada pelo [app desktop](/desktop/visao-geral), escolha como pasta do repositório a pasta de dados dele: `%APPDATA%\Tusab` no Windows, `~/Library/Application Support/Tusab` no macOS (pasta `userData` do Electron), ou o valor de `TUSAB_DATA_DIR`, se definido.
 
 ## Estrutura em disco
 
 ```
-data/neural/{projeto}/
-  youtube/       transcrições .txt extraídas do YouTube
-  documents/     PDFs, DOCX e outros docs do repositório + _manifest.json
-  texts/         textos colados/parseados + _manifest.json
-  estudo/        artefatos do Modo Estudo + áudio cacheado
-  management/    CSVs de gestão, summary.json, README, relatório
-
-data/agent_index/  chunks indexados por projeto ({prefixo}.lancedb/) — armazenamento colunar
-data/config/       agent_config.json, credentials.json, token.json, keystore.json
-data/temp/         VTTs temporários (removidos automaticamente)
+data/
+  neural/{projeto}/
+    youtube/{canal}/{canal}_Parte_N.txt   transcrições em blocos (com minuto)
+    youtube/{canal}/{canal}_meta.json     metadados do canal (cache de 7 dias)
+    documents/{id}_{nome}.txt             texto extraído dos documentos + _manifest.json
+    documents/originais/                  originais enviados, como vieram
+    texts/                                textos colados/enviados + _manifest.json
+    estudo/                               artefatos de estudo guardados pela IA
+    management/                           {canal}_base.csv, {canal}_summary.json,
+                                          flashcards.json, postits.json, resumo_estudo.md,
+                                          flashcards_progresso.json, digest_AAAA-MM-DD.md
+  config/
+    extraction_queue.json                 fila de extração
+    prompts_usuario.json                  "Meus prompts"
+    idioma.json                           idioma escolhido na tela
+    economia_tokens.json                  contador agregado de tokens
+    auto_update.json                      última verificação de canais
+    boas_vindas.json                      marca da primeira abertura da tela
+  temp/                                   legendas VTT temporárias
+  bin/                                    yt-dlp baixado pelo plugin
+  tusab.sqlite                            índice de busca (reconstruível)
 ```
 
-:::info Armazenamento e ranqueamento são coisas diferentes
-Desde a v1.0.55, os chunks indexados são armazenados em formato colunar (LanceDB) em vez de um arquivo `.json` único por projeto — ganho de ~12x em indexação incremental, sem precisar recarregar o índice inteiro na memória a cada atualização. O algoritmo que decide qual trecho responde sua pergunta continua sendo BM25 em memória (ver [Decisões técnicas](/arquitetura/decisoes-tecnicas)): a mudança foi deliberadamente só de armazenamento, não de ranqueamento — testado formalmente e mantido assim depois de um benchmark real mostrar que a alternativa nativa do LanceDB perdia precisão exatamente onde o Tusab é mais forte hoje.
-:::
+## Formato dos arquivos
 
-## Naming de projetos
+- **Transcrições:** `{canal}_Parte_N.txt` (até 40 mil palavras por parte, UTF-8 com BOM). Cada bloco tem `TITULO`, `ABA`, `DATA`, `LINK`, `VIDEO_ID`, `VIEWS`, `TIMESTAMP_INICIO`, `[PARTE/TOTAL_PARTES]`, `TAGS`, `DESCRICAO` e `CONTEUDO`, separados por linhas de `=` e `-`.
+- **CSV de gestão** (`{canal}_base.csv`): `ID, Data_Pub, Link, Titulo, Aba, Views, Local, Status, Data_Extracao`.
+- **Resumo do canal** (`{canal}_summary.json`): total mapeado, URLs, último filtro usado e a configuração de atualização automática.
+- **Documentos e textos:** `{id}_{nome}.txt` com cabeçalho `TITULO`/`FONTE`/`DATA` e entrada no `_manifest.json` da pasta.
+- **Originais:** `documents/originais/{id}_{nome}{ext}` (ver [Originais e imagens](/funcionalidades/originais-e-imagens)).
 
-`projeto_nome` é definido pelo usuário no modal de extração. Se omitido, deriva do nome do canal do YouTube. O nome é sanitizado (`re.sub(r'[<>:"/\\|?*\s]', '_', ...)`) antes de virar nome de pasta. Um canal pode ser importado para qualquer projeto — a pasta não fica atrelada à origem.
+Esses formatos são os mesmos do app desktop e ficam em português (rótulos e status), para os dois lerem a mesma pasta.
 
-Subpastas (`documents/`, `texts/`, `management/`) usam nomes em inglês como padrão técnico, independente do idioma da interface.
+## Índice
+
+- `data/tusab.sqlite`, com uma tabela virtual FTS5 (`unicode61 remove_diacritics 2`) e ordenação por `bm25()`.
+- **Os `.txt` são a fonte da verdade.** O índice é reconstruível e é sincronizado por arquivo (data de modificação e tamanho): um trecho por bloco nas transcrições, por parágrafo nos documentos e textos.
+- O banco é mantido em memória e gravado de forma atômica sob um arquivo de trava, porque mais de uma ferramenta de IA pode abrir o mesmo repositório.
+- O app desktop tem índice próprio (`data/agent_index/`, LanceDB), que a extensão não usa.
+
+## Nomes de projeto
+
+Escolhidos pelo usuário e limpos antes de virar pasta: `[<>:"/\|?*\s]` vira `_` (mesma regra do desktop), pontos no início são removidos (`..` nunca vira nome de pasta) e o nome é limitado a 120 caracteres. Um canal pode ir para qualquer projeto.
 
 ## Escrita atômica
 
-Todo arquivo passa por `write-to-tmp` + `os.replace()` — operação atômica no mesmo volume, garantida pelo sistema operacional. O arquivo nunca fica corrompido, mesmo se o processo travar no meio da escrita.
+Arquivos são gravados num temporário (`{arquivo}.{pid}.{hora}.tmp`) e renomeados de uma vez. Se o processo parar no meio, o arquivo anterior continua íntegro.
 
-## Migração de estrutura legada
+## O que pode ser compartilhado
 
-Funções de migração idempotentes rodam no startup e só têm efeito se houver estrutura antiga em disco: `migrar_cerebro_para_neural()`, `migrar_gestao_para_cerebro()`, `migrar_pastas_para_ingles()`.
+| Pasta | Compartilhar? |
+|---|---|
+| `neural/` | Sim, com atenção a dados pessoais nos próprios documentos e originais (fotos podem ter localização) |
+| `tusab.sqlite` | Não precisa: é reconstruído a partir de `neural/` |
+| `config/` | Não há segredos (a extensão não guarda chaves), mas é configuração local deste computador |
 
-## Compartilhamento — arquivo `.tusab`
+Para compartilhar um projeto, prefira o arquivo `.tusab` (ver [Repositório e documentos](/funcionalidades/repositorio-multi-fonte#exportar-e-importar)).
 
-Um projeto completo (conteúdo + índice BM25) pode ser exportado como um único arquivo `.tusab`, portável entre máquinas — quem importa não precisa reindexar nada.
-
-## O que é seguro sincronizar/compartilhar
-
-| Pasta | Pode compartilhar? |
-|-------|---------------------|
-| `neural/` | ✅ Sim — conteúdo indexado, sem segredos |
-| `indexes/` | ✅ Sim |
-| `config/` | ⚠️ **Não** — pode conter chaves de API em texto claro (`agent_config.json`) e tokens OAuth (`token.json`, `credentials.json`) |
-
-Um `LEIA-ME-SEGURANCA.txt` é criado automaticamente na pasta de dados explicando essa distinção. Recomendamos não incluir `config/` em backups automáticos em nuvem sem criptografia adicional.
+Diferenças do app desktop (chaves de API cifradas, tokens do Google Drive, migrações de estrutura antiga) estão em [App desktop](/desktop/visao-geral#dados-do-app-desktop).

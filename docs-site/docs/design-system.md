@@ -7,7 +7,7 @@ slug: /design-system
 
 # Design System
 
-A fonte de verdade do design do Tusab é **o código em produção** (`web_interface/src/`) — não o Figma, não este documento. Divergência entre eles é bug de documentação a corrigir, não uma opção de design.
+O design system vale para a interface React de `web_interface/src/`, que gera a tela da extensão e a do app desktop. A fonte de verdade é **o código**, não o Figma nem este documento: divergência entre eles é erro de documentação a corrigir. A versão detalhada fica em `docs/design-system/design-system.md` no repositório.
 
 ## Princípios
 
@@ -31,7 +31,7 @@ Superfícies dark usam branco em opacidade (`bg-white/4` a `bg-white/10`) em vez
 
 ## Tipografia
 
-Famílias: **Inter** (sans, corpo) e **JetBrains Mono** (mono — versões, IDs, nomes de modelo).
+Famílias: **Inter** (sans, corpo) e **JetBrains Mono** (mono — versões, IDs, nomes de modelo). No modo extensão, as fontes do Google não são carregadas (CSP `'self'`), e a tela usa a fonte do sistema.
 
 Escala real: `text-xs` (12px) é o corpo padrão; `text-[10px]` para apoio/caption; `text-sm` (14px) só para títulos de seção principal. A escala tem seis degraus — não introduzir tamanhos intermediários fora dela.
 
@@ -60,4 +60,4 @@ Transição global de 150ms (`cubic-bezier(0.4,0,0.2,1)`) em cor/opacidade/sombr
 
 ## Biblioteca Figma
 
-Uma biblioteca v1 (tokens Light/Dark, text styles, 5 átomos, Feedback, Shell/NavItem) espelha o código publicado. Uma v2 completa (chat kit, modal template, formulários) está planejada para quando o fluxo de design passar a consumir a biblioteca ativamente.
+Uma biblioteca Figma (tokens claro/escuro, estilos de texto, 5 átomos, Feedback, Shell/NavItem) espelha o código. Quando houver diferença, vale o código.

@@ -7,59 +7,33 @@ slug: /intro
 
 # O que é o Tusab
 
-**Tusab é um sistema de gestão de conhecimento pessoal (PKM) com IA local.** Você aponta para o que quer aprender — um canal do YouTube, PDFs, documentos, anotações — e o Tusab absorve tudo, indexa e responde suas perguntas em linguagem natural, sempre citando a fonte exata de onde veio a resposta.
+O Tusab é uma **extensão para ferramentas de IA** (como o Claude Desktop) que mantém a base de conhecimento do usuário **no computador dele** e entrega à IA só os trechos certos, **com citação**: o vídeo e o minuto exato, ou a página do PDF.
 
-Roda inteiramente na sua máquina. Funciona offline com [Ollama](https://ollama.com). Zero custo na configuração padrão.
+Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local (`tusab-mcp/`, Node.js, versão 0.6.0). A ferramenta de IA inicia o processo no próprio computador; ele:
 
-## O nome
+- **guarda e indexa** transcrições de vídeos do YouTube, documentos (PDF, Word, Excel, CSV, Markdown), textos e resultados de fontes públicas (artigos, teses, legislação, dados abertos) numa pasta local;
+- **responde à IA** por [15 ferramentas MCP](/ferramentas-mcp): buscar, ler uma fonte em ordem, abrir o original de um documento, adicionar conteúdo, guardar material de estudo;
+- **oferece pedidos prontos** na [Biblioteca de Prompts](/biblioteca-de-prompts) (21 prompts, no menu "+" do Claude e na tela);
+- **serve uma tela** no navegador, em `http://127.0.0.1:<porta>`, para extrair canais, organizar o repositório e ver relatórios ([a tela do Tusab](/tela)).
 
-Tusab (egípcio antigo: *s-bȝ-yt*) é o nome de um gênero literário do Egito Antigo — textos de instrução prática, onde alguém de grande experiência registrava o que aprendeu para quem viesse depois. O exemplo mais célebre são as Máximas de Ptahhotep (c. 2400 a.C.).
+Quem conversa, resume, monta quizzes e gera flashcards é **a IA do usuário**. O Tusab cuida da base: extrai, indexa, encontra o trecho, cita a fonte e guarda o que precisa de memória entre conversas (por exemplo, a revisão espaçada de flashcards).
 
-O produto faz o mesmo, na prática: você acumula conhecimento, o Tusab organiza e indexa, e quando você tem uma dúvida, ele instrui de volta a partir do que você escolheu aprender — nunca inventando, sempre citando a origem.
+## Princípio técnico: os dados ficam no computador
 
-## O pipeline central — IAC
+- A extração do YouTube roda no computador e no IP do usuário, com o [yt-dlp](https://github.com/yt-dlp/yt-dlp).
+- Arquivos, transcrições e índice ficam numa pasta local escolhida na instalação.
+- Só os **trechos consultados** vão para a IA que o usuário escolheu (a ferramenta de IA onde a extensão está instalada).
+- **Nada passa por servidor da CriAugu.** Não há conta, login, telemetria nem sincronização em nuvem.
 
-| Etapa | O que faz |
-|-------|-----------|
-| **I — Index** | Extrai e indexa qualquer fonte: YouTube, PDFs, DOCX, Markdown, texto colado, áudio, imagem, WhatsApp, transcrições de reunião |
-| **A — Augment** | RAG (Retrieval-Augmented Generation): recupera os trechos mais relevantes da sua base e os entrega ao modelo como contexto |
-| **C — Chat** | Conversa em linguagem natural, resposta em streaming, sempre citando título, data e link da fonte original |
+Quais conexões saem do computador, e para onde, está em [Privacidade](/privacidade) e [Segurança](/seguranca).
 
-## Por que existe
+## App desktop
 
-O problema central de gestão de conhecimento pessoal: você salva muito, mas não acha quando precisa. A busca por palavra-chave é ruim, você não lembra onde guardou, e acaba relendo tudo do zero.
+Antes da extensão, o Tusab era distribuído como app desktop (Electron + backend FastAPI), com chat próprio. O app continua disponível para Windows e macOS e grava **a mesma estrutura de pastas**: a extensão abre a pasta de dados do app, e um arquivo `.tusab` exportado num é importado no outro. A documentação dele está na seção [App desktop](/desktop/visao-geral).
 
-O Tusab resolve isso com um mentor que só conhece o que você escolheu ensinar a ele — o que não é uma limitação, é a garantia de que ele não alucina fora do que você indexou.
+## Por onde seguir
 
-## Os quatro perfis
-
-O Tusab se adapta a quem está usando. O perfil é escolhido no onboarding e pode ser trocado a qualquer momento.
-
-| Perfil | Uso principal |
-|--------|---------------|
-| 🎓 **Estudante** | Importa bases prontas (`.tusab`) compartilhadas por professores. Só consulta — zero configuração. |
-| 📚 **Professor** | Extrai canais do YouTube, indexa material didático, exporta bases para compartilhar com a turma. |
-| 🔬 **Pesquisador** | Constrói corpora de múltiplas fontes, usa a busca em fontes públicas por área de conhecimento, acessa analytics do projeto. |
-| 🧑‍💻 **Especialista** | Acesso completo: monitoramento do sistema, administração, reset total, todas as ferramentas avançadas. |
-
-O que muda entre perfis: abas visíveis, persona padrão do assistente, acesso a configuração de provedores de IA, fila de extração, integração com Drive e ferramentas administrativas.
-
-O que **não** muda: qualidade do RAG, privacidade local-first, citação obrigatória de fonte, e custo zero com Ollama — esses são invariantes do produto, independente de perfil.
-
-## Diferenciais
-
-- **Extração de canais do YouTube em escala** — canais inteiros, centenas de vídeos, via yt-dlp local
-- **Multi-fonte** — YouTube, PDF, DOCX, Markdown, texto livre, imagens (OCR), áudio (transcrição local), WhatsApp, transcrições de reunião (Zoom/Teams/Otter)
-- **100% local** — dados nunca saem da máquina; funciona offline com Ollama
-- **Citação de fonte obrigatória** — toda resposta cita título, data e link de origem
-- **Fluxo professor → aluno** — exporte uma base pronta `.tusab`, o aluno importa e já conversa, sem extrair nada
-- **BYOK** — Groq (grátis), OpenAI, Anthropic, Google Gemini como provedores opcionais, além do Ollama local
-- **MCP Server** — exponha sua base de conhecimento para Claude Code, Cursor ou qualquer cliente MCP
-- **Windows e macOS (Apple Silicon)** — instaladores nativos para os dois sistemas
-
-## Próximos passos
-
-- [Instalação](/instalacao) — baixe e instale o Tusab
-- [Perfis e jornadas de uso](/perfis-e-jornadas) — entenda qual perfil combina com seu caso de uso
-- [Funcionalidades](/funcionalidades/extracao-youtube) — veja cada recurso em detalhe
-- [Arquitetura técnica](/arquitetura/visao-geral) — para quem quer entender ou contribuir com o código
+- [Instalação](/instalacao): pacote `.mcpb` no Claude Desktop ou configuração MCP em outras ferramentas.
+- [Ferramentas MCP](/ferramentas-mcp), [Biblioteca de Prompts](/biblioteca-de-prompts) e [Tela do Tusab](/tela): como a IA e o usuário usam a extensão.
+- [Funcionalidades](/funcionalidades/extracao-youtube): extração, repositório, fontes públicas, estudo, originais, idiomas, economia de tokens.
+- [Arquitetura técnica](/arquitetura/visao-geral) e [Desenvolvimento](/desenvolvimento/setup): para quem vai ler, rodar ou alterar o código.

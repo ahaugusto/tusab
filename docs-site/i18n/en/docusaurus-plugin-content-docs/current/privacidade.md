@@ -7,62 +7,63 @@ slug: /privacidade
 
 # Privacy
 
-Tusab's core principle is **local-first**: data stays on the user's machine. CriAugu does not operate servers that store user content, conversations, or knowledge bases.
+Tusab keeps the knowledge base **on the user's computer**. CriAugu runs no server that receives Tusab content, conversations, bases or usage data.
 
-This summary covers the essential points of the full Privacy Policy, drafted in compliance with **LGPD** (Brazilian Law No. 13,709/2018) and the **GDPR** (EU Regulation 2016/679).
+This page describes technically what stays on the computer and what leaves it. The formal privacy policy (Brazil's LGPD, Law No. 13,709/2018, and the GDPR) is published at [tusab.solutions](https://tusab.solutions).
 
-## Data processed only locally
+## What stays only on the computer
 
-Never sent to CriAugu's servers:
+| Data | Where |
+|---|---|
+| Transcripts, documents, texts, originals | `data/neural/{projeto}/` |
+| Search index | `data/tusab.sqlite` |
+| Own prompts, language, queue, settings | `data/config/` |
+| Token savings counter (aggregate numbers only) | `data/config/economia_tokens.json` |
 
-| Data | Where it lives |
-|------|-----------|
-| Transcripts, documents, indexed texts | `data/neural/{project}/` |
-| BM25 index | `data/indexes/{project}_index.json` |
-| Assistant settings | `data/config/agent_config.json` |
-| Chat history | RAM — does not persist between sessions |
+Tusab has no account, login or telemetry: on the screen, the analytics module loads nothing.
 
-## Third-party API keys
+## What leaves the computer
 
-Stored locally (preferably via Electron's `safeStorage` — DPAPI/Keychain). Never transmitted to CriAugu's servers; used directly from the device to call the chosen provider. The user is responsible for the security of these keys on their own device.
+| Where to | What | When |
+|---|---|---|
+| **The user's AI tool** (and the AI service behind it) | The excerpts returned by the tools (`tusab_buscar`, `tusab_ler_fonte`…), PDF pages and images requested with `tusab_ler_original` (without metadata), project and source names | When the AI calls a tool |
+| YouTube | yt-dlp requests (channel mapping, subtitles, metadata), from the user's IP | When extracting or checking channel updates |
+| Public sources | The searched topic | When searching a public source |
+| Web page sites | Request for the page and its `robots.txt` | When adding a web page |
+| GitHub (`github.com/yt-dlp`) | Download of yt-dlp and its SHA-256 sums list | Only if the computer doesn't have yt-dlp |
+| YouTube image domains | Thumbnails loaded on the screen | When showing channels and videos on the screen |
 
-## Telemetry (opt-in)
+What the AI tool does with the excerpts it receives (storage, use, server location) follows the terms of that tool and AI service, not Tusab's. Its servers may be outside Brazil.
 
-With explicit consent (modal on first launch), anonymous usage and interaction events are collected via Microsoft Clarity: app opened, extraction started, indexing, chat message sent, configured provider, plus clicks and scrolling. Screen content is **masked before it leaves your computer** (Clarity does not receive chat text, documents or keys). Events carry only a name, with no properties. Users who accepted telemetry in earlier versions (PostHog) are asked again in 1.0.63.
+## Minimization
 
-**Never collected:** message content, channel URLs, video titles, file names, API keys, or any personally identifiable data. Consent can be revoked at any time in settings.
+- The AI receives **excerpts**, not the full sources (see [Token savings](/funcionalidades/economia-de-tokens)).
+- Images go without EXIF/GPS; if removal can't be guaranteed, they don't go.
+- Originals only go into an exported `.tusab` by explicit choice, with a warning about personal data, authorship and location in photos.
+- In case law (STF, TCU, TST), party data is removed and CPF and OAB numbers are masked (see [Public sources](/funcionalidades/fontes-publicas#privacy-in-case-law)).
 
-## International data transfer
-
-When using an external AI provider (OpenAI, Gemini, Anthropic, Groq), the content of queries — the question and retrieved context excerpts — is transmitted to that provider's servers, which may be outside Brazil. Tusab shows an explicit warning when configuring an external provider. **Ollama (the local default) generates no data transfer at all.**
-
-## Data subject rights (LGPD Art. 18 / GDPR Art. 17)
+## Data subject rights
 
 | Right | How to exercise it |
-|---------|--------------|
-| Access | Data folder directly accessible via the operating system |
-| Correction | Edit files directly or via the interface |
-| Deletion | The app's Repository tab, or directly in the file system |
-| Portability | Data in open formats (`.txt`, `.json`, `.csv`) — exportable without depending on Tusab |
-| Consent revocation | App settings |
-| Objection to processing | Since processing is local, uninstalling the app stops any processing |
+|---|---|
+| Access | The repository folder is directly accessible through the operating system |
+| Correction | Edit the files or use the screen |
+| Deletion | Screen (delete, clear, full reset) or the file system; deleting a document also deletes its original |
+| Portability | Open formats (`.txt`, `.json`, `.csv`) and `.tusab` (zip) |
+| Stopping processing | Remove the extension from the AI tool; nothing runs while it's closed |
 
 Contact: **tusab@tusab.solutions**
 
-## Retention
+## Desktop app
 
-| Data | Period |
-|------|---------|
-| Knowledge base (`neural/`) | Indefinite — fully user-controlled |
-| Settings | Indefinite — user can delete at any time |
-| Chat history | Session duration |
-| Anonymous telemetry | 12 months |
-| Drive OAuth token | Until manually revoked |
+In the [desktop app](/desktop/visao-geral), in addition to the above:
 
-## Minors
-
-Tusab is not intended for anyone under 16.
+- **Assistant:** with an external provider (OpenAI, Anthropic, Gemini, Groq, OpenRouter, custom endpoint), the question and the retrieved excerpts go to that provider; the app warns when configuring it. With local Ollama, nothing leaves.
+- **API keys** stay in the system keychain (`safeStorage`) and are used directly from the computer to the chosen provider.
+- **Chat history** lives in the backend's memory and doesn't persist across sessions.
+- **Optional telemetry (Microsoft Clarity):** only with explicit consent on first run, revocable in the settings. Screen content is masked on the computer before sending; events carry only their name. Without consent, no request leaves. Anonymous telemetry retention: 12 months.
+- **Google Drive** (optional): `drive.file` scope; the OAuth token lasts until revoked.
 
 ---
 
-Data controller: **CriAugu — CNPJ 65.131.075/0001-57**. The full, current policy is always available at [tusab.solutions](https://tusab.solutions).
+Controller: CriAugu — CNPJ 65.131.075/0001-57.

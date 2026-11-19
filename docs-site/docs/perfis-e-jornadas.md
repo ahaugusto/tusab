@@ -1,72 +1,40 @@
 ---
 id: perfis-e-jornadas
-title: Perfis e jornadas de uso
-sidebar_label: Perfis e jornadas
+title: Perfis
+sidebar_label: Perfis
 slug: /perfis-e-jornadas
 ---
 
-# Perfis e jornadas de uso
+# Perfis
 
-O Tusab tem quatro perfis com funcionalidades progressivamente mais avançadas. O perfil é escolhido no onboarding e pode ser trocado a qualquer momento pelo menu de perfil no cabeçalho.
+A [tela do Tusab](/tela) tem quatro perfis: **Estudante**, **Professor**, **Pesquisador** e **Especialista**. O perfil é escolhido no onboarding e pode ser trocado a qualquer momento no cabeçalho. Ele define quais abas aparecem; não muda o índice, o formato dos dados nem a privacidade.
 
-## Mapa de funcionalidades por perfil
+As [ferramentas MCP](/ferramentas-mcp) **não dependem de perfil**: a IA tem acesso às mesmas 15 ferramentas em qualquer caso.
 
-| Funcionalidade | Estudante | Professor | Pesquisador | Especialista |
+A configuração fica em `web_interface/src/hooks/usePerfil.js` (`PERFIS_CONFIG`, com os ajustes do modo extensão no mesmo arquivo).
+
+## O que cada perfil mostra na tela
+
+| Recurso | Estudante | Professor | Pesquisador | Especialista |
 |---|:---:|:---:|:---:|:---:|
-| Chat RAG com streaming e fontes | ✅ | ✅ | ✅ | ✅ |
-| Repositório (visualizar + upload) | ✅ | ✅ | ✅ | ✅ |
-| Importar / exportar base `.tusab` | ✅ | ✅ | ✅ | ✅ |
-| Configurar provedor de IA / API key | ✅ | ✅ | ✅ | ✅ |
-| Busca Ampla | ✅ | ✅ | ✅ | ✅ |
-| Google Drive (sync) | ✅ | ✅ | ✅ | ✅ |
-| Extrair canal do YouTube / fila | — | ✅ | ✅ | ✅ |
-| Gerenciar repositório (deletar/limpar) | ✅ | ✅ | ✅ | ✅ |
-| Painel Admin | ✅ | ✅ | ✅ | ✅ |
-| Visão Geral (analytics do corpus) | — | ✅ | ✅ | ✅ |
-| [Busca em fontes públicas](/funcionalidades/fontes-publicas) (70 fontes) | — | ✅ | ✅ | ✅ |
-| Monitor de sistema | — | — | — | ✅ |
-| Reset total | ✅ | ✅ | ✅ | ✅ |
-| Persona padrão do assistente | Didático | Didático | Técnico | Objetivo |
+| Repositório (ver, enviar, excluir, limpar) | ✅ | ✅ | ✅ | ✅ |
+| Importar / exportar `.tusab` | ✅ | ✅ | ✅ | ✅ |
+| Relatório por canal | ✅ | ✅ | ✅ | ✅ |
+| Biblioteca de Prompts | ✅ | ✅ | ✅ | ✅ |
+| Admin e reset total | ✅ | ✅ | ✅ | ✅ |
+| Extração do YouTube e fila | — | ✅ | ✅ | ✅ |
+| [Fontes públicas](/funcionalidades/fontes-publicas) | — | ✅ | ✅ | ✅ |
+| Visão Geral | — | ✅ | ✅ | ✅ |
+| Monitor do sistema | — | — | — | ✅ |
 
-## Estudante
+A permissão de excluir ou limpar arquivos não depende do perfil: ela é controlada por projeto (marca de somente leitura, consultada em `GET /export/readonly-status`).
 
-Importa bases prontas (`.tusab`) compartilhadas por professores ou colegas e faz perguntas ao chat. Não precisa configurar provedor de IA, gerenciar extração nem administrar nada.
+Na Biblioteca de Prompts, cada prompt pronto indica os perfis a que se destina (por exemplo, Prova e Plano de aula para Professor; Revisão do material e Lacunas para Pesquisador).
 
-**Fluxo típico:** recebe o arquivo `.tusab` → instala o Tusab → escolhe o perfil Estudante no onboarding → importa a base pela Home ("Importar Base") → conversa no chat, recebendo respostas com citação de vídeo/minuto ou documento de origem.
+## No app desktop
 
-## Professor
+O app desktop usa os mesmos perfis, com abas a mais que não existem na extensão: **Assistente** (chat), **Histórico** de conversas e a aba **Estudo** (no lugar da Biblioteca de Prompts), além de configuração de provedor de IA, Busca Ampla e Google Drive para todos os perfis. Cada perfil tem uma persona padrão no Assistente: Didático (Estudante e Professor), Técnico (Pesquisador) e Objetivo (Especialista). No desktop, o Especialista também pode ocultar o cartão de Modo Estudo da tela inicial.
 
-Extrai canais do YouTube, organiza materiais didáticos em projetos, e exporta bases prontas para compartilhar com a turma.
-
-**Fluxo típico:** cola a URL do canal → seleciona fontes (desmarca Shorts, por exemplo) → inicia a extração (roda no IP do próprio professor, sem servidor intermediário) → cria um projeto no Repositório → adiciona PDFs complementares → indexa a base → exporta como `.tusab` e distribui aos alunos.
-
-A extração é incremental: numa nova rodada, só os vídeos novos são processados.
-
-Desde a v1.0.61, o Professor também busca em [fontes públicas](/funcionalidades/fontes-publicas) — em especial na área **Educação** (teses da BDTD e da CAPES, artigos do OasisBR, recursos do EduCAPES, Wikilivros, Wikiversidade e ERIC).
-
-## Pesquisador
-
-Constrói corpora de múltiplas fontes para análise aprofundada, com controle fino sobre o que entra na base.
-
-**Diferenciais em relação ao Professor:**
-- Persona padrão **técnico** no Assistente (no Professor é didático)
-- Mesmas [70 fontes públicas em 11 áreas](/funcionalidades/fontes-publicas) do Professor, com destaque para jurisprudência (STF, TCU, TST), portais de dados abertos (órgãos federais, estados, capitais e outros países) e repositórios de saúde (OPAS, OMS, Fiocruz)
-
-## Especialista
-
-Acesso completo — inclui monitoramento do sistema e administração. Voltado a inteligência de negócios sobre acervo próprio: relatórios, atas de reunião, vídeos de conferência.
-
-**Diferenciais em relação ao Pesquisador:**
-- Painel **Monitor** — status do sistema em tempo real (ETA de extração, uso de recursos)
-- Reconhecimento automático de documentos jurídicos (petição, contrato, parecer)
-- Pode ocultar o card de Modo Estudo na tela inicial — preferência persistida e reversível a qualquer momento, útil para quem não usa flashcards/resumos no dia a dia
-
-**Reset total** (limpeza completa da base — hard-reset global, não por projeto) está disponível para todos os perfis, na aba Admin.
-
-:::info Nota técnica
-Internamente o slug deste perfil é `profissional` — mantido por compatibilidade com dados de instalações já existentes. O rótulo visível na interface é "Especialista" desde junho de 2026.
+:::info Slug interno do Especialista
+Internamente o slug do perfil Especialista é `profissional`, mantido por compatibilidade com dados já gravados (`localStorage`). O rótulo na interface é "Especialista".
 :::
-
-## O momento universal: primeira pergunta com fonte
-
-Independente do perfil, o momento definidor do produto é o mesmo: você pergunta, a resposta aparece em streaming, e ao final ela cita título, data e link da fonte exata. Clicar na fonte abre o vídeo original no YouTube ou o documento local correspondente.

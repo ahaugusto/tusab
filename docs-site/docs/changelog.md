@@ -7,13 +7,34 @@ slug: /changelog
 
 # Changelog
 
-O histórico completo de todas as versões — formato [Keep a Changelog](https://keepachangelog.com), versionamento [semântico](https://semver.org) — vive em [`CHANGELOG.md`](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md) no repositório principal. Esta página resume os marcos mais recentes.
+Resumo técnico das versões. O histórico completo do app desktop, no formato [Keep a Changelog](https://keepachangelog.com) com [versionamento semântico](https://semver.org), está em [`CHANGELOG.md`](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).
 
-## Destaques recentes
+## Extensão (`tusab-mcp/`)
+
+**v0.6.0 (2026-11-18)** — Primeira versão publicada no repositório.
+
+- Servidor MCP por stdio com 15 ferramentas: busca com citação (`tusab_buscar`), leitura de fonte e de original, extração do YouTube, arquivos de texto, fontes públicas, memória de estudo e revisão espaçada, novidades da semana, economia de tokens, status e abertura da tela.
+- Tela do Tusab servida em `127.0.0.1` com chave por sessão, `Host` e `Origin` conferidos, sem CORS e com CSP `'self'`: a interface do app desktop compilada em modo extensão.
+- Motor de extração do YouTube em Node, com o mesmo formato em disco do app desktop; yt-dlp oficial baixado com conferência SHA-256; atualização automática de canais a cada hora.
+- Documentos (PDF com marca de página, DOCX, XLSX, CSV, TXT/MD, FHIR, página web), originais guardados com conferência de tipo pela assinatura, imagens enviadas à IA sem EXIF/GPS.
+- Exportações (zip, XLSX, PDF) e `.tusab` compatível com o desktop nos dois sentidos, com originais opcionais.
+- 70 fontes públicas em 11 áreas, o mesmo registro do desktop.
+- Biblioteca de Prompts: 21 prompts em 6 categorias, regras fixas de busca e citação, "Meus prompts" com pastas.
+- Três idiomas (pt, en, es) na tela, nas mensagens do plugin, nos títulos das ferramentas e nos atalhos do "+".
+- Economia de tokens estimada localmente, com teste por linha de comando (`medir-tokens`).
+- Pacote `.mcpb` com `LICENSE`, `TRADEMARK.md` e `THIRD_PARTY_NOTICES.txt`.
+
+## App desktop
+
+**v1.0.64 (2026-10-27)** — Telemetria opcional volta a ser gravada: o ID do Clarity apontava para um projeto do tipo aplicativo móvel; agora usa um projeto do tipo Site, com mascaramento rígido.
+
+**v1.0.63 (2026-10-27)** — Telemetria opcional passa do PostHog para o Microsoft Clarity. Continua opt-in, com o conteúdo da tela mascarado no computador; quem tinha aceitado é consultado de novo.
+
+**v1.0.62 (2026-10-27)** — Correção de rolagem no chat expandido; Electron 44.9.3 e dependências atualizadas.
 
 **v1.0.61 (2026-10-21)** — De 26 para 70 fontes públicas, em 11 áreas: jurisprudência (STF, TCU, TST), Senado e Câmara, saúde (OPAS, OMS, Fiocruz, ANVISA), Banco Mundial, NASA, Hugging Face e outras. Novas áreas **Educação** (teses e material didático) e **Dados abertos** (cerca de 40 portais de governo do Brasil e do exterior). Professor e Especialista passam a buscar em fontes públicas. A busca aceita várias fontes de uma vez, com filtros por região, tipo de conteúdo e instituição. Tabelas no chat ficam mais legíveis e podem ser baixadas como planilha (.xlsx) ou copiadas como CSV.
 
-**v1.0.60 (2026-10-20)** — Instalador e app mais leves: cerca de 240 MB a menos no disco e instalador do Windows cerca de 50 MB menor. Gemini passa a usar o SDK oficial atual do Google, com a mesma chave. No Windows, o instalador limita a pasta escolhida a 75 caracteres, porque caminhos mais longos travavam a atualização automática.
+**v1.0.60 (2026-10-20)** — Instalador e app mais leves: cerca de 240 MB a menos no disco e instalador do Windows cerca de 50 MB menor. Gemini passa a usar o SDK oficial atual do Google, com a mesma chave. No Windows, o instalador passa a limitar o comprimento do caminho da pasta escolhida, porque caminhos longos travavam a atualização automática.
 
 **v1.0.59 (2026-10-20)** — Base do aplicativo atualizada para o Electron 44, com as correções de segurança acumuladas do Chromium e do Node.js. Nada muda no uso: bases, conversas e chaves de API continuam onde estavam.
 
@@ -37,16 +58,14 @@ O histórico completo de todas as versões — formato [Keep a Changelog](https:
 
 **v1.0.49 (2026-08-10)** — Busca vetorial (embeddings via Ollama `nomic-embed-text`) como complemento ao BM25+FTS5+CrossEncoder no chat, ativa em Busca Ampla com download opcional de 1 clique.
 
-**v1.0.48 (2026-08-09)** — Tagline unificada para "Augment" em toda a arte do logo e textos, referenciando deliberadamente o conceito de Intelligence Augmentation de Douglas Engelbart.
-
-**v1.0.46–47 (2026-08-07/09)** — Correções de release (corrida entre builders Windows/macOS), tradução completa da Visão Geral, logo e README renovados.
+**v1.0.46–47 (2026-08-07/09)** — Correções de release (corrida entre os builds Windows e macOS) e tradução completa da Visão Geral.
 
 **v1.0.44–45 (2026-08-07)** — Player de áudio real e persistido para resumos do Modo Estudo, correções de scroll horizontal indevido no menu lateral.
 
 **v1.0.42–43 (2026-08-06/07)** — Modo Estudo completo (flashcards com SM-2, resumos, post-its), seleção de playlists e filtro de data na extração, suporte a modelos Ollama com raciocínio nativo (thinking), renomeação de "Agente" para "Assistente" em toda a interface.
 
-**v1.0.41 (2026-07-31)** — Instalador para macOS (Apple Silicon), busca em fontes públicas por área de conhecimento (arXiv, OpenAlex, FHIR e outras), leitor de página web avulsa, formalização como source-available (Elastic License 2.0).
+**v1.0.41 (2026-07-31)** — Instalador para macOS (Apple Silicon), busca em fontes públicas por área de conhecimento (arXiv, OpenAlex, FHIR e outras), leitor de página web avulsa, código publicado sob a Elastic License 2.0.
 
 **v1.0.38–40 (2026-07-24/27)** — Reconhecimento automático de documentos jurídicos, confiança graduada por sentença no chat, exposição do MCP Server na interface.
 
-Para o detalhe completo — incluindo correções internas de CI/infra — consulte o [CHANGELOG.md completo](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).
+Para o detalhe completo, incluindo correções internas de CI e infraestrutura, consulte o [CHANGELOG.md](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).

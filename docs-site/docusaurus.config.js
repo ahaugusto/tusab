@@ -11,7 +11,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Tusab',
-  tagline: 'Seu mentor digital. Seus dados. Sua máquina.',
+  tagline: 'Extensão MCP local: base de conhecimento no computador do usuário, consultada pela IA com citação da fonte.',
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
@@ -51,14 +51,6 @@ const config = {
           routeBasePath: '/', // documentação é a home do site
           sidebarPath: './sidebars.js',
           editUrl: 'https://github.com/criaugu/tusab/tree/main/docs-site/',
-          // Conteúdo de demonstração do template Docusaurus — não faz parte
-          // da documentação real do Tusab. Excluído em vez de apagado porque
-          // o ambiente de scaffolding não tem permissão de delete neste volume.
-          exclude: [
-            '**/tutorial-basics/**',
-            '**/tutorial-extras/**',
-            'intro.mdx',
-          ],
         },
         blog: false, // Tusab usa CHANGELOG.md no repositório principal, não blog
         theme: {
@@ -99,8 +91,8 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://github.com/criaugu/tusab/releases/latest',
-            label: 'Download',
+            to: '/instalacao',
+            label: 'Instalar',
             position: 'right',
           },
         ],
@@ -113,6 +105,7 @@ const config = {
             items: [
               {label: 'Introdução', to: '/intro'},
               {label: 'Instalação', to: '/instalacao'},
+              {label: 'Ferramentas MCP', to: '/ferramentas-mcp'},
               {label: 'Arquitetura', to: '/arquitetura/visao-geral'},
               {label: 'Segurança', to: '/seguranca'},
             ],
@@ -124,13 +117,7 @@ const config = {
               {label: 'Changelog completo', href: 'https://github.com/criaugu/tusab/blob/main/CHANGELOG.md'},
               {label: 'Issues', href: 'https://github.com/criaugu/tusab/issues'},
               {label: 'Licença (Elastic License 2.0)', href: 'https://github.com/criaugu/tusab/blob/main/LICENSE'},
-            ],
-          },
-          {
-            title: 'CriAugu',
-            items: [
-              {label: 'Site do Tusab', href: 'https://tusab.solutions'},
-              {label: 'Augusto Brasil no LinkedIn', href: 'https://linkedin.com/in/augustoalvesbrasil'},
+              {label: 'Releases (app desktop)', href: 'https://github.com/criaugu/tusab/releases/latest'},
             ],
           },
         ],

@@ -7,7 +7,7 @@ slug: /design-system
 
 # Design System
 
-The source of truth for Tusab's design is **the production code** (`web_interface/src/`) — not Figma, not this document. Divergence between them is a documentation bug to fix, not a design option.
+The design system applies to the React interface in `web_interface/src/`, which builds both the extension screen and the desktop app's. The source of truth is **the code**, not Figma or this document: a divergence between them is a documentation error to fix. The detailed version lives in `docs/design-system/design-system.md` in the repository.
 
 ## Principles
 
@@ -31,7 +31,7 @@ Dark surfaces use white at reduced opacity (`bg-white/4` to `bg-white/10`) inste
 
 ## Typography
 
-Families: **Inter** (sans, body) and **JetBrains Mono** (mono — versions, IDs, model names).
+Families: **Inter** (sans, body) and **JetBrains Mono** (mono — versions, IDs, model names). In extension mode, Google fonts aren't loaded (CSP `'self'`), and the screen uses the system font.
 
 Real scale: `text-xs` (12px) is the standard body size; `text-[10px]` for support/caption text; `text-sm` (14px) only for main section headings. The scale has six steps — don't introduce intermediate sizes outside it.
 
@@ -60,4 +60,4 @@ Global 150ms transition (`cubic-bezier(0.4,0,0.2,1)`) on color/opacity/shadow/tr
 
 ## Figma library
 
-A v1 library (Light/Dark tokens, text styles, 5 atoms, Feedback, Shell/NavItem) mirrors the published code. A complete v2 (chat kit, modal template, forms) is planned for when the design workflow starts actively consuming the library.
+A Figma library (light/dark tokens, text styles, 5 atoms, Feedback, Shell/NavItem) mirrors the code. Where they differ, the code wins.

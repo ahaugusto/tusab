@@ -7,7 +7,7 @@ slug: /acessibilidade
 
 # Acessibilidade
 
-Interface auditada contra **WCAG 2.1 nível AA**.
+A tela do Tusab (a mesma interface React do app desktop, em `web_interface/`) é auditada contra **WCAG 2.1 nível AA**. O que vale para a interface vale para os dois.
 
 ## Conformidade por área
 
@@ -18,7 +18,7 @@ Interface auditada contra **WCAG 2.1 nível AA**.
 | `prefers-reduced-motion` | ✅ Conforme (respeitado globalmente) |
 | Modais com trap de foco, `aria-modal`, isolamento do fundo | ✅ Conforme (`ModalWrapper.jsx`) |
 | Skip-nav link | ✅ Conforme |
-| `lang` no HTML | ✅ Conforme (`pt-BR`) |
+| `lang` no HTML | ✅ Conforme |
 | Contraste de texto (AA) | ✅ Conforme (auditado via pa11y-ci a cada PR) |
 | `aria-live` para conteúdo dinâmico | ⚠️ Parcial — segue em evolução |
 
@@ -31,6 +31,8 @@ Interface auditada contra **WCAG 2.1 nível AA**.
 **Modais** — `ModalWrapper.jsx` implementa `role="dialog"`, `aria-modal="true"`, `aria-label` obrigatório, trap de foco automático, renderização via `ReactDOM.createPortal` (fora do `#root`), `aria-hidden="true"` no `#root` enquanto a modal está aberta, e restauração de foco ao elemento anterior ao fechar.
 
 ## Atalhos de teclado
+
+Na tela da extensão, os atalhos de chat, Assistente e Histórico não se aplicam (essas telas não existem nela), e `Shift + U` leva à Biblioteca de Prompts.
 
 | Tecla | Alternativa no macOS | Ação |
 |-------|----------------------|------|
@@ -57,7 +59,7 @@ No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nati
 
 **Operável** — 100% navegável por teclado, sem armadilha de foco fora de modais, skip-nav presente, ordem de foco = ordem do DOM, foco sempre visível (`BTN_FOCUS` + CSS global).
 
-**Compreensível** — idioma da página declarado (`lang="pt-BR"`), i18n via `react-i18next`, mudanças de contexto sempre disparadas por ação explícita do usuário, erros identificados com mensagem textual.
+**Compreensível** — idioma da página declarado (`lang`), i18n via `react-i18next`, mudanças de contexto sempre disparadas por ação explícita do usuário, erros identificados com mensagem textual.
 
 **Robusto** — JSX compilado para HTML válido; a maioria dos componentes interativos usa `role` correto (`switch`, `dialog`, `alert`, `status`).
 
@@ -70,8 +72,6 @@ No macOS, a maioria dos atalhos também aceita `⌘` (Cmd) como alternativa nati
 
 ### Escopo do pa11y-ci
 
-Hoje a auditoria automatizada cobre só a **tela de Landing** (light e dark mode) — é a única tela alcançável sem estado prévio (sem login, sem backend real), o que a torna testável de forma determinística em CI. O restante do app (telas internas, modais, fluxos com dados) segue coberto por revisão manual via `/acessibilidade` e pelos testes com leitor de tela, não por este gate automatizado.
+Hoje a auditoria automatizada cobre só a **tela de Landing** (temas claro e escuro), a única alcançável sem estado prévio (sem backend real), o que a torna testável de forma determinística em CI. O restante (telas internas, modais, fluxos com dados) é coberto por revisão manual e por testes com leitor de tela, não por esse gate automatizado.
 
 A regra de contraste (`color-contrast`) é validada via **HTML_CodeSniffer**, não via axe-core, nesta configuração específica — o fundo animado da Landing (`<canvas>` do `CircuitBackground`) faz o axe sinalizar a maioria dos textos como "precisa de revisão manual" (não consegue amostrar um fundo que muda), o que reduziria o gate a ruído sem essa escolha.
-
-A lista completa de achados, com arquivo e linha, é mantida no repositório em `Documentação do Produto/Acessibilidade e WCAG.md`, atualizada a cada release significativo.

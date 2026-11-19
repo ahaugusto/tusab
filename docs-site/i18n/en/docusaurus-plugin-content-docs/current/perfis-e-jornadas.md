@@ -1,72 +1,40 @@
 ---
 id: perfis-e-jornadas
-title: Profiles and user journeys
-sidebar_label: Profiles and journeys
+title: Profiles
+sidebar_label: Profiles
 slug: /perfis-e-jornadas
 ---
 
-# Profiles and user journeys
+# Profiles
 
-Tusab has four profiles with progressively more advanced features. The profile is chosen during onboarding and can be switched at any time from the profile menu in the header.
+The [Tusab screen](/tela) has four profiles: **Student**, **Teacher**, **Researcher** and **Specialist**. The profile is chosen during onboarding and can be changed at any time in the header. It defines which tabs appear; it doesn't change the index, the data format or privacy.
 
-## Feature map by profile
+The [MCP tools](/ferramentas-mcp) **don't depend on the profile**: the AI has access to the same 15 tools in every case.
+
+The configuration lives in `web_interface/src/hooks/usePerfil.js` (`PERFIS_CONFIG`, with the extension-mode adjustments in the same file).
+
+## What each profile shows on the screen
 
 | Feature | Student | Teacher | Researcher | Specialist |
 |---|:---:|:---:|:---:|:---:|
-| RAG chat with streaming and sources | ✅ | ✅ | ✅ | ✅ |
-| Repository (view + upload) | ✅ | ✅ | ✅ | ✅ |
-| Import / export `.tusab` base | ✅ | ✅ | ✅ | ✅ |
-| Configure AI provider / API key | ✅ | ✅ | ✅ | ✅ |
-| Broad Search | ✅ | ✅ | ✅ | ✅ |
-| Google Drive (sync) | ✅ | ✅ | ✅ | ✅ |
-| Extract YouTube channel / queue | — | ✅ | ✅ | ✅ |
-| Manage repository (delete/clear) | ✅ | ✅ | ✅ | ✅ |
-| Admin panel | ✅ | ✅ | ✅ | ✅ |
-| Overview (corpus analytics) | — | ✅ | ✅ | ✅ |
-| [Public source search](/funcionalidades/fontes-publicas) (70 sources) | — | ✅ | ✅ | ✅ |
-| System Monitor | — | — | — | ✅ |
-| Full reset | ✅ | ✅ | ✅ | ✅ |
-| Assistant's default persona | Didactic | Didactic | Technical | Objective |
+| Repository (view, upload, delete, clear) | ✅ | ✅ | ✅ | ✅ |
+| Import / export `.tusab` | ✅ | ✅ | ✅ | ✅ |
+| Per-channel report | ✅ | ✅ | ✅ | ✅ |
+| Prompt Library | ✅ | ✅ | ✅ | ✅ |
+| Admin and full reset | ✅ | ✅ | ✅ | ✅ |
+| YouTube extraction and queue | — | ✅ | ✅ | ✅ |
+| [Public sources](/funcionalidades/fontes-publicas) | — | ✅ | ✅ | ✅ |
+| Overview | — | ✅ | ✅ | ✅ |
+| System monitor | — | — | — | ✅ |
 
-## Student
+Permission to delete or clear files doesn't depend on the profile: it is controlled per project (read-only marker, checked via `GET /export/readonly-status`).
 
-Imports ready-made bases (`.tusab`) shared by teachers or classmates and asks the chat questions. No need to configure an AI provider, manage extraction, or administer anything.
+In the Prompt Library, each built-in prompt states the profiles it is meant for (for example, Exam and Lesson plan for Teacher; Material review and Gaps for Researcher).
 
-**Typical flow:** receives the `.tusab` file → installs Tusab → picks the Student profile during onboarding → imports the base from the Home screen ("Import Base") → chats, receiving answers with video/timestamp or document source citations.
+## In the desktop app
 
-## Teacher
+The desktop app uses the same profiles, with extra tabs that don't exist in the extension: **Assistant** (chat), conversation **History** and the **Study** tab (instead of the Prompt Library), plus AI provider configuration, Broad Search and Google Drive for every profile. Each profile has a default Assistant persona: Didactic (Student and Teacher), Technical (Researcher) and Objective (Specialist). In the desktop app, the Specialist can also hide the Study Mode card on the home screen.
 
-Extracts YouTube channels, organizes teaching material into projects, and exports ready-made bases to share with the class.
-
-**Typical flow:** pastes the channel URL → selects sources (deselects Shorts, for example) → starts extraction (runs on the teacher's own IP, no intermediary server) → creates a project in the Repository → adds complementary PDFs → indexes the base → exports as `.tusab` and distributes it to students.
-
-Extraction is incremental: on a new run, only new videos are processed.
-
-Since v1.0.61, the Teacher can also search [public sources](/funcionalidades/fontes-publicas) — especially the **Education** area (theses from BDTD and CAPES, OasisBR articles, EduCAPES resources, Portuguese Wikibooks and Wikiversity, and ERIC).
-
-## Researcher
-
-Builds corpora from multiple sources for in-depth analysis, with fine-grained control over what goes into the base.
-
-**Differences from Teacher:**
-- **Technical** default persona in the Assistant (Teacher's is didactic)
-- Same [70 public sources across 11 areas](/funcionalidades/fontes-publicas) as the Teacher, notably case law (STF, TCU, TST), open data portals (federal agencies, states, cities and other countries) and health repositories (PAHO, WHO, Fiocruz)
-
-## Specialist
-
-Full access — includes system monitoring and administration. Aimed at business intelligence over your own collection: reports, meeting minutes, conference videos.
-
-**Differences from Researcher:**
-- **Monitor** panel — real-time system status (extraction ETA, resource usage)
-- Automatic recognition of legal documents (petitions, contracts, opinions)
-- Can hide the Study Mode card on the home screen — a persisted, reversible preference for those who don't use flashcards/summaries day to day
-
-**Full reset** (complete base wipe — a global hard reset, not per-project) is available to every profile, in the Admin tab.
-
-:::info Technical note
-Internally this profile's slug is `profissional` — kept for compatibility with existing installations' data. The label shown in the interface has been "Especialista"/"Specialist" since June 2026.
+:::info Specialist's internal slug
+Internally the Specialist profile's slug is `profissional`, kept for compatibility with data already saved (`localStorage`). The label in the interface is "Specialist".
 :::
-
-## The universal moment: the first sourced answer
-
-Regardless of profile, the defining moment of the product is the same: you ask a question, the answer streams in, and at the end it cites the exact source's title, date, and link. Clicking the source opens the original video on YouTube or the corresponding local document.
