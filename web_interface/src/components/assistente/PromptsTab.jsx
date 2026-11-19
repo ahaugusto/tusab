@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { BookOpen, GraduationCap, Search, Scale, PenLine, Inbox, Copy, Check, X, Info, Star, Plus, Pencil, Trash2, CopyPlus, Sparkles, ChevronDown, Gauge, Folder, ExternalLink, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { BookOpen, GraduationCap, Search, Scale, PenLine, Inbox, Copy, Check, X, Info, Star, Plus, Pencil, Trash2, CopyPlus, Sparkles, ChevronDown, Gauge, Folder, ExternalLink, Loader2, AlertTriangle, CheckCircle2, Zap, Brain } from 'lucide-react';
 import { API_BASE, BTN_FOCUS } from '../../constants';
 import ModalWrapper from '../shared/ModalWrapper';
 import EconomiaTokens from './EconomiaTokens';
@@ -28,6 +28,30 @@ export const EVENTO_ABRIR_PROMPTS = 'tusab:abrir-prompts';
 const ATALHOS = ['resposta-verificavel', 'resumo', 'flashcards', 'quiz'];
 const NEGRITO = { b: <strong /> };
 const TODAS_PASTAS = '*';
+// "Para quê": os filtros da Biblioteca (perfil único desde 19/11/2026). Um prompt pode servir a mais de um.
+const PUBLICOS = ['estudar', 'ensinar', 'pesquisar', 'trabalho'];
+// Modelo sugerido pelo custo-benefício da tarefa (sugestão; quem escolhe o modelo é o usuário).
+const ICONE_NIVEL = { leve: Zap, equilibrado: Gauge, avancado: Brain };
+
+/** "Roediger, H. L., III; Karpicke, J. D." → "Roediger & Karpicke"; 3 ou mais → "Chi et al." */
+function autoresCurto(autores = '') {
+  const nomes = String(autores).split(';').map((x) => x.split(',')[0].trim()).filter(Boolean);
+  if (nomes.length > 2) return `${nomes[0]} et al.`;
+  return nomes.join(' & ');
+}
+
+/** Selo do modelo sugerido: ícone + texto (nunca só cor), com a explicação no title. */
+function SeloNivel({ nivel, darkMode }) {
+  const { t } = useTranslation();
+  const Icone = ICONE_NIVEL[nivel];
+  if (!Icone) return null;
+  return (
+    <span title={t(`ext.nivel.${nivel}_dica`)} data-nivel={nivel}
+      className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${darkMode ? 'bg-white/8 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+      <Icone size={10} aria-hidden="true" /> {t(`ext.nivel.${nivel}`)}
+    </span>
+  );
+}
 
 /** Comparação de busca: sem acento e sem maiúsculas ("Revisão" acha "revisao"). */
 const normalizar = (s) => String(s || '').normalize('NFD').replace(/\p{Mn}/gu, '').toLowerCase();
@@ -70,8 +94,19 @@ function useConexaoDesde(desde) {
  * (a confirmação de que a resposta vem dos trechos do usuário). Fica 45 s (8 s depois da
  * confirmação), ou até fechar; parado enquanto o mouse ou o foco estão nele; não rouba o foco.
  */
-export function AvisoCopiado({ darkMode, onFechar }) {
+export function AvisoCopiado({ darkMode, onFechar, pedido = null }) {
   const { t } = useTranslation();
+  // IA no navegador: ao abrir por aqui, o pedido é copiado de novo com os trechos da base dentro.
+  const [paraNavegador, setParaNavegador] = useState(null); // null | 'copiando' | { trechos } | { erro }
+  const copiarParaNavegador = () => {
+    if (!pedido) return;
+    setParaNavegador('copiando');
+    const montagem = montarPedidoNavegador(pedido.id, pedido.projeto, pedido.extras);
+    copiarTexto(montagem.then((r) => r.texto)) // começa no clique (Safari); a aba abre pelo próprio link
+      .then((ok) => montagem.then((r) => setParaNavegador(ok ? { trechos: r.trechos } : { erro: t('ext.prompts.copiar_manual') })))
+      .catch((e) => setParaNavegador({ erro: e.message }));
+    montagem.catch((e) => setParaNavegador({ erro: e.message }));
+  };
   const [ia, setIa] = useState(() => {
     try { return localStorage.getItem(CHAVE_IA_NAVEGADOR) || 'claude'; } catch { return 'claude'; }
   });
@@ -109,7 +144,7 @@ export function AvisoCopiado({ darkMode, onFechar }) {
           <ExternalLink size={13} aria-hidden="true" /> {t('ext.copiado.app')}
         </a>
         <span className={`inline-flex items-center rounded-lg border ${darkMode ? 'border-white/15' : 'border-slate-300'}`}>
-          <a href={destino.url} target="_blank" rel="noopener noreferrer" data-acao="abrir-navegador"
+          <a href={destino.url} target="_blank" rel="noopener noreferrer" data-acao="abrir-navegador" onClick={copiarParaNavegador}
             className={`${botao} ${darkMode ? 'text-slate-200 hover:bg-white/8' : 'text-slate-700 hover:bg-slate-50'}`}>
             <ExternalLink size={13} aria-hidden="true" /> {t('ext.copiado.navegador')}
           </a>
@@ -120,7 +155,16 @@ export function AvisoCopiado({ darkMode, onFechar }) {
         </span>
       </div>
       <EstadoConexao conexao={conexao} darkMode={darkMode} />
-      <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('ext.copiado.aviso_navegador')}</p>
+      {paraNavegador ? (
+        <p data-estado={paraNavegador === 'copiando' ? 'navegador-copiando' : paraNavegador.erro ? 'navegador-erro' : 'navegador-copiado'}
+          className={`text-xs ${paraNavegador.erro ? (darkMode ? 'text-amber-300' : 'text-amber-700') : (darkMode ? 'text-emerald-300' : 'text-emerald-700')}`}>
+          {paraNavegador === 'copiando' ? t('ext.copiado.navegador_copiando')
+            : paraNavegador.erro ? paraNavegador.erro
+              : t('ext.copiado.navegador_trechos', { count: paraNavegador.trechos })}
+        </p>
+      ) : (
+        <p className={`text-[11px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t(pedido ? 'ext.copiado.aviso_navegador_trechos' : 'ext.copiado.aviso_navegador')}</p>
+      )}
     </div>,
     document.body,
   );
@@ -178,6 +222,13 @@ async function montarPedido(id, projeto, extras = {}) {
   return r.data.texto;
 }
 
+/** Versão para IA no navegador: o pedido com os trechos da base dentro. → { texto, trechos } */
+async function montarPedidoNavegador(id, projeto, extras = {}) {
+  const r = await axios.post(`${API_BASE}/prompts/montar`, { id, projeto, ...extras, navegador: true });
+  if (r.data?.error) throw new Error(r.data.message);
+  return { texto: r.data.texto, trechos: r.data.trechos };
+}
+
 function lembrarProjeto(p) {
   try { localStorage.setItem(CHAVE_PROJETO, p); } catch { /* sem armazenamento */ }
 }
@@ -200,6 +251,7 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
   const [excluindo, setExcluindo] = useState(null);
   const [copiadoId, setCopiadoId] = useState(null);
   const [aviso, setAviso] = useState('');
+  const [ultimoPedido, setUltimoPedido] = useState(null); // o que foi copiado (para a versão do navegador)
   const [mostrarCopiado, setMostrarCopiado] = useState(false);
   const [busca, setBusca] = useState('');
   const [pasta, setPasta] = useState(TODAS_PASTAS);
@@ -241,6 +293,7 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
       await pedido; // erro do plugin (ex.: projeto inválido) vira aviso, não prévia
       if (ok) {
         setCopiadoId(p.id);
+        setUltimoPedido({ id: p.id, projeto, extras: {} });
         setMostrarCopiado(true);
         setTimeout(() => setCopiadoId(null), 2000);
       } else setAberto(p); // sem permissão de área de transferência: abre a prévia para copiar à mão
@@ -267,22 +320,20 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
     }
   };
 
-  // Abas por id fixo (o rótulo muda com o idioma); "Meus prompts" sempre aparece.
-  const abas = useMemo(() => {
-    const porId = new Map(lista.map((p) => [p.categoria_id, p.categoria]));
-    if (!porId.has(MEUS)) porId.set(MEUS, t('ext.prompts.meus'));
-    const meus = porId.get(MEUS);
-    porId.delete(MEUS);
-    return [{ id: TODOS, nome: t('ext.prompts.todos') }, ...[...porId].map(([id, nome]) => ({ id, nome })), { id: MEUS, nome: meus }];
-  }, [lista, t]);
+  // Abas "Para quê" (id fixo, rótulo no idioma da tela) + "Meus prompts", que sempre aparece.
+  const abas = useMemo(() => [
+    { id: TODOS, nome: t('ext.prompts.todos') },
+    ...PUBLICOS.map((id) => ({ id, nome: t(`ext.prompts.publico_${id}`) })),
+    { id: MEUS, nome: t('ext.prompts.meus') },
+  ], [t]);
   const pastas = useMemo(() => [...new Set(lista.filter((p) => p.categoria_id === MEUS && p.pasta).map((p) => p.pasta))]
     .sort((a, b) => a.localeCompare(b, i18n.resolvedLanguage)), [lista, i18n.resolvedLanguage]);
   const termo = normalizar(busca.trim());
   const visiveis = useMemo(() => lista.filter((p) => {
-    if (categoria !== TODOS && p.categoria_id !== categoria) return false;
+    if (categoria === MEUS ? p.categoria_id !== MEUS : categoria !== TODOS && !(p.publicos || []).includes(categoria)) return false;
     if (categoria === MEUS && pasta !== TODAS_PASTAS && (p.pasta || '') !== pasta) return false;
     if (!termo) return true;
-    return [p.titulo, p.descricao, p.pedido, p.pasta, p.categoria].some((x) => normalizar(x).includes(termo));
+    return [p.titulo, p.descricao, p.pedido, p.pasta, p.categoria, p.referencia?.autores].some((x) => normalizar(x).includes(termo));
   }), [lista, categoria, pasta, termo]);
   // Pasta escolhida que deixou de existir (renomeada/esvaziada) volta para "Todas".
   useEffect(() => {
@@ -415,6 +466,14 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
                 <span>
                   <span className={`block text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{p.titulo}</span>
                   {p.descricao && <span className={`block text-xs mt-0.5 ${textoSec}`}>{p.descricao}</span>}
+                  {(p.nivel || p.referencia) && (
+                    <span className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <SeloNivel nivel={p.nivel} darkMode={darkMode} />
+                      {p.referencia && (
+                        <span className={`text-[10px] italic ${textoSec}`}>{t('ext.prompts.base_curta', { autores: autoresCurto(p.referencia.autores), ano: p.referencia.ano })}</span>
+                      )}
+                    </span>
+                  )}
                   {meu && p.pasta && (
                     <span className={`inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold ${textoSec}`}>
                       <Folder size={10} aria-hidden="true" /> {p.pasta}
@@ -457,9 +516,9 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
 
       {aberto && (
         <PreviaPrompt prompt={aberto} projeto={projeto} montar={montar} darkMode={darkMode}
-          onFechar={() => setAberto(null)} onCopiado={() => setMostrarCopiado(true)} />
+          onFechar={() => setAberto(null)} onCopiado={(extras) => { setUltimoPedido({ id: aberto.id, projeto, extras }); setMostrarCopiado(true); }} />
       )}
-      {mostrarCopiado && <AvisoCopiado darkMode={darkMode} onFechar={fecharCopiado} />}
+      {mostrarCopiado && <AvisoCopiado darkMode={darkMode} onFechar={fecharCopiado} pedido={ultimoPedido} />}
       {economia && <EconomiaTokens darkMode={darkMode} btnFocus={BTN_FOCUS} projetoInicial={projeto} onFechar={() => setEconomia(false)} />}
       {renomeando && (
         <ModalWrapper onClose={() => setRenomeando(null)} label={t('ext.prompts.renomear_pasta')}>
@@ -595,7 +654,7 @@ function PreviaPrompt({ prompt, projeto, montar, darkMode, onFechar, onCopiado }
   const copiar = async (fechar) => {
     if (await copiarTexto(texto)) {
       setEstado(t('ext.prompts.copiado_aviso'));
-      onCopiado();
+      onCopiado({ tema, quantidade });
       if (fechar) onFechar();
     } else {
       caixaRef.current?.select();
@@ -614,6 +673,17 @@ function PreviaPrompt({ prompt, projeto, montar, darkMode, onFechar, onCopiado }
             <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
               {t('ext.prompts.projeto_valor', { projeto })}{prompt.descricao ? ` · ${prompt.descricao}` : ''}
             </p>
+            {prompt.nivel && (
+              <p className={`text-[11px] mt-1.5 flex items-start gap-1.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                <SeloNivel nivel={prompt.nivel} darkMode={darkMode} /> <span>{t(`ext.nivel.${prompt.nivel}_dica`)}</span>
+              </p>
+            )}
+            {prompt.referencia && (
+              <p className={`text-[11px] mt-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} data-campo="referencia">
+                <strong>{t('ext.prompts.base_titulo')}</strong> {prompt.referencia.autores} ({prompt.referencia.ano}). <em>{prompt.referencia.obra}</em>
+                {prompt.referencia.pratica ? ` ${prompt.referencia.pratica}` : ''}
+              </p>
+            )}
           </div>
           <button onClick={onFechar} aria-label={t('ext.comum.fechar')} className={`p-1.5 rounded-lg ${BTN_FOCUS} ${darkMode ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
             <X size={16} />
@@ -662,6 +732,7 @@ export function PedirIA({ projeto, darkMode }) {
   const [previa, setPrevia] = useState(null);
   const [estado, setEstado] = useState('');
   const [mostrarCopiado, setMostrarCopiado] = useState(false);
+  const [ultimoPedido, setUltimoPedido] = useState(null);
   const fecharCopiado = useCallback(() => setMostrarCopiado(false), []);
   const botaoRef = useRef(null);
   const menuRef = useRef(null);
@@ -717,6 +788,7 @@ export function PedirIA({ projeto, darkMode }) {
       await pedido;
       if (ok) {
         setEstado(t('ext.pedir.copiado', { titulo: p.titulo }));
+        setUltimoPedido({ id: p.id, projeto, extras: {} });
         setMostrarCopiado(true);
       } else setPrevia(p); // sem permissão de área de transferência: abre a prévia
     } catch (e) {
@@ -752,10 +824,10 @@ export function PedirIA({ projeto, darkMode }) {
         </div>,
         document.body,
       )}
-      {mostrarCopiado && <AvisoCopiado darkMode={darkMode} onFechar={fecharCopiado} />}
+      {mostrarCopiado && <AvisoCopiado darkMode={darkMode} onFechar={fecharCopiado} pedido={ultimoPedido} />}
       {previa && (
         <PreviaPrompt prompt={previa} projeto={projeto} montar={montar} darkMode={darkMode}
-          onFechar={() => setPrevia(null)} onCopiado={() => setMostrarCopiado(true)} />
+          onFechar={() => setPrevia(null)} onCopiado={(extras) => { setUltimoPedido({ id: previa.id, projeto, extras }); setMostrarCopiado(true); }} />
       )}
     </>
   );

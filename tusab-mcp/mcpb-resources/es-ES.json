@@ -182,6 +182,106 @@
       "name": "digest",
       "description": "Lo que entró en el proyecto en los últimos 7 días.",
       "text": "Resumen de la semana — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "pre-teste",
+      "description": "Preguntas antes de ver el contenido, para preparar la memoria.",
+      "text": "Pre-test (antes de estudiar) — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "recordar-livre",
+      "description": "Escribe lo que recuerdas; la IA lo compara con la base y crea tarjetas de lo que faltó.",
+      "text": "Recordar sin mirar — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "autoexplicacao",
+      "description": "Tú explicas, la IA lo compara con las fuentes y señala lo que faltó.",
+      "text": "Explicar con mis palabras — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "pratica-intercalada",
+      "description": "Preguntas de subtemas mezclados: aprendes a reconocer qué concepto usar.",
+      "text": "Práctica mezclada — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "exemplo-resolvido",
+      "description": "Un ejemplo explicado, luego uno con huecos y uno sin ayuda.",
+      "text": "Ejemplo resuelto paso a paso — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "mapa-conceitual",
+      "description": "Conceptos unidos por frases (causa, depende de…), en Mermaid.",
+      "text": "Mapa conceptual — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "objetivos-bloom",
+      "description": "Objetivos de aprendizaje en los 6 niveles, con preguntas para cada uno.",
+      "text": "Objetivos por nivel (Bloom) — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "planejamento-reverso",
+      "description": "Del resultado esperado a la evaluación y las clases, con los fragmentos a usar.",
+      "text": "Planificación inversa de unidad — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "rubrica",
+      "description": "Criterios y niveles de desempeño, con versión para autoevaluación.",
+      "text": "Rúbrica de evaluación — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "checagem-formativa",
+      "description": "Pocas preguntas para ver si el grupo entendió y qué retomar.",
+      "text": "Comprobación rápida de fin de clase — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "aula-invertida",
+      "description": "Guía de fragmentos para ver antes y actividad para la clase.",
+      "text": "Clase invertida — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "pergunta-pico",
+      "description": "Convierte el tema en preguntas claras y dice qué responde ya la base.",
+      "text": "Pregunta de investigación (PICO) — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "triagem-prisma",
+      "description": "Criterios de inclusión, motivo de cada exclusión y conteo por etapa.",
+      "text": "Cribado de fuentes (estilo PRISMA) — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "matriz-sintese",
+      "description": "Tabla fuente × tema y una síntesis por idea, no por fuente.",
+      "text": "Matriz de síntesis — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "analise-tematica",
+      "description": "Códigos, temas y fragmentos de ejemplo a partir de entrevistas y reuniones.",
+      "text": "Análisis temático de testimonios — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "resumo-executivo",
+      "description": "Primero la conclusión, después los argumentos que la sostienen.",
+      "text": "Resumen ejecutivo (pirámide) — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "pre-mortem",
+      "description": "Imagina que salió mal y enumera por qué, con señales de alerta.",
+      "text": "Pre-mortem de una decisión — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "hipoteses-concorrentes",
+      "description": "Matriz de evidencias a favor y en contra de cada explicación posible.",
+      "text": "Hipótesis en competencia — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "ideia-memoravel",
+      "description": "Una idea del material en frase, párrafo y guion de 1 minuto.",
+      "text": "Una idea que se queda — proyecto ${arguments.projeto}"
+    },
+    {
+      "name": "reflexao-semana",
+      "description": "Lo que aprendí, lo que sigue confuso y la meta de la próxima semana.",
+      "text": "Reflexión de la semana — proyecto ${arguments.projeto}"
     }
   ]
 }

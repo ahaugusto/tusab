@@ -5,8 +5,16 @@
   "version": "2.0.0",
   "icon": "icon.png",
   "icons": [
-    { "src": "icon.png", "size": "512x512", "theme": "light" },
-    { "src": "icon-claro.png", "size": "512x512", "theme": "dark" }
+    {
+      "src": "icon.png",
+      "size": "512x512",
+      "theme": "light"
+    },
+    {
+      "src": "icon-claro.png",
+      "size": "512x512",
+      "theme": "dark"
+    }
   ],
   "description": "O Tusab dentro da sua IA: extraia canais do YouTube neste computador e consulte a base com citação no minuto exato.",
   "long_description": "O Tusab extrai transcrições de canais, playlists e vídeos do YouTube neste computador, no seu IP, e organiza tudo numa pasta local. A sua ferramenta de IA consulta essa base e cita o vídeo e o minuto. A tela do Tusab abre no navegador, servida por este computador. Nada passa por servidor da CriAugu: só os trechos que a IA consulta vão para a IA que você escolheu.",
@@ -318,6 +326,188 @@
         "projeto"
       ],
       "text": "Digest da semana — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "pre-teste",
+      "description": "Perguntas antes de ver o conteúdo, para preparar a memória.",
+      "arguments": [
+        "projeto",
+        "tema",
+        "quantidade"
+      ],
+      "text": "Pré-teste (antes de estudar) — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "recordar-livre",
+      "description": "Escreva o que lembra; a IA compara com a base e cria cards do que faltou.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Lembrar sem olhar — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "autoexplicacao",
+      "description": "Você explica, a IA confere com as fontes e aponta o que faltou.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Explicar com minhas palavras — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "pratica-intercalada",
+      "description": "Questões de subtemas embaralhados: você aprende a reconhecer qual conceito usar.",
+      "arguments": [
+        "projeto",
+        "tema",
+        "quantidade"
+      ],
+      "text": "Treino misturado — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "exemplo-resolvido",
+      "description": "Um exemplo explicado, depois um com lacunas e um sem ajuda.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Exemplo resolvido passo a passo — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "mapa-conceitual",
+      "description": "Conceitos ligados por frases (causa, depende de…), em Mermaid.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Mapa conceitual — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "objetivos-bloom",
+      "description": "Objetivos de aprendizagem nos 6 níveis, com questões para cada um.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Objetivos por nível (Bloom) — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "planejamento-reverso",
+      "description": "Do resultado esperado à avaliação e às aulas, com os trechos a usar.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Planejamento reverso de unidade — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "rubrica",
+      "description": "Critérios e níveis de desempenho, com versão para autoavaliação.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Rubrica de avaliação — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "checagem-formativa",
+      "description": "Poucas perguntas para ver se a turma entendeu e o que retomar.",
+      "arguments": [
+        "projeto",
+        "tema",
+        "quantidade"
+      ],
+      "text": "Checagem rápida de fim de aula — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "aula-invertida",
+      "description": "Roteiro de trechos para ver antes e atividade para a aula.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Aula invertida — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "pergunta-pico",
+      "description": "Transforma o tema em perguntas claras e diz o que a base já responde.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Pergunta de pesquisa (PICO) — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "triagem-prisma",
+      "description": "Critérios de inclusão, motivo de cada exclusão e contagem por etapa.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Triagem de fontes (estilo PRISMA) — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "matriz-sintese",
+      "description": "Tabela fonte × tema e uma síntese por ideia, não por fonte.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Matriz de síntese — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "analise-tematica",
+      "description": "Códigos, temas e trechos de exemplo a partir de entrevistas e reuniões.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Análise temática de falas — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "resumo-executivo",
+      "description": "A conclusão primeiro, depois os argumentos que a sustentam.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Resumo executivo (pirâmide) — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "pre-mortem",
+      "description": "Imagina que deu errado e lista por quê, com sinais de alerta.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Pré-mortem de uma decisão — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "hipoteses-concorrentes",
+      "description": "Matriz de evidências contra e a favor de cada explicação possível.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Hipóteses concorrentes — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "ideia-memoravel",
+      "description": "Uma ideia do material em frase, parágrafo e roteiro de 1 minuto.",
+      "arguments": [
+        "projeto",
+        "tema"
+      ],
+      "text": "Ideia que gruda — projeto ${arguments.projeto}"
+    },
+    {
+      "name": "reflexao-semana",
+      "description": "O que aprendi, o que ficou confuso e a meta da próxima semana.",
+      "arguments": [
+        "projeto"
+      ],
+      "text": "Reflexão da semana — projeto ${arguments.projeto}"
     }
   ]
 }

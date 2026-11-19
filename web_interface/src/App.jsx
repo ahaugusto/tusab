@@ -68,7 +68,7 @@ import AssistenteTab            from './components/tabs/AssistenteTab';
 import AdminTab                 from './components/tabs/AdminTab';
 import EstudoTab                from './components/assistente/EstudoTab';
 import PromptsTab, { EVENTO_ABRIR_PROMPTS } from './components/assistente/PromptsTab';
-import MateriaisTab               from './components/assistente/MateriaisTab';
+import MateriaisTab, { lerDestinoMaterial } from './components/assistente/MateriaisTab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -792,6 +792,15 @@ function App() {
   }, [chatOpen, chatExpandido, setChatOpen, setChatExpandido, regras, handleOpenChat]);
 
   // Extensão: "Pedir à IA → Ver todos os prompts" no Repositório abre a aba de prompts (id 'estudo').
+  // Link "Abrir no Tusab" (#material/<projeto>/<id>): vai direto para o material, na aba Materiais.
+  const [materialInicial] = useState(() => (MODO_EXTENSAO ? lerDestinoMaterial() : null));
+  useEffect(() => {
+    if (!materialInicial) return;
+    setActiveTab('materiais');
+    setShowHome(false);
+    setShowLanding(false);
+  }, [materialInicial]);
+
   useEffect(() => {
     const abrir = () => { setActiveTab('estudo'); setShowHome(false); };
     window.addEventListener(EVENTO_ABRIR_PROMPTS, abrir);
@@ -2034,7 +2043,8 @@ function App() {
                 )}
               </div>
               <div className="flex items-center gap-2 flex-wrap justify-end">
-                {/* Chip de perfil — sempre visível, independente do estado do Drive */}
+                {/* Chip de perfil (desktop). A extensão tem perfil único: sem chip nem troca de perfil. */}
+                {!MODO_EXTENSAO && (
                 <div className="flex items-center gap-1.5">
                   <span className={`text-[10px] hidden sm:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('header.perfil_acessado')}</span>
                   <button
@@ -2047,6 +2057,7 @@ function App() {
                     <span className="hidden sm:inline">{t(PERFIS_META[perfil]?.label ?? 'perfil.especialista')}</span>
                   </button>
                 </div>
+                )}
                 {/* Drive chip — só aparece quando autenticado */}
                 {regras.drive && driveStatus === 'autenticado' && (
                   <button
@@ -2345,7 +2356,7 @@ function App() {
             {activeTab === 'materiais' && MODO_EXTENSAO && (
               <div id="panel-materiais" role="tabpanel" aria-labelledby="tab-materiais" ref={mainScrollRef}
                 className="flex-1 overflow-y-auto px-4 lg:px-8 pt-5 pb-6 custom-scrollbar">
-                <MateriaisTab darkMode={darkMode} projetos={projetosIndexados.map((c) => c.nome)} />
+                <MateriaisTab darkMode={darkMode} projetos={projetosIndexados.map((c) => c.nome)} abrir={materialInicial} />
               </div>
             )}
 

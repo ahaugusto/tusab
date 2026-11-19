@@ -14,6 +14,7 @@ import { MESMO_TEXTO } from '../src/nucleo/textos/nomes.js';
 import { CATEGORIAS, PROMPTS, listarPrompts, montarPrompt } from '../src/nucleo/prompts.js';
 import { normalizarIdioma, t } from '../src/nucleo/idioma.js';
 import { todasAsChaves } from './chaves-i18n.js';
+import { DESCRICOES } from '../src/nucleo/textos/ferramentas.js';
 
 const ENTRADA = fileURLToPath(new URL('../src/index.js', import.meta.url));
 const variaveis = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
@@ -85,8 +86,17 @@ test('o idioma da tela vale para a API e para a IA (ferramentas e atalhos do "+"
       body: JSON.stringify({ id: 'resumo', projeto: '' }),
     }).then((x) => x.json());
 
+    // Descrição em português antes da troca, para comparar depois
+    const ferramentasPt = (await cliente.listTools()).tools;
     assert.equal((await pedir('en')).message, 'Choose a project.');
     assert.equal(await titulo('tusab_buscar'), 'Search the Tusab base');
+    // As descrições (tela de permissões do Claude e o que a IA lê) também trocam, em todas as ferramentas
+    const ferramentasEn = (await cliente.listTools()).tools;
+    for (const f of ferramentasEn) {
+      assert.ok(DESCRICOES[f.name]?.en && DESCRICOES[f.name]?.es, `${f.name} sem descrição em en/es (textos/ferramentas.js)`);
+      assert.equal(f.description, DESCRICOES[f.name].en);
+      assert.notEqual(f.description, ferramentasPt.find((x) => x.name === f.name).description);
+    }
     const atalhos = (await cliente.listPrompts()).prompts;
     assert.equal(atalhos.find((p) => p.name === 'resumo').title, '📝 Study summary');
     assert.equal(atalhos.find((p) => p.name === 'abrir_tusab').title, 'Open Tusab');

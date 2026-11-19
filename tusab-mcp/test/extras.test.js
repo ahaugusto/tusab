@@ -16,6 +16,7 @@ import { Tusab } from '../src/nucleo/tusab.js';
 import { salvarDocumento } from '../src/nucleo/repositorio.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { criarServidor } from '../src/servidor.js';
+import { Painel } from '../src/painel.js';
 import { atenderApi } from '../src/api.js';
 
 const ENTRADA = fileURLToPath(new URL('../src/index.js', import.meta.url));
@@ -182,7 +183,8 @@ test('conexão MCP: a tela sabe se a IA está conectada e quando ela consultou o
   const tusab = await Tusab.abrir(raiz);
   assert.deepEqual(tusab.estadoConexao(), { mcp: false, cliente: null, desde: null, ultima_ferramenta: null });
 
-  const servidor = criarServidor(tusab);
+  const painel = new Painel(tusab);
+  const servidor = criarServidor(tusab, { painel });
   const [ladoCliente, ladoServidor] = InMemoryTransport.createLinkedPair();
   await servidor.connect(ladoServidor);
   const cliente = new Client({ name: 'claude-ai', version: '1.2.3' });
@@ -201,14 +203,50 @@ test('conexão MCP: a tela sabe se a IA está conectada e quando ela consultou o
     assert.equal(uf.nome, 'tusab_buscar');
     assert.ok(uf.em >= antes);
 
+    // Guardar material devolve o link direto para ele na tela do Tusab
+    fs.mkdirSync(path.join(raiz, 'data', 'neural', 'Bio'), { recursive: true });
+    const salvo = await cliente.callTool({ name: 'tusab_salvar_estudo', arguments: { projeto: 'Bio', tipo: 'documento', conteudo: '# Quiz', titulo: 'Quiz' } });
+    const texto = salvo.content[0].text;
+    assert.match(texto, /\[Abrir no Tusab\]\(http:\/\/127\.0\.0\.1:\d+\/\?chave=[\w-]+#material\/Bio\/\d{8}_\d{6}_documento\)/);
+
     // A tela lê o mesmo estado por GET /api/conexao
     const api = await atenderApi(tusab, 'GET', '/conexao', new URLSearchParams(), async () => '');
     assert.equal(api.status, 200);
     assert.equal(api.corpo.mcp, true);
-    assert.equal(api.corpo.ultima_ferramenta.nome, 'tusab_buscar');
+    assert.equal(api.corpo.ultima_ferramenta.nome, 'tusab_salvar_estudo');
   } finally {
     await cliente.close();
+    painel.fechar();
   }
   for (let i = 0; i < 50 && tusab.estadoConexao().mcp; i++) await new Promise((r) => setTimeout(r, 10));
   assert.equal(tusab.estadoConexao().mcp, false);
+});
+
+test('IA no navegador: o pedido vai com os trechos da base dentro (do tema ou um panorama do projeto)', async () => {
+  const raiz = temp('navegador');
+  const tusab = await Tusab.abrir(raiz);
+  tusab.salvarTexto({ titulo: 'Fotossíntese', conteudo: 'A clorofila absorve luz azul e vermelha e converte em energia química.', projeto: 'Bio' });
+  tusab.salvarTexto({ titulo: 'Respiração', conteudo: 'A respiração celular libera energia da glicose nas mitocôndrias.', projeto: 'Bio' });
+  tusab.sincronizar();
+  const pedir = async (corpo) => (await atenderApi(tusab, 'POST', '/prompts/montar', new URLSearchParams(), async () => corpo)).corpo;
+
+  // Com tema: a busca vem primeiro; completa com o panorama até ter trechos suficientes
+  const r = await pedir({ id: 'flashcards', projeto: 'Bio', tema: 'clorofila', navegador: true });
+  assert.equal(r.ok, true, r.message);
+  assert.ok(r.trechos >= 2);
+  assert.match(r.texto, /Use só os trechos da minha base do Tusab que estão abaixo \(projeto "Bio"\)/);
+  assert.match(r.texto, /\[1\] Fotossíntese\nA clorofila absorve/);
+  assert.match(r.texto, /Respiração/);
+  // Sem ferramentas (a IA do navegador não alcança o Tusab): nada de tusab_buscar nem de guardar
+  assert.doesNotMatch(r.texto, /tusab_buscar|tusab_salvar_estudo|Antes de começar/);
+
+  // Sem tema: panorama do projeto
+  const p = await pedir({ id: 'resumo', projeto: 'Bio', navegador: true });
+  assert.equal(p.trechos, 2);
+  // Prompts que dependem das ferramentas não têm versão para o navegador
+  assert.match((await pedir({ id: 'revisar-hoje', projeto: 'Bio', navegador: true })).message, /Claude Desktop/);
+  // Projeto sem trechos
+  assert.match((await pedir({ id: 'resumo', projeto: 'Vazio', navegador: true })).message, /não tem trechos/);
+  // Sem navegador, continua o pedido com as ferramentas
+  assert.match((await pedir({ id: 'resumo', projeto: 'Bio' })).texto, /tusab_buscar/);
 });

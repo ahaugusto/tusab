@@ -28,7 +28,8 @@ import { fetchOllamaStatus, pullOllamaModel, fetchOllamaPullProgress, saveAgentC
 function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = false }) {
   const { t } = useTranslation();
   // step 0 = profile selection; steps 1–8 = content steps (mapped from index 0 in STEPS array)
-  const [step, setStep] = useState(0);
+  // Extensão: perfil único — começa direto no primeiro passo de conteúdo.
+  const [step, setStep] = useState(MODO_EXTENSAO ? 1 : 0);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const { setPerfil } = usePerfil();
@@ -326,6 +327,7 @@ function Onboarding({ onDone, onSkip, darkMode = true, zIndex, skipAriaHidden = 
         <div className="flex items-center justify-between mt-8">
           <button
             onClick={() => setStep(s => s - 1)}
+            disabled={MODO_EXTENSAO && step === 1}
             aria-label={t('onboarding.back')}
             className={`text-xs transition-colors ${BTN_FOCUS} ${textSkip}`}
           >

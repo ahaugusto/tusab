@@ -1,8 +1,7 @@
 // Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownTusab from '../shared/MarkdownTusab';
 import { X, Pencil, Check, Copy, FileText, FileDown, Trash2, Loader2 } from 'lucide-react';
 import ModalWrapper from '../shared/ModalWrapper';
 import PostIt from '../shared/PostIt';
@@ -153,16 +152,16 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
           {artefato.tipo === 'resumo' && (
             <>
               <AudioArtefatoPlayer darkMode={darkMode} projeto={artefato.projeto} artefatoId={artefato.id} borderColor={borderColor} />
-              <div className="tusab-md" style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{String(dados || '')}</ReactMarkdown>
+              <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
+                <MarkdownTusab texto={dados} darkMode={darkMode} />
               </div>
             </>
           )}
 
           {/* documento: o que a IA gerou e guardou (quiz, mapa mental, plano de aula...), em Markdown */}
           {artefato.tipo === 'documento' && (
-            <div className="tusab-md" style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{String(dados || '')}</ReactMarkdown>
+            <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
+              <MarkdownTusab texto={dados} darkMode={darkMode} />
             </div>
           )}
 

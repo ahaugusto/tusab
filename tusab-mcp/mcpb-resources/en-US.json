@@ -182,6 +182,106 @@
       "name": "digest",
       "description": "What was added to the project in the last 7 days.",
       "text": "Weekly digest — project ${arguments.projeto}"
+    },
+    {
+      "name": "pre-teste",
+      "description": "Questions before seeing the content, to prime your memory.",
+      "text": "Pretest (before studying) — project ${arguments.projeto}"
+    },
+    {
+      "name": "recordar-livre",
+      "description": "Write what you remember; the AI compares it with the base and makes cards of what was missing.",
+      "text": "Recall without looking — project ${arguments.projeto}"
+    },
+    {
+      "name": "autoexplicacao",
+      "description": "You explain, the AI checks it against the sources and points out what was missing.",
+      "text": "Explain it in my own words — project ${arguments.projeto}"
+    },
+    {
+      "name": "pratica-intercalada",
+      "description": "Questions from shuffled subtopics: you learn to recognize which concept to use.",
+      "text": "Mixed practice — project ${arguments.projeto}"
+    },
+    {
+      "name": "exemplo-resolvido",
+      "description": "One explained example, then one with gaps and one without help.",
+      "text": "Step-by-step worked example — project ${arguments.projeto}"
+    },
+    {
+      "name": "mapa-conceitual",
+      "description": "Concepts linked by phrases (causes, depends on…), in Mermaid.",
+      "text": "Concept map — project ${arguments.projeto}"
+    },
+    {
+      "name": "objetivos-bloom",
+      "description": "Learning objectives at the 6 levels, with questions for each one.",
+      "text": "Objectives by level (Bloom) — project ${arguments.projeto}"
+    },
+    {
+      "name": "planejamento-reverso",
+      "description": "From the expected result to assessment and lessons, with the excerpts to use.",
+      "text": "Backward unit design — project ${arguments.projeto}"
+    },
+    {
+      "name": "rubrica",
+      "description": "Criteria and performance levels, with a self-assessment version.",
+      "text": "Assessment rubric — project ${arguments.projeto}"
+    },
+    {
+      "name": "checagem-formativa",
+      "description": "A few questions to see whether the class understood and what to revisit.",
+      "text": "Quick end-of-class check — project ${arguments.projeto}"
+    },
+    {
+      "name": "aula-invertida",
+      "description": "A list of excerpts to watch before class and an activity for class time.",
+      "text": "Flipped lesson — project ${arguments.projeto}"
+    },
+    {
+      "name": "pergunta-pico",
+      "description": "Turns the topic into clear questions and says what the base already answers.",
+      "text": "Research question (PICO) — project ${arguments.projeto}"
+    },
+    {
+      "name": "triagem-prisma",
+      "description": "Inclusion criteria, reason for each exclusion and counts per stage.",
+      "text": "Source screening (PRISMA style) — project ${arguments.projeto}"
+    },
+    {
+      "name": "matriz-sintese",
+      "description": "A source × theme table and a synthesis by idea, not by source.",
+      "text": "Synthesis matrix — project ${arguments.projeto}"
+    },
+    {
+      "name": "analise-tematica",
+      "description": "Codes, themes and example excerpts from interviews and meetings.",
+      "text": "Thematic analysis of conversations — project ${arguments.projeto}"
+    },
+    {
+      "name": "resumo-executivo",
+      "description": "The conclusion first, then the arguments that support it.",
+      "text": "Executive summary (pyramid) — project ${arguments.projeto}"
+    },
+    {
+      "name": "pre-mortem",
+      "description": "Imagines it went wrong and lists why, with warning signs.",
+      "text": "Pre-mortem of a decision — project ${arguments.projeto}"
+    },
+    {
+      "name": "hipoteses-concorrentes",
+      "description": "A matrix of evidence for and against each possible explanation.",
+      "text": "Competing hypotheses — project ${arguments.projeto}"
+    },
+    {
+      "name": "ideia-memoravel",
+      "description": "One idea from the material as a sentence, a paragraph and a 1-minute script.",
+      "text": "An idea that sticks — project ${arguments.projeto}"
+    },
+    {
+      "name": "reflexao-semana",
+      "description": "What I learned, what is still unclear and next week's goal.",
+      "text": "Weekly reflection — project ${arguments.projeto}"
     }
   ]
 }

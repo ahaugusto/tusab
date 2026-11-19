@@ -8,14 +8,28 @@ const extensaoPkg = JSON.parse(readFileSync(resolve(__dirname, '../tusab-mcp/pac
 
 // Modo extensão (vite build --mode extensao): a interface é servida pelo plugin
 // MCP do Tusab, sem nada carregado de fora (CSP 'self'). Remove as fontes do
-// Google do index.html e não gera sourcemaps (pacote menor).
+// Google do index.html, não gera sourcemaps (pacote menor) e troca o SDK do
+// Microsoft Clarity (telemetria do antigo app desktop) por um módulo vazio: o
+// pacote da extensão não leva código que envia dados para fora. O layout "elk"
+// da Mermaid (elkjs, EPL-2.0) também fica de fora.
 function modoExtensao() {
   let ativo = false
   return {
     name: 'tusab-modo-extensao',
     config(_cfg, { mode }) {
       ativo = mode === 'extensao'
-      return ativo ? { build: { sourcemap: false } } : undefined
+      return ativo
+        ? {
+            build: { sourcemap: false },
+            resolve: {
+              alias: {
+                '@microsoft/clarity': resolve(__dirname, 'src/services/clarity-vazio.js'),
+                // Layout opcional da Mermaid (EPL-2.0/GPL-3.0): fora do pacote. Ver elk-vazio.js.
+                'elkjs/lib/elk.bundled.js': resolve(__dirname, 'src/services/elk-vazio.js'),
+              },
+            },
+          }
+        : undefined
     },
     transformIndexHtml(html) {
       if (!ativo) return html
