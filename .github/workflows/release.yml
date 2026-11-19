@@ -111,7 +111,7 @@ jobs:
     needs: [tests, create-release]
     if: github.event_name == 'push'   # nunca builda/publica em disparo manual de teste
     permissions:
-      contents: write   # necessário para publicar a release em ahaugusto/tusab
+      contents: write   # necessário para publicar a release em augustoalvesbrasil/tusab
 
     steps:
       - uses: actions/checkout@v7
@@ -208,6 +208,8 @@ jobs:
       # feitas manualmente: 403 "Resource not accessible by integration"
       # com GITHUB_TOKEN — ver run 28401557076 (v1.0.22, 29/jun/2026).
       # Desde 2026-08-07, publish.repo aponta pro próprio ahaugusto/tusab
+      # (em 2026-11-18 o repositório foi transferido para a organização CriAugu:
+      # augustoalvesbrasil/tusab; o endereço antigo redireciona)
       # (tusab-public foi descontinuado) — o GITHUB_TOKEN padrão já teria
       # permissão suficiente agora, mas manteve-se RELEASE_PAT (funciona
       # igual, sem risco de trocar token logo após a migração de repo).
@@ -237,7 +239,7 @@ jobs:
     # (self-hosted, Mac mini M1-M): 90min não foi suficiente.
     timeout-minutes: 180
     permissions:
-      contents: write   # necessário para publicar a release em ahaugusto/tusab
+      contents: write   # necessário para publicar a release em augustoalvesbrasil/tusab
 
     steps:
       - uses: actions/checkout@v7
@@ -383,7 +385,7 @@ jobs:
             --jq .body > auto_notes.md || true
 
       # Mesma extração do job build-windows — os dois jobs publicam na MESMA
-      # release (ahaugusto/tusab), então geramos as notas idênticas aqui também
+      # release (augustoalvesbrasil/tusab), então geramos as notas idênticas aqui também
       # (não depende de qual job termina primeiro).
       - name: Gerar notas de release a partir do CHANGELOG.md
         run: node scripts/generate-release-notes.js "${GITHUB_REF_NAME#v}"

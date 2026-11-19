@@ -82,7 +82,7 @@ ENV/
 .claude/worktrees/
 
 # --- Documentação de produto: movida pra repo privado separado
-# (ahaugusto/tusab-docs) em 2026-08-07, junto com limpeza retroativa do
+# (augustoalvesbrasil/tusab-docs) em 2026-08-07, junto com limpeza retroativa do
 # histórico deste repo (git filter-repo --invert-paths) — estratégia de
 # negócio/roadmap/B2B não pode ficar exposta quando este repo virar público.
 # Continua presente localmente (fora do git), só não é mais rastreada aqui.

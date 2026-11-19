@@ -9,7 +9,7 @@ slug: /instalacao
 
 ## Download
 
-Baixe o instalador mais recente na [página de releases do GitHub](https://github.com/ahaugusto/tusab/releases/latest).
+Baixe o instalador mais recente na [página de releases do GitHub](https://github.com/augustoalvesbrasil/tusab/releases/latest).
 
 | Plataforma | Requisito | Arquivo |
 |---|---|---|
