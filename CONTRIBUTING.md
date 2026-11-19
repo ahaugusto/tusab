@@ -16,6 +16,6 @@ triagem, revisão de segurança e um processo de CI que ainda não existem
 
 ## Como ajudar mesmo assim
 
-- **Bugs e sugestões**: abra uma [issue](https://github.com/augustoalvesbrasil/tusab/issues) — é lida e usada para priorizar o roadmap.
+- **Bugs e sugestões**: abra uma [issue](https://github.com/criaugu/tusab/issues) — é lida e usada para priorizar o roadmap.
 - **Dúvidas técnicas sobre a arquitetura**: o `CLAUDE.md` na raiz do repositório documenta a arquitetura em camadas, as decisões técnicas não óbvias e onde encontrar cada parte do código.
 - **Forks**: são bem-vindos nos termos do [LICENSE](LICENSE) — só não use o nome/marca "Tusab" (ver [TRADEMARK.md](TRADEMARK.md)).

@@ -11,7 +11,7 @@ numa máquina real — só descoberto por teste manual do usuário. Ver
 
 Uso:
     .venv\\Scripts\\python.exe scripts\\harness\\verificar_release.py v1.0.40
-    .venv\\Scripts\\python.exe scripts\\harness\\verificar_release.py v1.0.40 --repo augustoalvesbrasil/tusab
+    .venv\\Scripts\\python.exe scripts\\harness\\verificar_release.py v1.0.40 --repo criaugu/tusab
 """
 import argparse
 import base64
@@ -20,7 +20,7 @@ import re
 import sys
 import urllib.request
 
-REPO_PADRAO = "augustoalvesbrasil/tusab"
+REPO_PADRAO = "criaugu/tusab"
 ARQUIVOS_OBRIGATORIOS = {"latest.yml"}  # .exe/.blockmap variam de nome por versão
 
 

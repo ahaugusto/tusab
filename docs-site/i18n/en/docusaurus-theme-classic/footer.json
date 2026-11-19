@@ -29,19 +29,19 @@
   },
   "link.item.label.Repositório no GitHub": {
     "message": "GitHub repository",
-    "description": "The label of footer link with label=Repositório no GitHub linking to https://github.com/augustoalvesbrasil/tusab"
+    "description": "The label of footer link with label=Repositório no GitHub linking to https://github.com/criaugu/tusab"
   },
   "link.item.label.Changelog completo": {
     "message": "Full changelog",
-    "description": "The label of footer link with label=Changelog completo linking to https://github.com/augustoalvesbrasil/tusab/blob/main/CHANGELOG.md"
+    "description": "The label of footer link with label=Changelog completo linking to https://github.com/criaugu/tusab/blob/main/CHANGELOG.md"
   },
   "link.item.label.Issues": {
     "message": "Issues",
-    "description": "The label of footer link with label=Issues linking to https://github.com/augustoalvesbrasil/tusab/issues"
+    "description": "The label of footer link with label=Issues linking to https://github.com/criaugu/tusab/issues"
   },
   "link.item.label.Licença (Elastic License 2.0)": {
     "message": "License (Elastic License 2.0)",
-    "description": "The label of footer link with label=Licença (Elastic License 2.0) linking to https://github.com/augustoalvesbrasil/tusab/blob/main/LICENSE"
+    "description": "The label of footer link with label=Licença (Elastic License 2.0) linking to https://github.com/criaugu/tusab/blob/main/LICENSE"
   },
   "link.item.label.Site do Tusab": {
     "message": "Tusab website",

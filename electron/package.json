@@ -135,7 +135,7 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "augustoalvesbrasil",
+      "owner": "criaugu",
       "repo": "tusab",
       "releaseType": "release"
     },
