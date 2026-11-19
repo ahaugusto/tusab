@@ -28,7 +28,16 @@ Runs `node --test` on `test/*.test.js` with `test/_ambiente.js` loaded first (it
 | `idioma.test.js` | `en`/`es` dictionaries complete and with the same variables; prompts and tools changing language |
 | `extras.test.js` | "My prompts" and folders, image metadata removal, token savings, repository space used |
 
-GitHub CI (`.github/workflows/ci.yml`) currently runs the desktop app's tests and the interface build; the plugin's tests run locally with `npm test`.
+## CI
+
+GitHub CI (`.github/workflows/ci.yml`) runs on every push and pull request to `main`, in two jobs:
+
+| Job | What it does |
+|---|---|
+| Extension | In `tusab-mcp/`, on Windows, macOS and Linux (Node.js 22): `npm ci`, `npm test` and `npx @anthropic-ai/mcpb@2.1.2 validate manifest.json` |
+| Screen | On Linux: interface unit tests (`npm run test:unit` in `web_interface/`), build of the screen in extension mode (`npm run build:interface`) and an accessibility audit with pa11y-ci on the screen served by the plugin itself, in light and dark themes (see [Accessibility](/acessibilidade#pa11y-ci-scope)) |
+
+There are no Python tests or desktop app builds: that code is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag.
 
 ## Building the `.mcpb` package
 
@@ -58,6 +67,28 @@ Generates `mcpb-resources/en-US.json` and `es-ES.json` (name, description, tools
 
 ## Version
 
-The version appears in three places that must move together: `tusab-mcp/package.json`, `tusab-mcp/manifest.json` and the `VERSAO` constant in `src/servidor.js`.
+The version number has a single source: `tusab-mcp/package.json`. The server (the `VERSAO` constant in `src/servidor.js`) and the screen read it from there. `manifest.json` repeats the number, and a test checks that both match.
 
-The desktop app has its own build and tests: see [Desktop app — development](/desktop/desenvolvimento).
+## Release
+
+The release is built by the `.github/workflows/release.yml` workflow when a `vX.Y.Z` tag is pushed to GitHub. It:
+
+1. checks that the tag, `tusab-mcp/package.json` and `tusab-mcp/manifest.json` have the same version, that `docs-site/docs/changelog.md` has the `**vX.Y.Z (...)**` entry and that both installation pages (pt and en) point to `releases/download/vX.Y.Z/tusab-X.Y.Z.mcpb`;
+2. runs `npm test` and `npm run pack` and renames the package to `tusab-X.Y.Z.mcpb`;
+3. signs the package when the certificate is configured in the repository secrets (without it, the package is unsigned);
+4. generates the `tusab-X.Y.Z.mcpb.sha256` checksum;
+5. publishes the release with both files and notes taken from the changelog entry, **without marking it as the latest**. That is why the download link on the installation pages carries the version number, never `/releases/latest`.
+
+### How to publish a version
+
+1. Bump the version in `tusab-mcp/package.json` and `tusab-mcp/manifest.json`.
+2. Write the version's changelog entry (`docs-site/docs/changelog.md` and its English version).
+3. Change the download link on both installation pages: `docs-site/docs/instalacao.md` and `docs-site/i18n/en/docusaurus-plugin-content-docs/current/instalacao.md`.
+4. Merge the PR into `main`.
+5. Create and push the tag:
+
+```bash
+git tag vX.Y.Z && git push origin vX.Y.Z
+```
+
+The discontinued desktop app's build and tests are recorded in [Desktop app — development](/desktop/desenvolvimento); its code is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag.

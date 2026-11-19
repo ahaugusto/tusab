@@ -154,6 +154,7 @@ export async function atenderApi(tusab, metodo, caminho, query, lerCorpo) {
   switch (rota) {
     // ── Extração ───────────────────────────────────────────────────────────
     case 'GET /status': return ok(motor.status());
+    case 'GET /conexao': return ok(tusab.estadoConexao());
     case 'POST /log/clear': return ok(motor.limparLog());
     case 'POST /set-channel': return ok(motor.definirCanal(await json()));
     case 'POST /start': return ok(motor.iniciar(await json()));

@@ -1563,7 +1563,17 @@
   "ext.copiado.app": "Open Claude (app)",
   "ext.copiado.navegador": "Open in the browser",
   "ext.copiado.navegador_qual": "AI in the browser",
-  "ext.copiado.aviso_navegador": "In the browser, the AI cannot reach Tusab on this computer: use the app (Claude Desktop) so it can read your base.",
+  "ext.copiado.aviso_navegador": "In the browser, the AI cannot reach the Tusab on this computer: it will say that Tusab is not connected. To use your base, paste it in the app (Claude Desktop).",
   "ext.copiado.fechar": "Close notice",
-  "ext.repo.tipo_texto": "TEXT"
+  "ext.repo.tipo_texto": "TEXT",
+  "tabs.materiais": "Materials",
+  "estudo.type_documento": "Document",
+  "ext.materiais.dica": "What your AI <b>saves in Tusab</b> (flashcards, summaries, quizzes, mind maps, lesson plans…) shows up here. Click to open: flashcards come with spaced repetition.",
+  "ext.materiais.sem_projetos": "No projects yet",
+  "ext.materiais.vazio_titulo": "No materials saved in this project",
+  "ext.materiais.vazio_texto": "Use a prompt from the Library (flashcards, summary, quiz, mind map, lesson plan…) in Claude Desktop: at the end, the AI saves the result here.",
+  "ext.materiais.ir_biblioteca": "Go to the Prompt Library",
+  "ext.copiado.sem_conexao": "Tusab is not connected to any AI right now. Open Claude Desktop with the Tusab extension enabled; without it, the AI will say it cannot read your base.",
+  "ext.copiado.aguardando": "Tusab is connected to {{cliente}}. Paste and send: the confirmation shows up here when the AI queries your base.",
+  "ext.copiado.consultou": "The AI queried your base in Tusab ({{ferramenta}}): the answer comes from your excerpts."
 }

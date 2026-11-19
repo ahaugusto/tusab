@@ -33,7 +33,7 @@ Na Biblioteca de Prompts, cada prompt pronto indica os perfis a que se destina (
 
 ## No app desktop
 
-O app desktop usa os mesmos perfis, com abas a mais que não existem na extensão: **Assistente** (chat), **Histórico** de conversas e a aba **Estudo** (no lugar da Biblioteca de Prompts), além de configuração de provedor de IA, Busca Ampla e Google Drive para todos os perfis. Cada perfil tem uma persona padrão no Assistente: Didático (Estudante e Professor), Técnico (Pesquisador) e Objetivo (Especialista). No desktop, o Especialista também pode ocultar o cartão de Modo Estudo da tela inicial.
+O app desktop, descontinuado, usava os mesmos perfis, com abas a mais que não existem na extensão: **Assistente** (chat), **Histórico** de conversas e a aba **Estudo** (no lugar da Biblioteca de Prompts), além de configuração de provedor de IA, Busca Ampla e Google Drive para todos os perfis. Cada perfil tem uma persona padrão no Assistente: Didático (Estudante e Professor), Técnico (Pesquisador) e Objetivo (Especialista). No desktop, o Especialista também podia ocultar o cartão de Modo Estudo da tela inicial.
 
 :::info Slug interno do Especialista
 Internamente o slug do perfil Especialista é `profissional`, mantido por compatibilidade com dados já gravados (`localStorage`). O rótulo na interface é "Especialista".

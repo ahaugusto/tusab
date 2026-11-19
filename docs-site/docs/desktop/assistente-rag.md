@@ -7,6 +7,10 @@ slug: /funcionalidades/assistente-rag
 
 # App desktop — Assistente (chat RAG)
 
+:::warning App desktop descontinuado
+O app desktop foi descontinuado em 19/11/2026 e não recebe mais correções nem atualizações. O código citado nesta página está na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final), não mais no `main`. Esta página é mantida só como registro.
+:::
+
 O Assistente é o chat do **app desktop**: o usuário pergunta em linguagem natural e recebe a resposta em streaming, com citação da fonte. A recuperação (RAG) e a geração rodam no backend local, com Ollama ou com um provedor externo configurado.
 
 :::note Só no app desktop

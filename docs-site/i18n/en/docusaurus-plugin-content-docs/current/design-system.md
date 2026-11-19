@@ -7,7 +7,7 @@ slug: /design-system
 
 # Design System
 
-The design system applies to the React interface in `web_interface/src/`, which builds both the extension screen and the desktop app's. The source of truth is **the code**, not Figma or this document: a divergence between them is a documentation error to fix. The detailed version lives in `docs/design-system/design-system.md` in the repository.
+The design system applies to the React interface in `web_interface/src/`, which builds the extension screen (and built the discontinued desktop app's). The source of truth is **the code**, not Figma or this document: a divergence between them is a documentation error to fix. The detailed version lives in `docs/design-system/design-system.md` in the repository.
 
 ## Principles
 

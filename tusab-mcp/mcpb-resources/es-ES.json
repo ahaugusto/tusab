@@ -1,7 +1,7 @@
 {
   "display_name": "Tusab",
   "description": "Tusab dentro de tu IA: extrae canales de YouTube en este ordenador y consulta la base con citas al minuto exacto.",
-  "long_description": "Tusab extrae transcripciones de canales, listas y videos de YouTube en este ordenador, desde tu propia IP, y lo organiza todo en una carpeta local (la misma estructura de Tusab de escritorio). Tu herramienta de IA consulta esa base y cita el video y el minuto. La pantalla de Tusab se abre en el navegador, servida por este ordenador. Nada pasa por servidores de CriAugu: solo los fragmentos que la IA consulta van a la IA que elegiste.",
+  "long_description": "Tusab extrae transcripciones de canales, listas y videos de YouTube en este ordenador, desde tu propia IP, y lo organiza todo en una carpeta local. Tu herramienta de IA consulta esa base y cita el video y el minuto. La pantalla de Tusab se abre en el navegador, servida por este ordenador. Nada pasa por servidores de CriAugu: solo los fragmentos que la IA consulta van a la IA que elegiste.",
   "keywords": [
     "conocimiento",
     "youtube",

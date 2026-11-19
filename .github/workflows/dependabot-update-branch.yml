@@ -17,7 +17,7 @@
 # RELEASE_PAT, não GITHUB_TOKEN: o commit de atualização feito com
 # GITHUB_TOKEN não dispara outros workflows (limitação deliberada do GitHub)
 # — o CI nunca rodaria no branch atualizado e o auto-merge esperaria para
-# sempre. Mesmo motivo já documentado em auto-release.yml e release.yml.
+# sempre.
 # Efeito colateral aceito: depois de um update por outro usuário, o
 # Dependabot deixa de rebasear aquele PR sozinho — esta workflow assume essa
 # função.

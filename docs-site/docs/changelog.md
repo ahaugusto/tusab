@@ -7,11 +7,23 @@ slug: /changelog
 
 # Changelog
 
-Resumo técnico das versões. O histórico completo do app desktop, no formato [Keep a Changelog](https://keepachangelog.com) com [versionamento semântico](https://semver.org), está em [`CHANGELOG.md`](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).
+Resumo técnico das versões. A partir da 2.0.0 o Tusab é só a extensão de IA; a numeração continua a do produto (o app desktop parou na 1.0.64). O histórico completo do desktop, no formato [Keep a Changelog](https://keepachangelog.com), está em [`CHANGELOG.md`](https://github.com/criaugu/tusab/blob/main/CHANGELOG.md).
 
 ## Extensão (`tusab-mcp/`)
 
-**v0.6.0 (2026-11-18)** — Primeira versão publicada no repositório.
+**v2.0.0 (2026-11-19)** — O Tusab passa a ser só a extensão de IA; o app desktop é descontinuado.
+
+- Primeira versão da extensão publicada nas [releases](https://github.com/criaugu/tusab/releases) como `tusab-2.0.0.mcpb`, com soma SHA-256 ao lado. A release é gerada pelo GitHub Actions a partir da etiqueta: testes, tela compilada, avisos de licença e pacote.
+- Ícone quadrado no pacote (versões para tema claro e escuro), feito a partir do logo.
+- Aba **Materiais**: o que a IA guarda no Tusab abre numa janela da tela (flashcards com revisão espaçada, resumos, post-its e documentos). Novo tipo `documento` em `tusab_salvar_estudo` (Markdown, até 60.000 caracteres), e os prompts que produzem documentos (quiz, mapa mental, plano de aula, prova, nota técnica…) pedem para guardá-los.
+- Conexão com a IA: todo prompt começa com uma checagem (sem as ferramentas do Tusab, a IA avisa em vez de responder de memória), e o aviso de "copiado" mostra se o Tusab está conectado e confirma quando a IA consultou a base (`GET /api/conexao`).
+- Correções na tela: no tema escuro, a lista aberta dos selects era branca com texto branco (agora os controles nativos seguem o tema); seta dos selects com espaço fixo da borda.
+- Uma só fonte para o número da versão: `tusab-mcp/package.json`. O servidor e a tela leem dali; um teste confere que o `manifest.json` bate.
+- Descrições da extensão (pt, en, es) sem referência ao app desktop.
+- App desktop descontinuado: o código (Electron, motor Python, testes e automações do instalador) saiu do repositório e está preservado na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final). As releases 1.0.x continuam publicadas como histórico, sem novas correções.
+- CI testa a extensão no Windows, no macOS e no Linux e audita a acessibilidade da tela servida pelo plugin (pa11y-ci, tema claro e escuro).
+
+**v0.6.0 (2026-11-18)** — Primeira versão da extensão no repositório (não publicada como pacote).
 
 - Servidor MCP por stdio com 15 ferramentas: busca com citação (`tusab_buscar`), leitura de fonte e de original, extração do YouTube, arquivos de texto, fontes públicas, memória de estudo e revisão espaçada, novidades da semana, economia de tokens, status e abertura da tela.
 - Tela do Tusab servida em `127.0.0.1` com chave por sessão, `Host` e `Origin` conferidos, sem CORS e com CSP `'self'`: a interface do app desktop compilada em modo extensão.
@@ -24,7 +36,7 @@ Resumo técnico das versões. O histórico completo do app desktop, no formato [
 - Economia de tokens estimada localmente, com teste por linha de comando (`medir-tokens`).
 - Pacote `.mcpb` com `LICENSE`, `TRADEMARK.md` e `THIRD_PARTY_NOTICES.txt`.
 
-## App desktop
+## App desktop (descontinuado em 19/11/2026)
 
 **v1.0.64 (2026-10-27)** — Telemetria opcional volta a ser gravada: o ID do Clarity apontava para um projeto do tipo aplicativo móvel; agora usa um projeto do tipo Site, com mascaramento rígido.
 

@@ -14,6 +14,9 @@ import { listarRepositorio } from '../src/nucleo/gestao.js';
 import { garantirEstrutura } from '../src/nucleo/caminhos.js';
 import { Tusab } from '../src/nucleo/tusab.js';
 import { salvarDocumento } from '../src/nucleo/repositorio.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { criarServidor } from '../src/servidor.js';
+import { atenderApi } from '../src/api.js';
 
 const ENTRADA = fileURLToPath(new URL('../src/index.js', import.meta.url));
 const temp = (n) => { const r = fs.mkdtempSync(path.join(os.tmpdir(), `tusab-extras-${n}-`)); garantirEstrutura(r); return r; };
@@ -31,7 +34,8 @@ test('Meus prompts: criar, montar com as regras fixas, alterar, excluir', () => 
     assert.ok(categorias.includes('Meus prompts'));
     assert.equal(prompts.find((p) => p.id === id).base, 'quiz');
     const texto = montarPrompt(id, { projeto: 'Medicina', tema: 'sepse' }, raiz);
-    assert.match(texto, /^Monte um caso clínico sobre "sepse" com 3 perguntas\. Pesquise a base do Tusab no projeto "Medicina"/);
+    assert.match(texto, /^Antes de começar: se as ferramentas do Tusab \(tusab_buscar\) não estiverem disponíveis/);
+    assert.match(texto, /\n\nMonte um caso clínico sobre "sepse" com 3 perguntas\. Pesquise a base do Tusab no projeto "Medicina"/);
     assert.match(texto, /não invente\.$/, 'as regras fixas entram sempre');
     assert.equal(salvarPromptUsuario(raiz, { id, titulo: 'Caso clínico v2', pedido: 'Outro pedido.' }).prompt.titulo, 'Caso clínico v2');
     assert.deepEqual(excluirPromptUsuario(raiz, id), { ok: true });
@@ -57,7 +61,7 @@ test('Meus prompts aparecem no "+" do Claude sem reiniciar o plugin', async () =
     const depois = (await cliente.listPrompts()).prompts;
     assert.equal(depois.length, antes + 1);
     const meu = await cliente.getPrompt({ name: criado.prompt.id, arguments: { projeto: 'X', tema: 'y' } });
-    assert.match(meu.messages[0].content.text, /^Resuma sobre "y" em 5 linhas\./);
+    assert.match(meu.messages[0].content.text, /\n\nResuma sobre "y" em 5 linhas\./);
     await fetch(`http://127.0.0.1:${porta}/api/prompts/usuario/${criado.prompt.id}`, { method: 'DELETE', headers: { 'X-Tusab-Chave': chave } });
     assert.equal((await cliente.listPrompts()).prompts.length, antes);
   } finally {
@@ -171,4 +175,40 @@ test('Stack Overflow: o documento guarda autor, link e a licença CC BY-SA da é
   assert.equal(doc.titulo, 'Como usar "async"?');
   assert.match(doc.texto, /Autor: Ana & Bia \(https:\/\/stackoverflow\.com\/users\/9\) · Stack Overflow · Licença: CC BY-SA 4\.0$/);
   assert.equal(doc.url_origem, 'https://stackoverflow.com/q/1');
+});
+
+test('conexão MCP: a tela sabe se a IA está conectada e quando ela consultou o Tusab', async () => {
+  const raiz = temp('conexao');
+  const tusab = await Tusab.abrir(raiz);
+  assert.deepEqual(tusab.estadoConexao(), { mcp: false, cliente: null, desde: null, ultima_ferramenta: null });
+
+  const servidor = criarServidor(tusab);
+  const [ladoCliente, ladoServidor] = InMemoryTransport.createLinkedPair();
+  await servidor.connect(ladoServidor);
+  const cliente = new Client({ name: 'claude-ai', version: '1.2.3' });
+  await cliente.connect(ladoCliente);
+  try {
+    // O "initialized" do cliente chega de forma assíncrona
+    for (let i = 0; i < 50 && !tusab.estadoConexao().mcp; i++) await new Promise((r) => setTimeout(r, 10));
+    const conectado = tusab.estadoConexao();
+    assert.equal(conectado.mcp, true);
+    assert.deepEqual(conectado.cliente, { nome: 'claude-ai', versao: '1.2.3' });
+    assert.equal(conectado.ultima_ferramenta, null);
+
+    const antes = Date.now();
+    await cliente.callTool({ name: 'tusab_buscar', arguments: { consulta: 'qualquer coisa' } });
+    const { ultima_ferramenta: uf } = tusab.estadoConexao();
+    assert.equal(uf.nome, 'tusab_buscar');
+    assert.ok(uf.em >= antes);
+
+    // A tela lê o mesmo estado por GET /api/conexao
+    const api = await atenderApi(tusab, 'GET', '/conexao', new URLSearchParams(), async () => '');
+    assert.equal(api.status, 200);
+    assert.equal(api.corpo.mcp, true);
+    assert.equal(api.corpo.ultima_ferramenta.nome, 'tusab_buscar');
+  } finally {
+    await cliente.close();
+  }
+  for (let i = 0; i < 50 && tusab.estadoConexao().mcp; i++) await new Promise((r) => setTimeout(r, 10));
+  assert.equal(tusab.estadoConexao().mcp, false);
 });

@@ -7,6 +7,10 @@ slug: /funcionalidades/modo-estudo
 
 # App desktop — Modo Estudo
 
+:::warning App desktop descontinuado
+O app desktop foi descontinuado em 19/11/2026 e não recebe mais correções nem atualizações. O código citado nesta página está na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final), não mais no `main`. Esta página é mantida só como registro.
+:::
+
 No app desktop, o Modo Estudo **gera** material de estudo com o LLM configurado no app, a partir da base indexada. Na extensão, quem gera é a IA do usuário e o Tusab guarda o resultado no mesmo formato (ver [Estudo e revisão espaçada](/funcionalidades/estudo)).
 
 | | App desktop | Extensão |

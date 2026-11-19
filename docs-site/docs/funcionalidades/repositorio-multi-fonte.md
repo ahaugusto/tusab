@@ -77,4 +77,4 @@ Excluir um arquivo, limpar documentos/textos de um projeto ou fazer o reset tota
 
 ## No app desktop
 
-O app desktop aceita os mesmos formatos e, além disso, descreve imagens (Ollama multimodal ou OCR com RapidOCR) e transcreve áudio localmente (faster-whisper); lá, imagens vão até 20 MB e áudio até 100 MB. Ver [App desktop](/desktop/visao-geral).
+O app desktop, descontinuado, aceitava os mesmos formatos e, além disso, descrevia imagens (Ollama multimodal ou OCR com RapidOCR) e transcrevia áudio localmente (faster-whisper); lá, imagens iam até 20 MB e áudio até 100 MB. Ver [App desktop](/desktop/visao-geral).

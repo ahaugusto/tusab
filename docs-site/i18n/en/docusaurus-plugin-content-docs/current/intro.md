@@ -9,7 +9,7 @@ slug: /intro
 
 Tusab is an **extension for AI tools** (such as Claude Desktop) that keeps the user's knowledge base **on their own computer** and hands the AI only the right excerpts, **with citations**: the video and the exact minute, or the PDF page.
 
-Technically, it is a local [MCP](https://modelcontextprotocol.io) server (`tusab-mcp/`, Node.js, version 0.6.0). The AI tool starts the process on the computer itself; it:
+Technically, it is a local [MCP](https://modelcontextprotocol.io) server (`tusab-mcp/`, Node.js, version 2.0.0). The AI tool starts the process on the computer itself; it:
 
 - **stores and indexes** YouTube video transcripts, documents (PDF, Word, Excel, CSV, Markdown), texts and results from public sources (papers, theses, legislation, open data) in a local folder;
 - **answers the AI** through [15 MCP tools](/ferramentas-mcp): search, read a source in order, open a document's original file, add content, save study material;
@@ -29,7 +29,9 @@ Which connections leave the computer, and where they go, is in [Privacy](/privac
 
 ## Desktop app
 
-Before the extension, Tusab was distributed as a desktop app (Electron + FastAPI backend) with its own chat. The app is still available for Windows and macOS and writes **the same folder structure**: the extension opens the app's data folder, and a `.tusab` file exported by one is imported by the other. Its documentation is in the [Desktop app](/desktop/visao-geral) section.
+Before the extension, Tusab was distributed as a desktop app (Electron + FastAPI backend) with its own chat. The app was **discontinued on 2026-11-19**: its code is preserved in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, and the [1.0.x releases](https://github.com/criaugu/tusab/releases) remain published as history, with no further fixes or updates.
+
+The extension uses **the same folder structure** as the bases created by the desktop app: former desktop users can point the extension to the app's data folder, and a `.tusab` file exported by the desktop app is imported by the extension. The app's documentation stays in the [Desktop app](/desktop/visao-geral) section as a record.
 
 ## Where to go next
 

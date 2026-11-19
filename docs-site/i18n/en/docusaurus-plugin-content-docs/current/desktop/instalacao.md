@@ -7,7 +7,11 @@ slug: /desktop/instalacao
 
 # Desktop app — installation
 
-Download the installer from [github.com/criaugu/tusab/releases/latest](https://github.com/criaugu/tusab/releases/latest).
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
+The installers are in the 1.0.x GitHub releases; the last one is [v1.0.64](https://github.com/criaugu/tusab/releases/tag/v1.0.64).
 
 | Platform | Requirement | File |
 |---|---|---|

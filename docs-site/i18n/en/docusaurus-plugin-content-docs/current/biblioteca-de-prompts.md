@@ -37,7 +37,8 @@ When building the final text, the plugin appends the search and citation rules t
 
 - The rules **are not editable** and also apply to prompts created by the user.
 - Two exceptions: **Review today** and **Weekly digest** already state which tools to use in the request itself (`tusab_revisao_hoje`/`tusab_registrar_revisao` and `tusab_novidades_semana`), so they don't get the rules.
-- Flashcards and Study summary end by asking the AI to save the result with `tusab_salvar_estudo`.
+- Flashcards and Study summary end by asking the AI to save the result with `tusab_salvar_estudo`. The prompts that produce a document (quiz, mind map, study plan, test, lesson plan, exercises, literature review, reading sheet, timeline, technical note, script and post) ask it to save the complete material as `documento`, to open later in the **Materials** tab.
+- Every request starts with a connection check: if the Tusab tools are not available in the conversation, the AI must say that Tusab is not connected instead of answering from memory. This also applies to the user's own prompts and to anyone who pastes the request into a browser AI, which cannot reach the local Tusab.
 
 ## My prompts
 

@@ -29,10 +29,25 @@ const REGRAS = {
     + 'Cita cada afirmación con el título de la fuente y, en video, el minuto con el enlace (▶ MM:SS); en PDF, la página indicada en el fragmento ([Página N]) — si el fragmento no indica la página, no la inventes.',
 };
 
+// documento: o material inteiro (com as citações) em Markdown, para abrir depois na aba Materiais.
 const SALVAR = {
-  pt: (tipo) => ` Ao final, grave no Tusab com tusab_salvar_estudo (projeto "{projeto}", tipo ${tipo}) para eu revisar depois.`,
-  en: (tipo) => ` At the end, save it in Tusab with tusab_salvar_estudo (project "{projeto}", type ${tipo}) so I can review it later.`,
-  es: (tipo) => ` Al final, guárdalo en Tusab con tusab_salvar_estudo (proyecto "{projeto}", tipo ${tipo}) para que lo repase después.`,
+  pt: (tipo) => (tipo === 'documento'
+    ? ' Ao final, guarde o material completo no Tusab com tusab_salvar_estudo (projeto "{projeto}", tipo documento, em Markdown, mantendo as citações e com um título que diga o que é) para eu abrir depois na aba Materiais do Tusab.'
+    : ` Ao final, grave no Tusab com tusab_salvar_estudo (projeto "{projeto}", tipo ${tipo}) para eu revisar depois.`),
+  en: (tipo) => (tipo === 'documento'
+    ? ' At the end, save the complete material in Tusab with tusab_salvar_estudo (project "{projeto}", type documento, in Markdown, keeping the citations and with a title that says what it is) so I can open it later in the Materials tab of Tusab.'
+    : ` At the end, save it in Tusab with tusab_salvar_estudo (project "{projeto}", type ${tipo}) so I can review it later.`),
+  es: (tipo) => (tipo === 'documento'
+    ? ' Al final, guarda el material completo en Tusab con tusab_salvar_estudo (proyecto "{projeto}", tipo documento, en Markdown, con las citas y con un título que diga qué es) para abrirlo después en la pestaña Materiales de Tusab.'
+    : ` Al final, guárdalo en Tusab con tusab_salvar_estudo (proyecto "{projeto}", tipo ${tipo}) para que lo repase después.`),
+};
+
+// Vai no começo de todo pedido (inclusive os do usuário e os que já dizem as ferramentas): sem o
+// Tusab conectado, a IA responderia de memória, sem a base e sem citação. Assim ela avisa.
+const CONEXAO = {
+  pt: 'Antes de começar: se as ferramentas do Tusab (tusab_buscar) não estiverem disponíveis nesta conversa, não responda de memória — diga apenas que o Tusab não está conectado e que é preciso usar o Claude Desktop (ou outra ferramenta compatível com MCP) com a extensão Tusab ativada.',
+  en: 'Before you start: if the Tusab tools (tusab_buscar) are not available in this conversation, do not answer from memory — just say that Tusab is not connected and that I need to use Claude Desktop (or another MCP-compatible tool) with the Tusab extension enabled.',
+  es: 'Antes de empezar: si las herramientas de Tusab (tusab_buscar) no están disponibles en esta conversación, no respondas de memoria — di solo que Tusab no está conectado y que hay que usar Claude Desktop (u otra herramienta compatible con MCP) con la extensión Tusab activada.',
 };
 
 /** " sobre "X"" no idioma do pedido. */
@@ -75,7 +90,7 @@ export const PROMPTS = [
       es: { titulo: 'Repasar hoy', descricao: 'Las flashcards que vencen hoy, una por vez, con nota y reprogramación.',
         pedido: 'Vamos a repasar las flashcards que vencen hoy en el proyecto "{projeto}" de Tusab (tusab_revisao_hoje). Muestra una pregunta por vez, espera mi respuesta, dime si acerté comparando con la respuesta de la tarjeta, pon una nota de 0 a 5 (0 = no lo recordé, 3 = lo recordé con esfuerzo, 5 = perfecto) y regístrala con tusab_registrar_revisao. Al final, dime cuántas repasé y qué debo reforzar.' },
     } },
-  { id: 'quiz', categoria: 'estudar', icone: '❓', perfis: ['estudante', 'professor'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 8,
+  { id: 'quiz', salvar: 'documento', categoria: 'estudar', icone: '❓', perfis: ['estudante', 'professor'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 8,
     textos: {
       pt: { titulo: 'Quiz de múltipla escolha', descricao: 'Questões com 4 alternativas, uma por vez, com correção comentada.',
         pedido: 'Monte um quiz de {quantidade} questões de múltipla escolha{tema_frase}, com 4 alternativas (A–D) e só uma correta. Apresente uma questão por vez, espere a minha resposta, corrija explicando e diga a fonte. No fim, diga o que revisar.' },
@@ -93,7 +108,7 @@ export const PROMPTS = [
       es: { titulo: 'Resumen de estudio', descricao: 'Tema central, conceptos clave, ideas y vacíos — guardado en el proyecto.',
         pedido: 'Haz un resumen de estudio{tema_frase}: tema central (1 frase), de 3 a 5 conceptos clave, de 2 a 3 párrafos de ideas y los vacíos que el material no cubre.' },
     } },
-  { id: 'mapa-mental', categoria: 'estudar', icone: '🧠', perfis: ['estudante'], campos: ['projeto', 'tema'],
+  { id: 'mapa-mental', salvar: 'documento', categoria: 'estudar', icone: '🧠', perfis: ['estudante'], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Mapa mental', descricao: 'Estrutura hierárquica dos conceitos (Mermaid).',
         pedido: 'Monte um mapa mental{tema_frase} em um bloco de código Mermaid (mindmap), com no máximo 4 níveis. Depois liste a fonte de cada ramo principal.' },
@@ -111,7 +126,7 @@ export const PROMPTS = [
       es: { titulo: 'Explicar de forma sencilla', descricao: 'Explicación para quien está empezando, con ejemplos.',
         pedido: 'Explica{tema_frase} como si yo estuviera empezando en el tema: lenguaje sencillo, un ejemplo cotidiano y una analogía. Termina con 3 preguntas para comprobar si lo entendí.' },
     } },
-  { id: 'plano-estudo', categoria: 'estudar', icone: '🗓️', perfis: ['estudante'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 7,
+  { id: 'plano-estudo', salvar: 'documento', categoria: 'estudar', icone: '🗓️', perfis: ['estudante'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 7,
     textos: {
       pt: { titulo: 'Plano de estudo', descricao: 'Roteiro por dias, na ordem certa do conteúdo.',
         pedido: 'Monte um plano de estudo de {quantidade} dias{tema_frase}, do básico ao avançado. Para cada dia: objetivo, quais fontes ver (com minuto ou página) e um exercício curto.' },
@@ -121,7 +136,7 @@ export const PROMPTS = [
         pedido: 'Arma un plan de estudio de {quantidade} días{tema_frase}, de lo básico a lo avanzado. Para cada día: objetivo, qué fuentes ver (con minuto o página) y un ejercicio corto.' },
     } },
   // ── Ensinar ───────────────────────────────────────────────────────────
-  { id: 'prova', categoria: 'ensinar', icone: '📋', perfis: ['professor'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 10,
+  { id: 'prova', salvar: 'documento', categoria: 'ensinar', icone: '📋', perfis: ['professor'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 10,
     textos: {
       pt: { titulo: 'Prova com gabarito', descricao: 'Questões objetivas e discursivas, gabarito e critérios de correção.',
         pedido: 'Elabore uma prova de {quantidade} questões{tema_frase}, misturando objetivas e discursivas e em ordem de dificuldade. Depois, em separado: gabarito, critérios de correção das discursivas (rubrica com 3 níveis) e a fonte de cada questão.' },
@@ -130,7 +145,7 @@ export const PROMPTS = [
       es: { titulo: 'Examen con respuestas', descricao: 'Preguntas objetivas y abiertas, clave de respuestas y criterios de corrección.',
         pedido: 'Elabora un examen de {quantidade} preguntas{tema_frase}, combinando objetivas y abiertas, en orden de dificultad. Después, por separado: la clave de respuestas, los criterios de corrección de las abiertas (rúbrica de 3 niveles) y la fuente de cada pregunta.' },
     } },
-  { id: 'plano-aula', categoria: 'ensinar', icone: '🧑‍🏫', perfis: ['professor'], campos: ['projeto', 'tema'],
+  { id: 'plano-aula', salvar: 'documento', categoria: 'ensinar', icone: '🧑‍🏫', perfis: ['professor'], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Plano de aula', descricao: 'Objetivos, sequência, atividades e avaliação a partir das fontes.',
         pedido: 'Monte um plano de aula de 50 minutos{tema_frase}: objetivos de aprendizagem, sequência didática com tempos, uma atividade prática, como avaliar e quais trechos das fontes usar em sala (com minuto ou página).' },
@@ -139,7 +154,7 @@ export const PROMPTS = [
       es: { titulo: 'Plan de clase', descricao: 'Objetivos, secuencia, actividades y evaluación a partir de las fuentes.',
         pedido: 'Arma un plan de clase de 50 minutos{tema_frase}: objetivos de aprendizaje, secuencia didáctica con tiempos, una actividad práctica, cómo evaluar y qué fragmentos de las fuentes usar en clase (con minuto o página).' },
     } },
-  { id: 'exercicios', categoria: 'ensinar', icone: '🏋️', perfis: ['professor', 'estudante'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 9,
+  { id: 'exercicios', salvar: 'documento', categoria: 'ensinar', icone: '🏋️', perfis: ['professor', 'estudante'], campos: ['projeto', 'tema', 'quantidade'], quantidade: 9,
     textos: {
       pt: { titulo: 'Lista de exercícios por nível', descricao: 'Exercícios básicos, intermediários e avançados com resolução.',
         pedido: 'Crie uma lista de {quantidade} exercícios{tema_frase}, divididos igualmente em básico, intermediário e avançado, cada um com resolução comentada e a fonte.' },
@@ -149,7 +164,7 @@ export const PROMPTS = [
         pedido: 'Crea una lista de {quantidade} ejercicios{tema_frase}, divididos por igual en básico, intermedio y avanzado, cada uno con resolución comentada y la fuente.' },
     } },
   // ── Pesquisar ─────────────────────────────────────────────────────────
-  { id: 'revisao-literatura', categoria: 'pesquisar', icone: '📚', perfis: ['pesquisador'], campos: ['projeto', 'tema'],
+  { id: 'revisao-literatura', salvar: 'documento', categoria: 'pesquisar', icone: '📚', perfis: ['pesquisador'], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Revisão do material', descricao: 'O que as fontes dizem, onde concordam e onde divergem.',
         pedido: 'Faça uma revisão do material{tema_frase}: principais argumentos de cada fonte, pontos de concordância, divergências e o que permanece em aberto.' },
@@ -176,7 +191,7 @@ export const PROMPTS = [
       es: { titulo: 'Vacíos de la base', descricao: 'Lo que le falta al material para cubrir bien el tema.',
         pedido: 'Analiza la base{tema_frase} y enumera los vacíos: preguntas importantes que el material no responde, puntos tratados de forma superficial y qué tipo de fuente completaría cada vacío.' },
     } },
-  { id: 'ficha-leitura', categoria: 'pesquisar', icone: '🗂️', perfis: ['pesquisador', 'estudante'], campos: ['projeto', 'tema'],
+  { id: 'ficha-leitura', salvar: 'documento', categoria: 'pesquisar', icone: '🗂️', perfis: ['pesquisador', 'estudante'], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Ficha de leitura por fonte', descricao: 'Para cada fonte: tese, argumentos, evidências e citações.',
         pedido: 'Monte uma ficha de leitura para cada fonte do projeto{tema_frase}: referência, tese central, principais argumentos, evidências usadas, 2 citações literais com minuto ou página e uma avaliação crítica curta.' },
@@ -185,7 +200,7 @@ export const PROMPTS = [
       es: { titulo: 'Ficha de lectura por fuente', descricao: 'Para cada fuente: tesis, argumentos, evidencias y citas.',
         pedido: 'Arma una ficha de lectura para cada fuente del proyecto{tema_frase}: referencia, tesis central, principales argumentos, evidencias usadas, 2 citas literales con minuto o página y una breve evaluación crítica.' },
     } },
-  { id: 'linha-do-tempo', categoria: 'pesquisar', icone: '⏳', perfis: ['pesquisador'], campos: ['projeto', 'tema'],
+  { id: 'linha-do-tempo', salvar: 'documento', categoria: 'pesquisar', icone: '⏳', perfis: ['pesquisador'], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Linha do tempo', descricao: 'Eventos e datas em ordem cronológica.',
         pedido: 'Monte uma linha do tempo{tema_frase} com os eventos e datas mencionados, em ordem cronológica, cada um com a fonte.' },
@@ -213,7 +228,7 @@ export const PROMPTS = [
       es: { titulo: 'Respuesta verificable', descricao: 'Responde solo con fragmentos de la base e indica el grado de confianza.',
         pedido: 'Responde{tema_frase} usando exclusivamente fragmentos de la base: para cada parte de la respuesta, la cita literal y la fuente. Indica el grado de confianza (alto, medio, bajo) y por qué, y qué no se puede afirmar con el material.' },
     } },
-  { id: 'nota-tecnica', categoria: 'decidir', icone: '📄', perfis: ['especialista'], campos: ['projeto', 'tema'],
+  { id: 'nota-tecnica', salvar: 'documento', categoria: 'decidir', icone: '📄', perfis: ['especialista'], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Nota técnica', descricao: 'Contexto, análise, recomendação e riscos, com fontes.',
         pedido: 'Redija uma nota técnica{tema_frase}: contexto, análise com base nas fontes, recomendação, riscos e pontos de atenção, e referências ao final. Tom objetivo, até 1 página.' },
@@ -223,7 +238,7 @@ export const PROMPTS = [
         pedido: 'Redacta una nota técnica{tema_frase}: contexto, análisis basado en las fuentes, recomendación, riesgos y puntos de atención, y referencias al final. Tono objetivo, hasta 1 página.' },
     } },
   // ── Criar conteúdo ────────────────────────────────────────────────────
-  { id: 'roteiro', categoria: 'criar', icone: '🎬', perfis: [], campos: ['projeto', 'tema'],
+  { id: 'roteiro', salvar: 'documento', categoria: 'criar', icone: '🎬', perfis: [], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Roteiro de vídeo', descricao: 'Roteiro com gancho, desenvolvimento e fechamento.',
         pedido: 'Escreva um roteiro de vídeo de 5 minutos{tema_frase}: gancho nos primeiros 10 segundos, 3 blocos de desenvolvimento e um fechamento com chamada para ação. Marque as fontes de cada afirmação.' },
@@ -232,7 +247,7 @@ export const PROMPTS = [
       es: { titulo: 'Guion de video', descricao: 'Guion con gancho, desarrollo y cierre.',
         pedido: 'Escribe un guion de video de 5 minutos{tema_frase}: gancho en los primeros 10 segundos, 3 bloques de desarrollo y un cierre con llamada a la acción. Marca las fuentes de cada afirmación.' },
     } },
-  { id: 'post', categoria: 'criar', icone: '✍️', perfis: [], campos: ['projeto', 'tema'],
+  { id: 'post', salvar: 'documento', categoria: 'criar', icone: '✍️', perfis: [], campos: ['projeto', 'tema'],
     textos: {
       pt: { titulo: 'Post para LinkedIn', descricao: 'Texto curto, com uma ideia central.',
         pedido: 'Escreva um post para LinkedIn{tema_frase}, com até 1.300 caracteres, uma ideia central, um dado ou exemplo do material e uma pergunta no final. Liste as fontes abaixo do post.' },
@@ -351,7 +366,8 @@ export function montarPrompt(id, { projeto = '', tema = '', quantidade } = {}, r
   const pedido = p.textos ? textoDe(p, lng).pedido : p.pedido;
   const regras = REGRAS[lng] || REGRAS.pt;
   const salvar = SALVAR[lng] || SALVAR.pt;
-  const texto = `${pedido}${p.semRegras ? '' : ` ${regras}`}${p.salvar ? salvar(p.salvar) : ''}`;
+  const conexao = CONEXAO[lng] || CONEXAO.pt;
+  const texto = `${conexao}\n\n${pedido}${p.semRegras ? '' : ` ${regras}`}${p.salvar ? salvar(p.salvar) : ''}`;
   return texto
     .replaceAll('{tema_frase}', tema_ ? (TEMA_FRASE[lng] || TEMA_FRASE.pt)(tema_) : '')
     .replaceAll('{projeto}', proj)

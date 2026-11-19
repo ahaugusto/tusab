@@ -12,7 +12,7 @@ Tusab searches **70 public sources**, organized into **11 knowledge areas**. Non
 - **Through the AI:** `tusab_fontes_publicas` lists the sources by area, with the `id` of each one; `tusab_buscar_fonte_publica` searches a topic in one source and saves the results to the project (creating the project if it doesn't exist). From 1 to 50 results, default 10.
 - **Through the screen:** Extraction tab → **Public source** (Teacher, Researcher and Specialist profiles), several sources at once. From 1 to 50 results per source, default 20.
 
-The code lives in `tusab-mcp/src/fontes/`, with the same source registry as the desktop app (`tusab_engine/motor/fontes/`).
+The code lives in `tusab-mcp/src/fontes/`, with the same source registry as the desktop app (`tusab_engine/motor/fontes/`, now in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final/tusab_engine/motor/fontes) tag).
 
 Only sources tested with real keyword search and actual text content (not metadata only) are included. The initial survey came from "Bases de Dados Abertas — Consolidação Ampliada de Endpoints de API" (Brazil's Ministry of Health, Jul/2026); the Oct/2026 expansion tested more than 260 candidates and more than 150 open data portals.
 

@@ -26,6 +26,31 @@ export class Tusab {
     this.atualizacao = new Atualizacao(raiz, motor);
     // Fontes públicas (fase C): resultados vão para documents/ e entram no índice; log no mesmo painel do motor.
     this.fontes = new ServicoFontes(raiz, { aoSalvar: () => this.sincronizar(), aoLogar: (linha) => motor.log(linha) });
+    // Conexão com a ferramenta de IA (MCP): quem conectou e a última ferramenta que a IA usou.
+    // A tela mostra isso para o usuário saber se a IA está mesmo lendo a base dele.
+    this.conexao = { cliente: null, desde: null, ultimaFerramenta: null };
+  }
+
+  /** A ferramenta de IA terminou a inicialização MCP (clientInfo: { name, version }). */
+  conectarMcp(clientInfo) {
+    this.conexao.cliente = { nome: String(clientInfo?.name || ''), versao: String(clientInfo?.version || '') };
+    this.conexao.desde = Date.now();
+  }
+
+  desconectarMcp() {
+    this.conexao.cliente = null;
+    this.conexao.desde = null;
+  }
+
+  /** A IA chamou uma ferramenta do Tusab. */
+  registrarUsoMcp(ferramenta) {
+    this.conexao.ultimaFerramenta = { nome: ferramenta, em: Date.now() };
+  }
+
+  /** GET /api/conexao */
+  estadoConexao() {
+    const { cliente, desde, ultimaFerramenta } = this.conexao;
+    return { mcp: Boolean(cliente), cliente, desde, ultima_ferramenta: ultimaFerramenta };
   }
 
   static async abrir(raiz, opcoes = {}) {

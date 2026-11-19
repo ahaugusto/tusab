@@ -168,6 +168,8 @@ export function usePerfil() {
   if (MODO_EXTENSAO) {
     Object.assign(regras, REGRAS_EXTENSAO);
     regras.abas = regras.abas.filter((a) => !ABAS_FORA_DA_EXTENSAO.has(a));
+    // Materiais (o que a IA guardou) acompanha a Biblioteca de Prompts.
+    if (regras.abas.includes('estudo')) regras.abas.push('materiais');
   }
 
   const perfilDefinido = perfil !== null;

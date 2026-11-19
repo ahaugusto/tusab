@@ -9,7 +9,7 @@ slug: /intro
 
 O Tusab é uma **extensão para ferramentas de IA** (como o Claude Desktop) que mantém a base de conhecimento do usuário **no computador dele** e entrega à IA só os trechos certos, **com citação**: o vídeo e o minuto exato, ou a página do PDF.
 
-Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local (`tusab-mcp/`, Node.js, versão 0.6.0). A ferramenta de IA inicia o processo no próprio computador; ele:
+Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local (`tusab-mcp/`, Node.js, versão 2.0.0). A ferramenta de IA inicia o processo no próprio computador; ele:
 
 - **guarda e indexa** transcrições de vídeos do YouTube, documentos (PDF, Word, Excel, CSV, Markdown), textos e resultados de fontes públicas (artigos, teses, legislação, dados abertos) numa pasta local;
 - **responde à IA** por [15 ferramentas MCP](/ferramentas-mcp): buscar, ler uma fonte em ordem, abrir o original de um documento, adicionar conteúdo, guardar material de estudo;
@@ -29,7 +29,9 @@ Quais conexões saem do computador, e para onde, está em [Privacidade](/privaci
 
 ## App desktop
 
-Antes da extensão, o Tusab era distribuído como app desktop (Electron + backend FastAPI), com chat próprio. O app continua disponível para Windows e macOS e grava **a mesma estrutura de pastas**: a extensão abre a pasta de dados do app, e um arquivo `.tusab` exportado num é importado no outro. A documentação dele está na seção [App desktop](/desktop/visao-geral).
+Antes da extensão, o Tusab era distribuído como app desktop (Electron + backend FastAPI), com chat próprio. O app foi **descontinuado em 19/11/2026**: o código está preservado na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final), e as [releases 1.0.x](https://github.com/criaugu/tusab/releases) continuam publicadas como histórico, sem novas correções nem atualizações.
+
+A extensão usa **a mesma estrutura de pastas** das bases criadas pelo app desktop: quem usava o desktop pode apontar a extensão para a pasta de dados dele, e um arquivo `.tusab` exportado pelo desktop é importado na extensão. A documentação do app fica na seção [App desktop](/desktop/visao-geral), como registro.
 
 ## Por onde seguir
 

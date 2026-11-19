@@ -7,6 +7,10 @@ slug: /funcionalidades/mcp-server
 
 # Desktop app — MCP server
 
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
 The repository has **two different MCP servers**. This page covers the server that ships with the **desktop app**. Tusab itself, distributed as an AI extension, is the other one: see [MCP tools](/ferramentas-mcp) and [Architecture](/arquitetura/visao-geral).
 
 | | Desktop server | AI extension |

@@ -7,6 +7,10 @@ slug: /desktop/desenvolvimento
 
 # Desktop app — development
 
+:::warning Desktop app discontinued
+The desktop app was discontinued on 2026-11-19 and no longer receives fixes or updates. The code mentioned on this page is in the [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final) tag, no longer on `main`. This page is kept only as a record.
+:::
+
 ## Prerequisites
 
 Node.js 20+, Python 3.12+, Git.

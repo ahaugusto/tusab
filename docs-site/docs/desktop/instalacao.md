@@ -7,7 +7,11 @@ slug: /desktop/instalacao
 
 # App desktop — instalação
 
-Baixe o instalador em [github.com/criaugu/tusab/releases/latest](https://github.com/criaugu/tusab/releases/latest).
+:::warning App desktop descontinuado
+O app desktop foi descontinuado em 19/11/2026 e não recebe mais correções nem atualizações. O código citado nesta página está na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final), não mais no `main`. Esta página é mantida só como registro.
+:::
+
+Os instaladores ficam nas releases 1.0.x do GitHub; a última é a [v1.0.64](https://github.com/criaugu/tusab/releases/tag/v1.0.64).
 
 | Plataforma | Requisito | Arquivo |
 |---|---|---|

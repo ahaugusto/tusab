@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { X, Pencil, Check, Copy, FileText, FileDown, Trash2, Loader2 } from 'lucide-react';
 import ModalWrapper from '../shared/ModalWrapper';
 import PostIt from '../shared/PostIt';
 import AudioArtefatoPlayer from './AudioArtefatoPlayer';
 import FlashcardPlayer from './FlashcardPlayer';
 import { exportResumoCanalDocx, exportRelatorioPdf } from '../../services/api';
+import { MODO_EXTENSAO } from '../../constants';
 
 /** Achata o conteúdo estruturado num texto corrido — usado por copiar/exportar. */
 function formatarTexto(tipo, dados) {
@@ -151,10 +153,17 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
           {artefato.tipo === 'resumo' && (
             <>
               <AudioArtefatoPlayer darkMode={darkMode} projeto={artefato.projeto} artefatoId={artefato.id} borderColor={borderColor} />
-              <div style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
-                <ReactMarkdown>{String(dados || '')}</ReactMarkdown>
+              <div className="tusab-md" style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{String(dados || '')}</ReactMarkdown>
               </div>
             </>
+          )}
+
+          {/* documento: o que a IA gerou e guardou (quiz, mapa mental, plano de aula...), em Markdown */}
+          {artefato.tipo === 'documento' && (
+            <div className="tusab-md" style={{ fontSize: '13px', lineHeight: 1.7, color: textPrimary }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{String(dados || '')}</ReactMarkdown>
+            </div>
           )}
 
           {artefato.tipo === 'flashcards' && Array.isArray(dados) && (
@@ -174,10 +183,13 @@ export default function EstudoArtefatoModal({ darkMode, artefato, dados, onClose
             {copiado ? <Check size={13} color={darkMode ? '#34d399' : '#059669'} /> : <Copy size={13} />}
             {copiado ? t('estudo.artefato_copiado') : t('estudo.artefato_copiar')}
           </button>
+          {/* Word: a rota de exportação do desktop não existe na extensão (o PDF existe). */}
+          {!MODO_EXTENSAO && (
           <button onClick={() => handleExportar('docx')} disabled={!!exportando} style={{ ...btnAcao, opacity: exportando ? 0.6 : 1 }}>
             {exportando === 'docx' ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FileText size={13} />}
             Doc
           </button>
+          )}
           <button onClick={() => handleExportar('pdf')} disabled={!!exportando} style={{ ...btnAcao, opacity: exportando ? 0.6 : 1 }}>
             {exportando === 'pdf' ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FileDown size={13} />}
             PDF

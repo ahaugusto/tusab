@@ -1,5 +1,7 @@
 # Tusab — extensão para ferramentas de IA (plugin MCP)
 
+> "Desktop", neste arquivo, é o antigo app Tusab (Electron + Python), descontinuado em 19/11/2026; o código dele está na etiqueta `desktop-final`. A extensão manteve o formato em disco dele, por isso as bases antigas abrem aqui.
+
 O Tusab dentro da IA que o usuário já usa (Claude Desktop, Claude Code, VS Code, Cursor…). O plugin:
 
 - **serve a interface do Tusab desktop** no navegador, em `http://127.0.0.1:<porta>`, com o mesmo design,
@@ -68,7 +70,7 @@ são acrescentadas pelo plugin em todo prompt.
 ```powershell
 cd tusab-mcp
 npm install
-npm test                      # 98 testes (yt-dlp falso, sem rede; inclui cliente MCP real e segurança)
+npm test                      # 111 testes (yt-dlp falso, sem rede; inclui cliente MCP real e segurança)
 npm run build:interface       # gera interface/ a partir de ../web_interface (modo extensão)
 $env:TUSAB_REPOSITORIO="C:\caminho\teste"
 npm run painel                # abre a interface no navegador (Ctrl+C fecha)
@@ -81,12 +83,12 @@ npm run pack                  # build da interface + ../tusab.mcpb
 
 ## Instalar
 
-- **Claude Desktop:** abrir o `tusab.mcpb`. O Node vem embutido; o usuário escolhe a pasta (pode ser a do
-  Tusab desktop).
+- **Claude Desktop:** abrir o `tusab-X.Y.Z.mcpb` das [releases](https://github.com/criaugu/tusab/releases). O Node vem
+  embutido; o usuário escolhe a pasta (pode ser a de dados do antigo Tusab desktop).
 - **Claude Code, VS Code e Cursor (stdio):**
   `{ "command": "node", "args": ["<caminho>/tusab-mcp/src/index.js"], "env": { "TUSAB_REPOSITORIO": "<pasta>" } }`
 
-## O que a extensão tem (v0.6.0)
+## O que a extensão tem (v2.0.0)
 
 - **Extração do YouTube:** canal, playlist ou vídeo, com fila, pausa e atualização automática de canais (`src/nucleo/motor.js`, `atualizacao.js`).
 - **Documentos:** PDF, Word, Excel, CSV, TXT/Markdown, FHIR e página web (respeita o robots.txt). Também reconhece WhatsApp, reuniões e documentos jurídicos (`documentos.js`, `repositorio.js`).

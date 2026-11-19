@@ -19,7 +19,7 @@ Decisions that wouldn't be evident just from reading the code; the reason matter
 | SQLite in WebAssembly (`@sqlite.org/sqlite-wasm`), no native binary | The `.mcpb` package works on Windows and macOS without compiling anything on the user's computer |
 | In-memory database with atomic writes and a lock file | More than one AI tool may open the same repository at the same time |
 | Question converted into quoted terms joined by `OR` | Always a valid FTS5 expression: characters in the question never become query operators |
-| Metadata, chapters and subtitles in a single yt-dlp call per video | The desktop app makes three calls; fewer calls, less risk of 429 blocking |
+| Metadata, chapters and subtitles in a single yt-dlp call per video | The desktop app made three calls; fewer calls, less risk of 429 blocking |
 | Official yt-dlp downloaded with a SHA-256 check | The package doesn't need to carry the binary; a tampered download is discarded |
 | Screen served by the plugin, not by a website | Browsers such as Firefox and Safari don't let a website write to a folder on the computer; here the browser only displays and the plugin writes |
 | Session key in a custom header (`X-Tusab-Chave`) and no CORS header | A custom header forces a preflight on requests from other sites, and the server allows none |

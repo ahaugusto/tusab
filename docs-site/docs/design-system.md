@@ -7,7 +7,7 @@ slug: /design-system
 
 # Design System
 
-O design system vale para a interface React de `web_interface/src/`, que gera a tela da extensão e a do app desktop. A fonte de verdade é **o código**, não o Figma nem este documento: divergência entre eles é erro de documentação a corrigir. A versão detalhada fica em `docs/design-system/design-system.md` no repositório.
+O design system vale para a interface React de `web_interface/src/`, que gera a tela da extensão (e gerava a do app desktop, descontinuado). A fonte de verdade é **o código**, não o Figma nem este documento: divergência entre eles é erro de documentação a corrigir. A versão detalhada fica em `docs/design-system/design-system.md` no repositório.
 
 ## Princípios
 

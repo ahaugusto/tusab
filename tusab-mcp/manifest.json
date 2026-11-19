@@ -2,9 +2,14 @@
   "manifest_version": "0.3",
   "name": "tusab",
   "display_name": "Tusab",
-  "version": "0.6.0",
+  "version": "2.0.0",
+  "icon": "icon.png",
+  "icons": [
+    { "src": "icon.png", "size": "512x512", "theme": "light" },
+    { "src": "icon-claro.png", "size": "512x512", "theme": "dark" }
+  ],
   "description": "O Tusab dentro da sua IA: extraia canais do YouTube neste computador e consulte a base com citação no minuto exato.",
-  "long_description": "O Tusab extrai transcrições de canais, playlists e vídeos do YouTube neste computador, no seu IP, e organiza tudo numa pasta local (a mesma estrutura do Tusab desktop). A sua ferramenta de IA consulta essa base e cita o vídeo e o minuto. A tela do Tusab abre no navegador, servida por este computador. Nada passa por servidor da CriAugu: só os trechos que a IA consulta vão para a IA que você escolheu.",
+  "long_description": "O Tusab extrai transcrições de canais, playlists e vídeos do YouTube neste computador, no seu IP, e organiza tudo numa pasta local. A sua ferramenta de IA consulta essa base e cita o vídeo e o minuto. A tela do Tusab abre no navegador, servida por este computador. Nada passa por servidor da CriAugu: só os trechos que a IA consulta vão para a IA que você escolheu.",
   "author": {
     "name": "CriAugu",
     "url": "https://criaugu.com"
@@ -111,7 +116,7 @@
     "repositorio": {
       "type": "directory",
       "title": "Pasta do repositório",
-      "description": "Escolha uma pasta (o Tusab cria data/ dentro dela). Se você usa o Tusab desktop, pode escolher a pasta de dados dele para abrir a base que já existe. Fica só neste computador.",
+      "description": "Escolha uma pasta (o Tusab cria data/ dentro dela). Se você usava o Tusab desktop, pode escolher a pasta de dados dele para abrir a base que já existe. Fica só neste computador.",
       "required": true
     }
   },

@@ -13,7 +13,7 @@ const TEXTOS = {
   'en-US': {
     lng: 'en',
     description: 'Tusab inside your AI: extract YouTube channels on this computer and query the base with citations to the exact minute.',
-    long_description: 'Tusab extracts transcripts from YouTube channels, playlists and videos on this computer, from your own IP, and organizes everything in a local folder (the same structure as Tusab desktop). Your AI tool queries this base and cites the video and the minute. The Tusab screen opens in the browser, served by this computer. Nothing goes through CriAugu servers: only the excerpts the AI queries go to the AI you chose.',
+    long_description: 'Tusab extracts transcripts from YouTube channels, playlists and videos on this computer, from your own IP, and organizes everything in a local folder. Your AI tool queries this base and cites the video and the minute. The Tusab screen opens in the browser, served by this computer. Nothing goes through CriAugu servers: only the excerpts the AI queries go to the AI you chose.',
     keywords: ['knowledge', 'youtube', 'transcripts', 'rag', 'local-first', 'sqlite'],
     projeto: 'project',
     abrir: ['Opens the Tusab screen in the browser.', 'Open the Tusab panel.'],
@@ -38,7 +38,7 @@ const TEXTOS = {
   'es-ES': {
     lng: 'es',
     description: 'Tusab dentro de tu IA: extrae canales de YouTube en este ordenador y consulta la base con citas al minuto exacto.',
-    long_description: 'Tusab extrae transcripciones de canales, listas y videos de YouTube en este ordenador, desde tu propia IP, y lo organiza todo en una carpeta local (la misma estructura de Tusab de escritorio). Tu herramienta de IA consulta esa base y cita el video y el minuto. La pantalla de Tusab se abre en el navegador, servida por este ordenador. Nada pasa por servidores de CriAugu: solo los fragmentos que la IA consulta van a la IA que elegiste.',
+    long_description: 'Tusab extrae transcripciones de canales, listas y videos de YouTube en este ordenador, desde tu propia IP, y lo organiza todo en una carpeta local. Tu herramienta de IA consulta esa base y cita el video y el minuto. La pantalla de Tusab se abre en el navegador, servida por este ordenador. Nada pasa por servidores de CriAugu: solo los fragmentos que la IA consulta van a la IA que elegiste.',
     keywords: ['conocimiento', 'youtube', 'transcripciones', 'rag', 'local-first', 'sqlite'],
     projeto: 'proyecto',
     abrir: ['Abre la pantalla de Tusab en el navegador.', 'Abre el panel de Tusab.'],

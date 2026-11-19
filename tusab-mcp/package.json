@@ -1,6 +1,6 @@
 {
   "name": "tusab-mcp",
-  "version": "0.6.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Tusab como extensão de IA: a interface do Tusab servida pelo próprio plugin, motor de extração local e base de conhecimento consultável por MCP.",
   "license": "SEE LICENSE IN LICENSE",

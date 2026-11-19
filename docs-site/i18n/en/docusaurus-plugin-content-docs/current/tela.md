@@ -21,7 +21,8 @@ The address has the form `http://127.0.0.1:<port>/?chave=<session key>`. It only
 
 - **Extraction:** YouTube (channel, playlists, tabs, period) and public sources, with queue, pause, live log and automatic channel updates.
 - **Repository:** documents, texts and web pages per project; delete and clear; space used (originals × text); "Text only" marker; **Ask the AI** button.
-- **Prompt Library:** the built-in prompts and "My prompts", to copy into any AI (see [Prompt Library](/biblioteca-de-prompts)).
+- **Prompt Library:** the built-in prompts and "My prompts", to copy into any AI (see [Prompt Library](/biblioteca-de-prompts)). After copying, a notice leads to the Claude app or to the browser AI and shows the connection state: whether the plugin is linked to an AI tool (the name it reports when connecting) and, after the copy, when the AI used a Tusab tool (`GET /api/conexao`, polled every 2 s while the notice is open).
+- **Materials:** what the AI saved with `tusab_salvar_estudo` (flashcards, summaries, sticky notes and documents), by project, each one opened in a dialog (see [Study and spaced repetition](/funcionalidades/estudo)).
 - **Report** per channel, **Overview** and **Monitor** (Specialist profile), **Admin**.
 - **Exports:** `.tusab` (with or without originals), zip of the base, video table (XLSX) and PDF report; `.tusab` import.
 
@@ -46,4 +47,4 @@ A server on `127.0.0.1` can be targeted by other websites open in the same brows
 
 ## API
 
-The screen talks to the plugin through the `/api/*` routes (`tusab-mcp/src/api.js`). They repeat the desktop app's API contracts (same field names), so the same interface serves both. Desktop routes with no counterpart in the extension (chat, LLM configuration, Ollama) answer neutrally.
+The screen talks to the plugin through the `/api/*` routes (`tusab-mcp/src/api.js`). They repeat the desktop app's API contracts (same field names), inherited from when the same interface served both. Desktop routes with no counterpart in the extension (chat, LLM configuration, Ollama) answer neutrally.

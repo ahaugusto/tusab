@@ -617,3 +617,25 @@ test('digest: pedido à IA, gravação no formato do desktop e listagem', () => 
   assert.equal(salvarDigest(raiz, 'Semana', '').message, 'O digest está vazio.');
   assert.deepEqual(listarDigests(raiz, 'Semana').digests, [{ data: r.data, preview: conteudo.slice(0, 200).trim(), filename: r.filename }]);
 });
+
+test('documento: o que a IA gera e não é resumo (quiz, mapa mental, plano de aula...) vira material para abrir na tela', () => {
+  criarProjeto('Aulas');
+  const agora = new Date(2026, 10, 19, 9, 0, 0);
+  const md = '# Quiz — fotossíntese\r\n\r\n1. O que a clorofila absorve?\r\n\r\n```mermaid\r\nmindmap\r\n  root((Fotossíntese))\r\n```';
+  const r = salvarArtefato(raiz, 'Aulas', { tipo: 'documento', conteudo: md, titulo: 'Quiz de fotossíntese', tema: 'fotossíntese', agora });
+  assert.equal(r.ok, true, r.message);
+  assert.equal(r.artefatos[0].id, '20261119_090000_documento');
+  assert.equal(r.artefatos[0].tipo, 'documento');
+  assert.equal(r.artefatos[0].titulo, 'Quiz de fotossíntese');
+  assert.equal(lerArtefato(raiz, 'Aulas', '20261119_090000_documento').dados, md.replace(/\r\n/g, '\n'));
+  // Sem título: o automático diz o tipo
+  const r2 = salvarArtefato(raiz, 'Aulas', { tipo: 'documento', conteudo: 'Plano de aula', agora });
+  assert.equal(r2.artefatos[0].titulo, 'Documento — Aulas (19/11/2026 09:00)');
+  // Não mexe nos arquivos de management/ do desktop (resumo_estudo.md continua sendo só do resumo)
+  assert.equal(fs.existsSync(path.join(projetoDir('Aulas'), 'management', 'resumo_estudo.md')), false);
+  // Recusas
+  assert.match(salvarArtefato(raiz, 'Aulas', { tipo: 'documento', conteudo: '   ' }).message, /vazio/);
+  assert.match(salvarArtefato(raiz, 'Aulas', { tipo: 'documento', conteudo: ['a'] }).message, /Markdown/);
+  assert.match(salvarArtefato(raiz, 'Aulas', { tipo: 'documento', conteudo: 'x'.repeat(60001) }).message, /60000/);
+  assert.match(salvarArtefato(raiz, 'Aulas', { tipo: 'video', conteudo: 'x' }).message, /documento/);
+});

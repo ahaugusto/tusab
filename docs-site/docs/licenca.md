@@ -18,7 +18,8 @@ O pacote da extensão declara `"license": "Elastic-2.0"` no `manifest.json` e le
 | Onde | Arquivo |
 |---|---|
 | Extensão (plugin e tela embutida no `.mcpb`) | `tusab-mcp/THIRD_PARTY_NOTICES.txt`, gerado por `node scripts/gerar-licencas.mjs` com o texto completo da licença de cada biblioteca |
-| Repositório e app desktop | [`THIRD_PARTY_NOTICES.md`](https://github.com/criaugu/tusab/blob/main/THIRD_PARTY_NOTICES.md) e [`THIRD_PARTY_NOTICES.txt`](https://github.com/criaugu/tusab/blob/main/THIRD_PARTY_NOTICES.txt) na raiz |
+| Repositório | [`THIRD_PARTY_NOTICES.md`](https://github.com/criaugu/tusab/blob/main/THIRD_PARTY_NOTICES.md) na raiz (dependências diretas da extensão e da tela) |
+| App desktop (descontinuado) | [`THIRD_PARTY_NOTICES.md`](https://github.com/criaugu/tusab/blob/desktop-final/THIRD_PARTY_NOTICES.md) e [`THIRD_PARTY_NOTICES.txt`](https://github.com/criaugu/tusab/blob/desktop-final/THIRD_PARTY_NOTICES.txt) na etiqueta `desktop-final` |
 
 As bibliotecas embutidas na extensão usam licenças permissivas (MIT, ISC, BSD, Apache-2.0, BlueOak).
 

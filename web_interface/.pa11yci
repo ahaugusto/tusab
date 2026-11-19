@@ -12,9 +12,9 @@
         }
     },
     "urls": [
-        "http://127.0.0.1:4173/",
+        "URL_DO_PAINEL",
         {
-            "url": "http://127.0.0.1:4173/",
+            "url": "URL_DO_PAINEL",
             "actions": [
                 "wait for element button[aria-label='Modo escuro'] to be visible",
                 "click element button[aria-label='Modo escuro']"

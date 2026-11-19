@@ -77,4 +77,4 @@ Deleting a file, clearing a project's documents/texts or doing a full reset remo
 
 ## In the desktop app
 
-The desktop app accepts the same formats and, in addition, describes images (multimodal Ollama or OCR with RapidOCR) and transcribes audio locally (faster-whisper); there, images go up to 20 MB and audio up to 100 MB. See [Desktop app](/desktop/visao-geral).
+The discontinued desktop app accepted the same formats and, in addition, described images (multimodal Ollama or OCR with RapidOCR) and transcribed audio locally (faster-whisper); there, images went up to 20 MB and audio up to 100 MB. See [Desktop app](/desktop/visao-geral).

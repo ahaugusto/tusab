@@ -1,11 +1,11 @@
 // Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Download, BookOpen, RotateCcw, ChevronDown, AlertCircle, Layers, FileText, Trash2, Pencil, X, Search, Video } from 'lucide-react';
+import { Loader2, Download, BookOpen, RotateCcw, AlertCircle, FileText, X, Search, Video } from 'lucide-react';
 import { MODO_EXTENSAO } from '../../constants';
-import { listarArtefatosEstudo, buscarArtefatoEstudo, renomearArtefatoEstudo, excluirArtefatoEstudo, buscarProgressoRevisao } from '../../services/api';
-import EstudoArtefatoModal from './EstudoArtefatoModal';
+import { buscarProgressoRevisao } from '../../services/api';
+import ArtefatosEstudo from './ArtefatosEstudo';
 import AudioArtefatoPlayer from './AudioArtefatoPlayer';
 import FlashcardPlayer from './FlashcardPlayer';
 import PostIt from '../shared/PostIt';
@@ -49,89 +49,10 @@ export default function EstudoTab({
   const selecionarTodosItens = () => setItensSelecionados(itensFiltrados.map(i => i.arquivo));
   const desmarcarTodosItens  = () => setItensSelecionados([]);
 
-  // Kanban de artefatos persistidos — lista independente do resultado "ao vivo"
-  // acima (flashcards/resumo/postits da última geração); é buscada do backend
-  // porque sobrevive a troca de aba/projeto, ao contrário do estado efêmero.
-  const [artefatos,           setArtefatos]           = useState([]);
-  const [artefatoAberto,      setArtefatoAberto]       = useState(null); // entrada do manifest
-  const [artefatoDados,       setArtefatoDados]        = useState(null); // conteúdo estruturado
-  const [artefatoCarregando,  setArtefatoCarregando]   = useState(false);
-  const [tituloEditando,      setTituloEditando]       = useState(null); // id do card em edição inline
-  const [tituloEditandoValor, setTituloEditandoValor]  = useState('');
-
-  const refetchArtefatos = useCallback(() => {
-    if (!projeto) { setArtefatos([]); return; }
-    listarArtefatosEstudo(projeto).then(r => setArtefatos(r.data?.artefatos || [])).catch(() => setArtefatos([]));
-  }, [projeto]);
-
-  useEffect(() => { refetchArtefatos(); }, [refetchArtefatos]);
-
-  // Extensão: quem grava é a IA do usuário, fora desta tela — atualiza ao voltar
-  // para a janela e a cada 10 s enquanto a aba estiver aberta.
-  useEffect(() => {
-    if (!MODO_EXTENSAO) return undefined;
-    const id = setInterval(refetchArtefatos, 10000);
-    window.addEventListener('focus', refetchArtefatos);
-    return () => { clearInterval(id); window.removeEventListener('focus', refetchArtefatos); };
-  }, [refetchArtefatos]);
-
   const [pedidoCopiado, setPedidoCopiado] = useState(false);
   const copiarPedido = () => {
     navigator.clipboard?.writeText(pedidoIA).then(() => { setPedidoCopiado(true); setTimeout(() => setPedidoCopiado(false), 2000); }).catch(() => {});
   };
-
-  // Refaz a busca assim que uma geração termina (gerando true→false) — os
-  // artefatos recém-criados já estão salvos no backend nesse ponto.
-  const prevGerandoRef = useRef(gerando);
-  useEffect(() => {
-    if (prevGerandoRef.current && !gerando) refetchArtefatos();
-    prevGerandoRef.current = gerando;
-  }, [gerando, refetchArtefatos]);
-
-  const handleAbrirArtefato = async (art) => {
-    setArtefatoCarregando(true);
-    try {
-      const r = await buscarArtefatoEstudo(projeto, art.id);
-      if (r.data?.ok) { setArtefatoAberto(art); setArtefatoDados(r.data.dados); }
-    } finally {
-      setArtefatoCarregando(false);
-    }
-  };
-
-  const handleRenomearArtefato = async (novoTitulo) => {
-    await renomearArtefatoEstudo(projeto, artefatoAberto.id, novoTitulo).catch(() => {});
-    setArtefatoAberto(prev => prev ? { ...prev, titulo: novoTitulo } : prev);
-    refetchArtefatos();
-  };
-
-  const handleExcluirArtefato = async () => {
-    await excluirArtefatoEstudo(projeto, artefatoAberto.id).catch(() => {});
-    setArtefatoAberto(null);
-    setArtefatoDados(null);
-    refetchArtefatos();
-  };
-
-  const handleIniciarEdicaoTitulo = (e, art) => {
-    e.stopPropagation();
-    setTituloEditando(art.id);
-    setTituloEditandoValor(art.titulo);
-  };
-
-  const handleSalvarTituloInline = async (art) => {
-    const limpo = tituloEditandoValor.trim();
-    setTituloEditando(null);
-    if (!limpo || limpo === art.titulo) return;
-    await renomearArtefatoEstudo(projeto, art.id, limpo).catch(() => {});
-    refetchArtefatos();
-  };
-
-  const handleExcluirCard = async (e, art) => {
-    e.stopPropagation();
-    await excluirArtefatoEstudo(projeto, art.id).catch(() => {});
-    refetchArtefatos();
-  };
-
-  const ICONE_TIPO = { resumo: FileText, flashcards: Layers };
 
   // Repetição espaçada (SM-2) — progresso por card (chave = id estável, hash
   // da pergunta) persistido no backend, sobrevive a regenerações futuras.
@@ -212,7 +133,7 @@ export default function EstudoTab({
               value={projeto}
               onChange={e => { setProjeto(e.target.value); handleResetarLocal(); }}
               style={{
-                width: '100%', appearance: 'none', padding: '8px 32px 8px 12px',
+                width: '100%', padding: '8px 12px',
                 borderRadius: '10px', fontSize: '12px', fontWeight: 600,
                 background: darkMode ? 'rgba(255,255,255,0.06)' : '#f8fafc',
                 border: `1px solid ${projeto ? 'rgba(139,92,246,0.40)' : borderColor}`,
@@ -226,10 +147,6 @@ export default function EstudoTab({
                 </option>
               ))}
             </select>
-            <ChevronDown size={13} style={{
-              position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-              color: textSecond, pointerEvents: 'none',
-            }} />
           </div>
         </div>
 
@@ -425,73 +342,8 @@ export default function EstudoTab({
         </div>
       </div>
 
-      {/* ── Kanban de artefatos salvos ───────────────────────────────────────── */}
-      {artefatos.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: textSecond, margin: 0 }}>
-            {t('estudo.kanban_titulo', { count: artefatos.length })}
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {artefatos.map(art => {
-              const Icone = ICONE_TIPO[art.tipo] || FileText;
-              return (
-                <div key={art.id}
-                  onClick={() => handleAbrirArtefato(art)}
-                  style={{
-                    background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '14px',
-                    padding: '12px 14px', width: '220px', cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', gap: '6px',
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Icone size={13} color={darkMode ? '#a78bfa' : '#7c3aed'} />
-                    <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                      letterSpacing: '0.04em', color: darkMode ? '#a78bfa' : '#7c3aed' }}>{t(`estudo.type_${art.tipo}`)}</span>
-                    <div style={{ flex: 1 }} />
-                    <button onClick={e => handleIniciarEdicaoTitulo(e, art)} aria-label={t('estudo.artefato_editar_titulo')}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecond, padding: '2px', display: 'flex' }}>
-                      <Pencil size={11} />
-                    </button>
-                    <button onClick={e => handleExcluirCard(e, art)} aria-label={t('estudo.artefato_excluir')}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecond, padding: '2px', display: 'flex' }}>
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
-
-                  {tituloEditando === art.id ? (
-                    <input
-                      autoFocus
-                      value={tituloEditandoValor}
-                      onClick={e => e.stopPropagation()}
-                      onChange={e => setTituloEditandoValor(e.target.value)}
-                      onBlur={() => handleSalvarTituloInline(art)}
-                      onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setTituloEditando(null); }}
-                      style={{
-                        fontSize: '12px', fontWeight: 700, color: textPrimary, background: 'transparent',
-                        border: `1px solid rgba(139,92,246,0.40)`, borderRadius: '6px', padding: '3px 6px', outline: 'none',
-                      }} />
-                  ) : (
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: textPrimary, margin: 0,
-                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {art.titulo}
-                    </p>
-                  )}
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
-                    {art.tema && (
-                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px',
-                        background: darkMode ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.10)', color: darkMode ? '#a78bfa' : '#7c3aed' }}>
-                        {art.tema}
-                      </span>
-                    )}
-                    <span style={{ fontSize: '10px', color: textSecond }}>{art.criado_em}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* ── Materiais salvos (cartões + janela de cada um) ─────────────────── */}
+      <ArtefatosEstudo darkMode={darkMode} projeto={projeto} atualizarQuando={gerando} />
 
       {/* Extensão: pedido pronto para a IA do usuário */}
       {pedidoIA && (
@@ -597,16 +449,6 @@ export default function EstudoTab({
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
-      {artefatoAberto && artefatoDados !== null && (
-        <EstudoArtefatoModal
-          darkMode={darkMode}
-          artefato={artefatoAberto}
-          dados={artefatoDados}
-          onClose={() => { setArtefatoAberto(null); setArtefatoDados(null); }}
-          onRenomear={handleRenomearArtefato}
-          onExcluir={handleExcluirArtefato}
-        />
-      )}
     </div>
   );
 }

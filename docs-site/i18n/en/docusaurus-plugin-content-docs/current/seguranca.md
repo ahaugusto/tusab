@@ -61,7 +61,7 @@ Before `tusab_ler_original` returns an image, EXIF, XMP, comments and embedded t
 
 ## Desktop app
 
-The desktop app has other surfaces: the FastAPI API on `localhost:8001`, the Electron window and the API keys stored on the system. The controls applied:
+The desktop app (discontinued on 2026-11-19; 1.0.x versions no longer receive fixes) has other surfaces: the FastAPI API on `localhost:8001`, the Electron window and the API keys stored on the system. The controls applied:
 
 | Control | How |
 |---|---|

@@ -23,7 +23,8 @@ import { criarProjeto, resumirProjetosYoutube } from './nucleo/gestao.js';
 import { Tusab } from './nucleo/tusab.js';
 import { URL_CANAL, normalizarLinkAvulso } from './nucleo/ytdlp.js';
 
-export const VERSAO = '0.6.0';
+// Versão única do Tusab: a do package.json da extensão (o manifest.json tem de bater; ver teste).
+export const VERSAO = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 const INSTRUCOES = `O Tusab é a base de conhecimento local do usuário: transcrições de vídeos do YouTube e textos que ele escolheu guardar no próprio computador.
 - Para responder com base nessa base, use tusab_buscar e cite cada afirmação com o título da fonte e, em vídeos, o minuto com o link (formato ▶ MM:SS).
@@ -65,10 +66,14 @@ function resumoStatus(motor) {
 export function criarServidor(tusab, { painel = new Painel(tusab, { versao: VERSAO }) } = {}) {
   const { indice, motor } = tusab;
   const servidor = new McpServer({ name: 'tusab', title: 'Tusab', version: VERSAO }, { instructions: INSTRUCOES });
+  servidor.server.oninitialized = () => tusab.conectarMcp(servidor.server.getClientVersion());
+  servidor.server.onclose = () => tusab.desconectarMcp();
   // O título de cada ferramenta aparece na conversa: vai no idioma da tela e acompanha a troca.
   const titulos = new Map();
+  // Cada chamada fica registrada (nome e hora) para a tela confirmar que a IA consultou o Tusab.
   const registrar = (nome, config, fn) => {
-    const reg = servidor.registerTool(nome, { ...config, title: t(config.title) }, fn);
+    const comRegistro = (...args) => { tusab.registrarUsoMcp(nome); return fn(...args); };
+    const reg = servidor.registerTool(nome, { ...config, title: t(config.title) }, comRegistro);
     titulos.set(reg, config.title);
     return reg;
   };
@@ -376,14 +381,16 @@ export function criarServidor(tusab, { painel = new Painel(tusab, { versao: VERS
   registrar('tusab_salvar_estudo', {
     title: 'Guardar material de estudo no Tusab',
     description:
-      'Guarda flashcards, post-its ou um resumo que VOCÊ gerou a partir da base, para o usuário revisar em outras ' +
-      'conversas (os flashcards entram na revisão espaçada). flashcards: 1 a 30 {pergunta (até 500), resposta (até 2000)}. ' +
-      'postits: 1 a 30 frases curtas (até 400). resumo: Markdown. Use quando o usuário pedir ou o prompt indicar.',
+      'Guarda no Tusab o material que VOCÊ gerou a partir da base, para o usuário abrir na tela do Tusab (aba Materiais) ' +
+      'e revisar em outras conversas (os flashcards entram na revisão espaçada). flashcards: 1 a 30 {pergunta (até 500), ' +
+      'resposta (até 2000)}. postits: 1 a 30 frases curtas (até 400). resumo: Markdown. documento: Markdown (até 60.000), ' +
+      'para o resto (quiz, mapa mental em bloco ```mermaid, plano de aula, prova, nota técnica, roteiro...), com um titulo ' +
+      'que diga o que é. Mantenha as citações (fonte, ▶ minuto com link, [Página N]). Use quando o usuário pedir ou o prompt indicar.',
     inputSchema: {
       projeto: z.string().min(1).describe('Projeto existente (veja tusab_listar_projetos).'),
-      tipo: z.enum(['flashcards', 'postits', 'resumo']),
+      tipo: z.enum(['flashcards', 'postits', 'resumo', 'documento']),
       conteudo: z.union([z.string(), z.array(z.union([z.string(), z.object({ pergunta: z.string(), resposta: z.string() })]))])
-        .describe('flashcards: [{pergunta, resposta}]; postits: ["..."]; resumo: texto Markdown.'),
+        .describe('flashcards: [{pergunta, resposta}]; postits: ["..."]; resumo e documento: texto Markdown.'),
       tema: z.string().max(200).optional(),
       titulo: z.string().max(150).optional(),
       fontes: z.array(z.string()).max(50).optional().describe('Títulos das fontes usadas.'),
@@ -394,7 +401,8 @@ export function criarServidor(tusab, { painel = new Painel(tusab, { versao: VERS
     if (r.error) return erro(r.message);
     const n = tipo === 'flashcards' ? r.flashcards.length : tipo === 'postits' ? r.postits.length : 1;
     return texto(t('{n} item(ns) de {tipo} guardado(s) no projeto {projeto}.', { n, tipo, projeto }) +
-      (tipo === 'flashcards' ? t(' Para revisar depois, use o prompt "Revisar hoje".') : ''));
+      (tipo === 'flashcards' ? t(' Para revisar depois, use o prompt "Revisar hoje".') : '') +
+      t(' O usuário pode abrir na tela do Tusab, aba Materiais.'));
   });
 
   registrar('tusab_revisao_hoje', {

@@ -1,5 +1,10 @@
 # Copyright (c) 2026 CriAugu — CNPJ 65.131.075/0001-57
-# CI mínimo: testes de integração do backend + build do frontend a cada push/PR.
+# CI do Tusab (extensão de IA) a cada push/PR na main:
+# - Extensão: testes do servidor MCP (tusab-mcp) no Windows, no macOS e no Linux
+#   (paridade Windows/macOS é regra do produto; o Linux é o mais rápido para falhar cedo).
+# - Tela: build da interface em modo extensão e auditoria de acessibilidade (pa11y-ci)
+#   na tela servida pelo próprio plugin, tema claro e escuro.
+# O app desktop foi descontinuado na 2.0.0 (código preservado na etiqueta desktop-final).
 
 name: CI
 
@@ -9,39 +14,20 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  backend-tests:
-    name: Backend (pytest)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Instalar dependências
-        run: |
-          pip install -r requirements.txt
-          pip install pytest httpx
-
-      # dist mínimo para os testes de serve estático / path traversal
-      # (evita compilar o frontend inteiro neste job)
-      - name: Criar dist mínimo do frontend
-        run: |
-          mkdir -p web_interface/dist/assets
-          echo '<!doctype html><html><body>BrainIAC CI</body></html>' > web_interface/dist/index.html
-
-      - name: Rodar testes
-        run: pytest tests/ -v --tb=short
-
-  frontend-build:
-    name: Frontend (vite build)
-    runs-on: ubuntu-latest
+  extensao:
+    name: Extensão (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     defaults:
       run:
-        working-directory: web_interface
+        working-directory: tusab-mcp
     steps:
       - uses: actions/checkout@v7
 
@@ -49,26 +35,56 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: web_interface/package-lock.json
+          cache-dependency-path: tusab-mcp/package-lock.json
 
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
-      - name: Build de produção
-        run: npx vite build
+      - name: Testes
+        run: npm test
 
-      # pa11y-ci só consegue testar telas alcançáveis sem interação real com o
-      # backend (sem login/estado) — hoje isso é só a LandingScreen (primeira
-      # carga, sem localStorage). rootElement em .pa11yci restringe a
-      # auditoria a #landing-root porque o resto do app shell continua no DOM
-      # (inert, não desmontado) atrás dela — testar o documento inteiro
-      # reportaria falsos positivos de conteúdo que não está nem visível.
-      # A regra color-contrast do axe é ignorada de propósito: o fundo é um
-      # <canvas> animado (CircuitBackground) que o axe não consegue amostrar
-      # com certeza (sinaliza "needsFurtherReview", que pa11y-ci não sabe
-      # rebaixar a warning) — htmlcs continua validando contraste de verdade.
-      - name: Acessibilidade (pa11y-ci contra a Landing, light + dark)
+      - name: Manifesto do pacote (.mcpb)
+        run: npx --yes @anthropic-ai/mcpb@2.1.2 validate manifest.json
+
+  tela:
+    name: Tela (build e acessibilidade)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            web_interface/package-lock.json
+            tusab-mcp/package-lock.json
+
+      - name: Instalar dependências
         run: |
-          npx vite preview --port 4173 --host 127.0.0.1 &
-          npx wait-on -t 30000 http://127.0.0.1:4173/
-          npx pa11y-ci
+          npm ci --prefix web_interface
+          npm ci --prefix tusab-mcp
+
+      - name: Testes de unidade da tela
+        working-directory: web_interface
+        run: npm run test:unit
+
+      - name: Build da tela em modo extensão
+        working-directory: tusab-mcp
+        run: npm run build:interface
+
+      # Sobe a tela como o plugin a serve (127.0.0.1, porta livre, chave por sessão) e
+      # audita a primeira tela, que é o que se alcança sem estado. Regras em
+      # web_interface/.pa11yci; o endereço do painel entra no lugar de URL_DO_PAINEL.
+      - name: Acessibilidade (pa11y-ci na tela da extensão, claro e escuro)
+        env:
+          TUSAB_REPOSITORIO: ${{ runner.temp }}/tusab
+          TUSAB_SEM_BOAS_VINDAS: '1'
+        run: |
+          node tusab-mcp/src/cli.js painel --sem-navegador > "$RUNNER_TEMP/painel.log" 2>&1 &
+          for i in $(seq 1 30); do grep -q 'Painel do Tusab' "$RUNNER_TEMP/painel.log" && break; sleep 1; done
+          URL=$(grep -o 'http://127\.0\.0\.1:[0-9]*/?chave=[A-Za-z0-9_-]*' "$RUNNER_TEMP/painel.log")
+          test -n "$URL" || { cat "$RUNNER_TEMP/painel.log"; exit 1; }
+          echo "::add-mask::$URL"
+          node -e "const fs=require('fs');fs.writeFileSync(process.argv[2],fs.readFileSync('web_interface/.pa11yci','utf8').replaceAll('URL_DO_PAINEL',process.argv[1]))" "$URL" "$RUNNER_TEMP/pa11y.json"
+          cd web_interface && npx pa11y-ci --config "$RUNNER_TEMP/pa11y.json"

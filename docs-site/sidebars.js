@@ -49,7 +49,7 @@ const sidebars = {
     'licenca',
     {
       type: 'category',
-      label: 'App desktop (versão anterior)',
+      label: 'App desktop (descontinuado)',
       collapsed: true,
       items: [
         'desktop/visao-geral',

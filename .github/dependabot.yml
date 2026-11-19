@@ -10,18 +10,18 @@
 
 version: 2
 updates:
-  # Backend Python (requirements.txt)
-  - package-ecosystem: "pip"
-    directory: "/"
+  # Extensão (servidor MCP, tusab-mcp/)
+  - package-ecosystem: "npm"
+    directory: "/tusab-mcp"
     schedule:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    labels: ["dependencies", "backend"]
+    labels: ["dependencies", "extensao"]
     commit-message:
       prefix: "chore(deps)"
 
-  # Frontend React/Vite
+  # Tela (React/Vite, compilada para dentro do pacote da extensão)
   - package-ecosystem: "npm"
     directory: "/web_interface"
     schedule:
@@ -35,23 +35,6 @@ updates:
     # — nunca via PR automático de patch/minor de rotina.
     ignore:
       - dependency-name: "tailwindcss"
-        update-types: ["version-update:semver-major"]
-
-  # Electron (empacotamento do instalador)
-  - package-ecosystem: "npm"
-    directory: "/electron"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
-    labels: ["dependencies", "electron"]
-    commit-message:
-      prefix: "chore(deps)"
-    # Major bump do Electron exige testar o app empacotado inteiro
-    # (ver invariante 13/14 em histórico interno do projeto — bugs de sandbox só
-    # aparecem no .exe instalado, nunca em dev) — nunca automático.
-    ignore:
-      - dependency-name: "electron"
         update-types: ["version-update:semver-major"]
 
   # GitHub Actions em si (actions/checkout, actions/setup-python, etc.)

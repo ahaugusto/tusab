@@ -1,13 +1,17 @@
 ---
 id: visao-geral
-title: App desktop (versão anterior)
+title: App desktop (descontinuado)
 sidebar_label: Visão geral
 slug: /desktop/visao-geral
 ---
 
-# App desktop (versão anterior)
+# App desktop (descontinuado)
 
-Antes da extensão de IA, o Tusab era distribuído como aplicativo desktop: uma janela Electron com backend Python (FastAPI) e **chat próprio** (o Assistente), que responde com RAG local usando Ollama ou um provedor externo. O app continua disponível para Windows e macOS (versão 1.0.64) e é mantido no mesmo repositório.
+:::warning App desktop descontinuado
+O app desktop foi descontinuado em 19/11/2026 e não recebe mais correções nem atualizações. O código citado nesta página está na etiqueta [`desktop-final`](https://github.com/criaugu/tusab/tree/desktop-final), não mais no `main`. Esta página é mantida só como registro.
+:::
+
+Antes da extensão de IA, o Tusab era distribuído como aplicativo desktop: uma janela Electron com backend Python (FastAPI) e **chat próprio** (o Assistente), que responde com RAG local usando Ollama ou um provedor externo. A última versão foi a 1.0.64, para Windows e macOS. As releases 1.0.x continuam publicadas no GitHub como histórico, e o código está na etiqueta `desktop-final`.
 
 ## Diferenças em relação à extensão
 

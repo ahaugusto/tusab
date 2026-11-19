@@ -51,12 +51,17 @@ test('os 21 prompts e as categorias existem nos três idiomas, com as mesmas var
     }
   }
   const en = montarPrompt('flashcards', { projeto: 'Bio', tema: 'cell' }, null, 'en');
-  assert.match(en, /^Create 10 flashcards about "cell"/);
+  // Todo pedido começa pela checagem de conexão (sem o Tusab, a IA avisa em vez de responder de memória).
+  assert.match(en, /^Before you start: if the Tusab tools \(tusab_buscar\) are not available/);
+  assert.match(en, /\n\nCreate 10 flashcards about "cell"/);
   assert.match(en, /Search the Tusab base in the project "Bio"/);
   assert.match(en, /tusab_salvar_estudo \(project "Bio", type flashcards\)/);
   const es = montarPrompt('quiz', { projeto: 'Bio', tema: 'célula', quantidade: 5 }, null, 'es');
-  assert.match(es, /^Arma un quiz de 5 preguntas de opción múltiple sobre "célula"/);
-  assert.match(es, /no la inventes\.$/);
+  assert.match(es, /^Antes de empezar: si las herramientas de Tusab/);
+  assert.match(es, /\n\nArma un quiz de 5 preguntas de opción múltiple sobre "célula"/);
+  // O quiz é guardado como documento, para abrir depois na aba Materiais.
+  assert.match(es, /tusab_salvar_estudo \(proyecto "Bio", tipo documento, en Markdown/);
+  assert.match(es, /pestaña Materiales de Tusab\.$/);
   const lista = listarPrompts(null, 'es');
   assert.ok(lista.categorias.includes('Estudiar'));
   assert.equal(lista.prompts.find((p) => p.id === 'resumo').titulo, 'Resumen de estudio');
