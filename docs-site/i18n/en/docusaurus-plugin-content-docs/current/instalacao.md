@@ -7,77 +7,70 @@ slug: /instalacao
 
 # Installation
 
-## Download
+Tusab is installed as an extension (local MCP server) in the AI tool. Systems declared in the manifest: Windows (`win32`) and macOS (`darwin`). For the desktop app (`.exe` and `.dmg` installers), see [Desktop app — installation](/desktop/instalacao).
 
-Download the latest installer from the [GitHub releases page](https://github.com/criaugu/tusab/releases/latest).
+## Claude Desktop: `.mcpb` package
 
-| Platform | Requirement | File |
-|---|---|---|
-| Windows 10/11 x64 | — | `Tusab-Setup-X.X.X.exe` |
-| macOS (Apple Silicon — M1 or newer) | macOS 14 (Sonoma) or later | `Tusab-X.X.X-arm64.dmg` |
+The extension is distributed as an [MCP Bundle](https://github.com/modelcontextprotocol/mcpb) package (`tusab.mcpb`). The package carries the server code, the dependencies, the prebuilt screen and the license texts. Node.js comes with Claude Desktop itself, so there is nothing else to install.
 
-Python and yt-dlp are bundled in both installers — nothing else to install manually.
-
-:::note macOS Intel is not supported
-Apple Silicon (arm64) only, for now.
+:::note The `.mcpb` is not published in releases yet
+For now, the [GitHub releases](https://github.com/criaugu/tusab/releases) carry only the desktop app installers. To get `tusab.mcpb`, build the package from source (below).
 :::
 
-## Installing on Windows
+1. Open the `tusab.mcpb` file with Claude Desktop installed; it shows the extension installation screen.
+2. When Claude Desktop asks for the repository folder (field "Pasta do repositório"), choose a folder. Tusab creates `data/` inside it. To open a base created by the desktop app, choose the app's data folder (see [Data and storage](/arquitetura/dados-e-armazenamento#where-the-data-lives)).
+3. On the first run in a folder, the plugin opens the Tusab screen in the browser once (marker in `data/config/boas_vindas.json`).
 
-Run the `.exe` and follow the NSIS installer. No additional manual steps.
+The chosen folder is passed to the server through the `TUSAB_REPOSITORIO` environment variable (field `user_config.repositorio` in `manifest.json`). Without that variable, the server uses `~/Tusab`.
 
-If you pick a different folder, its path can have at most **65 characters** (for example, `C:\Tusab`). The folder suggested by the installer always fits. With longer paths, Windows automatic updates can't replace the old files, so the **Install** button stays disabled (from 1.0.60 on).
+## Building the `.mcpb` from source
 
-:::caution Installed on Windows between August and October 2026?
-Windows versions **1.0.42 to 1.0.57** shipped without the app's engine (the embedded Python and the YouTube download component). Tusab opened, but channel extraction, chat and the repository didn't work. If that happened to you, download and install **1.0.58 or later** — your data and settings stay where they were.
-:::
+Prerequisite: Node.js 18.17 or newer.
 
-## Installing on macOS
+```powershell
+git clone https://github.com/criaugu/tusab.git
+cd tusab/web_interface
+npm install          # the extension screen is built from here
+cd ../tusab-mcp
+npm install
+npm run pack         # builds the screen, generates the license notices and creates ../tusab.mcpb
+```
 
-1. Download the `.dmg`.
-2. Open the `.dmg` and drag the Tusab icon into **Applications**.
-3. Launch Tusab from Applications. The app is **signed and notarized by Apple** (Developer ID + automated CI notarization) — it opens normally, no need to manually allow anything in System Settings → Privacy & Security.
-4. On first launch, Tusab detects whether Ollama is installed and offers to download it automatically if not.
+The file is written to the repository root (`tusab.mcpb`). `npm run pack` uses `@anthropic-ai/mcpb@2.1.2` through `npx`.
 
-## First launch
+## Other MCP-compatible tools (Claude Code, VS Code, Cursor…)
 
-On first launch, Tusab walks you through:
+Any MCP client that starts servers over **stdio** can run the plugin straight from source, after `npm install` in `tusab-mcp/` and `npm run build:interface` (for the screen to work):
 
-1. Welcome screen (language and theme)
-2. Telemetry consent (opt-in, can be declined or revoked later)
-3. Profile choice — Student, Teacher, Researcher, or Specialist
-4. AI engine setup — local Ollama (recommended, free) or an external provider key (Groq, OpenAI, Anthropic, Gemini)
+```json
+{
+  "mcpServers": {
+    "tusab": {
+      "command": "node",
+      "args": ["<path>/tusab/tusab-mcp/src/index.js"],
+      "env": { "TUSAB_REPOSITORIO": "<repository folder>" }
+    }
+  }
+}
+```
 
-See the detail of each journey in [Profiles and user journeys](/perfis-e-jornadas).
+The exact configuration file format depends on each tool; what matters is the command (`node`), the argument (`src/index.js`) and the `TUSAB_REPOSITORIO` variable.
 
-## Setting up the AI engine
+## yt-dlp
 
-### Ollama (default, recommended)
+The plugin looks for yt-dlp in this order: the `TUSAB_YTDLP` variable, a copy in `data/bin/`, `yt-dlp` on the `PATH`. If none is found, it downloads the official binary from `github.com/yt-dlp/yt-dlp/releases/latest` and checks the published SHA-256 sum (`SHA2-256SUMS`); if it doesn't match, the download is discarded.
 
-Zero cost, no API key, works offline. Onboarding offers automatic download; if you prefer manually, download it from [ollama.com/download](https://ollama.com/download). Default model: `llama3.2:1b` (~1.3 GB).
+## Environment variables
 
-### External providers (BYOK — bring your own key)
+| Variable | Use |
+|---|---|
+| `TUSAB_REPOSITORIO` | Repository folder (the root that contains `data/`). Default: `~/Tusab` |
+| `TUSAB_YTDLP` | Path to a yt-dlp to use instead of the downloaded one |
+| `TUSAB_IDIOMA` | Initial language (`pt`, `en` or `es`) before the screen sets one |
+| `TUSAB_SEM_BOAS_VINDAS` | `1` turns off opening the screen automatically on the first run |
 
-Configurable at any time in the **Assistant** tab:
+## First steps
 
-| Provider | Default model | Cost |
-|----------|--------------|-------|
-| Groq | llama-3.1-8b-instant | Free tier |
-| OpenAI | gpt-4o-mini | Paid |
-| Anthropic | claude-haiku-4-5 (auxiliary) / claude-sonnet-4-6 (main answer) | Paid |
-| Google Gemini | gemini-1.5-flash | Paid |
-| Custom endpoint | any OpenAI-compatible server | Depends on the server |
-
-The key is tested before being saved and stored encrypted by the operating system (DPAPI on Windows, Keychain on macOS) via Electron's `safeStorage`.
-
-## Google Drive (optional)
-
-To sync/share bases via Google Drive:
-
-1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Drive API**
-2. Create OAuth 2.0 credentials (Desktop app type) and download the JSON
-3. Rename it to `credentials.json` and place it at the project root (dev build) or in the data folder (packaged build)
-4. In the Tusab interface, enable Drive from the Repository tab — the OAuth flow opens in your browser
-5. After authorizing, `token.json` is saved locally (both files are gitignored)
-
-The scope requested is the minimum necessary: `drive.file` — Tusab only accesses files it created itself.
+1. Ask the AI to open Tusab (or use the **Open Tusab** shortcut in Claude Desktop's "+" menu).
+2. On the screen, choose language, theme and profile, and add a YouTube channel, documents or a public source search. The AI can also add a channel with `tusab_adicionar_youtube`.
+3. Ask in the conversation: the AI searches the base with `tusab_buscar` and cites video and minute, or document and page.

@@ -7,17 +7,27 @@ slug: /funcionalidades/fontes-publicas
 
 # Public sources by knowledge area
 
-Beyond YouTube and manual upload, the **Teacher**, **Researcher** and **Specialist** profiles can search **70 public sources**, organized into **11 knowledge areas** — none require registration or an API key. Results are downloaded and indexed automatically, like any other document in the Repository.
+Tusab searches **70 public sources**, organized into **11 knowledge areas**. None require registration or an API key. Results are downloaded and saved as documents in the project, and enter search like any other document.
 
-Only sources tested live, with real keyword search and actual text content (not metadata only), are included. The initial survey came from "Bases de Dados Abertas — Consolidação Ampliada de Endpoints de API" (Brazil's Ministry of Health, NDTI/DECIT/SCTIE team, Jul/2026); the Oct/2026 expansion tested more than 260 candidates and more than 150 open data portals.
+- **Through the AI:** `tusab_fontes_publicas` lists the sources by area, with the `id` of each one; `tusab_buscar_fonte_publica` searches a topic in one source and saves the results to the project (creating the project if it doesn't exist). From 1 to 50 results, default 10.
+- **Through the screen:** Extraction tab → **Public source** (Teacher, Researcher and Specialist profiles), several sources at once. From 1 to 50 results per source, default 20.
 
-## How to search
+The code lives in `tusab-mcp/src/fontes/`, with the same source registry as the desktop app (`tusab_engine/motor/fontes/`).
 
-1. In the **Extraction** tab, choose **Public source** and the knowledge area
-2. Click **Start Extraction** and check one or more sources — you can filter by **Brazil / International**, by **content type** (articles, theses, legislation, case law, data, news...) and by **name or institution**
-3. Sources from the same institution are grouped (e.g. Hugging Face → Models, Datasets and Papers; Brazilian Senate → Laws, Bills and Speeches)
-4. For open data portals, also choose **which states, cities, agencies or countries** to query
-5. Type the topic, choose how many results per source (up to 50) and confirm — sources are queried one at a time, and everything goes to the same project
+Only sources tested with real keyword search and actual text content (not metadata only) are included. The initial survey came from "Bases de Dados Abertas — Consolidação Ampliada de Endpoints de API" (Brazil's Ministry of Health, Jul/2026); the Oct/2026 expansion tested more than 260 candidates and more than 150 open data portals.
+
+## Why up to 50 results
+
+The sources are free public services and limit how many requests each person makes. Searches that are too large make the source block access for a while and take a long time. The limit is in the validation of the MCP tool and of the route used by the screen. To go further, run another search in the same project with other terms or another period.
+
+## How to search on the screen
+
+1. In the **Extraction** tab, choose **Public source** and the knowledge area.
+2. Check one or more sources. You can filter by **Brazil / International**, by **content type** (articles, theses, legislation, case law, data, news…) and by **name or institution**. Sources from the same institution are grouped (e.g. Hugging Face → Models, Datasets and Papers).
+3. For open data portals, also choose **which states, cities, agencies or countries** to query.
+4. Type the topic, choose how many results per source (up to 50) and confirm. Sources are queried one at a time, and everything goes to the same project.
+
+Some sources accept a date filter (`data_inicio`/`data_fim` in `YYYY-MM-DD` format); `tusab_fontes_publicas` marks which.
 
 ## Sources by area
 
@@ -156,8 +166,8 @@ In the case-law sources (STF, TCU, TST), blocks with the parties' data are remov
 - **Brazil's Ministry of Education (MEC, CNE, BNCC, INEP)**: no usable search API; Brazilian education content comes through IBICT (BDTD, OasisBR) and CAPES.
 - **Conitec, LILACS/BVS, SciELO Search, Planalto, STJ, LexML**: anti-bot blocking or no API.
 - **dados.gov.br**: requires a token since 2023. Agency, state and city portals with their own catalog are included.
-- **Querido Diário** (municipal official gazettes): offline at test time — will be re-evaluated.
+- **Querido Diário** (municipal official gazettes): offline at test time.
 
 ## Extensibility
 
-Each source is an independent module with the same contract (`FONTE_META` + `buscar()`) — adding a new source doesn't require touching the others. See `tusab_engine/motor/fontes/` in the repository.
+Each source is an independent module in `src/fontes/`, registered in `src/fontes/index.js`; adding a new source doesn't require changing the others. See `tusab-mcp/src/fontes/` in the repository.

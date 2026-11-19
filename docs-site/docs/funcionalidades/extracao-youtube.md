@@ -1,47 +1,58 @@
 ---
 id: extracao-youtube
-title: Extração de canais do YouTube
-sidebar_label: Extração YouTube
+title: Extração do YouTube
+sidebar_label: Extração do YouTube
 slug: /funcionalidades/extracao-youtube
 ---
 
-# Extração de canais do YouTube
+# Extração do YouTube
 
-O Tusab extrai canais inteiros do YouTube — centenas de vídeos — via [yt-dlp](https://github.com/yt-dlp/yt-dlp), rodando localmente no IP do próprio usuário, sem servidor intermediário.
+O Tusab baixa as **legendas** (não os vídeos) de canais, playlists e vídeos do YouTube com o [yt-dlp](https://github.com/yt-dlp/yt-dlp), rodando no computador e no IP do usuário, sem servidor intermediário. Código: `tusab-mcp/src/nucleo/motor.js`, `ytdlp.js` e `legendas.js`.
+
+## Como pedir
+
+- **Pela IA:** ferramenta `tusab_adicionar_youtube` (`url`, `projeto`, `max_videos` opcional). A extração roda em segundo plano; o andamento aparece em `tusab_status` e na tela.
+- **Pela tela:** aba Extração, com busca do canal pelo nome, escolha de abas, playlists e período, log ao vivo e tempo restante.
+
+Pedidos da IA e da tela passam pelo mesmo motor: o que a IA pede aparece na tela, e vice-versa.
 
 ## Como funciona
 
-1. Cole a URL do canal (formatos aceitos: `@handle`, `channel/ID`, `c/nome`)
-2. Selecione as fontes desejadas (vídeos, podcasts, shorts — cada um pode ser incluído ou excluído)
-3. Opcionalmente, restrinja a playlists específicas ou a um intervalo de datas de publicação
-4. Inicie — barra de progresso, log em tempo real, contador de vídeos processados
+1. **Endereço:** canal nos formatos `youtube.com/@nome`, `youtube.com/channel/ID` ou `youtube.com/c/nome` (validados por expressão regular antes de ir ao yt-dlp). Pela ferramenta MCP, também link de playlist ou de vídeo avulso; sufixos como `/videos` ou `/shorts` são removidos do link do canal.
+2. **Mapeamento por aba:** Vídeos, Shorts, Ao vivo, Podcasts, Cursos e Playlists; cada aba pode ser incluída ou excluída na tela.
+3. **Recortes opcionais:** playlists específicas e intervalo de datas de publicação. Com filtro de data ativo, vídeos sem data conhecida ficam de fora. O filtro usado aparece no log, no Relatório e na Visão Geral.
+4. **Legendas:** duas passagens de idioma, primeiro `pt,pt-BR` e, só se não vier nenhuma legenda, `en,es`; legendas traduzidas automaticamente são ignoradas. Metadados, capítulos e legenda vêm numa **única chamada** ao yt-dlp por vídeo (menos chamadas, menos risco de bloqueio por excesso de pedidos), com pausa de 1 s entre pedidos (`--sleep-requests 1`).
+5. **Gravação:** o texto vai para `neural/{projeto}/youtube/{canal}/{canal}_Parte_N.txt`, o status de cada vídeo para `neural/{projeto}/management/{canal}_base.csv`, e o índice é atualizado.
 
-Cada vídeo tem sua legenda em português extraída (`sub_langs = 'pt'` fixo) e salva localmente como `.txt` em `neural/{projeto}/youtube/`.
+## Divisão em trechos
 
-## Extração incremental
+- Por capítulo do YouTube, quando o vídeo tem capítulos.
+- Sem capítulos: janelas de 120 s com 15 s de sobreposição (passo efetivo de 105 s).
+- Teto de 3.000 caracteres por trecho, cortado na fronteira de uma linha da legenda; capítulos maiores viram várias partes.
+- Cada bloco do `.txt` guarda título, aba, data, link, ID do vídeo, visualizações, minuto inicial, tags, descrição e conteúdo. É daí que vêm a citação com minuto (`▶ MM:SS`) e o link `&t=Ns` devolvidos por `tusab_buscar`.
 
-Vídeos já processados são pulados automaticamente numa nova extração do mesmo canal — só o conteúdo novo é baixado e indexado.
+## Status por vídeo (CSV de gestão)
 
-## Seleção de playlists e filtro de data
+`Sucesso`, `Sem Legenda`, `Legenda Curta`, `Falha Extração`, `Arquivo Ausente`. Os valores ficam em português porque o formato é o mesmo do app desktop.
 
-Endpoint `GET /playlists-canal` permite restringir a extração a playlists escolhidas e/ou a um intervalo de datas, em vez do canal inteiro. O filtro ativo fica visível no log em tempo real, no Relatório e como ícone na Visão Geral — para não confundir um recorte do canal com a extração completa.
+## Extração incremental, pausa e fila
 
-## Fila de extração
+- Vídeos já extraídos são pulados numa nova rodada do mesmo canal; só o que é novo é processado. A extração retoma a última parte do `.txt`.
+- A extração pode ser pausada e cancelada pela tela.
+- **Fila:** se a IA (ou a tela) pede um canal enquanto outro está sendo extraído, o pedido entra na fila (`data/config/extraction_queue.json`); a resposta da ferramenta informa a posição.
 
-Perfis Professor, Pesquisador e Especialista podem enfileirar múltiplos canais para extração sequencial (`POST /queue/add`, `GET /queue`, `DELETE /queue/clear`).
+## Atualização automática de canais
 
-## Fontes públicas (perfil Pesquisador)
+Cada canal pode ter a atualização automática ligada na tela (configuração em `management/{canal}_summary.json`). Com o plugin aberto, a verificação roda alguns segundos depois do início e depois a cada hora: lista os vídeos das abas com o yt-dlp (só metadados, `--flat-playlist`) e compara com o CSV. Havendo vídeo novo, o canal vai para o motor, ou para a fila se houver extração em andamento. Com a ferramenta de IA fechada, nada roda.
 
-Além do YouTube, Professor, Pesquisador e Especialista têm acesso a busca em 70 fontes públicas organizadas em 11 áreas de conhecimento — nenhuma exige cadastro ou chave de API. Ver [Fontes públicas por área de conhecimento](/funcionalidades/fontes-publicas) para a lista completa.
+## Página web avulsa
 
-## Leitor de página web avulsa
-
-No Repositório, cole uma URL e o Tusab extrai o conteúdo principal via [trafilatura](https://github.com/adbar/trafilatura) (Apache-2.0) e indexa. Respeita `robots.txt` — não tenta contornar bloqueio de nenhum site. Limitado a páginas estáticas (sem renderização de JavaScript).
+No Repositório, uma URL de página é lida e o conteúdo principal vira um texto do projeto. O Tusab consulta o `robots.txt` do site (User-Agent `TusabBot/1.0`) e não insiste se a página não permitir acesso automatizado. Não executa JavaScript: só páginas estáticas.
 
 ## Segurança da extração
 
-- URL do canal validada por regex whitelist antes de ser passada ao yt-dlp
-- ID de playlist validado (`^[A-Za-z0-9_\-]{10,50}$`) antes de compor comandos
-- yt-dlp sempre executado via lista de argumentos — nunca via `shell=True`
+- URL do canal e ID de playlist validados por expressão regular antes de compor o comando.
+- O yt-dlp é executado com lista de argumentos, nunca por shell.
+- O binário do yt-dlp, quando baixado pelo plugin, tem a soma SHA-256 conferida com a publicada pelo projeto.
 
-Ver [Segurança](/seguranca) para o detalhe completo dos controles aplicados.
+Ver [Segurança](/seguranca).

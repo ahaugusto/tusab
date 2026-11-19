@@ -1,7 +1,5 @@
 /**
- * Paleta preto e branco — combina com a arte do mascote (Thoth, deus egípcio
- * da escrita e do conhecimento) usada na home, que já é preto e branco.
- * Sem cor de destaque colorida — todo acento é escala de cinza.
+ * Paleta em escala de cinza, sem cor de destaque.
  */
 :root {
   --ifm-color-primary: #171717;
@@ -26,10 +24,8 @@
   --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
 
-/* Hero: preto sólido nos dois modos — sem gradiente colorido. Setado
-   diretamente em background-color/color (não via variável intermediária —
-   .hero--primary do Infima usa --ifm-color-primary direto, não repassa por
-   uma --ifm-hero-* própria). */
+/* Hero: preto sólido nos dois modos. Setado direto em background-color/color
+   porque .hero--primary do Infima usa --ifm-color-primary sem variável própria. */
 .hero--primary {
   background-color: #0a0a0a;
   color: #fff;

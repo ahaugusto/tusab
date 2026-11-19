@@ -7,62 +7,63 @@ slug: /privacidade
 
 # Privacidade
 
-O princípio central do Tusab é **local-first**: os dados ficam na máquina do usuário. A CriAugu não opera servidores que armazenam conteúdo, conversas ou bases de conhecimento de usuários.
+O Tusab guarda a base de conhecimento **no computador do usuário**. A CriAugu não opera servidor que receba conteúdo, conversas, bases ou dados de uso do Tusab.
 
-Este resumo cobre os pontos essenciais da Política de Privacidade completa, elaborada em conformidade com a **LGPD** (Lei nº 13.709/2018) e o **GDPR** (Regulamento UE 2016/679).
+Esta página descreve tecnicamente o que fica no computador e o que sai dele. A política de privacidade formal (LGPD, Lei nº 13.709/2018, e GDPR) é publicada em [tusab.solutions](https://tusab.solutions).
 
-## Dados processados só localmente
+## O que fica só no computador
 
-Nunca enviados a servidores da CriAugu:
+| Dado | Onde |
+|---|---|
+| Transcrições, documentos, textos, originais | `data/neural/{projeto}/` |
+| Índice de busca | `data/tusab.sqlite` |
+| Prompts próprios, idioma, fila, configurações | `data/config/` |
+| Contador de economia de tokens (só números agregados) | `data/config/economia_tokens.json` |
 
-| Dado | Onde fica |
-|------|-----------|
-| Transcrições, documentos, textos indexados | `data/neural/{projeto}/` |
-| Índice BM25 | `data/indexes/{projeto}_index.json` |
-| Configurações do assistente | `data/config/agent_config.json` |
-| Histórico de chat | Memória RAM — não persiste entre sessões |
+O Tusab não tem conta, login nem telemetria: na tela, o módulo de analytics não carrega nada.
 
-## Chaves de API de terceiros
+## O que sai do computador
 
-Armazenadas localmente (preferencialmente via `safeStorage` do Electron — DPAPI/Keychain). Nunca transmitidas a servidores da CriAugu; usadas diretamente do dispositivo para chamar o provedor escolhido. O usuário é responsável pela segurança dessas chaves no próprio dispositivo.
+| Para onde | O quê | Quando |
+|---|---|---|
+| **A ferramenta de IA do usuário** (e o serviço de IA por trás dela) | Os trechos devolvidos pelas ferramentas (`tusab_buscar`, `tusab_ler_fonte`…), páginas de PDF e imagens pedidas com `tusab_ler_original` (sem metadados), nomes de projetos e de fontes | Quando a IA chama uma ferramenta |
+| YouTube | Pedidos do yt-dlp (mapeamento de canais, legendas, metadados), a partir do IP do usuário | Ao extrair ou verificar atualização de canais |
+| Fontes públicas | O tema pesquisado | Ao buscar numa fonte pública |
+| Sites de páginas web | Pedido da página e do `robots.txt` | Ao adicionar uma página web |
+| GitHub (`github.com/yt-dlp`) | Download do yt-dlp e da lista de somas SHA-256 | Só se o computador não tiver o yt-dlp |
+| Domínios de imagens do YouTube | Carregamento de miniaturas na tela | Ao exibir canais e vídeos na tela |
 
-## Telemetria (opt-in)
+O que a ferramenta de IA faz com os trechos recebidos (armazenamento, uso, país dos servidores) segue os termos dessa ferramenta e do serviço de IA, não do Tusab. Os servidores podem estar fora do Brasil.
 
-Com consentimento explícito (modal na primeira execução), eventos anônimos de uso e interação são coletados via Microsoft Clarity: abertura do app, início de extração, indexação, envio de chat, provedor configurado, além de cliques e rolagem. O conteúdo da tela é **mascarado antes de sair do seu computador** (o Clarity não recebe o texto do chat, dos documentos nem das chaves). Os eventos levam só o nome, sem propriedades. Quem aceitou a telemetria nas versões anteriores (PostHog) é consultado de novo na 1.0.63.
+## Minimização
 
-**Nunca coletado:** conteúdo de mensagens, URLs de canais, títulos de vídeos, nomes de arquivo, chaves de API, ou qualquer dado pessoal identificável. Consentimento revogável a qualquer momento nas configurações.
+- A IA recebe **trechos**, não as fontes inteiras (ver [Economia de tokens](/funcionalidades/economia-de-tokens)).
+- Imagens vão sem EXIF/GPS; se a remoção não puder ser garantida, não vão.
+- Originais só entram num `.tusab` exportado por escolha explícita, com aviso sobre dados pessoais, autoria e localização em fotos.
+- Na jurisprudência (STF, TCU, TST), os dados das partes são removidos e CPF e números de OAB são mascarados (ver [Fontes públicas](/funcionalidades/fontes-publicas#privacidade-na-jurisprudência)).
 
-## Transferência internacional de dados
-
-Ao usar um provedor de IA externo (OpenAI, Gemini, Anthropic, Groq), o conteúdo das consultas — pergunta e trechos de contexto recuperados — é transmitido aos servidores desse provedor, que podem estar fora do Brasil. O Tusab exibe aviso explícito ao configurar um provedor externo. **O Ollama (padrão local) não gera nenhuma transferência de dados.**
-
-## Direitos do titular (LGPD Art. 18 / GDPR Art. 17)
+## Direitos do titular
 
 | Direito | Como exercer |
-|---------|--------------|
-| Acesso | Pasta de dados acessível diretamente pelo sistema operacional |
-| Correção | Editar arquivos diretamente ou pela interface |
-| Exclusão | Aba Repositório do app, ou diretamente no sistema de arquivos |
-| Portabilidade | Dados em formatos abertos (`.txt`, `.json`, `.csv`) — exportáveis sem dependência do Tusab |
-| Revogação de consentimento | Configurações do app |
-| Oposição ao tratamento | Como o processamento é local, desinstalar o app interrompe qualquer tratamento |
+|---|---|
+| Acesso | A pasta do repositório é acessível diretamente pelo sistema operacional |
+| Correção | Editar os arquivos ou usar a tela |
+| Exclusão | Tela (excluir, limpar, reset total) ou o sistema de arquivos; excluir um documento apaga também o original |
+| Portabilidade | Formatos abertos (`.txt`, `.json`, `.csv`) e o `.tusab` (zip) |
+| Interromper o tratamento | Remover a extensão da ferramenta de IA; nada roda com ela fechada |
 
 Contato: **tusab@tusab.solutions**
 
-## Retenção
+## App desktop
 
-| Dado | Período |
-|------|---------|
-| Base de conhecimento (`neural/`) | Indefinido — controle total do usuário |
-| Configurações | Indefinido — usuário pode excluir a qualquer momento |
-| Histórico de chat | Duração da sessão |
-| Telemetria anônima | 12 meses |
-| Token OAuth do Drive | Até revogação manual |
+No [app desktop](/desktop/visao-geral), além do acima:
 
-## Menores de idade
-
-O Tusab não é destinado a menores de 16 anos.
+- **Assistente:** com um provedor externo (OpenAI, Anthropic, Gemini, Groq, OpenRouter, endpoint próprio), a pergunta e os trechos recuperados vão para esse provedor; o app avisa ao configurar. Com Ollama local, nada sai.
+- **Chaves de API** ficam no keychain do sistema (`safeStorage`) e são usadas direto do computador para o provedor escolhido.
+- **Histórico do chat** fica na memória do backend e não persiste entre sessões.
+- **Telemetria opcional (Microsoft Clarity):** só com consentimento explícito na primeira execução, revogável nas configurações. O conteúdo da tela é mascarado no computador antes do envio; os eventos levam só o nome. Sem aceite, nenhuma requisição sai. Retenção da telemetria anônima: 12 meses.
+- **Google Drive** (opcional): escopo `drive.file`; o token OAuth fica até ser revogado.
 
 ---
 
-Responsável: **CriAugu — CNPJ 65.131.075/0001-57**. Política completa, atualizada e vigente sempre em [tusab.solutions](https://tusab.solutions).
+Responsável: CriAugu — CNPJ 65.131.075/0001-57.

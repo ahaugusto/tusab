@@ -1,15 +1,18 @@
 # Documentação do Tusab (docs-site)
 
-Site de documentação do Tusab, construído com [Docusaurus](https://docusaurus.io/). Publicado automaticamente no GitHub Pages a cada push na `main` que altere esta pasta (`.github/workflows/deploy-docs.yml`).
+Site de documentação técnica do Tusab, construído com [Docusaurus](https://docusaurus.io/) e publicado em
+https://criaugu.github.io/tusab/. A publicação é automática no GitHub Pages a cada push na `main` que altere esta pasta
+(`.github/workflows/deploy-docs.yml`).
 
 ## Rodar localmente
 
 ```bash
 npm install
-npm run start
+npm run start                  # português (idioma padrão)
+npm run start -- --locale en   # inglês
 ```
 
-Abre em `http://localhost:3000` com hot reload.
+Abre em `http://localhost:3000` com recarga automática. No modo `start`, só um idioma é servido por vez.
 
 ## Build de produção
 
@@ -17,29 +20,29 @@ Abre em `http://localhost:3000` com hot reload.
 npm run build
 ```
 
-Gera arquivos estáticos em `build/`. Servir localmente com `npm run serve`.
+Gera os arquivos estáticos dos dois idiomas em `build/` (`build/` = português, `build/en/` = inglês). O build falha se
+houver link interno quebrado (`onBrokenLinks: 'throw'`). Para ver o resultado: `npm run serve`.
 
 ## Estrutura
 
 ```
 docs-site/
-  docs/               páginas de documentação (Markdown), organizadas por sidebars.js
-  src/pages/           homepage customizada
-  static/img/          logo e favicon do Tusab
-  docusaurus.config.js configuração do site (navbar, footer, tema)
-  sidebars.js           ordem e agrupamento das páginas na barra lateral
+  docs/                                          páginas em português (Markdown)
+  i18n/en/docusaurus-plugin-content-docs/current/ as mesmas páginas em inglês, com os mesmos caminhos
+  i18n/en/docusaurus-plugin-content-docs/current.json   rótulos das categorias da barra lateral em inglês
+  i18n/en/docusaurus-theme-classic/              barra superior e rodapé em inglês
+  i18n/en/code.json                              textos da página inicial em inglês
+  src/pages/index.js                             página inicial
+  static/img/                                    logo e favicon do Tusab
+  docusaurus.config.js                           configuração (barra superior, rodapé, idiomas)
+  sidebars.js                                    ordem e agrupamento das páginas
 ```
+
+Toda página nova em `docs/` precisa da versão em inglês no mesmo caminho em `i18n/en/.../current/`. Ao criar ou
+renomear uma categoria em `sidebars.js`, rode `npm run write-translations -- --locale en` e traduza o rótulo novo em
+`current.json`.
 
 ## Publicação
 
-Automática via GitHub Actions (`deploy-docs.yml`) — build + deploy no GitHub Pages a cada push relevante na `main`. Para publicar manualmente, dispare o workflow pela aba Actions do GitHub ("Run workflow").
-
-## Limpeza pendente
-
-Este projeto foi criado via `create-docusaurus` e ainda tem alguns arquivos de exemplo do template que não fazem parte da documentação real do Tusab (excluídos do build via `docs.exclude` e `blog: false` em `docusaurus.config.js`, mas ainda presentes no repositório):
-
-- `docs/tutorial-basics/`, `docs/tutorial-extras/`, `docs/intro.mdx` — tutorial padrão do Docusaurus
-- `blog/` — posts de exemplo (blog desabilitado no site)
-- `src/pages/markdown-page.mdx` — página de exemplo avulsa
-
-Pode apagar essas pastas/arquivos manualmente quando conveniente — não afetam o site publicado.
+Automática via GitHub Actions (`deploy-docs.yml`). Para publicar manualmente, dispare o workflow pela aba Actions do
+GitHub ("Run workflow").

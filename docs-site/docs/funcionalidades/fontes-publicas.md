@@ -7,17 +7,27 @@ slug: /funcionalidades/fontes-publicas
 
 # Fontes públicas por área de conhecimento
 
-Além do YouTube e do upload manual, os perfis **Professor**, **Pesquisador** e **Especialista** buscam em **70 fontes públicas**, organizadas em **11 áreas de conhecimento** — nenhuma exige cadastro ou chave de API. O resultado é baixado e indexado automaticamente, como qualquer outro documento do Repositório.
+O Tusab busca em **70 fontes públicas**, organizadas em **11 áreas de conhecimento**. Nenhuma exige cadastro ou chave de API. Os resultados são baixados e guardados como documentos do projeto, e entram na busca como qualquer outro documento.
 
-Só entram fontes testadas ao vivo, com busca real por palavra-chave e conteúdo textual de verdade (não apenas metadado). O levantamento inicial partiu do documento "Bases de Dados Abertas — Consolidação Ampliada de Endpoints de API" (Equipe NDTI/DECIT/SCTIE, Ministério da Saúde, jul/2026); a ampliação de out/2026 testou mais de 260 candidatos e mais de 150 portais de dados abertos.
+- **Pela IA:** `tusab_fontes_publicas` lista as fontes por área, com o `id` de cada uma; `tusab_buscar_fonte_publica` busca um tema numa fonte e guarda os resultados no projeto (cria o projeto se ele não existir). De 1 a 50 resultados, padrão 10.
+- **Pela tela:** aba Extração → **Base pública** (perfis Professor, Pesquisador e Especialista), várias fontes de uma vez. De 1 a 50 resultados por fonte, padrão 20.
 
-## Como buscar
+O código fica em `tusab-mcp/src/fontes/`, com o mesmo registro de fontes do app desktop (`tusab_engine/motor/fontes/`).
 
-1. Na aba **Extração**, escolha **Base pública** e a área de conhecimento
-2. Clique em **Iniciar Extração** e marque uma ou mais fontes — dá para filtrar por **Brasil / Internacional**, por **tipo de conteúdo** (artigos, teses, legislação, jurisprudência, dados, notícias...) e por **nome ou instituição**
-3. Fontes da mesma instituição aparecem agrupadas (ex.: Hugging Face → Modelos, Datasets e Papers; Senado Federal → Leis, Projetos e Discursos)
-4. Nos portais de dados abertos, escolha também **quais estados, capitais, órgãos ou países** consultar
-5. Digite o tema, escolha quantos resultados por fonte (até 50) e confirme — as fontes são consultadas uma de cada vez, e tudo vai para o mesmo projeto
+Só entram fontes testadas com busca real por palavra-chave e conteúdo textual (não apenas metadado). O levantamento inicial partiu do documento "Bases de Dados Abertas — Consolidação Ampliada de Endpoints de API" (Ministério da Saúde, jul/2026); a ampliação de out/2026 testou mais de 260 candidatos e mais de 150 portais de dados abertos.
+
+## Por que até 50 resultados
+
+As fontes são serviços públicos gratuitos e limitam quantos pedidos cada pessoa faz. Buscas grandes demais fazem a fonte bloquear o acesso por um tempo e demoram muito. O limite está na validação da ferramenta MCP e da rota usada pela tela. Para ir além, faça outra busca no mesmo projeto com outros termos ou outro período.
+
+## Como buscar na tela
+
+1. Na aba **Extração**, escolha **Base pública** e a área de conhecimento.
+2. Marque uma ou mais fontes. Dá para filtrar por **Brasil / Internacional**, por **tipo de conteúdo** (artigos, teses, legislação, jurisprudência, dados, notícias…) e por **nome ou instituição**. Fontes da mesma instituição aparecem agrupadas (ex.: Hugging Face → Modelos, Datasets e Papers).
+3. Nos portais de dados abertos, escolha também **quais estados, capitais, órgãos ou países** consultar.
+4. Digite o tema, escolha quantos resultados por fonte (até 50) e confirme. As fontes são consultadas uma de cada vez e tudo vai para o mesmo projeto.
+
+Algumas fontes aceitam filtro por data (`data_inicio`/`data_fim` no formato `AAAA-MM-DD`); `tusab_fontes_publicas` marca quais.
 
 ## Fontes por área
 
@@ -156,8 +166,8 @@ Nas fontes de jurisprudência (STF, TCU, TST), os blocos com dados das partes s�
 - **MEC, CNE, BNCC e INEP**: sem API de busca utilizável; o acervo educacional brasileiro chega pelo IBICT (BDTD, OasisBR) e pela CAPES.
 - **Conitec, LILACS/BVS, SciELO Search, Planalto, STJ, LexML**: bloqueio anti-robô ou sem API.
 - **dados.gov.br**: exige token desde 2023. Os portais de órgãos, estados e capitais com catálogo próprio estão incluídos.
-- **Querido Diário** (diários oficiais municipais): fora do ar no momento do teste — será reavaliado.
+- **Querido Diário** (diários oficiais municipais): fora do ar no momento do teste.
 
 ## Extensibilidade
 
-Cada fonte é um módulo independente com o mesmo contrato (`FONTE_META` + `buscar()`) — adicionar uma fonte nova não exige tocar nas demais. Ver `tusab_engine/motor/fontes/` no repositório.
+Cada fonte é um módulo independente em `src/fontes/`, registrado em `src/fontes/index.js`; adicionar uma fonte nova não exige mexer nas demais. Ver `tusab-mcp/src/fontes/` no repositório.

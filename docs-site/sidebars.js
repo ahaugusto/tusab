@@ -5,7 +5,9 @@ const sidebars = {
   tutorialSidebar: [
     'intro',
     'instalacao',
-    'perfis-e-jornadas',
+    'ferramentas-mcp',
+    'biblioteca-de-prompts',
+    'tela',
     {
       type: 'category',
       label: 'Funcionalidades',
@@ -14,11 +16,13 @@ const sidebars = {
         'funcionalidades/extracao-youtube',
         'funcionalidades/repositorio-multi-fonte',
         'funcionalidades/fontes-publicas',
-        'funcionalidades/assistente-rag',
-        'funcionalidades/modo-estudo',
-        'funcionalidades/mcp-server',
+        'funcionalidades/estudo',
+        'funcionalidades/originais-e-imagens',
+        'funcionalidades/idiomas',
+        'funcionalidades/economia-de-tokens',
       ],
     },
+    'perfis-e-jornadas',
     {
       type: 'category',
       label: 'Arquitetura técnica',
@@ -43,6 +47,20 @@ const sidebars = {
     'contribuindo',
     'changelog',
     'licenca',
+    {
+      type: 'category',
+      label: 'App desktop (versão anterior)',
+      collapsed: true,
+      items: [
+        'desktop/visao-geral',
+        'desktop/instalacao',
+        'desktop/assistente-rag',
+        'desktop/modo-estudo',
+        'desktop/mcp-server',
+        'desktop/decisoes-tecnicas',
+        'desktop/desenvolvimento',
+      ],
+    },
   ],
 };
 

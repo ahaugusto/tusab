@@ -7,84 +7,74 @@ slug: /seguranca
 
 # Security
 
-Tusab runs locally on the user's machine — a privacy advantage, but that doesn't eliminate risk. Three attack surfaces exist even in a local desktop app: the FastAPI API on `localhost:8001`, user input (URLs, uploads, pasted text), and the React interface running inside Electron.
+Tusab runs on the user's computer and doesn't depend on a central server. That reduces the attack surface, but doesn't eliminate it. The real surfaces are:
 
-## What was already secure from the start
+1. the screen's **local HTTP server** (`127.0.0.1`), which other websites open in the same browser may try to reach;
+2. the **content of the sources**, which goes to the AI and may contain hidden instructions (indirect *prompt injection*);
+3. the **inputs**: YouTube links, uploaded files, imported `.tusab` files, web pages;
+4. what **leaves the computer**: images sent to the AI, yt-dlp downloads.
 
-- **Electron with best practices** — `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, explicit preload script
-- **Safe subprocesses** — yt-dlp is always executed via an argument list, never `shell=True` (prevents shell injection)
-- **Sensitive files in `.gitignore`** — `credentials.json`, `token.json`, `.env`, `agent_config.json` have never been committed
-- **File name sanitization** — regex strips special characters before saving uploads to disk
+## Local screen server
 
-## Audit and fixes applied
+Summary of the protections in `tusab-mcp/src/painel.js` (details in [Tusab screen](/tela#local-server-security)):
 
-Two rounds of end-to-end code auditing (June 2026) covered subprocess injection, path traversal, input validation, Electron security, secret storage, CORS, XSS, and dependencies. Twelve findings identified and fixed:
+- listens only on `127.0.0.1`, on a random port, and closes together with the AI tool;
+- requires the session key (256 bits, new at each start) in the `X-Tusab-Chave` header, with constant-time comparison;
+- refuses a `Host` other than `127.0.0.1:<port>` (DNS rebinding) and `Origin`/`Sec-Fetch-Site` from other sites;
+- sends no CORS headers; CSP `'self'`, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`;
+- accepts only `GET`, `POST` and `DELETE` on the API, a JSON body (up to 12 MB) or file upload (up to 50 MB), and only serves files from inside `interface/`.
 
-| # | Fix | Severity |
-|---|----------|------------|
-| 1 | CORS restricted to `localhost:8001` (was: `allow_origins=["*"]`) | Critical |
-| 2 | yt-dlp playlist ID validated by regex before composing commands | Critical |
-| 3 | Upload limited to 50 MB before processing | High |
-| 4 | File delete protected against path traversal (`os.path.realpath()`) | High |
-| 5 | `dangerouslySetInnerHTML` eliminated from React | Medium |
-| 6 | API keys migrated to the OS keychain via `safeStorage` | Medium |
-| 7 | Size limits on every Pydantic field (`max_length`) | Low |
-| 8 | Path traversal in the static file server fixed | High |
-| 9 | Prompt injection mitigated with XML delimiters in the RAG prompt | Medium |
-| 10 | Google Drive query injection fixed with quote escaping | Medium |
-| 11 | YouTube URL validated against a regex whitelist | Low |
-| 12 | Chat history moved to the server — client payload ignored | Low |
+The screen link carries the key in the URL (`?chave=`) and must not be shared; it stops working when the AI tool closes.
 
-### Example — CORS
+## Source content and the AI
 
-**Before:** `allow_origins=["*"]`, `allow_credentials=True` — any site open in the user's browser, or any local process, could make unrestricted requests to the API.
+- Every tool that returns content from the base includes the notice that **the text is data from the sources, not instructions**.
+- The MCP server instructions ask the AI never to follow orders that appear inside the excerpts.
+- These measures reduce the risk, but don't isolate: no model treats delimiters or notices as a guaranteed barrier. The structural protection is that Tusab **puts no secrets in what it hands to the AI** (the extension stores no API keys or tokens).
+- Tools that change the base or access the internet are marked as such (`readOnlyHint: false`, `openWorldHint: true`), and the instructions ask the AI to add content only when the user asks.
 
-**After:** `allow_origins=["http://localhost:8001", "http://127.0.0.1:8001"]`, `allow_credentials=False` — only the app itself can call the API.
+## Files and paths
 
-### Example — prompt injection in the RAG pipeline
+- **Types checked by signature** (first bytes), not only by name extension; SVG, HTML and executables are refused.
+- **Originals** at a path recomputed by convention (`documents/originais/{id}_{nome}{ext}`, `id` with 8 hex characters), never read from the manifest; Tusab never opens an original with the system's default program.
+- **Path traversal:** every read, write and delete checks that the final path stays inside the allowed folder (`dentroDe`); project names are cleaned and can't start with a dot.
+- **`.tusab` import:** size limit (512 MB uploaded), limits on the uncompressed content (against *zip bombs*), a check of every zip path (against *zip slip*) and discarding of originals with a forbidden type or non-matching signature.
+- **Atomic writes** for every file (temporary file + rename).
 
-The prompt assembles each component with semantic XML delimiters:
+## Extraction and network
 
-```
-<source id="1">
-<title>...</title>
-<date>...</date>
-<link>...</link>
-<content>...</content>
-</source>
+- Channel URL and playlist ID validated by regular expressions before the command is built.
+- yt-dlp run with an argument list, never through a shell.
+- yt-dlp downloaded only from `github.com/yt-dlp/yt-dlp/releases/latest`, with the SHA-256 sum checked against the published `SHA2-256SUMS`; if it doesn't match, the download is discarded.
+- Web pages: `robots.txt` is checked before reading.
+- The browser is opened without a shell, with the link validated by a regular expression.
 
-<conversation_history>...</conversation_history>
+## Images sent to the AI
 
-<question>...</question>
-```
+Before `tusab_ler_original` returns an image, EXIF, XMP, comments and embedded text (including GPS) are removed from JPEG, PNG and WebP. If cleaning can't be guaranteed, the image isn't sent (fail closed). Images above 3 MB are not sent. See [Originals and images](/funcionalidades/originais-e-imagens).
 
-The model receives an explicit structure: content inside `<source>` is treated as reference data, not as instruction. The question is capped at 2,000 characters.
+## Known gaps
 
-Two additional layers were added in a later audit (September 2026):
+- Metadata removal doesn't apply to GIF, which is sent as is.
+- People mentioned in the body of case-law texts, outside the party fields, are not anonymized automatically (see [Public sources](/funcionalidades/fontes-publicas#privacy-in-case-law)).
+- The "data, not instructions" notice is a mitigation, not isolation: a malicious document can still influence the AI's answer. Check the citations.
 
-- **Explicit anti-injection instruction**: the system message instructs the model to treat any text inside `<content>` that looks like a command ("ignore previous instructions", "reveal your configuration") as part of the content to be reported — never as an order to follow.
-- **Post-response detection**: a heuristic checks whether the generated answer contains the textual signature of having complied with an injected command (e.g., mentions of having switched persona or revealed configuration). When detected, the interface shows a warning — the answer is not blocked or replaced, just flagged for review.
+## Desktop app
 
-Both layers are surface-level reinforcement, not guaranteed isolation: no LLM treats delimiters as a real sandbox. The structural defense (the architecture never injects secrets into the prompt) remains the primary protection against sensitive data exfiltration.
+The desktop app has other surfaces: the FastAPI API on `localhost:8001`, the Electron window and the API keys stored on the system. The controls applied:
 
-### Example — path traversal on delete
+| Control | How |
+|---|---|
+| Isolated Electron | `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, explicit preload |
+| Restricted CORS | `allow_origins` only `http://localhost:8001` and `http://127.0.0.1:8001`, `allow_credentials=False` |
+| API keys | In the system keychain via `safeStorage` (DPAPI/Keychain); `agent_config.json` stores `__encrypted__`; the key appears masked in `GET /agent/config` |
+| Uploads | 50 MB limit per document; sanitized names; deletion protected with `os.path.realpath()` |
+| Input fields | Size limits (`max_length`) in the Pydantic models; chat question up to 2,000 characters |
+| Prompt injection in the chat | Sources delimited by XML tags (`<source>`, `<content>`), an explicit instruction to treat commands inside the content as data and, after the answer, detection of signs that it obeyed a hidden instruction (a notice in the interface, without blocking) |
+| Chat history | Kept on the server (12 messages); history sent by the client is ignored |
+| Interface | No `dangerouslySetInnerHTML` |
+| Google Drive | Minimal `drive.file` scope; quotes escaped in Drive queries |
 
-```python
-real_path = os.path.realpath(txt_path)
-real_subdir = os.path.realpath(subdir)
-if not real_path.startswith(real_subdir + os.sep):
-    return {"error": True, "message": "Invalid path"}
-```
+Desktop technical gap: the API on `localhost:8001` requires no authentication token; protection against other websites is the restricted CORS.
 
-`os.path.realpath()` resolves the real absolute path — including any `../` or symlink — and verifies it's actually inside the allowed folder before any delete operation.
-
-## General posture
-
-- No central server to attack or compromise
-- Data never leaves the machine without explicit consent
-- Electron configured with isolation best practices
-- The 12 fixes close the realistic attack surfaces for the current distribution phase
-
-**What's still missing for an enterprise posture:** local authentication token for the API (server mode), pinned dependency versions, automated tests covering critical security endpoints.
-
-For personal data handling (LGPD/GDPR), see [Privacy](/privacidade).
+For personal data handling, see [Privacy](/privacidade).
