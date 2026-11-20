@@ -31,6 +31,7 @@ select option,
 select optgroup {
   background-color: #ffffff;
   color: #0f172a;
+  padding: 0.35rem 0.75rem; /* respiro nas opções da lista aberta (onde o navegador permite) */
 }
 .dark select option,
 .dark select optgroup {
@@ -138,3 +139,6 @@ select:not([multiple]):not([size]) {
 .tusab-md code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8em; background: rgba(100, 116, 139, 0.15); padding: 0.1rem 0.3rem; border-radius: 4px; }
 .tusab-md pre { background: rgba(100, 116, 139, 0.12); padding: 0.75rem; border-radius: 8px; overflow-x: auto; margin: 0 0 0.8rem; }
 .tusab-md pre code { background: none; padding: 0; }
+
+/* Campo de busca: o "x" nativo do navegador some (a tela já tem o próprio botão de limpar). */
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

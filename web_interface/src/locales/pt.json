@@ -1542,7 +1542,7 @@
   "ext.economia.ler_fontes": "o que custaria anexar os arquivos inteiros de onde vieram esses trechos.",
   "ext.economia.ler_projeto": "o que custaria anexar todos os arquivos do projeto, sem saber onde está a resposta.",
   "ext.prompts.buscar": "Buscar prompts",
-  "ext.prompts.buscar_exemplo": "Buscar por nome, descrição ou texto…",
+  "ext.prompts.buscar_exemplo": "Buscar prompts por nome, descrição ou texto…",
   "ext.prompts.nenhum_resultado": "Nenhum prompt encontrado para \"{{busca}}\".",
   "ext.prompts.n_resultados_one": "{{count}} prompt encontrado",
   "ext.prompts.n_resultados_other": "{{count}} prompts encontrados",

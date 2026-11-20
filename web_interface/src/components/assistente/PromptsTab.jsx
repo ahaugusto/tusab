@@ -149,7 +149,7 @@ export function AvisoCopiado({ darkMode, onFechar, pedido = null }) {
             <ExternalLink size={13} aria-hidden="true" /> {t('ext.copiado.navegador')}
           </a>
           <select value={ia} onChange={(e) => escolher(e.target.value)} aria-label={t('ext.copiado.navegador_qual')}
-            className={`text-xs font-bold bg-transparent pr-1 py-1.5 rounded-r-lg border-l ${BTN_FOCUS} ${darkMode ? 'border-white/15 text-slate-200' : 'border-slate-300 text-slate-700'}`}>
+            className={`text-xs font-bold bg-transparent pl-3 py-1.5 min-w-[7.5rem] rounded-r-lg border-l ${BTN_FOCUS} ${darkMode ? 'border-white/15 text-slate-200' : 'border-slate-300 text-slate-700'}`}>
             {IAS_NAVEGADOR.map((x) => <option key={x.id} value={x.id} className={darkMode ? 'bg-slate-900' : ''}>{x.nome}</option>)}
           </select>
         </span>
@@ -328,6 +328,12 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
   ], [t]);
   const pastas = useMemo(() => [...new Set(lista.filter((p) => p.categoria_id === MEUS && p.pasta).map((p) => p.pasta))]
     .sort((a, b) => a.localeCompare(b, i18n.resolvedLanguage)), [lista, i18n.resolvedLanguage]);
+  // Buscar procura em todos os prompts: a aba "Para quê" aberta (ex.: Ensinar) volta para Todos ao
+  // digitar, senão um prompt de outra aba parecia não existir. Em "Meus prompts" a busca fica nos seus.
+  const buscar = (valor) => {
+    setBusca(valor);
+    if (valor.trim() && categoria !== TODOS && categoria !== MEUS) setCategoria(TODOS);
+  };
   const termo = normalizar(busca.trim());
   const visiveis = useMemo(() => lista.filter((p) => {
     if (categoria === MEUS ? p.categoria_id !== MEUS : categoria !== TODOS && !(p.publicos || []).includes(categoria)) return false;
@@ -395,18 +401,6 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
             </button>
           </div>
         </div>
-        <label className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary ${darkMode ? 'bg-white/5 border-white/15' : 'bg-white border-slate-300'}`}>
-          <Search size={14} className={textoSec} aria-hidden="true" />
-          <span className="sr-only">{t('ext.prompts.buscar')}</span>
-          <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} data-campo="busca"
-            placeholder={t('ext.prompts.buscar_exemplo')}
-            className={`flex-1 bg-transparent text-sm outline-none min-w-0 ${darkMode ? 'text-white placeholder:text-slate-500' : 'text-slate-800 placeholder:text-slate-400'}`} />
-          {busca && (
-            <button onClick={() => setBusca('')} aria-label={t('ext.prompts.limpar_busca')} className={`p-0.5 rounded ${BTN_FOCUS} ${textoSec}`}>
-              <X size={14} />
-            </button>
-          )}
-        </label>
         {semProjeto && <p className={`text-xs ${textoSec}`}>{t('ext.prompts.precisa_projeto')}</p>}
       </section>
 
@@ -422,6 +416,20 @@ export default function PromptsTab({ darkMode, projetos = [] }) {
           </button>
         ))}
       </div>
+
+      {/* Busca nos prompts: logo acima dos cartões (dentro da caixa do projeto parecia buscar projetos) */}
+      <label className={`flex items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-primary ${darkMode ? 'bg-white/5 border-white/15' : 'bg-white border-slate-300'}`}>
+        <Search size={14} className={textoSec} aria-hidden="true" />
+        <span className="sr-only">{t('ext.prompts.buscar')}</span>
+        <input type="search" value={busca} onChange={(e) => buscar(e.target.value)} data-campo="busca"
+          placeholder={t('ext.prompts.buscar_exemplo')}
+          className={`flex-1 bg-transparent text-sm outline-none min-w-0 ${darkMode ? 'text-white placeholder:text-slate-500' : 'text-slate-800 placeholder:text-slate-400'}`} />
+        {busca && (
+          <button onClick={() => setBusca('')} aria-label={t('ext.prompts.limpar_busca')} className={`p-0.5 rounded ${BTN_FOCUS} ${textoSec}`}>
+            <X size={14} />
+          </button>
+        )}
+      </label>
 
       {categoria === MEUS && (pastas.length > 0 || lista.some((p) => p.categoria_id === MEUS)) && (
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('ext.prompts.pastas')}>
