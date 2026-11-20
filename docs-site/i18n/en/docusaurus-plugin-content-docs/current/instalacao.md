@@ -27,6 +27,8 @@ The extension is distributed as an [MCP Bundle](https://github.com/modelcontextp
 
 The chosen folder is passed to the server through the `TUSAB_REPOSITORIO` environment variable (field `user_config.repositorio` in `manifest.json`). Without that variable, the server uses `~/Tusab`.
 
+Will you also use Tusab in another AI tool? See [Other AI tools](#other-ai-tools-claude-code-vs-code-cursor-gemini-cli-codex) and, above all, the [Precautions](#precautions): one AI at a time on the same base.
+
 ## Building the `.mcpb` from source
 
 An alternative to the download above. The generated package is named `tusab.mcpb` and installs the same way.
@@ -44,23 +46,117 @@ npm run pack         # builds the screen, generates the license notices and crea
 
 The file is written to the repository root (`tusab.mcpb`). `npm run pack` uses `@anthropic-ai/mcpb@2.1.2` through `npx`.
 
-## Other MCP-compatible tools (Claude Code, VS Code, Cursor…)
+## Other AI tools (Claude Code, VS Code, Cursor, Gemini CLI, Codex…)
 
-Any MCP client that starts servers over **stdio** can run the plugin straight from source, after `npm install` in `tusab-mcp/` and `npm run build:interface` (for the screen to work):
+Tusab works in any AI tool that accepts **local MCP servers** (which the tool starts on the computer itself, over stdio). There, installation is done by hand, in three steps: have Node.js, put Tusab's files in a folder, and point the tool to them.
+
+:::info Where it does not work
+Browser AIs (Claude.ai, ChatGPT, Gemini on the web) and the ChatGPT app only accept servers over the internet: they cannot reach the Tusab on this computer. To use them with your base, copy the request from the [Prompt Library](/biblioteca-de-prompts) and use **Open in browser**: Tusab copies the request with the excerpts from the base inside.
+:::
+
+### 1. Node.js: check and install
+
+Claude Desktop ships its own Node.js; the other tools use the one installed on the computer. Tusab needs version **18.17 or newer**.
+
+**Check whether it is installed.** Open PowerShell (Windows: Start menu › "PowerShell") or Terminal (macOS: Applications › Utilities › Terminal) and type:
+
+```bash
+node --version
+```
+
+- A number like `v22.11.0` shows up (18.17 or higher): go to step 2.
+- A lower number shows up (for example, `v16.20.0`): update with the installer below.
+- "`node` is not recognized as a command" (Windows) or "`command not found`" (macOS) shows up: Node.js is not installed.
+
+**Install.** Download the **LTS** version from [nodejs.org](https://nodejs.org/) (Windows: `.msi` installer; macOS: `.pkg` installer) and follow the installer with the default options. If you prefer the command line, use `winget install OpenJS.NodeJS.LTS` (Windows) or `brew install node` (macOS, with Homebrew). Then **close and reopen** PowerShell or Terminal (and the AI tool) and check with `node --version`.
+
+### 2. Put Tusab in a folder
+
+The simplest way is to open the `.mcpb` package itself (the same one used by Claude Desktop) into a folder: it already has the server, the dependencies and the compiled screen, with nothing else to install.
+
+1. Download the package from the [release](https://github.com/criaugu/tusab/releases) (`tusab-X.Y.Z.mcpb`) and check the SHA-256 checksum, as in Claude Desktop.
+2. In PowerShell or Terminal, open the package into a folder (replace the file name and folder with yours):
+
+```powershell
+# Windows
+npx --yes @anthropic-ai/mcpb@2.1.2 unpack "$HOME\Downloads\tusab-2.0.0.mcpb" "$HOME\tusab-servidor"
+```
+
+```bash
+# macOS
+npx --yes @anthropic-ai/mcpb@2.1.2 unpack ~/Downloads/tusab-2.0.0.mcpb ~/tusab-servidor
+```
+
+The file the tool will run is `tusab-servidor/src/index.js` inside that folder. To **update**, download the new package and open it into the same folder (your base data lives elsewhere and is not touched). If you prefer the source code, use a clone of the repository after `npm install` in `web_interface/` and `tusab-mcp/` and `npm run build:interface` in `tusab-mcp/`.
+
+### 3. Configure the tool
+
+All of them ask for the same three values:
+
+| Value | What to use |
+|---|---|
+| Command | `node` |
+| Argument | the full path of `src/index.js` in the folder from step 2 |
+| `TUSAB_REPOSITORIO` variable | your base folder (the same one you chose in Claude Desktop, to use the same base) |
+
+In the examples below, replace `augusto` with your user and the folders with yours. In JSON files on Windows, the backslash is doubled (`\\`).
+
+**Claude Code** (in the terminal; `-s user` applies to all projects):
+
+```powershell
+claude mcp add tusab -s user -e TUSAB_REPOSITORIO="C:\Users\augusto\Tusab" -- node "C:\Users\augusto\tusab-servidor\src\index.js"
+```
+
+**Cursor** (`~/.cursor/mcp.json`), **Gemini CLI** (`~/.gemini/settings.json`) and other tools that use the `mcpServers` key:
 
 ```json
 {
   "mcpServers": {
     "tusab": {
       "command": "node",
-      "args": ["<path>/tusab/tusab-mcp/src/index.js"],
-      "env": { "TUSAB_REPOSITORIO": "<repository folder>" }
+      "args": ["C:\\Users\\augusto\\tusab-servidor\\src\\index.js"],
+      "env": { "TUSAB_REPOSITORIO": "C:\\Users\\augusto\\Tusab" }
     }
   }
 }
 ```
 
-The exact configuration file format depends on each tool; what matters is the command (`node`), the argument (`src/index.js`) and the `TUSAB_REPOSITORIO` variable.
+On macOS, the paths look like `/Users/augusto/tusab-servidor/src/index.js` and `/Users/augusto/Tusab`.
+
+**VS Code with GitHub Copilot** (`.vscode/mcp.json` in the project, or the "MCP: Add Server" command): the same block, with the `servers` key instead of `mcpServers` and `"type": "stdio"` inside `tusab`.
+
+**Codex** (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.tusab]
+command = "node"
+args = ['C:\Users\augusto\tusab-servidor\src\index.js']
+env = { TUSAB_REPOSITORIO = 'C:\Users\augusto\Tusab' }
+```
+
+After configuring, restart the tool and ask "open Tusab" or "list my Tusab projects". If the tool says the server did not start, check step 1 (`node --version` in the same terminal) and whether the path to `src/index.js` is right.
+
+### What works in each tool
+
+| Feature | Claude Desktop | Other tools |
+|---|---|---|
+| The 15 tools (search with citations, YouTube, documents, public sources, saving material, spaced repetition, token savings) | Yes | Yes |
+| Tusab screen in the browser (opens by itself the first time; afterwards, ask "open Tusab") | Yes | Yes |
+| **Open in Tusab** link after saving a material | Yes | Yes |
+| Connection status in the "copied" notice | Yes, as "Claude Desktop" | Yes, with the name the tool reports |
+| Ready-made shortcuts in **+** | Yes | Depends on the tool (in Claude Code they become `/` commands). Where they do not show up, copy the request from the Library |
+| **Open Claude (app)** button in the "copied" notice | Yes | Not applicable: paste the request in the tool |
+| Images from originals (`tusab_ler_original`) | Yes | In most; depends on the tool accepting images from the server |
+| Installation | Open the `.mcpb` | Steps 1 to 3 |
+| Node.js | Comes with Claude Desktop | Must be installed (18.17+) |
+
+## Precautions
+
+- **One AI at a time on the same base.** Each AI tool starts its own Tusab. Two of them open at the same time pointing to the same folder (for example, Claude Desktop and Claude Code) would write the same index and files at the same time, which can corrupt the base. Close one before opening the other, or use a different base folder for each.
+- **The screen lives while the AI is open.** Tusab is started by the AI tool and closes with it; the screen in the browser stops responding when the AI closes.
+- **The "Open in Tusab" link only works in that session.** The screen's port and key change each time the AI starts Tusab; an old link does not open. To see a material later, ask "open Tusab" and use the Materials tab.
+- **Install only from the official repository.** Tusab runs with your user's permissions (Claude Desktop warns about this during installation). Download the package from the [releases](https://github.com/criaugu/tusab/releases) and check the SHA-256 checksum.
+- **Up-to-date Node.js.** In the other tools, a Node.js version below 18.17 keeps Tusab from starting.
 
 ## yt-dlp
 

@@ -34,9 +34,15 @@ npm install
 npm run pack          # gera ../tusab.mcpb
 ```
 
-### Outras ferramentas MCP (Claude Code, VS Code, Cursor…)
+### Outras ferramentas de IA (Claude Code, VS Code, Cursor, Gemini CLI, Codex…)
 
-Depois de `npm install` e `npm run build:interface` em `tusab-mcp/`:
+Precisam do **Node.js 18.17 ou mais novo** (confira com `node --version`; baixe a versão LTS em [nodejs.org](https://nodejs.org/)). O jeito mais simples é abrir o próprio `.mcpb` numa pasta, que já traz tudo pronto:
+
+```powershell
+npx --yes @anthropic-ai/mcpb@2.1.2 unpack tusab-2.0.0.mcpb "$HOME\tusab-servidor"
+```
+
+E apontar a ferramenta para `src/index.js` dessa pasta (ou, a partir do código, depois de `npm install` e `npm run build:interface` em `tusab-mcp/`):
 
 ```json
 {
@@ -50,7 +56,7 @@ Depois de `npm install` e `npm run build:interface` em `tusab-mcp/`:
 }
 ```
 
-Detalhes em [Instalação](https://criaugu.github.io/tusab/instalacao).
+Passo a passo por ferramenta, o que funciona em cada uma e os cuidados (uma IA por vez na mesma base) em [Instalação](https://criaugu.github.io/tusab/instalacao).
 
 ## Estrutura do repositório
 

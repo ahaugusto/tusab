@@ -53,7 +53,7 @@ node src/cli.js medir-tokens perguntas.txt Projeto [saida.csv]     # teste de ec
 npm start        # = node src/index.js, servidor MCP por stdio
 ```
 
-Para usar numa ferramenta de IA durante o desenvolvimento, aponte a configuração MCP dela para `node <caminho>/tusab-mcp/src/index.js` com `TUSAB_REPOSITORIO` (ver [Instalação](/instalacao#outras-ferramentas-compatíveis-com-mcp-claude-code-vs-code-cursor)).
+Para usar numa ferramenta de IA durante o desenvolvimento, aponte a configuração MCP dela para `node <caminho>/tusab-mcp/src/index.js` com `TUSAB_REPOSITORIO` (ver [Instalação](/instalacao#outras-ferramentas-de-ia-claude-code-vs-code-cursor-gemini-cli-codex)).
 
 ## Variáveis de ambiente
 
