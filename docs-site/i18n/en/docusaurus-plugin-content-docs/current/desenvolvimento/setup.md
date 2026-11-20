@@ -53,7 +53,7 @@ node src/cli.js medir-tokens questions.txt Project [output.csv]      # token sav
 npm start        # = node src/index.js, MCP server over stdio
 ```
 
-To use it in an AI tool during development, point its MCP configuration to `node <path>/tusab-mcp/src/index.js` with `TUSAB_REPOSITORIO` (see [Installation](/instalacao#other-mcp-compatible-tools-claude-code-vs-code-cursor)).
+To use it in an AI tool during development, point its MCP configuration to `node <path>/tusab-mcp/src/index.js` with `TUSAB_REPOSITORIO` (see [Installation](/instalacao#other-ai-tools-claude-code-vs-code-cursor-gemini-cli-codex)).
 
 ## Environment variables
 
