@@ -149,7 +149,7 @@ export function AvisoCopiado({ darkMode, onFechar, pedido = null }) {
             <ExternalLink size={13} aria-hidden="true" /> {t('ext.copiado.navegador')}
           </a>
           <select value={ia} onChange={(e) => escolher(e.target.value)} aria-label={t('ext.copiado.navegador_qual')}
-            className={`text-xs font-bold bg-transparent pr-1 py-1.5 rounded-r-lg border-l ${BTN_FOCUS} ${darkMode ? 'border-white/15 text-slate-200' : 'border-slate-300 text-slate-700'}`}>
+            className={`text-xs font-bold bg-transparent pl-3 py-1.5 min-w-[7.5rem] rounded-r-lg border-l ${BTN_FOCUS} ${darkMode ? 'border-white/15 text-slate-200' : 'border-slate-300 text-slate-700'}`}>
             {IAS_NAVEGADOR.map((x) => <option key={x.id} value={x.id} className={darkMode ? 'bg-slate-900' : ''}>{x.nome}</option>)}
           </select>
         </span>

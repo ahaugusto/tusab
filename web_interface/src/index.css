@@ -31,6 +31,7 @@ select option,
 select optgroup {
   background-color: #ffffff;
   color: #0f172a;
+  padding: 0.35rem 0.75rem; /* respiro nas opções da lista aberta (onde o navegador permite) */
 }
 .dark select option,
 .dark select optgroup {
