@@ -1,14 +1,16 @@
 {
   "display_name": "Tusab",
-  "description": "Tusab inside your AI: extract YouTube channels on this computer and query the base with citations to the exact minute.",
-  "long_description": "Tusab extracts transcripts from YouTube channels, playlists and videos on this computer, from your own IP, and organizes everything in a local folder. Your AI tool queries this base and cites the video and the minute. The Tusab screen opens in the browser, served by this computer. Nothing goes through CriAugu servers: only the excerpts the AI queries go to the AI you chose.",
+  "description": "Your study and research notebook inside your AI: build a base on this computer from YouTube, documents and 70 public sources, ask with citations to the minute or the page, and study with flashcards, quizzes and mind maps that stay saved.",
+  "long_description": "Tusab turns Claude (or another MCP-compatible AI) into a study and research notebook connected to **your** sources, kept on this computer.\n\n**Build your base**\n- **YouTube:** transcripts of channels, playlists and videos, extracted on this computer, from your own IP, with automatic channel updates.\n- **Documents:** PDF, Word, Excel, CSV, TXT/Markdown, web pages and FHIR, with the original file kept.\n- **70 public sources** in 11 areas: arXiv, PubMed, SciELO, Brazilian Chamber and Senate, Supreme Court, IBGE, Central Bank, open data portals and others, with no sign-up or key.\n\n**Ask with citations**\n- The AI fetches only the right excerpts and cites the source: the video and the minute, with a link, or the PDF page.\n- It uses fewer tokens than attaching whole sources, and Tusab shows how much it saved.\n\n**Study, teach and create**\n- **Library with 41 ready-made prompts**, 20 of them based on evidence-based techniques (pretest, interleaved practice, backward design, PRISMA, pre-mortem…), to study, teach, research and decide, with the suggested AI model for each task.\n- **What the AI creates stays saved in Tusab:** flashcards with spaced repetition, summaries, quizzes, mind maps and lesson plans, which open drawn in the Materials tab.\n\n**On the Tusab screen** (in the browser, served by this computer): extraction, repository, materials and export or import of the base (.tusab, zip, spreadsheet and PDF). In Portuguese, English and Spanish.\n\n**Privacy:** the base stays on this computer. Nothing goes through CriAugu servers; only the excerpts the AI queries go to the AI you chose.",
   "keywords": [
-    "knowledge",
+    "study",
+    "research",
     "youtube",
     "transcripts",
-    "rag",
-    "local-first",
-    "sqlite"
+    "flashcards",
+    "citations",
+    "public sources",
+    "local-first"
   ],
   "tools": [
     {

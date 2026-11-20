@@ -1,14 +1,16 @@
 {
   "display_name": "Tusab",
-  "description": "Tusab dentro de tu IA: extrae canales de YouTube en este ordenador y consulta la base con citas al minuto exacto.",
-  "long_description": "Tusab extrae transcripciones de canales, listas y videos de YouTube en este ordenador, desde tu propia IP, y lo organiza todo en una carpeta local. Tu herramienta de IA consulta esa base y cita el video y el minuto. La pantalla de Tusab se abre en el navegador, servida por este ordenador. Nada pasa por servidores de CriAugu: solo los fragmentos que la IA consulta van a la IA que elegiste.",
+  "description": "Tu cuaderno de estudio e investigación dentro de la IA: arma una base en este ordenador con YouTube, documentos y 70 fuentes públicas, pregunta con citas al minuto o a la página y estudia con flashcards, quizzes y mapas mentales que quedan guardados.",
+  "long_description": "Tusab convierte a Claude (u otra IA compatible con MCP) en un cuaderno de estudio e investigación conectado a **tus** fuentes, guardadas en este ordenador.\n\n**Arma tu base**\n- **YouTube:** transcripciones de canales, listas y videos, extraídas en este ordenador, desde tu propia IP, con actualización automática de los canales.\n- **Documentos:** PDF, Word, Excel, CSV, TXT/Markdown, páginas web y FHIR, con el archivo original guardado.\n- **70 fuentes públicas** en 11 áreas: arXiv, PubMed, SciELO, Cámara y Senado de Brasil, Supremo Tribunal, IBGE, Banco Central, portales de datos abiertos y otras, sin registro ni clave.\n\n**Pregunta con citas**\n- La IA busca solo los fragmentos correctos y cita la fuente: el video y el minuto, con enlace, o la página del PDF.\n- Gasta menos tokens que adjuntar las fuentes enteras, y Tusab muestra cuánto ahorró.\n\n**Estudia, enseña y produce**\n- **Biblioteca con 41 prompts listos**, 20 de ellos basados en técnicas con evidencia (pre-test, práctica intercalada, planificación inversa, PRISMA, pre-mortem…), para estudiar, enseñar, investigar y decidir, con el modelo de IA sugerido para cada tarea.\n- **Lo que genera la IA queda guardado en Tusab:** flashcards con repaso espaciado, resúmenes, quizzes, mapas mentales y planes de clase, que se abren dibujados en la pestaña Materiales.\n\n**En la pantalla de Tusab** (en el navegador, servida por este ordenador): extracción, repositorio, materiales y exportación o importación de la base (.tusab, zip, hoja de cálculo y PDF). En portugués, inglés y español.\n\n**Privacidad:** la base queda en este ordenador. Nada pasa por servidores de CriAugu; solo los fragmentos que consulta la IA van a la IA que elegiste.",
   "keywords": [
-    "conocimiento",
+    "estudio",
+    "investigación",
     "youtube",
     "transcripciones",
-    "rag",
-    "local-first",
-    "sqlite"
+    "flashcards",
+    "citas",
+    "fuentes públicas",
+    "local-first"
   ],
   "tools": [
     {
