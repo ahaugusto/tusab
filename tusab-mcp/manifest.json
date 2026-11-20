@@ -16,13 +16,15 @@
       "theme": "dark"
     }
   ],
-  "description": "O Tusab dentro da sua IA: extraia canais do YouTube neste computador e consulte a base com citação no minuto exato.",
-  "long_description": "O Tusab extrai transcrições de canais, playlists e vídeos do YouTube neste computador, no seu IP, e organiza tudo numa pasta local. A sua ferramenta de IA consulta essa base e cita o vídeo e o minuto. A tela do Tusab abre no navegador, servida por este computador. Nada passa por servidor da CriAugu: só os trechos que a IA consulta vão para a IA que você escolheu.",
+  "description": "Seu caderno de estudo e pesquisa dentro da IA: monte uma base neste computador com YouTube, documentos e 70 fontes públicas, pergunte com citação no minuto ou na página e estude com flashcards, quizzes e mapas mentais que ficam guardados.",
+  "long_description": "O Tusab transforma o Claude (ou outra IA compatível com MCP) num caderno de estudo e pesquisa ligado às **suas** fontes, guardadas neste computador.\n\n**Monte a sua base**\n- **YouTube:** transcrições de canais, playlists e vídeos, extraídas neste computador, no seu IP, com atualização automática dos canais.\n- **Documentos:** PDF, Word, Excel, CSV, TXT/Markdown, páginas web e FHIR, com o arquivo original guardado.\n- **70 fontes públicas** em 11 áreas: arXiv, PubMed, SciELO, Câmara, Senado, STF, IBGE, Banco Central, portais de dados abertos e outras, sem cadastro nem chave.\n\n**Pergunte com citação**\n- A IA busca só os trechos certos e cita a fonte: o vídeo e o minuto, com link, ou a página do PDF.\n- Gasta menos tokens do que anexar as fontes inteiras, e o Tusab mostra quanto economizou.\n\n**Estude, ensine e produza**\n- **Biblioteca com 41 prompts prontos**, 20 deles baseados em técnicas com evidência (pré-teste, prática intercalada, planejamento reverso, PRISMA, pre-mortem…), para estudar, ensinar, pesquisar e decidir, com o modelo de IA sugerido para cada tarefa.\n- **O que a IA gera fica guardado no Tusab:** flashcards com revisão espaçada, resumos, quizzes, mapas mentais e planos de aula, que abrem desenhados na aba Materiais.\n\n**Na tela do Tusab** (no navegador, servida por este computador): extração, repositório, materiais e exportação ou importação da base (.tusab, zip, planilha e PDF). Em português, inglês e espanhol.\n\n**Privacidade:** a base fica neste computador. Nada passa por servidor da CriAugu; só os trechos que a IA consulta vão para a IA que você escolheu.",
   "author": {
     "name": "CriAugu",
     "url": "https://criaugu.com"
   },
   "homepage": "https://criaugu.github.io/tusab/",
+  "documentation": "https://criaugu.github.io/tusab/",
+  "support": "https://github.com/criaugu/tusab/issues",
   "license": "Elastic-2.0",
   "server": {
     "type": "node",
@@ -100,12 +102,14 @@
     }
   ],
   "keywords": [
-    "conhecimento",
+    "estudo",
+    "pesquisa",
     "youtube",
-    "transcricao",
-    "rag",
-    "local-first",
-    "sqlite"
+    "transcrição",
+    "flashcards",
+    "citação",
+    "fontes públicas",
+    "local-first"
   ],
   "localization": {
     "resources": "mcpb-resources/${locale}.json",
