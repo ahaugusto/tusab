@@ -1542,7 +1542,7 @@
   "ext.economia.ler_fontes": "what it would cost to attach the whole files those excerpts came from.",
   "ext.economia.ler_projeto": "what it would cost to attach every file in the project, without knowing where the answer is.",
   "ext.prompts.buscar": "Search prompts",
-  "ext.prompts.buscar_exemplo": "Search by name, description or text…",
+  "ext.prompts.buscar_exemplo": "Search prompts by name, description or text…",
   "ext.prompts.nenhum_resultado": "No prompts found for \"{{busca}}\".",
   "ext.prompts.n_resultados_one": "{{count}} prompt found",
   "ext.prompts.n_resultados_other": "{{count}} prompts found",
