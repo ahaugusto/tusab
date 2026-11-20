@@ -13,7 +13,7 @@ Tecnicamente, é um servidor [MCP](https://modelcontextprotocol.io) local (`tusa
 
 - **guarda e indexa** transcrições de vídeos do YouTube, documentos (PDF, Word, Excel, CSV, Markdown), textos e resultados de fontes públicas (artigos, teses, legislação, dados abertos) numa pasta local;
 - **responde à IA** por [15 ferramentas MCP](/ferramentas-mcp): buscar, ler uma fonte em ordem, abrir o original de um documento, adicionar conteúdo, guardar material de estudo;
-- **oferece pedidos prontos** na [Biblioteca de Prompts](/biblioteca-de-prompts) (21 prompts, no menu "+" do Claude e na tela);
+- **oferece pedidos prontos** na [Biblioteca de Prompts](/biblioteca-de-prompts) (41 prompts, 20 deles baseados em técnicas com evidência, no menu "+" do Claude e na tela);
 - **serve uma tela** no navegador, em `http://127.0.0.1:<porta>`, para extrair canais, organizar o repositório e ver relatórios ([a tela do Tusab](/tela)).
 
 Quem conversa, resume, monta quizzes e gera flashcards é **a IA do usuário**. O Tusab cuida da base: extrai, indexa, encontra o trecho, cita a fonte e guarda o que precisa de memória entre conversas (por exemplo, a revisão espaçada de flashcards).

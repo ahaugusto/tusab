@@ -17,6 +17,12 @@ Resumo técnico das versões. A partir da 2.0.0 o Tusab é só a extensão de IA
 - Ícone quadrado no pacote (versões para tema claro e escuro), feito a partir do logo.
 - Aba **Materiais**: o que a IA guarda no Tusab abre numa janela da tela (flashcards com revisão espaçada, resumos, post-its e documentos). Novo tipo `documento` em `tusab_salvar_estudo` (Markdown, até 60.000 caracteres), e os prompts que produzem documentos (quiz, mapa mental, plano de aula, prova, nota técnica…) pedem para guardá-los.
 - Conexão com a IA: todo prompt começa com uma checagem (sem as ferramentas do Tusab, a IA avisa em vez de responder de memória), e o aviso de "copiado" mostra se o Tusab está conectado e confirma quando a IA consultou a base (`GET /api/conexao`).
+- Biblioteca de Prompts: 20 prompts novos baseados em técnicas com evidência (pré-teste, recordação livre, prática intercalada, exemplo resolvido, planejamento reverso, rubrica, PRISMA, análise temática, pre-mortem, hipóteses concorrentes…), com a referência na tela; abas "Para quê" (Estudar, Ensinar, Pesquisar, Trabalho e decisões) no lugar dos perfis, que viram um só na extensão; selo de modelo sugerido (Rápido · Haiku, Intermediário · Sonnet, Mais capaz · Opus).
+- IA no navegador: "Abrir no navegador" copia o pedido com os trechos da base dentro (do tema ou um panorama do projeto), porque a IA do navegador não alcança o Tusab local.
+- Depois de `tusab_salvar_estudo`, a IA recebe e mostra o link **Abrir no Tusab**, que abre a tela direto no material.
+- Mapas mentais, fluxogramas e linhas do tempo (blocos `mermaid`) aparecem desenhados na aba Materiais (Mermaid, carregada só quando há diagrama; o layout opcional `elk` fica fora do pacote).
+- Descrições das ferramentas em inglês e espanhol (antes só os títulos mudavam de idioma).
+- O SDK do Microsoft Clarity (telemetria do antigo desktop) sai do pacote: no lugar dele vai um módulo vazio.
 - Correções na tela: no tema escuro, a lista aberta dos selects era branca com texto branco (agora os controles nativos seguem o tema); seta dos selects com espaço fixo da borda.
 - Uma só fonte para o número da versão: `tusab-mcp/package.json`. O servidor e a tela leem dali; um teste confere que o `manifest.json` bate.
 - Descrições da extensão (pt, en, es) sem referência ao app desktop.

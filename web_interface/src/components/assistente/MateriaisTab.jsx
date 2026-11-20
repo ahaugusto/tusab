@@ -14,11 +14,27 @@ import ArtefatosEstudo from './ArtefatosEstudo';
 import { abrirPromptsDoProjeto } from './PromptsTab';
 
 const CHAVE_PROJETO = 'tusab_materiais_projeto';
+
+/**
+ * Link "Abrir no Tusab" que a IA mostra depois de tusab_salvar_estudo: …/#material/<projeto>/<id>.
+ * Lê o destino uma vez e tira o # da barra de endereço. → { projeto, id } ou null.
+ */
+export function lerDestinoMaterial() {
+  const m = /^#material\/([^/]+)\/([^/]+)$/.exec(window.location.hash || '');
+  if (!m) return null;
+  window.history.replaceState(null, '', window.location.pathname);
+  try {
+    return { projeto: decodeURIComponent(m[1]), id: decodeURIComponent(m[2]) };
+  } catch {
+    return null;
+  }
+}
 const NEGRITO = { b: <strong /> };
 
-export default function MateriaisTab({ darkMode, projetos = [] }) {
+export default function MateriaisTab({ darkMode, projetos = [], abrir = null }) {
   const { t } = useTranslation();
   const [projeto, setProjeto] = useState(() => {
+    if (abrir?.projeto) return abrir.projeto;
     try { return localStorage.getItem(CHAVE_PROJETO) || ''; } catch { return ''; }
   });
   const [lista, setLista] = useState(null); // null = ainda carregando
@@ -58,7 +74,8 @@ export default function MateriaisTab({ darkMode, projetos = [] }) {
       </section>
 
       {projeto && (
-        <ArtefatosEstudo key={projeto} darkMode={darkMode} projeto={projeto} onLista={setLista} />
+        <ArtefatosEstudo key={projeto} darkMode={darkMode} projeto={projeto} onLista={setLista}
+          abrirId={abrir?.projeto === projeto ? abrir.id : null} />
       )}
 
       {projeto && lista && lista.length === 0 && (

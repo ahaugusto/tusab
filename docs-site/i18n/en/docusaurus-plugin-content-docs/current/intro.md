@@ -13,7 +13,7 @@ Technically, it is a local [MCP](https://modelcontextprotocol.io) server (`tusab
 
 - **stores and indexes** YouTube video transcripts, documents (PDF, Word, Excel, CSV, Markdown), texts and results from public sources (papers, theses, legislation, open data) in a local folder;
 - **answers the AI** through [15 MCP tools](/ferramentas-mcp): search, read a source in order, open a document's original file, add content, save study material;
-- **offers ready-made requests** in the [Prompt Library](/biblioteca-de-prompts) (21 prompts, in Claude's "+" menu and on the screen);
+- **offers ready-made requests** in the [Prompt Library](/biblioteca-de-prompts) (41 prompts, 20 of them based on evidence-based techniques, in the Claude "+" menu and on the screen);
 - **serves a screen** in the browser, at `http://127.0.0.1:<port>`, to extract channels, organize the repository and view reports ([the Tusab screen](/tela)).
 
 The one who converses, summarizes, builds quizzes and generates flashcards is **the user's AI**. Tusab takes care of the base: it extracts, indexes, finds the excerpt, cites the source and keeps what needs memory across conversations (for example, flashcard spaced repetition).

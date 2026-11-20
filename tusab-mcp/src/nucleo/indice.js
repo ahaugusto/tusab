@@ -439,6 +439,28 @@ export class Indice {
     }));
   }
 
+  /**
+   * Panorama do projeto sem consulta: os primeiros trechos de cada fonte, alternando entre as
+   * fontes (1º de cada, depois o 2º de cada...). Usado quando o pedido não tem tema.
+   * Mesmo formato de buscar().
+   */
+  panorama(projeto, { limite = 12 } = {}) {
+    this.atualizarSeMudou();
+    const lim = Math.min(Math.max(Number(limite) || 12, 1), 30);
+    return this.db.selectObjects(`
+      SELECT * FROM (
+        SELECT t.id AS trecho_id, t.fonte_id, t.inicio_s, t.fim_s, t.texto, COALESCE(t.titulo, f.titulo) AS titulo_trecho,
+               f.projeto, f.tipo, f.chave_externa, f.titulo, f.autor, f.url, f.publicado_em,
+               ROW_NUMBER() OVER (PARTITION BY t.fonte_id ORDER BY t.ordem) AS posicao
+          FROM trechos t JOIN fontes f ON f.id = t.fonte_id
+         WHERE f.projeto = ?)
+       ORDER BY posicao, fonte_id LIMIT ?`, [String(projeto), lim]).map((l) => ({
+      ...l,
+      minuto: l.inicio_s === null ? null : formatarTempo(l.inicio_s),
+      link: linkCitacao(l, l.inicio_s),
+    }));
+  }
+
   lerFonte(fonteId, { aPartirDeSegundos = 0, maxTrechos = 20 } = {}) {
     this.atualizarSeMudou();
     const fonte = this.db.selectObject('SELECT * FROM fontes WHERE id = ?', [fonteId]);

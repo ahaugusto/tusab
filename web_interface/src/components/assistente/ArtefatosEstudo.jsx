@@ -17,7 +17,7 @@ import EstudoArtefatoModal from './EstudoArtefatoModal';
 
 const ICONE_TIPO = { resumo: FileText, flashcards: Layers, postits: StickyNote };
 
-export default function ArtefatosEstudo({ darkMode, projeto, atualizarQuando, titulo = true, onLista }) {
+export default function ArtefatosEstudo({ darkMode, projeto, atualizarQuando, titulo = true, onLista, abrirId = null }) {
   const { t } = useTranslation();
   const [artefatos, setArtefatos] = useState([]);
   const [artefatoAberto, setArtefatoAberto] = useState(null); // entrada do manifest
@@ -40,6 +40,14 @@ export default function ArtefatosEstudo({ darkMode, projeto, atualizarQuando, ti
     window.addEventListener('focus', refetch);
     return () => { clearInterval(id); window.removeEventListener('focus', refetch); };
   }, [refetch]);
+
+  // Veio do link "Abrir no Tusab": abre aquele material assim que a lista chega (uma vez).
+  const jaAbriu = React.useRef(false);
+  useEffect(() => {
+    if (!abrirId || jaAbriu.current) return;
+    const art = artefatos.find((a) => a.id === abrirId);
+    if (art) { jaAbriu.current = true; abrir(art); }
+  }, [abrirId, artefatos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const abrir = async (art) => {
     const r = await buscarArtefatoEstudo(projeto, art.id).catch(() => null);

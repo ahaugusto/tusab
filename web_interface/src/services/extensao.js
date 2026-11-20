@@ -20,7 +20,8 @@ function lerChave() {
   const daUrl = new URLSearchParams(window.location.search).get('chave');
   if (daUrl) {
     try { sessionStorage.setItem(ARMAZENAMENTO, daUrl); } catch { /* aba privada: fica só em memória */ }
-    window.history.replaceState(null, '', window.location.pathname);
+    // Tira a chave da barra de endereço, mas mantém o #destino (ex.: #material/projeto/id).
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     return daUrl;
   }
   try { return sessionStorage.getItem(ARMAZENAMENTO); } catch { return null; }

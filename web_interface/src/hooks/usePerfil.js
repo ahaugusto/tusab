@@ -163,8 +163,11 @@ export function usePerfil() {
   }, []);
 
   // Se perfil não definido, fallback = profissional (não bloqueia nada antes do onboarding)
-  const regrasBase = PERFIS_CONFIG[perfil] ?? PERFIS_CONFIG.profissional;
-  const regras = { ...regrasBase, _perfil: perfil ?? 'profissional' };
+  // Extensão (19/11/2026): perfil único, o de acesso completo. A separação por público virou
+  // filtro na Biblioteca de Prompts ("Para quê"); a tela é a mesma para todos.
+  const perfilEfetivo = MODO_EXTENSAO ? 'profissional' : perfil;
+  const regrasBase = PERFIS_CONFIG[perfilEfetivo] ?? PERFIS_CONFIG.profissional;
+  const regras = { ...regrasBase, _perfil: perfilEfetivo ?? 'profissional' };
   if (MODO_EXTENSAO) {
     Object.assign(regras, REGRAS_EXTENSAO);
     regras.abas = regras.abas.filter((a) => !ABAS_FORA_DA_EXTENSAO.has(a));
@@ -172,10 +175,10 @@ export function usePerfil() {
     if (regras.abas.includes('estudo')) regras.abas.push('materiais');
   }
 
-  const perfilDefinido = perfil !== null;
+  const perfilDefinido = MODO_EXTENSAO || perfil !== null;
 
   return {
-    perfil,
+    perfil: perfilEfetivo,
     regras,
     setPerfil,
     perfilDefinido,

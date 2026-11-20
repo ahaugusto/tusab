@@ -25,7 +25,7 @@ import {
   statusSomenteLeitura,
 } from './nucleo/exportar.js';
 import { ErroValidacao as ErroValidacaoFontes } from './fontes/servico.js';
-import { excluirPromptUsuario, listarPrompts, montarPrompt, renomearPasta, salvarPromptUsuario } from './nucleo/prompts.js';
+import { excluirPromptUsuario, listarPrompts, montarPrompt, montarPromptComTrechos, renomearPasta, salvarPromptUsuario } from './nucleo/prompts.js';
 import { medirPerguntas, resumoEconomia, zerarEconomia } from './nucleo/tokens.js';
 import { URL_CANAL } from './nucleo/ytdlp.js';
 import { t } from './nucleo/idioma.js';
@@ -311,8 +311,20 @@ export async function atenderApi(tusab, metodo, caminho, query, lerCorpo) {
   // ── Prompts prontos (a IA gera; o Tusab entrega o pedido certo) ────────
   if (rota === 'GET /prompts') return ok(listarPrompts(raiz));
   if (rota === 'POST /prompts/montar') {
-    const { id, projeto, tema, quantidade } = await json();
-    try { return ok({ ok: true, texto: montarPrompt(id, { projeto, tema, quantidade }, raiz) }); } catch (e) {
+    const { id, projeto, tema, quantidade, navegador } = await json();
+    try {
+      if (!navegador) return ok({ ok: true, texto: montarPrompt(id, { projeto, tema, quantidade }, raiz) });
+      // IA no navegador: os trechos vão dentro do pedido (do tema, ou um panorama do projeto)
+      tusab.sincronizar();
+      const proj = String(projeto || '').trim();
+      let trechos = tema && String(tema).trim() ? tusab.indice.buscar(String(tema), { projeto: proj, limite: 12 }) : [];
+      if (trechos.length < 4) {
+        const vistos = new Set(trechos.map((x) => x.trecho_id));
+        trechos = [...trechos, ...tusab.indice.panorama(proj, { limite: 12 }).filter((x) => !vistos.has(x.trecho_id))].slice(0, 12);
+      }
+      const r = montarPromptComTrechos(id, { projeto: proj, tema, quantidade }, trechos, raiz);
+      return ok({ ok: true, texto: r.texto, trechos: r.trechos });
+    } catch (e) {
       return ok({ error: true, message: e.message });
     }
   }

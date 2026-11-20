@@ -17,6 +17,12 @@ Technical summary of the versions. From 2.0.0 on, Tusab is only the AI extension
 - Square icon in the package (light and dark theme versions), made from the logo.
 - **Materials** tab: what the AI saves in Tusab opens in a dialog on the screen (flashcards with spaced repetition, summaries, sticky notes and documents). New `documento` type in `tusab_salvar_estudo` (Markdown, up to 60,000 characters), and the prompts that produce documents (quiz, mind map, lesson plan, test, technical note…) ask to save them.
 - Connection with the AI: every prompt starts with a check (without the Tusab tools, the AI warns instead of answering from memory), and the "copied" notice shows whether Tusab is connected and confirms when the AI queried the base (`GET /api/conexao`).
+- Prompt Library: 20 new prompts based on evidence-based techniques (pretest, free recall, interleaved practice, worked example, backward design, rubric, PRISMA, thematic analysis, pre-mortem, competing hypotheses…), with the reference on screen; "What for" tabs (Study, Teach, Research, Work and decisions) instead of profiles, which become a single one in the extension; suggested model badge (Fast · Haiku, Balanced · Sonnet, Most capable · Opus).
+- Browser AI: "Open in browser" copies the request with the excerpts from the base inside (from the topic or a project overview), since a browser AI cannot reach the local Tusab.
+- After `tusab_salvar_estudo`, the AI receives and shows the **Open in Tusab** link, which opens the screen right on the material.
+- Mind maps, flowcharts and timelines (`mermaid` blocks) are drawn in the Materials tab (Mermaid, loaded only when there is a diagram; the optional `elk` layout stays out of the package).
+- Tool descriptions in English and Spanish (before, only the titles changed language).
+- The Microsoft Clarity SDK (telemetry from the old desktop app) leaves the package: an empty module goes in its place.
 - Screen fixes: in the dark theme, the open list of selects was white with white text (native controls now follow the theme); select arrows have a fixed gap from the border.
 - A single source for the version number: `tusab-mcp/package.json`. The server and the screen read it from there; a test checks that `manifest.json` matches.
 - Extension descriptions (pt, en, es) no longer mention the desktop app.

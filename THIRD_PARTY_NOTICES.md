@@ -33,7 +33,7 @@ completo de todas as licenças, incluindo as dependências transitivas, em
 | [react-markdown](https://github.com/remarkjs/react-markdown), [remark-gfm](https://github.com/remarkjs/remark-gfm), [remark-breaks](https://github.com/remarkjs/remark-breaks) | MIT | Markdown |
 | [i18next](https://github.com/i18next/i18next) | MIT | Português, inglês e espanhol |
 | [axios](https://github.com/axios/axios) | MIT | Chamadas à API local do plugin |
-| [Microsoft Clarity](https://github.com/microsoft/clarity-js) (`@microsoft/clarity`) | MIT | Código compartilhado com o antigo app desktop; desligado na extensão |
+| [Mermaid](https://github.com/mermaid-js/mermaid) | MIT | Diagramas dos materiais (mapa mental, fluxograma, linha do tempo). Traz D3 (ISC), Cytoscape (MIT), KaTeX (MIT), DOMPurify (MPL-2.0 ou Apache-2.0; usado sob Apache-2.0) e outras; o layout opcional `elk` (elkjs, EPL-2.0) fica fora do pacote |
 
 ## Baixado na hora do uso (não vai no pacote)
 
